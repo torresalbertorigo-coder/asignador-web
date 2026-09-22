@@ -276,6 +276,8 @@ tbody tr:hover .td-action i{color:var(--text2)}
 </div>
 
 <!-- ── APP ───────────────────────────────────────────────────────────── -->
+<datalist id="dl-habilidades"></datalist>
+<datalist id="dl-certificados"></datalist>
 <div id="app">
   <div class="app-body">
 
@@ -409,6 +411,7 @@ async function initApp() {
   document.getElementById('sb-name').textContent = STATE.user.nombre;
   document.getElementById('sb-rol').textContent = STATE.rol === 'administrador' ? 'Administrador' : 'Técnico de campo';
   buildNav();
+  cargarCatalogos();
   if (STATE.rol === 'administrador') {
     await loadEmpleados();
     showSection('empleados');
@@ -558,6 +561,17 @@ async function api(method, path, body) {
   const r = await fetch(API + path, opts);
   if (r.status === 401) { doLogout(); return null; }
   return r.ok ? r.json() : null;
+}
+
+async function cargarCatalogos() {
+  const [habs, certs] = await Promise.all([
+    api('GET', '/empleados/catalogo/habilidades'),
+    api('GET', '/empleados/catalogo/certificados')
+  ]);
+  const dlHabs = document.getElementById('dl-habilidades');
+  const dlCerts = document.getElementById('dl-certificados');
+  if (dlHabs && habs) dlHabs.innerHTML = habs.map(n=>`<option value="${n.replace(/"/g,'&quot;')}">`).join('');
+  if (dlCerts && certs) dlCerts.innerHTML = certs.map(n=>`<option value="${n.replace(/"/g,'&quot;')}">`).join('');
 }
 
 async function loadEmpleados() {
@@ -850,6 +864,7 @@ function verProyecto(id) {
 }
 
 function openNuevoProyecto() {
+  cargarCatalogos();
   STATE._np_habilidades = [];
   STATE._np_certificados = [];
   openPanel('Nuevo proyecto', `
@@ -873,7 +888,7 @@ function openNuevoProyecto() {
     <div class="panel-section">
       <div class="panel-section-title">HABILIDADES OPERATIVAS REQUERIDAS</div>
       <div class="field-row">
-        <div class="field-group" style="flex:2"><label class="field-label">HABILIDAD</label><input class="field-input" id="np-hab-nombre" placeholder="Ej: Pilotaje RPAs, Termografía aérea"></div>
+        <div class="field-group" style="flex:2"><label class="field-label">HABILIDAD</label><input class="field-input" id="np-hab-nombre" list="dl-habilidades" placeholder="Ej: Pilotaje RPAs, Termografía aérea"></div>
         <div class="field-group"><label class="field-label">NIVEL MÍN. (1-10)</label><input class="field-input" id="np-hab-nivel" type="number" min="1" max="10" value="5"></div>
       </div>
       <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="agregarHabilidadProyecto()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar habilidad</button>
@@ -881,7 +896,7 @@ function openNuevoProyecto() {
     </div>
     <div class="panel-section">
       <div class="panel-section-title">CERTIFICADOS TÉCNICOS REQUERIDOS</div>
-      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE DEL CERTIFICADO</label><input class="field-input" id="np-cert-nombre" placeholder="Ej: DC-3 Manejo a la defensiva, Licencia de conducir"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE DEL CERTIFICADO</label><input class="field-input" id="np-cert-nombre" list="dl-certificados" placeholder="Ej: DC-3 Manejo a la defensiva, Licencia de conducir"></div></div>
       <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="agregarCertificadoProyecto()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar certificado</button>
       <div id="np-certs-list" style="margin-top:10px">${renderListaCertificadosProyecto()}</div>
     </div>
@@ -1443,11 +1458,12 @@ async function fileToBase64(file) {
 }
 
 function openAgregarHabilidad() {
+  cargarCatalogos();
   const hoy = new Date().toISOString().split('T')[0];
   openPanel('Agregar habilidad operativa', `
     <div class="panel-section">
       <div class="panel-section-title">DATOS DE LA HABILIDAD</div>
-      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE DE LA HABILIDAD</label><input class="field-input" id="hab-nombre" placeholder="Ej: Pilotaje RPAs, Termografía aérea, Manejar, Inglés"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE DE LA HABILIDAD</label><input class="field-input" id="hab-nombre" list="dl-habilidades" placeholder="Ej: Pilotaje RPAs, Termografía aérea, Manejar, Inglés"></div></div>
       <div class="field-row full"><div class="field-group">
         <label class="field-label">NIVEL (1-10)</label>
         <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
@@ -1500,6 +1516,7 @@ async function sincronizarHabilidades() {
 const TIPOS_DOC = ['Certificado / Curso','Licencia de Conducir','CURP','RFC','Identificación Oficial','GWO','DC3','Otro'];
 
 function openAgregarDocumento() {
+  cargarCatalogos();
   openPanel('Agregar documento', `
     <div class="panel-section">
       <div class="panel-section-title">DATOS DEL DOCUMENTO</div>
@@ -1508,7 +1525,7 @@ function openAgregarDocumento() {
           ${TIPOS_DOC.map(t=>`<option value="${t}">${t}</option>`).join('')}
         </select>
       </div></div>
-      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE / NÚMERO</label><input class="field-input" id="doc-nombre" placeholder="Ej: Licencia Federal Tipo E, CURP TOSR..."></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE / NÚMERO</label><input class="field-input" id="doc-nombre" list="dl-certificados" placeholder="Ej: Licencia Federal Tipo E, CURP TOSR..."></div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">INSTITUCIÓN EMISORA</label><input class="field-input" id="doc-inst" placeholder="Opcional"></div></div>
       <div id="vig-section" style="margin-top:10px">
         <div class="field-row" id="vig-fecha-row">
