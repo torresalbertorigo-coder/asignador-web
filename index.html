@@ -513,7 +513,7 @@ async function api(method, path, body) {
 }
 
 async function loadEmpleados() {
-  const d = await api('GET', '/empleados/empleados');
+  const d = await api('GET', '/empleados');
   if (d) STATE.empleados = d;
 }
 async function loadProyectos() {
@@ -542,7 +542,7 @@ async function cargarPerfil() {
   const empId = STATE.user?.empleado_id;
   if (!empId) return;
   try {
-    const d = await api('GET', `/empleados/empleados/${empId}`);
+    const d = await api('GET', `/empleados/${empId}`);
     if (d) {
       STATE.perfil_habs = d.perfil_habilidades || [];
       STATE.perfil_docs = d.perfil_documentos || [];
@@ -554,7 +554,7 @@ async function guardarPerfil() {
   const empId = STATE.user?.empleado_id;
   if (!empId) { console.warn('Sin empleado_id, no se guarda perfil'); return; }
   try {
-    const r = await fetch(`${API}/empleados/empleados/${empId}/perfil`, {
+    const r = await fetch(`${API}/empleados/${empId}/perfil`, {
       method: 'PATCH',
       headers: { 'Authorization': `Bearer ${STATE.token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -712,13 +712,13 @@ async function guardarNuevoTecnico() {
     id: `USR-${nombre[0].toUpperCase()}${apellido.slice(0,3).toUpperCase()}`,
     nombre: `${nombre} ${apellido}`, email, password: pass, rol: 'tecnico', empleado_id: id_emp
   });
-  const r2 = await api('POST', '/empleados/empleados', {
+  const r2 = await api('POST', '/empleados', {
     id: id_emp, nombre, apellido, seniority: nivel,
     ciudad, estado: estado || '', pais: 'México',
     latitud: 0, longitud: 0, telefono: tel, email: email
   });
   if (r2) {
-    await api('PUT', `/empleados/empleados/${id_emp}/perfil-estado`, { estado: 'activo' });
+    await api('PUT', `/empleados/${id_emp}/perfil-estado`, { estado: 'activo' });
     await loadEmpleados();
     closePanel(null, true);
     toast(`Técnico ${nombre} ${apellido} creado — ID: ${id_emp}`);
@@ -958,7 +958,7 @@ function ejecutarEvaluacion() {
 }
 
 async function asignarTecnico(empId, pryId) {
-  const r = await api('PUT', `/empleados/empleados/${empId}/perfil-estado`, { estado: 'activo', disponibilidad: 'asignado' });
+  const r = await api('PUT', `/empleados/${empId}/perfil-estado`, { estado: 'activo', disponibilidad: 'asignado' });
   toast(`Técnico asignado al proyecto`);
   setTimeout(() => ejecutarEvaluacion(), 500);
 }
@@ -1083,13 +1083,24 @@ function verProyectoTecnico(id) {
 
 // ─── SECCIÓN: CHECADOR ────────────────────────────────────────────────────────
 let clockInterval;
-function renderChecador() {
+async function renderChecador() {
   if (clockInterval) clearInterval(clockInterval);
+  const empId = STATE.user?.empleado_id;
   const entrada = localStorage.getItem('entrada_hoy');
+  
+  // Cargar historial desde API
+  let historial = [];
+  if (empId) {
+    try {
+      const r = await api('GET', `/empleados/${empId}/checadas`);
+      if (r) historial = r;
+    } catch(e) {}
+  }
+
   html(`
     <div class="check-card">
       <div id="check-time" class="check-time">--:--:--</div>
-      <div class="check-date" id="check-date">${new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
+      <div class="check-date">${new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
       <div class="check-btns">
         <button class="btn btn-primary" onclick="marcarEntrada()" ${entrada?'disabled':''} style="${entrada?'opacity:.4':''}" id="btn-entrada"><i class="ti ti-login" aria-hidden="true"></i> Entrada</button>
         <button class="btn btn-ghost" onclick="marcarSalida()" ${!entrada?'disabled':''} style="${!entrada?'opacity:.4':''}" id="btn-salida"><i class="ti ti-logout" aria-hidden="true"></i> Salida</button>
@@ -1097,9 +1108,31 @@ function renderChecador() {
       <div class="check-status" id="check-status">${entrada?`<span style="color:var(--green)">✓ Entrada registrada: ${entrada}</span>`:'Sin registro del día'}</div>
     </div>
     <div class="table-section">
-      <div class="table-header"><span class="table-title">HISTORIAL RECIENTE</span></div>
-      <div class="empty-state" style="padding:20px"><i class="ti ti-clock" aria-hidden="true"></i><p style="font-size:11px">Registros del día aparecerán aquí</p></div>
+      <div class="table-header">
+        <span class="table-title">HISTORIAL DE CHECADAS</span>
+        <span class="table-meta">${historial.length} registros</span>
+      </div>
+      ${historial.length === 0
+        ? '<div class="empty-state" style="padding:20px"><i class="ti ti-clock" aria-hidden="true"></i><p style="font-size:11px">Sin registros aún</p></div>'
+        : `<table>
+            <thead><tr><th>TIPO</th><th>FECHA Y HORA</th><th>PROYECTO</th></tr></thead>
+            <tbody>
+              ${historial.map(c => {
+                const ts = new Date(c.timestamp);
+                const fecha = ts.toLocaleDateString('es-MX', {day:'2-digit',month:'short',year:'numeric'});
+                const hora  = ts.toLocaleTimeString('es-MX', {hour:'2-digit',minute:'2-digit'});
+                return `<tr>
+                  <td>${c.tipo === 'entrada'
+                    ? '<span class="badge badge-libre">ENTRADA</span>'
+                    : '<span class="badge badge-proy">SALIDA</span>'}</td>
+                  <td class="td-mono">${fecha} ${hora}</td>
+                  <td>${c.proyecto_id || '—'}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>`}
     </div>`);
+
   clockInterval = setInterval(() => {
     const t = document.getElementById('check-time');
     if (t) t.textContent = new Date().toLocaleTimeString('es-MX');
@@ -1107,24 +1140,23 @@ function renderChecador() {
   document.getElementById('check-time').textContent = new Date().toLocaleTimeString('es-MX');
 }
 
-function marcarEntrada() {
+async function marcarEntrada() {
   const hora = new Date().toLocaleTimeString('es-MX');
+  const empId = STATE.user?.empleado_id;
   localStorage.setItem('entrada_hoy', hora);
-  document.getElementById('check-status').innerHTML = `<span style="color:var(--green)">✓ Entrada registrada: ${hora}</span>`;
-  document.getElementById('btn-entrada').disabled = true;
-  document.getElementById('btn-entrada').style.opacity = '.4';
-  document.getElementById('btn-salida').disabled = false;
-  document.getElementById('btn-salida').style.opacity = '1';
+  if (empId) await api('POST', `/empleados/${empId}/checadas`, { tipo: 'entrada' });
   toast('Entrada registrada — ' + hora);
+  renderChecador();
 }
-function marcarSalida() {
+
+async function marcarSalida() {
   const hora = new Date().toLocaleTimeString('es-MX');
+  const empId = STATE.user?.empleado_id;
   const entrada = localStorage.getItem('entrada_hoy');
   localStorage.removeItem('entrada_hoy');
-  document.getElementById('check-status').innerHTML = `<span style="color:var(--text2)">Jornada completa: ${entrada} — ${hora}</span>`;
-  document.getElementById('btn-salida').disabled = true;
-  document.getElementById('btn-salida').style.opacity = '.4';
+  if (empId) await api('POST', `/empleados/${empId}/checadas`, { tipo: 'salida' });
   toast('Salida registrada — ' + hora);
+  renderChecador();
 }
 
 // ─── SECCIÓN: REPORTAR ────────────────────────────────────────────────────────
