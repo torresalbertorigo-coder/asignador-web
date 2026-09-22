@@ -360,7 +360,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 
 <script>
 const API = 'https://asignador-inteligente.vercel.app';
-let STATE = { token: null, user: null, rol: null, empleados: [], proyectos: [], equipos: [], incidencias: [], sesionEmp: null };
+let STATE = { token: null, user: null, rol: null, empleados: [], proyectos: [], equipos: [], incidencias: [], sesionEmp: null, modoTecnico: false };
 
 // ─── AUTH ────────────────────────────────────────────────────────────────────
 async function doLogin() {
@@ -417,6 +417,47 @@ async function initApp() {
   }
 }
 
+function switchModo() {
+  STATE.modoTecnico = !STATE.modoTecnico;
+  const label = document.getElementById('switch-modo-label');
+  const icon = document.querySelector('#nav-switch-modo i');
+  if (STATE.modoTecnico) {
+    if (label) label.textContent = 'Vista Admin';
+    if (icon) icon.className = 'ti ti-shield';
+    // Mostrar nav de técnico
+    document.getElementById('admin-nav').style.display = 'none';
+    document.getElementById('tecnico-nav').style.display = 'block';
+    document.getElementById('mobile-nav-bar').innerHTML = `
+      <div class="mobile-nav-items">
+        <div class="mobile-nav-item" onclick="showSection('mis-asignaciones')" data-sec="mis-asignaciones"><i class="ti ti-briefcase" aria-hidden="true"></i>Mis Proyectos</div>
+        <div class="mobile-nav-item" onclick="showSection('checador')" data-sec="checador"><i class="ti ti-clock" aria-hidden="true"></i>Checador</div>
+        <div class="mobile-nav-item" onclick="showSection('reportar')" data-sec="reportar"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Reportar</div>
+        <div class="mobile-nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i>Mi Perfil</div>
+        <div class="mobile-nav-item" onclick="switchModo()"><i class="ti ti-shield" aria-hidden="true"></i>Admin</div>
+      </div>`;
+    showSection('mis-asignaciones');
+  } else {
+    if (label) label.textContent = 'Vista Técnico';
+    if (icon) icon.className = 'ti ti-arrows-exchange';
+    // Mostrar nav de admin
+    document.getElementById('admin-nav').style.display = 'block';
+    document.getElementById('tecnico-nav').style.display = 'none';
+    buildMobileNavAdmin();
+    showSection('empleados');
+  }
+}
+
+function buildMobileNavAdmin() {
+  document.getElementById('mobile-nav-bar').innerHTML = `
+    <div class="mobile-nav-items">
+      <div class="mobile-nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i>Empleados</div>
+      <div class="mobile-nav-item" onclick="showSection('proyectos')" data-sec="proyectos"><i class="ti ti-folder" aria-hidden="true"></i>Proyectos</div>
+      <div class="mobile-nav-item" onclick="showSection('evaluar')" data-sec="evaluar"><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i>Evaluar</div>
+      <div class="mobile-nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-tool" aria-hidden="true"></i>Equipos</div>
+      <div class="mobile-nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Incidencias</div>
+    </div>`;
+}
+
 function buildNav() {
   if (STATE.rol === 'administrador') {
     document.getElementById('admin-nav').innerHTML = `
@@ -429,7 +470,8 @@ function buildNav() {
       <div class="nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-tool" aria-hidden="true"></i> Equipos</div>
       <div class="nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Incidencias</div>
       <div class="nav-section">MI CUENTA</div>
-      <div class="nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i> Mi Perfil</div>`;
+      <div class="nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i> Mi Perfil</div>
+      <div class="nav-item" onclick="switchModo()" id="nav-switch-modo"><i class="ti ti-arrows-exchange" aria-hidden="true"></i> <span id="switch-modo-label">Vista Técnico</span></div>`;
     document.getElementById('mobile-nav-bar').innerHTML = `
       <div class="mobile-nav-items">
         <div class="mobile-nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i>Empleados</div>
