@@ -360,7 +360,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 
 <script>
 const API = 'https://asignador-inteligente.vercel.app';
-let STATE = { token: null, user: null, rol: null, empleados: [], proyectos: [], equipos: [], incidencias: [], sesionEmp: null, modoTecnico: false };
+let STATE = { token: null, user: null, rol: null, empleados: [], proyectos: [], equipos: [], incidencias: [], sesionEmp: null };
 
 // ─── AUTH ────────────────────────────────────────────────────────────────────
 async function doLogin() {
@@ -417,53 +417,6 @@ async function initApp() {
   }
 }
 
-function switchModo() {
-  STATE.modoTecnico = !STATE.modoTecnico;
-  const adminNav = document.getElementById('admin-nav');
-  const tecnicoNav = document.getElementById('tecnico-nav');
-
-  if (STATE.modoTecnico) {
-    // Modo técnico
-    adminNav.style.display = 'none';
-    tecnicoNav.style.display = 'block';
-    tecnicoNav.innerHTML = `
-      <div class="nav-section">MIS ACTIVIDADES</div>
-      <div class="nav-item" onclick="showSection('mis-asignaciones')" data-sec="mis-asignaciones"><i class="ti ti-briefcase" aria-hidden="true"></i> Mis Asignaciones</div>
-      <div class="nav-item" onclick="showSection('mi-gantt')" data-sec="mi-gantt"><i class="ti ti-calendar-stats" aria-hidden="true"></i> Mi Calendario</div>
-      <div class="nav-item" onclick="showSection('checador')" data-sec="checador"><i class="ti ti-clock" aria-hidden="true"></i> Reloj Checador</div>
-      <div class="nav-item" onclick="showSection('reportar')" data-sec="reportar"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Reportar</div>
-      <div class="nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i> Mi Perfil</div>
-      <div class="nav-section">CUENTA</div>
-      <div class="nav-item" onclick="switchModo()"><i class="ti ti-shield" aria-hidden="true"></i> Volver a Admin</div>`;
-    document.getElementById('mobile-nav-bar').innerHTML = `
-      <div class="mobile-nav-items">
-        <div class="mobile-nav-item" onclick="showSection('mis-asignaciones')" data-sec="mis-asignaciones"><i class="ti ti-briefcase" aria-hidden="true"></i>Proyectos</div>
-        <div class="mobile-nav-item" onclick="showSection('checador')" data-sec="checador"><i class="ti ti-clock" aria-hidden="true"></i>Checador</div>
-        <div class="mobile-nav-item" onclick="showSection('reportar')" data-sec="reportar"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Reportar</div>
-        <div class="mobile-nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i>Mi Perfil</div>
-        <div class="mobile-nav-item" onclick="switchModo()"><i class="ti ti-shield" aria-hidden="true"></i>Admin</div>
-      </div>`;
-    showSection('mis-asignaciones');
-  } else {
-    // Modo admin
-    adminNav.style.display = 'block';
-    tecnicoNav.style.display = 'none';
-    buildMobileNavAdmin();
-    showSection('empleados');
-  }
-}
-
-function buildMobileNavAdmin() {
-  document.getElementById('mobile-nav-bar').innerHTML = `
-    <div class="mobile-nav-items">
-      <div class="mobile-nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i>Empleados</div>
-      <div class="mobile-nav-item" onclick="showSection('proyectos')" data-sec="proyectos"><i class="ti ti-folder" aria-hidden="true"></i>Proyectos</div>
-      <div class="mobile-nav-item" onclick="showSection('evaluar')" data-sec="evaluar"><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i>Evaluar</div>
-      <div class="mobile-nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-tool" aria-hidden="true"></i>Equipos</div>
-      <div class="mobile-nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Incidencias</div>
-    </div>`;
-}
-
 function buildNav() {
   if (STATE.rol === 'administrador') {
     document.getElementById('admin-nav').innerHTML = `
@@ -476,8 +429,7 @@ function buildNav() {
       <div class="nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-tool" aria-hidden="true"></i> Equipos</div>
       <div class="nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Incidencias</div>
       <div class="nav-section">MI CUENTA</div>
-      <div class="nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i> Mi Perfil</div>
-      <div class="nav-item" onclick="switchModo()" id="nav-switch-modo"><i class="ti ti-arrows-exchange" aria-hidden="true"></i> <span id="switch-modo-label">Vista Técnico</span></div>`;
+      <div class="nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i> Mi Perfil</div>`;
     document.getElementById('mobile-nav-bar').innerHTML = `
       <div class="mobile-nav-items">
         <div class="mobile-nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i>Empleados</div>
@@ -561,7 +513,7 @@ async function api(method, path, body) {
 }
 
 async function loadEmpleados() {
-  const d = await api('GET', '/empleados');
+  const d = await api('GET', '/empleados/empleados');
   if (d) STATE.empleados = d;
 }
 async function loadProyectos() {
@@ -590,7 +542,7 @@ async function cargarPerfil() {
   const empId = STATE.user?.empleado_id;
   if (!empId) return;
   try {
-    const d = await api('GET', `/empleados/${empId}`);
+    const d = await api('GET', `/empleados/empleados/${empId}`);
     if (d) {
       STATE.perfil_habs = d.perfil_habilidades || [];
       STATE.perfil_docs = d.perfil_documentos || [];
@@ -602,7 +554,7 @@ async function guardarPerfil() {
   const empId = STATE.user?.empleado_id;
   if (!empId) { console.warn('Sin empleado_id, no se guarda perfil'); return; }
   try {
-    const r = await fetch(`${API}/empleados/${empId}/perfil`, {
+    const r = await fetch(`${API}/empleados/empleados/${empId}/perfil`, {
       method: 'PATCH',
       headers: { 'Authorization': `Bearer ${STATE.token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -760,13 +712,13 @@ async function guardarNuevoTecnico() {
     id: `USR-${nombre[0].toUpperCase()}${apellido.slice(0,3).toUpperCase()}`,
     nombre: `${nombre} ${apellido}`, email, password: pass, rol: 'tecnico', empleado_id: id_emp
   });
-  const r2 = await api('POST', '/empleados', {
+  const r2 = await api('POST', '/empleados/empleados', {
     id: id_emp, nombre, apellido, seniority: nivel,
     ciudad, estado: estado || '', pais: 'México',
     latitud: 0, longitud: 0, telefono: tel, email: email
   });
   if (r2) {
-    await api('PUT', `/empleados/${id_emp}/perfil-estado`, { estado: 'activo' });
+    await api('PUT', `/empleados/empleados/${id_emp}/perfil-estado`, { estado: 'activo' });
     await loadEmpleados();
     closePanel(null, true);
     toast(`Técnico ${nombre} ${apellido} creado — ID: ${id_emp}`);
@@ -911,7 +863,7 @@ async function renderGantt() {
               ${cols.map(d=>{
                 const isHoy = d.toDateString() === hoy;
                 const isWknd = d.getDay()===0||d.getDay()===6;
-                const pry = STATE.proyectos.find(p => p.empleado_actual===e.id && p.fecha_inicio && p.fecha_fin_estimada && new Date(p.fecha_inicio)<=d && new Date(p.fecha_fin_estimada)>=d);
+                const pry = STATE.proyectos.find(p => (p.tecnicos_asignados||[]).includes(e.id) && p.fecha_inicio && p.fecha_fin_estimada && new Date(p.fecha_inicio)<=d && new Date(p.fecha_fin_estimada)>=d);
                 let cls = isHoy ? 'gantt-cell today' : isWknd ? 'gantt-cell weekend' : 'gantt-cell';
                 if (pry) cls += d < today ? ' past' : ' occupied';
                 return `<td class="${cls}" title="${pry?pry.nombre:''}"></td>`;
@@ -948,67 +900,73 @@ async function renderEvaluar() {
     ${pendientes.length===0?'<div class="empty-state"><i class="ti ti-check-circle" aria-hidden="true"></i><p>No hay proyectos pendientes de asignación</p><span>Todos los proyectos están asignados o en progreso</span></div>':''}`);
 }
 
-function ejecutarEvaluacion() {
+async function ejecutarEvaluacion() {
   const pid = document.getElementById('ev-proyecto')?.value;
   if (!pid) { toast('Selecciona un proyecto primero','error'); return; }
-  const pry = STATE.proyectos.find(p=>p.id===pid);
-  const emps = STATE.empleados.filter(e=>e.disponibilidad==='libre'||e.disponibilidad==='recien_regresado');
-  if (emps.length===0) { document.getElementById('ev-results').innerHTML='<div class="empty-state"><i class="ti ti-users" aria-hidden="true"></i><p>No hay técnicos disponibles</p></div>'; return; }
-  const scored = emps.map(e=>{
-    const fat_pts = 25*(1-(e.indice_fatiga||0)/100);
-    const sen_map = {junior:2,semi_senior:5,senior:8,especialista:10};
-    const sen_pts = 10*(sen_map[e.seniority||'junior']/10);
-    const total = Math.round(fat_pts + sen_pts + Math.random()*40+20);
-    return {...e, score: Math.min(100,total)};
-  }).sort((a,b)=>b.score-a.score);
-  const criterios = ['Habilidades','Fatiga','Recencia','Seniority','Cercanía'];
-  const aprobados = scored.slice(0,Math.ceil(scored.length*.6));
-  const brecha = scored.slice(Math.ceil(scored.length*.6));
+  const resultsEl = document.getElementById('ev-results');
+  resultsEl.innerHTML = '<div class="empty-state"><i class="ti ti-loader-2" aria-hidden="true"></i><p>Ejecutando motor de asignación...</p></div>';
+
+  const r = await api('GET', `/proyectos/proyectos/${pid}/evaluar`);
+  if (!r) { resultsEl.innerHTML = '<div class="empty-state"><i class="ti ti-alert-triangle" aria-hidden="true"></i><p>Error al ejecutar la evaluación.</p></div>'; return; }
+
+  const { proyecto_nombre, aprobados, descartados, mensaje_si_vacio } = r;
+  const labels = { habilidades:'Habilidades', fatiga:'Fatiga', recencia:'Recencia', seniority:'Seniority', cercania:'Cercanía' };
+
   let html_out = `<div style="background:var(--surface);border:1px solid var(--border);padding:10px 14px;border-radius:var(--radius);margin-bottom:14px;font-size:11px">
-    <strong style="color:var(--text)">Evaluación — ${pry.nombre}</strong>
+    <strong style="color:var(--text)">Evaluación — ${proyecto_nombre}</strong>
     <span style="color:var(--green);margin-left:12px">● ${aprobados.length} aprobados</span>
-    <span style="color:var(--amber);margin-left:8px">● ${brecha.length} brecha técnica</span>
+    <span style="color:var(--amber);margin-left:8px">● ${descartados.length} descartados</span>
   </div>`;
+
   if (aprobados.length) {
-    html_out += `<div class="eval-section-title">APROBADOS</div>`;
-    aprobados.forEach((e,i)=>{
-      const topClass = i===0?'candidato-card top':'candidato-card';
+    html_out += `<div class="eval-section-title">CANDIDATOS APROBADOS</div>`;
+    aprobados.forEach((c)=>{
+      const top = c.posicion===1;
+      const topClass = top?'candidato-card top':'candidato-card';
       html_out += `<div class="${topClass}">
         <div class="candidato-head">
-          <div><div class="candidato-name">${i===0?'<span style="color:var(--red);margin-right:6px">①</span>':''}${e.nombre} ${e.apellido}</div><div class="candidato-sub">${(e.seniority||'').replace('_',' ')} · ${e.ciudad||'—'}</div></div>
-          <div style="text-align:right"><div class="candidato-score">${e.score}<span class="score-max">/100</span></div></div>
+          <div><div class="candidato-name">${top?'<span style="color:var(--red);margin-right:6px">①</span>':''}${c.nombre}</div><div class="candidato-sub">${c.recomendacion}${c.alerta_fatiga?' · ⚠️ fatiga alta':''}</div></div>
+          <div style="text-align:right"><div class="candidato-score">${c.puntaje_total}<span class="score-max">/100</span></div></div>
         </div>
-        ${criterios.map((c,ci)=>{
-          const pct = [e.score*.4,e.score*.25,e.score*.2,e.score*.1,e.score*.05][ci];
-          const max = [40,25,20,10,5][ci];
-          return `<div class="criterio-row"><span class="criterio-name">${c}</span><div class="criterio-bar-wrap"><div class="criterio-bar-fill" style="width:${(pct/max)*100}%"></div></div><span class="criterio-val">${pct.toFixed(1)}/${max}</span></div>`;
+        ${['habilidades','fatiga','recencia','seniority','cercania'].map(key=>{
+          const d = c.desglose[key];
+          return `<div class="criterio-row" title="${d.justificacion||''}"><span class="criterio-name">${labels[key]}</span><div class="criterio-bar-wrap"><div class="criterio-bar-fill" style="width:${d.porcentaje}%"></div></div><span class="criterio-val">${d.puntos}/${d.maximo}</span></div>`;
         }).join('')}
         <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:8px">
-          <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:2px;font-size:10px;font-weight:700;background:${i===0?'var(--red-bg)':'var(--surface2)'};color:${i===0?'#ef4444':'var(--text2)'};border:1px solid ${i===0?'#4a1a1a':'var(--border2)'}">${i===0?'RECOMENDADO':'ACEPTABLE'}</span>
-          <button class="btn btn-primary btn-sm" onclick="asignarTecnico('${e.id}','${pid}')"><i class="ti ti-user-plus" aria-hidden="true"></i> Asignar</button>
+          <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:2px;font-size:10px;font-weight:700;background:${top?'var(--red-bg)':'var(--surface2)'};color:${top?'#ef4444':'var(--text2)'};border:1px solid ${top?'#4a1a1a':'var(--border2)'}">${c.recomendacion}</span>
+          <button class="btn btn-primary btn-sm" onclick="asignarTecnico('${c.id_empleado}','${pid}')"><i class="ti ti-user-plus" aria-hidden="true"></i> Asignar</button>
         </div>
       </div>`;
     });
   }
-  if (brecha.length) {
-    html_out += `<div class="eval-section-title" style="margin-top:14px;border-left-color:var(--amber)">BRECHA TÉCNICA — Para capacitación</div>`;
-    brecha.forEach(e=>{
+
+  if (descartados.length) {
+    html_out += `<div class="eval-section-title" style="margin-top:14px;border-left-color:var(--amber)">DESCARTADOS</div>`;
+    descartados.forEach(d=>{
       html_out += `<div style="background:var(--amber-bg);border:1px solid #4a2d05;border-radius:var(--radius);padding:12px 14px;margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-weight:600;color:var(--text)">${e.nombre} ${e.apellido}</span>
-          ${badge(e.disponibilidad||'libre')}
+          <span style="font-weight:600;color:var(--text)">${d.nombre}</span>
+          <span style="font-size:10px;color:var(--text3)">${d.filtro_falla}</span>
         </div>
-        <div class="brecha-item">Requiere capacitación adicional</div>
+        <div class="brecha-item">${d.razon}</div>
       </div>`;
     });
   }
-  document.getElementById('ev-results').innerHTML = html_out;
+
+  if (mensaje_si_vacio) {
+    html_out += `<div class="empty-state"><i class="ti ti-alert-circle" aria-hidden="true"></i><p>${mensaje_si_vacio}</p></div>`;
+  }
+
+  resultsEl.innerHTML = html_out;
 }
 
 async function asignarTecnico(empId, pryId) {
-  const r = await api('PUT', `/empleados/${empId}/perfil-estado`, { estado: 'activo', disponibilidad: 'asignado' });
-  toast(`Técnico asignado al proyecto`);
-  setTimeout(() => ejecutarEvaluacion(), 500);
+  const r = await api('POST', `/proyectos/proyectos/${pryId}/asignar/${empId}`);
+  if (!r) { toast('Error al asignar el técnico','error'); return; }
+  toast(r.mensaje || 'Técnico asignado al proyecto');
+  await loadProyectos();
+  await loadEmpleados();
+  ejecutarEvaluacion();
 }
 
 // ─── SECCIÓN: EQUIPOS ─────────────────────────────────────────────────────────
@@ -1070,38 +1028,25 @@ function openNuevoEquipo() {
 
 // ─── SECCIÓN: INCIDENCIAS ─────────────────────────────────────────────────────
 async function renderIncidencias() {
-  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-ghost btn-sm" onclick="renderIncidencias()"><i class="ti ti-refresh" aria-hidden="true"></i></button>`;
-  const inc = await api('GET', '/empleados/incidencias') || [];
-  STATE.incidencias = inc;
-  const altas  = inc.filter(i=>i.severidad==='alta').length;
+  const inc = STATE.incidencias;
+  const altas = inc.filter(i=>i.severidad==='alta').length;
   const medias = inc.filter(i=>i.severidad==='media').length;
-  const resueltas = inc.filter(i=>i.estado==='resuelta').length;
   html(`
     <div class="stats-grid">
       <div class="stat-card c-red"><div class="stat-lbl">TOTAL REPORTES</div><div class="stat-val">${inc.length}</div><div class="stat-sub">recibidos</div></div>
       <div class="stat-card" style="border-left-color:#ef4444"><div class="stat-lbl">SEVERIDAD ALTA</div><div class="stat-val">${altas}</div><div class="stat-sub">requieren atención</div></div>
       <div class="stat-card c-amber"><div class="stat-lbl">SEVERIDAD MEDIA</div><div class="stat-val">${medias}</div><div class="stat-sub">en seguimiento</div></div>
-      <div class="stat-card c-green"><div class="stat-lbl">RESUELTAS</div><div class="stat-val">${resueltas}</div><div class="stat-sub">cerradas</div></div>
+      <div class="stat-card c-green"><div class="stat-lbl">RESUELTOS</div><div class="stat-val">0</div><div class="stat-sub">cerrados</div></div>
     </div>
-    ${inc.length===0
-      ? `<div class="empty-state"><i class="ti ti-check-circle" aria-hidden="true"></i><p>Sin incidencias reportadas</p><span>Los técnicos no han enviado reportes aún</span></div>`
-      : `<div class="table-section">
-          <div class="table-header"><span class="table-title">INCIDENCIAS DE CAMPO</span><span class="table-meta">${inc.length} reportes</span></div>
-          ${inc.map(i=>`<div class="inc-card ${i.severidad}" style="margin:0;border-radius:0;border-left-width:3px;border-right:none;border-top:none">
-            <div class="inc-head">
-              <div>
-                <span class="inc-tipo">${(i.tipo||'incidencia').replace(/_/g,' ')}</span>
-                <div class="inc-meta" style="margin-top:4px"><i class="ti ti-user" aria-hidden="true"></i> ${i.empleado_id} · <i class="ti ti-calendar" aria-hidden="true"></i> ${i.fecha}</div>
-              </div>
-              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-                ${badge(i.severidad||'baja')}
-                <span style="font-size:9px;color:var(--text3)">${i.estado?.toUpperCase()||'ABIERTA'}</span>
-              </div>
-            </div>
-            <div class="inc-desc">${i.descripcion}</div>
-          </div>`).join('')}
-        </div>`}
-  `);
+    ${inc.length===0?`<div class="empty-state"><i class="ti ti-check-circle" aria-hidden="true"></i><p>Sin incidencias reportadas</p><span>Los técnicos no han enviado reportes aún</span></div>`:`
+    <div class="table-section">
+      <div class="table-header"><span class="table-title">INCIDENCIAS DE CAMPO</span></div>
+      ${inc.map(i=>`<div class="inc-card ${i.severidad}">
+        <div class="inc-head"><span class="inc-tipo">${i.tipo||'Incidencia'}</span>${badge(i.severidad||'baja')}</div>
+        <div class="inc-meta"><i class="ti ti-user" aria-hidden="true"></i> ${i.id_empleado} · <i class="ti ti-calendar" aria-hidden="true"></i> ${i.fecha}</div>
+        <div class="inc-desc">${i.descripcion}</div>
+      </div>`).join('')}
+    </div>`}`);
 }
 
 // ─── SECCIÓN: MIS ASIGNACIONES (TÉCNICO) ──────────────────────────────────────
@@ -1144,24 +1089,13 @@ function verProyectoTecnico(id) {
 
 // ─── SECCIÓN: CHECADOR ────────────────────────────────────────────────────────
 let clockInterval;
-async function renderChecador() {
+function renderChecador() {
   if (clockInterval) clearInterval(clockInterval);
-  const empId = STATE.user?.empleado_id;
   const entrada = localStorage.getItem('entrada_hoy');
-  
-  // Cargar historial desde API
-  let historial = [];
-  if (empId) {
-    try {
-      const r = await api('GET', `/empleados/${empId}/checadas`);
-      if (r) historial = r;
-    } catch(e) {}
-  }
-
   html(`
     <div class="check-card">
       <div id="check-time" class="check-time">--:--:--</div>
-      <div class="check-date">${new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
+      <div class="check-date" id="check-date">${new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
       <div class="check-btns">
         <button class="btn btn-primary" onclick="marcarEntrada()" ${entrada?'disabled':''} style="${entrada?'opacity:.4':''}" id="btn-entrada"><i class="ti ti-login" aria-hidden="true"></i> Entrada</button>
         <button class="btn btn-ghost" onclick="marcarSalida()" ${!entrada?'disabled':''} style="${!entrada?'opacity:.4':''}" id="btn-salida"><i class="ti ti-logout" aria-hidden="true"></i> Salida</button>
@@ -1169,31 +1103,9 @@ async function renderChecador() {
       <div class="check-status" id="check-status">${entrada?`<span style="color:var(--green)">✓ Entrada registrada: ${entrada}</span>`:'Sin registro del día'}</div>
     </div>
     <div class="table-section">
-      <div class="table-header">
-        <span class="table-title">HISTORIAL DE CHECADAS</span>
-        <span class="table-meta">${historial.length} registros</span>
-      </div>
-      ${historial.length === 0
-        ? '<div class="empty-state" style="padding:20px"><i class="ti ti-clock" aria-hidden="true"></i><p style="font-size:11px">Sin registros aún</p></div>'
-        : `<table>
-            <thead><tr><th>TIPO</th><th>FECHA Y HORA</th><th>PROYECTO</th></tr></thead>
-            <tbody>
-              ${historial.map(c => {
-                const ts = new Date(c.timestamp);
-                const fecha = ts.toLocaleDateString('es-MX', {day:'2-digit',month:'short',year:'numeric'});
-                const hora  = ts.toLocaleTimeString('es-MX', {hour:'2-digit',minute:'2-digit'});
-                return `<tr>
-                  <td>${c.tipo === 'entrada'
-                    ? '<span class="badge badge-libre">ENTRADA</span>'
-                    : '<span class="badge badge-proy">SALIDA</span>'}</td>
-                  <td class="td-mono">${fecha} ${hora}</td>
-                  <td>${c.proyecto_id || '—'}</td>
-                </tr>`;
-              }).join('')}
-            </tbody>
-          </table>`}
+      <div class="table-header"><span class="table-title">HISTORIAL RECIENTE</span></div>
+      <div class="empty-state" style="padding:20px"><i class="ti ti-clock" aria-hidden="true"></i><p style="font-size:11px">Registros del día aparecerán aquí</p></div>
     </div>`);
-
   clockInterval = setInterval(() => {
     const t = document.getElementById('check-time');
     if (t) t.textContent = new Date().toLocaleTimeString('es-MX');
@@ -1201,29 +1113,30 @@ async function renderChecador() {
   document.getElementById('check-time').textContent = new Date().toLocaleTimeString('es-MX');
 }
 
-async function marcarEntrada() {
+function marcarEntrada() {
   const hora = new Date().toLocaleTimeString('es-MX');
-  const empId = STATE.user?.empleado_id;
   localStorage.setItem('entrada_hoy', hora);
-  if (empId) await api('POST', `/empleados/${empId}/checadas`, { tipo: 'entrada' });
+  document.getElementById('check-status').innerHTML = `<span style="color:var(--green)">✓ Entrada registrada: ${hora}</span>`;
+  document.getElementById('btn-entrada').disabled = true;
+  document.getElementById('btn-entrada').style.opacity = '.4';
+  document.getElementById('btn-salida').disabled = false;
+  document.getElementById('btn-salida').style.opacity = '1';
   toast('Entrada registrada — ' + hora);
-  renderChecador();
 }
-
-async function marcarSalida() {
+function marcarSalida() {
   const hora = new Date().toLocaleTimeString('es-MX');
-  const empId = STATE.user?.empleado_id;
   const entrada = localStorage.getItem('entrada_hoy');
   localStorage.removeItem('entrada_hoy');
-  if (empId) await api('POST', `/empleados/${empId}/checadas`, { tipo: 'salida' });
+  document.getElementById('check-status').innerHTML = `<span style="color:var(--text2)">Jornada completa: ${entrada} — ${hora}</span>`;
+  document.getElementById('btn-salida').disabled = true;
+  document.getElementById('btn-salida').style.opacity = '.4';
   toast('Salida registrada — ' + hora);
-  renderChecador();
 }
 
 // ─── SECCIÓN: REPORTAR ────────────────────────────────────────────────────────
 function renderReportar() {
   html(`
-    <div class="table-section" style="padding:20px;max-width:600px">
+    <div class="table-section" style="padding:20px">
       <div class="panel-section-title" style="margin-bottom:16px">NUEVO REPORTE DE INCIDENCIA</div>
       <div class="field-row">
         <div class="field-group"><label class="field-label">TIPO DE INCIDENCIA</label>
@@ -1232,7 +1145,7 @@ function renderReportar() {
             <option value="falla_equipo">Falla de equipo</option>
             <option value="condicion_clima">Condición climática</option>
             <option value="seguridad">Problema de seguridad</option>
-            <option value="avance_normal">Avance / Progreso normal</option>
+            <option value="avance_normal">Avance normal</option>
             <option value="otro">Otro</option>
           </select>
         </div>
@@ -1249,29 +1162,20 @@ function renderReportar() {
           <textarea class="field-input" id="rep-desc" rows="5" placeholder="Describe detalladamente la incidencia..."></textarea>
         </div>
       </div>
-      <div id="rep-err" style="color:#ef4444;font-size:11px;margin-top:6px"></div>
       <div style="margin-top:14px;display:flex;justify-content:flex-end">
         <button class="btn btn-primary" onclick="enviarReporte()"><i class="ti ti-send" aria-hidden="true"></i> Enviar reporte</button>
       </div>
     </div>`);
 }
 
-async function enviarReporte() {
+function enviarReporte() {
   const desc = document.getElementById('rep-desc')?.value.trim();
-  const err  = document.getElementById('rep-err');
-  if (!desc) { err.textContent = 'Escribe una descripción antes de enviar.'; return; }
+  if (!desc) { toast('Escribe una descripción antes de enviar','error'); return; }
   const tipo = document.getElementById('rep-tipo')?.value;
   const sev  = document.getElementById('rep-sev')?.value;
-  const empId = STATE.user?.empleado_id || 'USR';
-  const r = await api('POST', `/empleados/${empId}/incidencias`, {
-    tipo, severidad: sev, descripcion: desc
-  });
-  if (r) {
-    toast('Reporte enviado correctamente');
-    renderReportar();
-  } else {
-    err.textContent = 'Error al enviar el reporte.';
-  }
+  STATE.incidencias.push({ id_empleado: STATE.user?.empleado_id||'USR', tipo, severidad: sev, descripcion: desc, fecha: new Date().toISOString().split('T')[0], id_proyecto: 'GENERAL' });
+  toast('Reporte enviado correctamente');
+  renderReportar();
 }
 
 // ─── SECCIÓN: MI PERFIL ───────────────────────────────────────────────────────
