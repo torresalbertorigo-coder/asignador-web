@@ -732,6 +732,7 @@ async function guardarNuevoTecnico() {
 async function renderProyectos() {
   document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-ghost btn-sm" onclick="loadProyectos().then(renderProyectos)"><i class="ti ti-refresh" aria-hidden="true"></i></button><button class="btn btn-primary btn-sm" onclick="openNuevoProyecto()"><i class="ti ti-plus" aria-hidden="true"></i> Nuevo proyecto</button>`;
   await loadProyectos();
+  await loadEmpleados();
   const proyectos = STATE.proyectos;
   const pend = proyectos.filter(p=>p.estado==='pendiente_asignacion').length;
   const prog = proyectos.filter(p=>p.estado==='en_progreso').length;
@@ -766,6 +767,8 @@ async function renderProyectos() {
 function verProyecto(id) {
   const p = STATE.proyectos.find(x=>x.id===id);
   if (!p) return;
+  const idsAsignados = p.tecnicos_asignados || [];
+  const tecnicos = idsAsignados.map(empId => STATE.empleados.find(e=>e.id===empId)).filter(Boolean);
   openPanel(p.nombre, `
     <div class="panel-section">
       <div class="panel-section-title">DETALLES DEL PROYECTO</div>
@@ -777,8 +780,20 @@ function verProyecto(id) {
         <div><span style="color:var(--text3);font-size:9px">INICIO</span><div class="td-mono" style="margin-top:2px">${p.fecha_inicio||'—'}</div></div>
         <div><span style="color:var(--text3);font-size:9px">FIN ESTIMADO</span><div class="td-mono" style="margin-top:2px">${p.fecha_fin_estimada||'—'}</div></div>
         <div><span style="color:var(--text3);font-size:9px">CIUDAD</span><div style="margin-top:2px;color:var(--text)">${p.ciudad||'—'}</div></div>
-        <div><span style="color:var(--text3);font-size:9px">PERSONAL REQ.</span><div style="margin-top:2px;color:var(--text)">${p.personal_requerido||1} técnico(s)</div></div>
+        <div><span style="color:var(--text3);font-size:9px">PERSONAL REQ.</span><div style="margin-top:2px;color:var(--text)">${idsAsignados.length}/${p.personal_requerido||1} técnico(s)</div></div>
       </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">PERSONAL ASIGNADO</div>
+      ${tecnicos.length ? tecnicos.map(e=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:11px">
+          <div><div style="color:var(--text);font-weight:600">${e.nombre} ${e.apellido}</div><div style="color:var(--text3);font-size:9px">${(e.seniority||'').replace('_',' ')}</div></div>
+          ${badge(e.disponibilidad||'en_proyecto')}
+        </div>`).join('') : '<div style="font-size:11px;color:var(--text3)">Aún no hay técnicos asignados a este proyecto.</div>'}
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">EQUIPO Y HERRAMIENTAS</div>
+      <div style="font-size:11px;color:var(--text3)">Aún no vinculado — pendiente de conectar Equipos a Supabase.</div>
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
 }
@@ -866,7 +881,9 @@ async function renderGantt() {
                 const pry = STATE.proyectos.find(p => (p.tecnicos_asignados||[]).includes(e.id) && p.fecha_inicio && p.fecha_fin_estimada && new Date(p.fecha_inicio)<=d && new Date(p.fecha_fin_estimada)>=d);
                 let cls = isHoy ? 'gantt-cell today' : isWknd ? 'gantt-cell weekend' : 'gantt-cell';
                 if (pry) cls += d < today ? ' past' : ' occupied';
-                return `<td class="${cls}" title="${pry?pry.nombre:''}"></td>`;
+                const tip = pry ? `${pry.nombre}${pry.cliente?' · '+pry.cliente:''} (${pry.fecha_inicio} → ${pry.fecha_fin_estimada})`.replace(/"/g,'&quot;') : '';
+                const click = pry ? ` onclick="verProyecto('${pry.id}')" style="cursor:pointer"` : '';
+                return `<td class="${cls}" title="${tip}"${click}></td>`;
               }).join('')}
             </tr>`).join('')}
           </tbody>
