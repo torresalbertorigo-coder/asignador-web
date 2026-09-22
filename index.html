@@ -757,7 +757,8 @@ async function guardarNuevoTecnico() {
     nombre: `${nombre} ${apellido}`, email, password: pass, rol: 'tecnico', empleado_id: id_emp
   });
   if (r1) {
-    await api('PUT', `/empleados/${id_emp}/perfil-estado`, { estado: 'activo' });
+    const r3 = await api('PUT', `/empleados/${id_emp}/perfil-estado`, { nuevo_estado: 'activo' });
+    if (!r3) console.warn('No se pudo activar automáticamente el perfil del nuevo técnico.');
     await loadEmpleados();
     closePanel(null, true);
     toast(`Técnico ${nombre} ${apellido} creado — ID: ${id_emp}`);
@@ -1183,7 +1184,8 @@ async function renderIncidencias() {
 // ─── SECCIÓN: MIS ASIGNACIONES (TÉCNICO) ──────────────────────────────────────
 async function renderMisAsignaciones() {
   await loadProyectos();
-  const proyectos = STATE.proyectos;
+  const empId = STATE.user?.empleado_id;
+  const proyectos = STATE.proyectos.filter(p => (p.tecnicos_asignados||[]).includes(empId));
   html(`
     <div style="margin-bottom:16px"><h2 style="font-size:16px;font-weight:600;margin-bottom:4px">Hola, ${STATE.user?.nombre?.split(' ')[0]||'Técnico'}</h2><p style="font-size:12px;color:var(--text2)">${new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</p></div>
     ${proyectos.length===0?`<div class="empty-state"><i class="ti ti-calendar-off" aria-hidden="true"></i><p>Sin proyectos asignados</p><span>Disfruta tu día libre</span></div>`:
@@ -1626,7 +1628,8 @@ async function cambiarPassword() {
 // ─── MI GANTT ─────────────────────────────────────────────────────────────────
 async function renderMiGantt() {
   await loadProyectos();
-  const pry = STATE.proyectos;
+  const empId = STATE.user?.empleado_id;
+  const pry = STATE.proyectos.filter(p => (p.tecnicos_asignados||[]).includes(empId));
   const today = new Date();
   const dias = 30;
   const cols = Array.from({length:dias}, (_,i) => { const d = new Date(today); d.setDate(d.getDate()-7+i); return d; });
