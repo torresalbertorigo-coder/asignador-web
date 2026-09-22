@@ -544,28 +544,18 @@ async function cargarPerfil() {
   try {
     const d = await api('GET', `/empleados/${empId}`);
     if (d) {
-      STATE.perfil_habs = d.perfil_habilidades || [];
-      STATE.perfil_docs = d.perfil_documentos || [];
+      const habs = d.habilidades_declaradas || {};
+      const hist = d.historial_habilidades_declarado || {};
+      STATE.perfil_habs = Object.keys(habs).map(nombre => ({
+        nombre, nivel: habs[nombre], ultimo_uso: hist[nombre] || null
+      }));
+      STATE.perfil_docs = (d.certificados || []).map(c => ({
+        id: c.id, nombre: c.nombre, tipo: c.tipo || '—', institucion: c.institucion,
+        sin_vigencia: !c.fecha_vencimiento, vigencia: c.fecha_vencimiento,
+        desde: c.fecha_expedicion, url: c.ruta_pdf
+      }));
     }
   } catch(e) { console.error('Error cargando perfil:', e); }
-}
-
-async function guardarPerfil() {
-  const empId = STATE.user?.empleado_id;
-  if (!empId) { console.warn('Sin empleado_id, no se guarda perfil'); return; }
-  try {
-    const r = await fetch(`${API}/empleados/empleados/${empId}/perfil`, {
-      method: 'PATCH',
-      headers: { 'Authorization': `Bearer ${STATE.token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        perfil_habilidades: STATE.perfil_habs || [],
-        perfil_documentos:  STATE.perfil_docs  || []
-      })
-    });
-    const d = await r.json();
-    if (!r.ok) { console.error('Error PATCH perfil:', r.status, d); toast('Error al guardar perfil','error'); }
-    else { console.log('Perfil guardado OK'); }
-  } catch(e) { console.error('Excepción guardando perfil:', e); }
 }
 
 function abrirVisor(url, nombre) {
@@ -784,6 +774,17 @@ function verProyecto(id) {
       </div>
     </div>
     <div class="panel-section">
+      <div class="panel-section-title">REQUISITOS PARA ASIGNACIÓN</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:6px">HABILIDADES OPERATIVAS MÍNIMAS</div>
+      ${Object.keys(p.habilidades_requeridas_dict||{}).length ? Object.entries(p.habilidades_requeridas_dict).map(([nom,niv])=>
+        `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:11px;color:var(--text)"><span>${nom}</span><span class="td-mono">nivel ${niv}</span></div>`
+      ).join('') : '<div style="font-size:11px;color:var(--text3)">Sin requisitos de habilidad configurados.</div>'}
+      <div style="font-size:10px;color:var(--text3);margin:10px 0 6px">CERTIFICADOS TÉCNICOS REQUERIDOS</div>
+      ${(p.certificados_requeridos_nombres||[]).length ? p.certificados_requeridos_nombres.map(c=>
+        `<div style="padding:4px 0;font-size:11px;color:var(--text)">${c}</div>`
+      ).join('') : '<div style="font-size:11px;color:var(--text3)">Sin certificados requeridos configurados.</div>'}
+    </div>
+    <div class="panel-section">
       <div class="panel-section-title">PERSONAL ASIGNADO</div>
       ${tecnicos.length ? tecnicos.map(e=>`
         <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:11px">
@@ -799,6 +800,8 @@ function verProyecto(id) {
 }
 
 function openNuevoProyecto() {
+  STATE._np_habilidades = [];
+  STATE._np_certificados = [];
   openPanel('Nuevo proyecto', `
     <div class="panel-section">
       <div class="panel-section-title">INFORMACIÓN GENERAL</div>
@@ -818,11 +821,70 @@ function openNuevoProyecto() {
       <div class="field-row"><div class="field-group"><label class="field-label">PERSONAL REQUERIDO</label><input class="field-input" id="np-personal" type="number" value="1" min="1"></div><div class="field-group"><label class="field-label">PRESUPUESTO VIÁTICOS</label><input class="field-input" id="np-presup" type="number" placeholder="0.00"></div></div>
     </div>
     <div class="panel-section">
+      <div class="panel-section-title">HABILIDADES OPERATIVAS REQUERIDAS</div>
+      <div class="field-row">
+        <div class="field-group" style="flex:2"><label class="field-label">HABILIDAD</label><input class="field-input" id="np-hab-nombre" placeholder="Ej: Pilotaje RPAs, Termografía aérea"></div>
+        <div class="field-group"><label class="field-label">NIVEL MÍN. (1-10)</label><input class="field-input" id="np-hab-nivel" type="number" min="1" max="10" value="5"></div>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="agregarHabilidadProyecto()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar habilidad</button>
+      <div id="np-habs-list" style="margin-top:10px">${renderListaHabilidadesProyecto()}</div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">CERTIFICADOS TÉCNICOS REQUERIDOS</div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE DEL CERTIFICADO</label><input class="field-input" id="np-cert-nombre" placeholder="Ej: DC-3 Manejo a la defensiva, Licencia de conducir"></div></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="agregarCertificadoProyecto()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar certificado</button>
+      <div id="np-certs-list" style="margin-top:10px">${renderListaCertificadosProyecto()}</div>
+    </div>
+    <div class="panel-section">
       <div class="panel-section-title">UBICACIÓN</div>
       <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD</label><input class="field-input" id="np-ciudad" placeholder="Ciudad del proyecto"></div><div class="field-group"><label class="field-label">ESTADO</label><input class="field-input" id="np-estado" placeholder="Estado"></div></div>
     </div>
     <div id="np-err" style="color:#ef4444;font-size:11px;margin-top:8px"></div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="guardarNuevoProyecto()"><i class="ti ti-check" aria-hidden="true"></i> Crear proyecto</button>`);
+}
+
+function renderListaHabilidadesProyecto() {
+  const list = STATE._np_habilidades || [];
+  if (!list.length) return '<div style="font-size:11px;color:var(--text3)">Ninguna agregada — el proyecto no exigirá nivel mínimo de habilidades.</div>';
+  return list.map((h,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px">
+    <span>${h.nombre} — nivel mín. ${h.nivel}</span>
+    <button class="btn btn-ghost btn-sm" onclick="quitarHabilidadProyecto(${i})" style="padding:2px 6px"><i class="ti ti-x" aria-hidden="true"></i></button>
+  </div>`).join('');
+}
+function agregarHabilidadProyecto() {
+  const nombre = document.getElementById('np-hab-nombre')?.value.trim();
+  const nivel  = parseInt(document.getElementById('np-hab-nivel')?.value || '5');
+  if (!nombre) return;
+  if (!STATE._np_habilidades) STATE._np_habilidades = [];
+  STATE._np_habilidades = STATE._np_habilidades.filter(h=>h.nombre.toLowerCase()!==nombre.toLowerCase());
+  STATE._np_habilidades.push({ nombre, nivel });
+  document.getElementById('np-hab-nombre').value = '';
+  document.getElementById('np-habs-list').innerHTML = renderListaHabilidadesProyecto();
+}
+function quitarHabilidadProyecto(i) {
+  STATE._np_habilidades.splice(i,1);
+  document.getElementById('np-habs-list').innerHTML = renderListaHabilidadesProyecto();
+}
+
+function renderListaCertificadosProyecto() {
+  const list = STATE._np_certificados || [];
+  if (!list.length) return '<div style="font-size:11px;color:var(--text3)">Ninguno agregado — el proyecto no exigirá certificados.</div>';
+  return list.map((c,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px">
+    <span>${c}</span>
+    <button class="btn btn-ghost btn-sm" onclick="quitarCertificadoProyecto(${i})" style="padding:2px 6px"><i class="ti ti-x" aria-hidden="true"></i></button>
+  </div>`).join('');
+}
+function agregarCertificadoProyecto() {
+  const nombre = document.getElementById('np-cert-nombre')?.value.trim();
+  if (!nombre) return;
+  if (!STATE._np_certificados) STATE._np_certificados = [];
+  if (!STATE._np_certificados.includes(nombre)) STATE._np_certificados.push(nombre);
+  document.getElementById('np-cert-nombre').value = '';
+  document.getElementById('np-certs-list').innerHTML = renderListaCertificadosProyecto();
+}
+function quitarCertificadoProyecto(i) {
+  STATE._np_certificados.splice(i,1);
+  document.getElementById('np-certs-list').innerHTML = renderListaCertificadosProyecto();
 }
 
 async function guardarNuevoProyecto() {
@@ -839,6 +901,9 @@ async function guardarNuevoProyecto() {
   const err      = document.getElementById('np-err');
   if (!nombre || !inicio || !fin || !ciudad) { err.textContent = 'Nombre, fechas y ciudad son obligatorios.'; return; }
   const id_pry = `PRY-${Date.now().toString(36).toUpperCase()}`;
+  const habilidades_requeridas = {};
+  (STATE._np_habilidades||[]).forEach(h=>{ habilidades_requeridas[h.nombre] = h.nivel; });
+  const certificados_requeridos = (STATE._np_certificados||[]).slice();
   const r = await api('POST', '/proyectos/proyectos', {
     id: id_pry, nombre, cliente, criticidad: crit, intensidad: intens,
     fecha_inicio: inicio, fecha_fin_estimada: fin,
@@ -846,7 +911,7 @@ async function guardarNuevoProyecto() {
     presupuesto_viaticos: parseFloat(presup)||0,
     ciudad, estado_ub: estadoUb, pais: 'México',
     latitud: 0, longitud: 0,
-    habilidades_requeridas: {}, certificados_requeridos: [], equipos_requeridos: []
+    habilidades_requeridas, certificados_requeridos, equipos_requeridos: []
   });
   if (r) {
     await loadProyectos();
@@ -1218,17 +1283,17 @@ async function renderMiPerfil() {
 
     <div class="table-section" style="margin-bottom:12px">
       <div class="table-header">
-        <span class="table-title">HABILIDADES TÉCNICAS</span>
+        <div><span class="table-title">HABILIDADES OPERATIVAS</span><div class="table-meta" style="margin-top:2px">sin constancia — declaradas por ti</div></div>
         <button class="btn btn-ghost btn-sm" onclick="openAgregarHabilidad()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar</button>
       </div>
       <div id="habs-list">
         ${habs.length===0
-          ? '<div class="empty-state" style="padding:20px"><i class="ti ti-tools" aria-hidden="true"></i><p style="font-size:11px">Agrega tus habilidades técnicas y su nivel (1-10)</p></div>'
-          : `<table><thead><tr><th>HABILIDAD</th><th>NIVEL</th><th>CERTIFICADO</th><th></th></tr></thead><tbody>
+          ? '<div class="empty-state" style="padding:20px"><i class="ti ti-tools" aria-hidden="true"></i><p style="font-size:11px">Agrega tus habilidades operativas y su nivel (1-10)</p></div>'
+          : `<table><thead><tr><th>HABILIDAD</th><th>NIVEL</th><th>ÚLTIMO USO</th><th></th></tr></thead><tbody>
             ${habs.map((h,i)=>`<tr>
               <td class="td-name">${h.nombre}</td>
               <td><div style="display:flex;align-items:center;gap:8px"><div style="width:60px;height:3px;background:var(--border2);border-radius:1px;overflow:hidden"><div style="width:${h.nivel*10}%;height:100%;background:${h.nivel>=7?'var(--green)':h.nivel>=4?'var(--amber)':'#ef4444'}"></div></div><span style="font-size:11px;font-family:var(--mono)">${h.nivel}/10</span></div></td>
-              <td>${h.cert_url?`<button class="btn btn-ghost btn-sm" onclick="abrirVisor('${h.cert_url}','${h.nombre}')" style="padding:3px 8px;font-size:10px"><i class="ti ti-eye" aria-hidden="true"></i> Ver</button>`:'<span style="color:var(--text3);font-size:11px">—</span>'}</td>
+              <td class="td-mono" style="font-size:11px;color:var(--text2)">${h.ultimo_uso||'—'}</td>
               <td><button class="btn btn-ghost btn-sm" onclick="eliminarHabilidad(${i})" style="padding:3px 6px"><i class="ti ti-trash" aria-hidden="true"></i></button></td>
             </tr>`).join('')}
           </tbody></table>`}
@@ -1237,7 +1302,7 @@ async function renderMiPerfil() {
 
     <div class="table-section" style="margin-bottom:12px">
       <div class="table-header">
-        <span class="table-title">DOCUMENTOS Y CERTIFICADOS</span>
+        <div><span class="table-title">DOCUMENTOS Y CERTIFICADOS TÉCNICOS</span><div class="table-meta" style="margin-top:2px">con constancia o vigencia</div></div>
         <button class="btn btn-ghost btn-sm" onclick="openAgregarDocumento()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar</button>
       </div>
       <div id="docs-list">
@@ -1276,7 +1341,6 @@ async function renderMiPerfil() {
 
     <input type="file" id="file-foto" accept="image/*" style="display:none" onchange="subirFotoPerfil(this)">
     <input type="file" id="file-doc" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="archivoDocSeleccionado(this)">
-    <input type="file" id="file-cert" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="archivoCertSeleccionado(this)">
   `);
 }
 
@@ -1328,10 +1392,11 @@ async function fileToBase64(file) {
 }
 
 function openAgregarHabilidad() {
-  openPanel('Agregar habilidad', `
+  const hoy = new Date().toISOString().split('T')[0];
+  openPanel('Agregar habilidad operativa', `
     <div class="panel-section">
       <div class="panel-section-title">DATOS DE LA HABILIDAD</div>
-      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE DE LA HABILIDAD</label><input class="field-input" id="hab-nombre" placeholder="Ej: Inspección de palas, Termografía, Pilotaje RPAs"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE DE LA HABILIDAD</label><input class="field-input" id="hab-nombre" placeholder="Ej: Pilotaje RPAs, Termografía aérea, Manejar, Inglés"></div></div>
       <div class="field-row full"><div class="field-group">
         <label class="field-label">NIVEL (1-10)</label>
         <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
@@ -1339,41 +1404,23 @@ function openAgregarHabilidad() {
           <span id="hab-nivel-val" style="font-family:var(--mono);font-size:14px;color:var(--text);min-width:24px">7</span>
         </div>
       </div></div>
-      <div class="field-row full" style="margin-top:8px">
-        <label class="field-label" style="margin-bottom:6px">CERTIFICADO ASOCIADO (opcional)</label>
-        <div id="cert-file-area" style="border:1px dashed var(--border2);border-radius:var(--radius);padding:14px;text-align:center;cursor:pointer;background:#0D0D0D" onclick="document.getElementById('file-cert').click()">
-          <i class="ti ti-upload" style="font-size:20px;color:var(--text3)" aria-hidden="true"></i>
-          <p id="cert-file-name" style="font-size:11px;color:var(--text3);margin-top:6px">Toca para subir PDF o imagen</p>
-        </div>
-      </div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">ÚLTIMA VEZ QUE LA EJECUTASTE</label><input class="field-input" id="hab-fecha" type="date" value="${hoy}"></div></div>
     </div>
     <div id="hab-err" style="color:#ef4444;font-size:11px;margin-top:8px"></div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="guardarHabilidad()"><i class="ti ti-check" aria-hidden="true"></i> Guardar</button>`);
-  STATE._cert_file = null;
-}
-
-function archivoCertSeleccionado(input) {
-  const file = input.files[0];
-  if (file) {
-    STATE._cert_file = file;
-    const el = document.getElementById('cert-file-name');
-    if (el) el.textContent = '📄 ' + file.name;
-  }
 }
 
 async function guardarHabilidad() {
   const nombre = document.getElementById('hab-nombre')?.value.trim();
   const nivel  = parseInt(document.getElementById('hab-nivel')?.value || '7');
+  const fecha  = document.getElementById('hab-fecha')?.value || null;
   const err    = document.getElementById('hab-err');
   if (!nombre) { err.textContent = 'Escribe el nombre de la habilidad.'; return; }
-  let cert_url = null;
-  if (STATE._cert_file) {
-    err.textContent = 'Subiendo certificado...';
-    cert_url = await subirArchivoAPI(STATE._cert_file, `cert-${nombre.replace(/\s+/g,'-').toLowerCase()}`);
-  }
   if (!STATE.perfil_habs) STATE.perfil_habs = [];
-  STATE.perfil_habs.push({ nombre, nivel, cert_url });
-  await guardarPerfil();
+  STATE.perfil_habs = STATE.perfil_habs.filter(h => h.nombre.toLowerCase() !== nombre.toLowerCase());
+  STATE.perfil_habs.push({ nombre, nivel, ultimo_uso: fecha });
+  const ok = await sincronizarHabilidades();
+  if (!ok) { err.textContent = 'Error al guardar. Intenta de nuevo.'; return; }
   closePanel(null, true);
   toast(`Habilidad "${nombre}" agregada`);
   renderMiPerfil();
@@ -1381,9 +1428,22 @@ async function guardarHabilidad() {
 
 async function eliminarHabilidad(i) {
   STATE.perfil_habs.splice(i, 1);
-  await guardarPerfil();
+  await sincronizarHabilidades();
   toast('Habilidad eliminada');
   renderMiPerfil();
+}
+
+async function sincronizarHabilidades() {
+  const empId = STATE.user?.empleado_id;
+  if (!empId) return false;
+  const habilidades = {};
+  const historial_habilidades = {};
+  (STATE.perfil_habs||[]).forEach(h=>{
+    habilidades[h.nombre] = h.nivel;
+    if (h.ultimo_uso) historial_habilidades[h.nombre] = h.ultimo_uso;
+  });
+  const r = await api('POST', `/empleados/${empId}/encuesta`, { habilidades, historial_habilidades });
+  return !!r;
 }
 
 const TIPOS_DOC = ['Certificado / Curso','Licencia de Conducir','CURP','RFC','Identificación Oficial','GWO','DC3','Otro'];
@@ -1451,27 +1511,43 @@ async function guardarDocumento() {
   const tipo    = document.getElementById('doc-tipo')?.value;
   const inst    = document.getElementById('doc-inst')?.value.trim();
   const sinVig  = document.getElementById('doc-sinvig')?.checked;
+  const desde   = document.getElementById('doc-desde')?.value;
   const hasta   = document.getElementById('doc-hasta')?.value;
   const err     = document.getElementById('doc-err');
+  const empId   = STATE.user?.empleado_id;
   if (!nombre) { err.textContent = 'El nombre del documento es obligatorio.'; return; }
   if (!sinVig && !hasta) { err.textContent = 'Selecciona la fecha de vigencia o marca "sin vigencia".'; return; }
-  let url = null;
+  let ruta_pdf = null;
   if (STATE._doc_file) {
     err.textContent = 'Subiendo archivo...';
-    url = await subirArchivoAPI(STATE._doc_file, `doc-${nombre.replace(/\s+/g,'-').toLowerCase().slice(0,30)}`);
-    if (!url && STATE._doc_file) { err.textContent = 'Error al subir el archivo. Intenta de nuevo.'; return; }
+    ruta_pdf = await subirArchivoAPI(STATE._doc_file, `doc-${nombre.replace(/\s+/g,'-').toLowerCase().slice(0,30)}`);
+    if (!ruta_pdf) { err.textContent = 'Error al subir el archivo. Intenta de nuevo.'; return; }
   }
-  if (!STATE.perfil_docs) STATE.perfil_docs = [];
-  STATE.perfil_docs.push({ nombre, tipo, institucion: inst, sin_vigencia: sinVig, vigencia: sinVig ? null : hasta, url });
-  await guardarPerfil();
+  err.textContent = 'Guardando...';
+  const params = new URLSearchParams({ nombre, institucion: inst || '' });
+  if (tipo) params.set('tipo', tipo);
+  if (!sinVig && hasta) params.set('fecha_vencimiento', hasta);
+  if (desde) params.set('fecha_expedicion', desde);
+  if (ruta_pdf) params.set('ruta_pdf', ruta_pdf);
+  const r = await fetch(`${API}/empleados/${empId}/certificados?${params.toString()}`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${STATE.token}` }
+  });
+  if (!r.ok) { err.textContent = 'Error al guardar el documento.'; return; }
   closePanel(null, true);
   toast(`Documento "${nombre}" guardado`);
   renderMiPerfil();
 }
 
 async function eliminarDocumento(i) {
-  STATE.perfil_docs.splice(i, 1);
-  await guardarPerfil();
+  const doc = STATE.perfil_docs[i];
+  const empId = STATE.user?.empleado_id;
+  if (doc?.id) {
+    await fetch(`${API}/empleados/${empId}/certificados/${doc.id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${STATE.token}` }
+    });
+  }
   toast('Documento eliminado');
   renderMiPerfil();
 }
