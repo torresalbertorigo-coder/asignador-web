@@ -1070,25 +1070,38 @@ function openNuevoEquipo() {
 
 // ─── SECCIÓN: INCIDENCIAS ─────────────────────────────────────────────────────
 async function renderIncidencias() {
-  const inc = STATE.incidencias;
-  const altas = inc.filter(i=>i.severidad==='alta').length;
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-ghost btn-sm" onclick="renderIncidencias()"><i class="ti ti-refresh" aria-hidden="true"></i></button>`;
+  const inc = await api('GET', '/empleados/incidencias') || [];
+  STATE.incidencias = inc;
+  const altas  = inc.filter(i=>i.severidad==='alta').length;
   const medias = inc.filter(i=>i.severidad==='media').length;
+  const resueltas = inc.filter(i=>i.estado==='resuelta').length;
   html(`
     <div class="stats-grid">
       <div class="stat-card c-red"><div class="stat-lbl">TOTAL REPORTES</div><div class="stat-val">${inc.length}</div><div class="stat-sub">recibidos</div></div>
       <div class="stat-card" style="border-left-color:#ef4444"><div class="stat-lbl">SEVERIDAD ALTA</div><div class="stat-val">${altas}</div><div class="stat-sub">requieren atención</div></div>
       <div class="stat-card c-amber"><div class="stat-lbl">SEVERIDAD MEDIA</div><div class="stat-val">${medias}</div><div class="stat-sub">en seguimiento</div></div>
-      <div class="stat-card c-green"><div class="stat-lbl">RESUELTOS</div><div class="stat-val">0</div><div class="stat-sub">cerrados</div></div>
+      <div class="stat-card c-green"><div class="stat-lbl">RESUELTAS</div><div class="stat-val">${resueltas}</div><div class="stat-sub">cerradas</div></div>
     </div>
-    ${inc.length===0?`<div class="empty-state"><i class="ti ti-check-circle" aria-hidden="true"></i><p>Sin incidencias reportadas</p><span>Los técnicos no han enviado reportes aún</span></div>`:`
-    <div class="table-section">
-      <div class="table-header"><span class="table-title">INCIDENCIAS DE CAMPO</span></div>
-      ${inc.map(i=>`<div class="inc-card ${i.severidad}">
-        <div class="inc-head"><span class="inc-tipo">${i.tipo||'Incidencia'}</span>${badge(i.severidad||'baja')}</div>
-        <div class="inc-meta"><i class="ti ti-user" aria-hidden="true"></i> ${i.id_empleado} · <i class="ti ti-calendar" aria-hidden="true"></i> ${i.fecha}</div>
-        <div class="inc-desc">${i.descripcion}</div>
-      </div>`).join('')}
-    </div>`}`);
+    ${inc.length===0
+      ? `<div class="empty-state"><i class="ti ti-check-circle" aria-hidden="true"></i><p>Sin incidencias reportadas</p><span>Los técnicos no han enviado reportes aún</span></div>`
+      : `<div class="table-section">
+          <div class="table-header"><span class="table-title">INCIDENCIAS DE CAMPO</span><span class="table-meta">${inc.length} reportes</span></div>
+          ${inc.map(i=>`<div class="inc-card ${i.severidad}" style="margin:0;border-radius:0;border-left-width:3px;border-right:none;border-top:none">
+            <div class="inc-head">
+              <div>
+                <span class="inc-tipo">${(i.tipo||'incidencia').replace(/_/g,' ')}</span>
+                <div class="inc-meta" style="margin-top:4px"><i class="ti ti-user" aria-hidden="true"></i> ${i.empleado_id} · <i class="ti ti-calendar" aria-hidden="true"></i> ${i.fecha}</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                ${badge(i.severidad||'baja')}
+                <span style="font-size:9px;color:var(--text3)">${i.estado?.toUpperCase()||'ABIERTA'}</span>
+              </div>
+            </div>
+            <div class="inc-desc">${i.descripcion}</div>
+          </div>`).join('')}
+        </div>`}
+  `);
 }
 
 // ─── SECCIÓN: MIS ASIGNACIONES (TÉCNICO) ──────────────────────────────────────
@@ -1210,7 +1223,7 @@ async function marcarSalida() {
 // ─── SECCIÓN: REPORTAR ────────────────────────────────────────────────────────
 function renderReportar() {
   html(`
-    <div class="table-section" style="padding:20px">
+    <div class="table-section" style="padding:20px;max-width:600px">
       <div class="panel-section-title" style="margin-bottom:16px">NUEVO REPORTE DE INCIDENCIA</div>
       <div class="field-row">
         <div class="field-group"><label class="field-label">TIPO DE INCIDENCIA</label>
@@ -1219,7 +1232,7 @@ function renderReportar() {
             <option value="falla_equipo">Falla de equipo</option>
             <option value="condicion_clima">Condición climática</option>
             <option value="seguridad">Problema de seguridad</option>
-            <option value="avance_normal">Avance normal</option>
+            <option value="avance_normal">Avance / Progreso normal</option>
             <option value="otro">Otro</option>
           </select>
         </div>
@@ -1236,20 +1249,29 @@ function renderReportar() {
           <textarea class="field-input" id="rep-desc" rows="5" placeholder="Describe detalladamente la incidencia..."></textarea>
         </div>
       </div>
+      <div id="rep-err" style="color:#ef4444;font-size:11px;margin-top:6px"></div>
       <div style="margin-top:14px;display:flex;justify-content:flex-end">
         <button class="btn btn-primary" onclick="enviarReporte()"><i class="ti ti-send" aria-hidden="true"></i> Enviar reporte</button>
       </div>
     </div>`);
 }
 
-function enviarReporte() {
+async function enviarReporte() {
   const desc = document.getElementById('rep-desc')?.value.trim();
-  if (!desc) { toast('Escribe una descripción antes de enviar','error'); return; }
+  const err  = document.getElementById('rep-err');
+  if (!desc) { err.textContent = 'Escribe una descripción antes de enviar.'; return; }
   const tipo = document.getElementById('rep-tipo')?.value;
   const sev  = document.getElementById('rep-sev')?.value;
-  STATE.incidencias.push({ id_empleado: STATE.user?.empleado_id||'USR', tipo, severidad: sev, descripcion: desc, fecha: new Date().toISOString().split('T')[0], id_proyecto: 'GENERAL' });
-  toast('Reporte enviado correctamente');
-  renderReportar();
+  const empId = STATE.user?.empleado_id || 'USR';
+  const r = await api('POST', `/empleados/${empId}/incidencias`, {
+    tipo, severidad: sev, descripcion: desc
+  });
+  if (r) {
+    toast('Reporte enviado correctamente');
+    renderReportar();
+  } else {
+    err.textContent = 'Error al enviar el reporte.';
+  }
 }
 
 // ─── SECCIÓN: MI PERFIL ───────────────────────────────────────────────────────
