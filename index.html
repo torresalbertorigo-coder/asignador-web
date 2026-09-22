@@ -513,7 +513,7 @@ async function api(method, path, body) {
 }
 
 async function loadEmpleados() {
-  const d = await api('GET', '/empleados/empleados');
+  const d = await api('GET', '/empleados');
   if (d) STATE.empleados = d;
 }
 async function loadProyectos() {
@@ -542,7 +542,7 @@ async function cargarPerfil() {
   const empId = STATE.user?.empleado_id;
   if (!empId) return;
   try {
-    const d = await api('GET', `/empleados/empleados/${empId}`);
+    const d = await api('GET', `/empleados/${empId}`);
     if (d) {
       STATE.perfil_habs = d.perfil_habilidades || [];
       STATE.perfil_docs = d.perfil_documentos || [];
@@ -712,13 +712,13 @@ async function guardarNuevoTecnico() {
     id: `USR-${nombre[0].toUpperCase()}${apellido.slice(0,3).toUpperCase()}`,
     nombre: `${nombre} ${apellido}`, email, password: pass, rol: 'tecnico', empleado_id: id_emp
   });
-  const r2 = await api('POST', '/empleados/empleados', {
+  const r2 = await api('POST', '/empleados', {
     id: id_emp, nombre, apellido, seniority: nivel,
     ciudad, estado: estado || '', pais: 'México',
     latitud: 0, longitud: 0, telefono: tel, email: email
   });
   if (r2) {
-    await api('PUT', `/empleados/empleados/${id_emp}/perfil-estado`, { estado: 'activo' });
+    await api('PUT', `/empleados/${id_emp}/perfil-estado`, { estado: 'activo' });
     await loadEmpleados();
     closePanel(null, true);
     toast(`Técnico ${nombre} ${apellido} creado — ID: ${id_emp}`);
