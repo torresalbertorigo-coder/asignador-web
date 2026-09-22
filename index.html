@@ -1,0 +1,1530 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asignador Inteligente — Walross</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0A0A0A;--surface:#111;--surface2:#161616;
+  --border:#1E1E1E;--border2:#2A2A2A;
+  --text:#F0F0F0;--text2:#888;--text3:#444;
+  --red:#C1121F;--red2:#8B1A1A;--red-bg:#1a0505;
+  --green:#22c55e;--green-bg:#0d2d14;
+  --amber:#f59e0b;--amber-bg:#2d1a05;
+  --blue:#3b82f6;--blue-bg:#0d1a2d;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Inter',system-ui,sans-serif;
+  --radius:3px;
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;height:100vh;overflow:hidden}
+@media(min-width:1200px){body{font-size:15px}}
+button{cursor:pointer;font-family:var(--sans);font-size:13px}
+input,select,textarea{font-family:var(--sans);font-size:13px}
+a{text-decoration:none;color:inherit}
+
+/* ── LOGIN ───────────────────────────────────────────────────────────── */
+#login-screen{display:flex;height:100vh;align-items:center;justify-content:center;background:var(--bg)}
+.login-card{background:var(--surface);border:1px solid var(--border);width:360px;padding:32px}
+.login-logo{margin-bottom:28px}
+.login-brand{font-size:11px;font-weight:700;letter-spacing:.15em;color:var(--text)}
+.login-sub{font-size:10px;letter-spacing:.12em;color:var(--red);font-weight:600}
+.login-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.login-desc{font-size:11px;color:var(--text2);margin-bottom:24px}
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:10px;color:var(--text3);letter-spacing:.08em;font-weight:600;margin-bottom:6px}
+.form-input{width:100%;background:#0D0D0D;border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:var(--radius);outline:none;transition:border-color .15s}
+.form-input:focus{border-color:var(--red)}
+.form-input::placeholder{color:var(--text3)}
+.btn-login{width:100%;background:var(--red);color:#fff;border:none;padding:10px;font-weight:600;border-radius:var(--radius);margin-top:8px;font-size:12px;letter-spacing:.03em;transition:background .15s}
+.btn-login:hover{background:#a50e18}
+.login-error{color:#ef4444;font-size:11px;margin-top:8px;min-height:16px}
+.login-hint{font-size:10px;color:var(--text3);margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+
+/* ── APP LAYOUT ──────────────────────────────────────────────────────── */
+#app{display:none;height:100vh;flex-direction:column}
+#app.visible{display:flex}
+.app-body{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-brand{padding:16px;border-bottom:1px solid var(--border)}
+.sidebar-brand .b1{font-size:10px;font-weight:700;letter-spacing:.15em;color:var(--text)}
+.sidebar-brand .b2{font-size:9px;letter-spacing:.12em;color:var(--red);font-weight:600}
+.sidebar-user{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.user-av{width:28px;height:28px;border-radius:3px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;font-family:var(--mono);flex-shrink:0}
+.user-nm{font-size:11px;font-weight:600;color:var(--text);line-height:1.2}
+.user-rol{font-size:9px;color:var(--text3)}
+.nav-section{font-size:9px;color:var(--text3);padding:10px 14px 4px;letter-spacing:.1em;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:9px;padding:7px 14px;font-size:11px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:all .12s;user-select:none}
+.nav-item:hover{color:var(--text);background:var(--surface2)}
+.nav-item.active{color:var(--text);background:var(--surface2);border-left-color:var(--red)}
+.nav-item i{font-size:15px;width:16px}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:8px;padding:1px 5px;border-radius:2px;font-weight:700}
+.sidebar-footer{padding:10px 14px;border-top:1px solid var(--border);margin-top:auto}
+.api-dot{display:flex;align-items:center;gap:6px;font-size:9px;color:var(--text3)}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--green)}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.topbar{padding:0 20px;height:48px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:#0D0D0D;flex-shrink:0}
+.page-title{font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--text)}
+.page-title .sep{color:var(--text3);font-weight:400}
+.page-title i{color:var(--red);font-size:16px}
+.topbar-right{display:flex;gap:8px;align-items:center}
+.content{flex:1;overflow-y:auto;padding:20px 28px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:var(--radius);font-size:11px;font-weight:600;border:none;transition:all .12s;cursor:pointer}
+.btn-primary{background:var(--red);color:#fff}.btn-primary:hover{background:#a50e18}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2)}.btn-ghost:hover{color:var(--text);border-color:var(--text3)}
+.btn-sm{padding:4px 10px;font-size:10px}
+.btn-icon{padding:6px;background:transparent;border:1px solid var(--border2);color:var(--text2)}.btn-icon:hover{color:var(--text)}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.stat-card{background:var(--surface);border:1px solid var(--border);padding:12px 14px;border-radius:var(--radius);border-left:2px solid var(--border)}
+.stat-card.c-red{border-left-color:var(--red)}
+.stat-card.c-green{border-left-color:var(--green)}
+.stat-card.c-amber{border-left-color:var(--amber)}
+.stat-card.c-blue{border-left-color:var(--blue)}
+.stat-lbl{font-size:9px;color:var(--text3);letter-spacing:.1em;font-weight:600;margin-bottom:5px}
+.stat-val{font-size:20px;font-weight:600;font-family:var(--mono);line-height:1;color:var(--text)}
+.stat-sub{font-size:9px;color:var(--text3);margin-top:3px}
+
+/* TABLE */
+.table-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px;overflow:hidden}
+.table-header{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.table-title{font-size:10px;font-weight:600;color:var(--text2);letter-spacing:.08em}
+.table-meta{font-size:9px;color:var(--text3);font-family:var(--mono)}
+table{width:100%;border-collapse:collapse}
+th{padding:8px 16px;text-align:left;font-size:10px;color:var(--text3);letter-spacing:.1em;font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:10px 16px;font-size:12px;color:var(--text2);border-bottom:1px solid #141414;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--surface2);color:#c8c8c8}
+.td-name{color:var(--text);font-weight:500}
+.td-mono{font-family:var(--mono);font-size:10px;color:var(--text3)}
+.td-action{text-align:right;cursor:pointer}
+.td-action i{font-size:13px;color:var(--text3)}
+tbody tr:hover .td-action i{color:var(--text2)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:2px;font-size:9px;font-weight:700;letter-spacing:.05em}
+.badge-libre{background:var(--green-bg);color:var(--green);border:1px solid #1a4a24}
+.badge-asig{background:var(--blue-bg);color:var(--blue);border:1px solid #1a2d4a}
+.badge-proy{background:var(--red-bg);color:#ef4444;border:1px solid #4a1a1a}
+.badge-mant{background:var(--amber-bg);color:var(--amber);border:1px solid #4a2d05}
+.badge-pend{background:#1a1a0d;color:#a3a300;border:1px solid #2d2d00}
+.badge-prog{background:var(--blue-bg);color:var(--blue);border:1px solid #1a2d4a}
+
+/* FATIGA BAR */
+.fat-wrap{display:flex;align-items:center;gap:6px}
+.fat-bar{width:52px;height:3px;background:var(--border2);border-radius:1px;overflow:hidden;flex-shrink:0}
+.fat-fill{height:100%;border-radius:1px}
+.fat-val{font-size:10px;font-family:var(--mono)}
+
+/* PANEL DERECHO / MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.panel-side{background:var(--surface);border:1px solid var(--border2);border-radius:6px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.8)}
+.panel-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;background:var(--surface);z-index:1}
+.panel-title{font-size:14px;font-weight:600;color:var(--text)}
+.panel-body{padding:20px;flex:1}
+.panel-section{margin-bottom:20px}
+.panel-section-title{font-size:9px;color:var(--text3);letter-spacing:.1em;font-weight:600;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.field-row.full{grid-template-columns:1fr}
+.field-group{display:flex;flex-direction:column;gap:5px}
+.field-label{font-size:10px;color:var(--text3);letter-spacing:.08em;font-weight:600}
+.field-input{background:#0D0D0D;border:1px solid var(--border2);color:var(--text);padding:8px 12px;border-radius:var(--radius);outline:none;font-size:12px;width:100%}
+.field-input:focus{border-color:var(--red)}
+.field-select{background:#0D0D0D;border:1px solid var(--border2);color:var(--text);padding:8px 12px;border-radius:var(--radius);outline:none;font-size:12px;width:100%;appearance:none}
+.panel-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;position:sticky;bottom:0;background:var(--surface)}
+
+/* EMPTY STATE */
+.empty-state{padding:40px;text-align:center;color:var(--text3)}
+.empty-state i{font-size:32px;margin-bottom:12px;display:block}
+.empty-state p{font-size:12px;color:var(--text2);margin-bottom:4px}
+.empty-state span{font-size:11px}
+
+/* MOBILE NAV (bottom) */
+.mobile-nav{display:none;background:var(--surface);border-top:1px solid var(--border);padding:8px 0 12px}
+.mobile-nav-items{display:flex;justify-content:space-around}
+.mobile-nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;color:var(--text3);cursor:pointer;padding:4px 12px}
+.mobile-nav-item.active{color:var(--red)}
+.mobile-nav-item i{font-size:20px}
+.topbar-menu-btn{display:none;background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:4px}
+
+/* SECCIONES */
+.section-page{display:none}
+.section-page.active{display:block}
+
+/* GANTT */
+.gantt-wrap{overflow-x:auto}
+.gantt-table{border-collapse:collapse;min-width:600px}
+.gantt-table th{background:var(--surface2);font-size:9px;color:var(--text3);padding:6px 8px;border:1px solid var(--border);letter-spacing:.08em;font-weight:600;white-space:nowrap}
+.gantt-table td{border:1px solid var(--border);padding:0;height:32px}
+.gantt-name{padding:6px 12px;background:var(--surface);font-size:11px;color:var(--text);min-width:140px;white-space:nowrap}
+.gantt-cell{width:28px;background:transparent}
+.gantt-cell.today{background:#1a0505;border-left:2px solid var(--red)!important}
+.gantt-cell.weekend{background:#0D0D0D}
+.gantt-cell.occupied{background:var(--red)}
+.gantt-cell.assigned{background:var(--blue-bg)}
+.gantt-cell.past{background:var(--red2)}
+
+/* EQUIPOS */
+.equipo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.equipo-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;transition:border-color .12s}
+.equipo-card:hover{border-color:var(--border2)}
+.equipo-card.selected{border-color:var(--red)}
+.eq-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.eq-icon{width:36px;height:36px;background:var(--surface2);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;color:var(--red);font-size:18px}
+.eq-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px}
+.eq-type{font-size:10px;color:var(--text3)}
+.eq-row{display:flex;justify-content:space-between;margin-top:6px;font-size:10px}
+.eq-row span{color:var(--text3)}
+.eq-row strong{color:var(--text2);font-family:var(--mono)}
+
+/* EVALUAR */
+.eval-config{background:var(--surface);border:1px solid var(--border);padding:14px 16px;border-radius:var(--radius);margin-bottom:16px;display:flex;gap:12px;align-items:flex-end}
+.eval-result-section{margin-bottom:14px}
+.eval-section-title{font-size:10px;font-weight:600;color:var(--text2);letter-spacing:.06em;margin-bottom:8px;padding-left:8px;border-left:2px solid var(--red)}
+.candidato-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;transition:border-color .12s}
+.candidato-card.top{border-color:var(--red2)}
+.candidato-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.candidato-name{font-size:13px;font-weight:600;color:var(--text)}
+.candidato-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.candidato-score{font-size:22px;font-weight:700;font-family:var(--mono);color:var(--red)}
+.score-max{font-size:11px;color:var(--text3)}
+.criterio-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.criterio-name{font-size:10px;color:var(--text2);width:80px;flex-shrink:0}
+.criterio-bar-wrap{flex:1;height:3px;background:var(--border2);border-radius:1px;overflow:hidden}
+.criterio-bar-fill{height:100%;background:var(--red);border-radius:1px}
+.criterio-val{font-size:10px;font-family:var(--mono);color:var(--text2);width:45px;text-align:right;flex-shrink:0}
+.brecha-item{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--amber);padding:3px 0}
+.brecha-item::before{content:'·';color:var(--amber)}
+
+/* INCIDENCIAS */
+.inc-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:8px}
+.inc-card.alta{border-left:3px solid #ef4444}
+.inc-card.media{border-left:3px solid var(--amber)}
+.inc-card.baja{border-left:3px solid var(--green)}
+.inc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.inc-tipo{font-size:12px;font-weight:600;color:var(--text)}
+.inc-meta{font-size:10px;color:var(--text3);margin-top:4px}
+.inc-desc{font-size:11px;color:var(--text2);background:var(--surface2);padding:8px 10px;border-radius:var(--radius);margin-top:8px}
+
+/* PERFIL TÉCNICO */
+.perfil-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:14px;display:flex;align-items:center;gap:16px}
+.perfil-av{width:56px;height:56px;border-radius:4px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;font-family:var(--mono);flex-shrink:0;position:relative;cursor:pointer}
+.perfil-av-edit{position:absolute;bottom:-4px;right:-4px;width:18px;height:18px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff}
+.perfil-info h2{font-size:15px;font-weight:600;color:var(--text);margin-bottom:3px}
+.perfil-info p{font-size:11px;color:var(--text2);margin-bottom:6px}
+
+/* CHECADOR */
+.check-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:14px;text-align:center}
+.check-time{font-size:36px;font-weight:700;font-family:var(--mono);color:var(--text);margin-bottom:4px}
+.check-date{font-size:11px;color:var(--text2);margin-bottom:20px}
+.check-status{font-size:11px;color:var(--text3);margin-top:12px}
+.check-btns{display:flex;gap:10px;justify-content:center}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border2);padding:12px 16px;border-radius:var(--radius);font-size:12px;color:var(--text);z-index:999;display:none;align-items:center;gap:10px;min-width:240px;max-width:340px}
+.toast.show{display:flex}
+.toast.success{border-left:3px solid var(--green)}
+.toast.error{border-left:3px solid #ef4444}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .sidebar{display:none}.sidebar.mobile-open{display:flex;position:fixed;z-index:200;height:100vh}
+  .mobile-nav{display:block}
+  .topbar-menu-btn{display:block}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .equipo-grid{grid-template-columns:1fr}
+  .eval-config{flex-direction:column}
+  .field-row{grid-template-columns:1fr}
+  .panel-side{width:100vw}
+}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ─────────────────────────────────────────────────────────── -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-brand">WALROSS</div>
+      <div class="login-sub">TECH & INNOVATION</div>
+    </div>
+    <div class="login-title">Asignador Inteligente</div>
+    <div class="login-desc">Sistema de asignación de personal técnico de campo</div>
+    <div class="form-group">
+      <label class="form-label">CORREO</label>
+      <input id="login-email" class="form-input" type="email" placeholder="tu@walross.mx" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label class="form-label">CONTRASEÑA</label>
+      <input id="login-pass" class="form-input" type="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div id="login-error" class="login-error"></div>
+    <button class="btn-login" id="login-btn" onclick="doLogin()">Entrar</button>
+    <div class="login-hint">Acceso exclusivo para personal autorizado Walross</div>
+  </div>
+</div>
+
+<!-- ── APP ───────────────────────────────────────────────────────────── -->
+<div id="app">
+  <div class="app-body">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="b1">WALROSS</div>
+        <div class="b2">ASIGNADOR INTELIGENTE</div>
+      </div>
+      <div class="sidebar-user" onclick="showSection('mi-perfil')" style="cursor:pointer" title="Ver mi perfil">
+        <div class="user-av" id="sb-avatar">RT</div>
+        <div>
+          <div class="user-nm" id="sb-name">Usuario</div>
+          <div class="user-rol" id="sb-rol">Cargando...</div>
+        </div>
+      </div>
+      <div id="admin-nav"></div>
+      <div id="tecnico-nav"></div>
+      <div class="sidebar-footer">
+        <div class="api-dot"><div class="dot"></div> API conectada</div>
+        <div style="margin-top:8px">
+          <button class="btn btn-ghost btn-sm" onclick="doLogout()" style="width:100%;justify-content:center">
+            <i class="ti ti-logout" aria-hidden="true"></i> Cerrar sesión
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+      <div class="topbar">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button class="topbar-menu-btn" onclick="toggleSidebar()" aria-label="Menú"><i class="ti ti-menu-2" aria-hidden="true"></i></button>
+          <div class="page-title" id="page-title">
+            <i class="ti ti-home" aria-hidden="true"></i>
+            <span id="page-title-text">Inicio</span>
+          </div>
+        </div>
+        <div class="topbar-right" id="topbar-actions"></div>
+      </div>
+
+      <div class="content" id="main-content">
+        <!-- contenido dinámico -->
+      </div>
+
+      <!-- MOBILE BOTTOM NAV -->
+      <div class="mobile-nav" id="mobile-nav-bar"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL LATERAL (slide-in) -->
+<div class="modal-overlay" id="panel-overlay" onclick="closePanel(event)">
+  <div class="panel-side" id="panel-side">
+    <div class="panel-head">
+      <span class="panel-title" id="panel-title">Panel</span>
+      <button class="btn-icon" onclick="closePanel(null,true)" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div id="panel-body" class="panel-body"></div>
+    <div class="panel-footer" id="panel-footer"></div>
+  </div>
+</div>
+
+<!-- VISOR DE DOCUMENTOS -->
+<div id="visor-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:200;flex-direction:column" onclick="cerrarVisor(event)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid #2a2a2a;flex-shrink:0">
+    <span id="visor-titulo" style="font-size:13px;font-weight:600;color:#f0f0f0"></span>
+    <div style="display:flex;gap:8px">
+      <a id="visor-dl" href="#" download style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:3px;font-size:11px;font-weight:600;border:1px solid #2a2a2a;color:#888;text-decoration:none;cursor:pointer">
+        <i class="ti ti-download" aria-hidden="true"></i> Descargar
+      </a>
+      <button onclick="cerrarVisor(null,true)" style="background:transparent;border:1px solid #2a2a2a;color:#888;padding:6px 12px;border-radius:3px;font-size:11px;font-weight:600;cursor:pointer">
+        <i class="ti ti-x" aria-hidden="true"></i> Cerrar
+      </button>
+    </div>
+  </div>
+  <div id="visor-body" style="flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:20px"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><i class="ti ti-check" id="toast-icon" aria-hidden="true"></i><span id="toast-msg"></span></div>
+
+<script>
+const API = 'https://asignador-inteligente.vercel.app';
+let STATE = { token: null, user: null, rol: null, empleados: [], proyectos: [], equipos: [], incidencias: [], sesionEmp: null };
+
+// ─── AUTH ────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const err   = document.getElementById('login-error');
+  const btn   = document.getElementById('login-btn');
+  if (!email || !pass) { err.textContent = 'Completa los campos.'; return; }
+  btn.textContent = 'Conectando...'; btn.disabled = true; err.textContent = '';
+  try {
+    const r = await fetch(`${API}/auth/auth/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const d = await r.json();
+    if (!r.ok) { err.textContent = d.detail || 'Credenciales incorrectas.'; return; }
+    STATE.token = d.access_token;
+    STATE.rol   = d.rol;
+    STATE.user  = { nombre: d.nombre, email, empleado_id: d.empleado_id };
+    localStorage.setItem('w_token', d.access_token);
+    localStorage.setItem('w_rol', d.rol);
+    localStorage.setItem('w_nombre', d.nombre);
+    localStorage.setItem('w_email', email);
+    localStorage.setItem('w_emp_id', d.empleado_id || '');
+    initApp();
+  } catch(e) { err.textContent = 'Sin conexión a la API.'; }
+  finally { btn.textContent = 'Entrar'; btn.disabled = false; }
+}
+
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('login-email').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+function doLogout() {
+  localStorage.clear();
+  STATE = { token: null, user: null, rol: null, empleados: [], proyectos: [], equipos: [], incidencias: [], sesionEmp: null };
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').classList.remove('visible');
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+async function initApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+  const av = (STATE.user.nombre || 'U').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('sb-avatar').textContent = av;
+  document.getElementById('sb-name').textContent = STATE.user.nombre;
+  document.getElementById('sb-rol').textContent = STATE.rol === 'administrador' ? 'Administrador' : 'Técnico de campo';
+  buildNav();
+  if (STATE.rol === 'administrador') {
+    await loadEmpleados();
+    showSection('empleados');
+  } else {
+    showSection('mis-asignaciones');
+  }
+}
+
+function buildNav() {
+  if (STATE.rol === 'administrador') {
+    document.getElementById('admin-nav').innerHTML = `
+      <div class="nav-section">GESTIÓN</div>
+      <div class="nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i> Empleados</div>
+      <div class="nav-item" onclick="showSection('proyectos')" data-sec="proyectos"><i class="ti ti-folder" aria-hidden="true"></i> Proyectos</div>
+      <div class="nav-item" onclick="showSection('gantt')" data-sec="gantt"><i class="ti ti-calendar-stats" aria-hidden="true"></i> Gantt</div>
+      <div class="nav-section">OPERACIONES</div>
+      <div class="nav-item" onclick="showSection('evaluar')" data-sec="evaluar"><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i> Evaluar</div>
+      <div class="nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-tool" aria-hidden="true"></i> Equipos</div>
+      <div class="nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Incidencias</div>
+      <div class="nav-section">MI CUENTA</div>
+      <div class="nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i> Mi Perfil</div>`;
+    document.getElementById('mobile-nav-bar').innerHTML = `
+      <div class="mobile-nav-items">
+        <div class="mobile-nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i>Empleados</div>
+        <div class="mobile-nav-item" onclick="showSection('proyectos')" data-sec="proyectos"><i class="ti ti-folder" aria-hidden="true"></i>Proyectos</div>
+        <div class="mobile-nav-item" onclick="showSection('evaluar')" data-sec="evaluar"><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i>Evaluar</div>
+        <div class="mobile-nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-tool" aria-hidden="true"></i>Equipos</div>
+        <div class="mobile-nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Incidencias</div>
+        <div class="mobile-nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i>Perfil</div>
+      </div>`;
+  } else {
+    document.getElementById('tecnico-nav').innerHTML = `
+      <div class="nav-section">MIS ACTIVIDADES</div>
+      <div class="nav-item" onclick="showSection('mis-asignaciones')" data-sec="mis-asignaciones"><i class="ti ti-briefcase" aria-hidden="true"></i> Mis Asignaciones</div>
+      <div class="nav-item" onclick="showSection('mi-gantt')" data-sec="mi-gantt"><i class="ti ti-calendar-stats" aria-hidden="true"></i> Mi Calendario</div>
+      <div class="nav-item" onclick="showSection('checador')" data-sec="checador"><i class="ti ti-clock" aria-hidden="true"></i> Reloj Checador</div>
+      <div class="nav-item" onclick="showSection('reportar')" data-sec="reportar"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Reportar</div>
+      <div class="nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i> Mi Perfil</div>`;
+    document.getElementById('mobile-nav-bar').innerHTML = `
+      <div class="mobile-nav-items">
+        <div class="mobile-nav-item" onclick="showSection('mis-asignaciones')" data-sec="mis-asignaciones"><i class="ti ti-briefcase" aria-hidden="true"></i>Mis Proyectos</div>
+        <div class="mobile-nav-item" onclick="showSection('checador')" data-sec="checador"><i class="ti ti-clock" aria-hidden="true"></i>Checador</div>
+        <div class="mobile-nav-item" onclick="showSection('reportar')" data-sec="reportar"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Reportar</div>
+        <div class="mobile-nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i>Mi Perfil</div>
+      </div>`;
+  }
+}
+
+// ─── NAVEGACIÓN ──────────────────────────────────────────────────────────────
+const TITLES = {
+  'empleados':        ['ti-users',              'Empleados'],
+  'proyectos':        ['ti-folder',             'Proyectos'],
+  'gantt':            ['ti-calendar-stats',     'Gantt — Disponibilidad'],
+  'evaluar':          ['ti-adjustments-horizontal','Evaluar Candidatos'],
+  'equipos':          ['ti-tool',               'Equipos e Instrumentos'],
+  'incidencias':      ['ti-alert-triangle',     'Incidencias de Campo'],
+  'mis-asignaciones': ['ti-briefcase',          'Mis Asignaciones'],
+  'mi-gantt':         ['ti-calendar-stats',     'Mi Calendario'],
+  'checador':         ['ti-clock',              'Reloj Checador'],
+  'reportar':         ['ti-alert-triangle',     'Reportar Incidencia'],
+  'mi-perfil':        ['ti-user-circle',        'Mi Perfil'],
+  'mi-cuenta':        ['ti-user-circle',        'Mi Cuenta'],
+};
+
+const RENDERERS = {
+  empleados:        renderEmpleados,
+  proyectos:        renderProyectos,
+  gantt:            renderGantt,
+  evaluar:          renderEvaluar,
+  equipos:          renderEquipos,
+  incidencias:      renderIncidencias,
+  'mis-asignaciones': renderMisAsignaciones,
+  'mi-gantt':       renderMiGantt,
+  checador:         renderChecador,
+  reportar:         renderReportar,
+  'mi-perfil':      renderMiPerfil,
+};
+
+function showSection(sec) {
+  document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.sec === sec);
+  });
+  const [icon, title] = TITLES[sec] || ['ti-home', sec];
+  document.getElementById('page-title').innerHTML = `<i class="ti ${icon}" aria-hidden="true"></i><span>${title}</span>`;
+  document.getElementById('topbar-actions').innerHTML = '';
+  STATE.currentSection = sec;
+  if (RENDERERS[sec]) RENDERERS[sec]();
+  if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('mobile-open');
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('mobile-open');
+}
+
+// ─── API HELPERS ──────────────────────────────────────────────────────────────
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Authorization': `Bearer ${STATE.token}`, 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  if (r.status === 401) { doLogout(); return null; }
+  return r.ok ? r.json() : null;
+}
+
+async function loadEmpleados() {
+  const d = await api('GET', '/empleados/empleados');
+  if (d) STATE.empleados = d;
+}
+async function loadProyectos() {
+  const d = await api('GET', '/proyectos/proyectos');
+  if (d) STATE.proyectos = d;
+}
+
+// ─── HELPER UI ────────────────────────────────────────────────────────────────
+function html(el) { document.getElementById('main-content').innerHTML = el; }
+
+function badge(val) {
+  const map = { libre:'badge-libre LIBRE', asignado:'badge-asig ASIGNADO', en_proyecto:'badge-proy EN PROYECTO',
+    mantenimiento:'badge-mant MANT.', pendiente_asignacion:'badge-pend PENDIENTE', en_progreso:'badge-prog EN PROG.',
+    disponible:'badge-libre DISPONIBLE' };
+  const [cls, lbl] = (map[val] || 'badge-pend ' + val).split(' ').reduce((a,c,i)=>i===0?[c,a[1]]:[a[0],a[1]+(i>1?' ':'')+c], ['','']);
+  return `<span class="badge ${cls}">${(map[val]||'').split(' ').slice(1).join(' ')||val.toUpperCase()}</span>`;
+}
+
+function fatiga(val) {
+  const pct = Math.min(100, val || 0);
+  const col = pct < 40 ? 'var(--green)' : pct < 75 ? 'var(--amber)' : '#ef4444';
+  return `<div class="fat-wrap"><div class="fat-bar"><div class="fat-fill" style="width:${pct}%;background:${col}"></div></div><span class="fat-val" style="color:${col}">${pct}/100</span></div>`;
+}
+
+async function cargarPerfil() {
+  const empId = STATE.user?.empleado_id;
+  if (!empId) return;
+  try {
+    const d = await api('GET', `/empleados/empleados/${empId}`);
+    if (d) {
+      STATE.perfil_habs = d.perfil_habilidades || [];
+      STATE.perfil_docs = d.perfil_documentos || [];
+    }
+  } catch(e) { console.error('Error cargando perfil:', e); }
+}
+
+async function guardarPerfil() {
+  const empId = STATE.user?.empleado_id;
+  if (!empId) { console.warn('Sin empleado_id, no se guarda perfil'); return; }
+  try {
+    const r = await fetch(`${API}/empleados/empleados/${empId}/perfil`, {
+      method: 'PATCH',
+      headers: { 'Authorization': `Bearer ${STATE.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        perfil_habilidades: STATE.perfil_habs || [],
+        perfil_documentos:  STATE.perfil_docs  || []
+      })
+    });
+    const d = await r.json();
+    if (!r.ok) { console.error('Error PATCH perfil:', r.status, d); toast('Error al guardar perfil','error'); }
+    else { console.log('Perfil guardado OK'); }
+  } catch(e) { console.error('Excepción guardando perfil:', e); }
+}
+
+function abrirVisor(url, nombre) {
+  const overlay = document.getElementById('visor-overlay');
+  const body    = document.getElementById('visor-body');
+  const titulo  = document.getElementById('visor-titulo');
+  const dl      = document.getElementById('visor-dl');
+  titulo.textContent = nombre || 'Documento';
+  dl.href = url;
+  dl.download = nombre || 'documento';
+  const ext = (url.split('?')[0].split('.').pop() || '').toLowerCase();
+  const esImagen = ['jpg','jpeg','png','gif','webp'].includes(ext) || url.startsWith('data:image');
+  const esPDF = ext === 'pdf' || url.startsWith('data:application/pdf');
+  if (esImagen) {
+    body.innerHTML = `<img src="${url}" style="max-width:100%;max-height:calc(100vh - 100px);object-fit:contain;border-radius:4px">`;
+  } else if (esPDF) {
+    body.innerHTML = `<iframe src="${url}" style="width:min(900px,95vw);height:calc(100vh - 100px);border:none;border-radius:4px;background:#fff"></iframe>`;
+  } else {
+    body.innerHTML = `<div style="text-align:center;color:#888"><i class="ti ti-file" style="font-size:48px;display:block;margin-bottom:12px" aria-hidden="true"></i><p style="font-size:14px;margin-bottom:16px">${nombre}</p><a href="${url}" download="${nombre}" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#C1121F;color:#fff;border-radius:3px;text-decoration:none;font-size:12px;font-weight:600"><i class="ti ti-download" aria-hidden="true"></i> Descargar archivo</a></div>`;
+  }
+  overlay.style.display = 'flex';
+}
+
+function cerrarVisor(e, force) {
+  if (force || e?.target === document.getElementById('visor-overlay')) {
+    document.getElementById('visor-overlay').style.display = 'none';
+    document.getElementById('visor-body').innerHTML = '';
+  }
+}
+
+function toast(msg, type='success') {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  document.getElementById('toast-icon').className = type === 'success' ? 'ti ti-check' : 'ti ti-x';
+  t.className = `toast show ${type}`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ─── PANEL LATERAL ────────────────────────────────────────────────────────────
+function openPanel(title, bodyHtml, footerHtml) {
+  document.getElementById('panel-title').textContent = title;
+  document.getElementById('panel-body').innerHTML = bodyHtml;
+  document.getElementById('panel-footer').innerHTML = footerHtml || '';
+  document.getElementById('panel-overlay').classList.add('open');
+}
+function closePanel(e, force) {
+  if (force || e?.target === document.getElementById('panel-overlay'))
+    document.getElementById('panel-overlay').classList.remove('open');
+}
+
+// ─── SECCIÓN: EMPLEADOS ───────────────────────────────────────────────────────
+async function renderEmpleados() {
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-ghost btn-sm" onclick="loadEmpleados().then(renderEmpleados)"><i class="ti ti-refresh" aria-hidden="true"></i></button><button class="btn btn-primary btn-sm" onclick="openNuevoTecnico()"><i class="ti ti-plus" aria-hidden="true"></i> Nuevo técnico</button>`;
+  const emps = STATE.empleados;
+  const total = emps.length;
+  const libres = emps.filter(e=>e.disponibilidad==='libre').length;
+  const enProy = emps.filter(e=>e.disponibilidad==='en_proyecto').length;
+  const asig   = emps.filter(e=>e.disponibilidad==='asignado').length;
+  html(`
+    <div class="stats-grid">
+      <div class="stat-card c-red"><div class="stat-lbl">TÉCNICOS ACTIVOS</div><div class="stat-val">${total}</div><div class="stat-sub">en el sistema</div></div>
+      <div class="stat-card c-green"><div class="stat-lbl">DISPONIBLES</div><div class="stat-val">${libres}</div><div class="stat-sub">listos para asignar</div></div>
+      <div class="stat-card"><div class="stat-lbl">EN PROYECTO</div><div class="stat-val">${enProy}</div><div class="stat-sub">en campo</div></div>
+      <div class="stat-card c-amber"><div class="stat-lbl">ASIGNADOS</div><div class="stat-val">${asig}</div><div class="stat-sub">pendientes de inicio</div></div>
+    </div>
+    <div class="table-section">
+      <div class="table-header">
+        <span class="table-title">REGISTRO DE PERSONAL</span>
+        <span class="table-meta">${total} registros · nube</span>
+      </div>
+      ${total === 0 ? '<div class="empty-state"><i class="ti ti-users" aria-hidden="true"></i><p>No hay técnicos registrados</p><span>Agrega el primer técnico con el botón de arriba</span></div>' : `
+      <table>
+        <thead><tr><th>ID</th><th>NOMBRE</th><th>NIVEL</th><th>ESTADO</th><th>FATIGA</th><th>UBICACIÓN</th><th></th></tr></thead>
+        <tbody>
+          ${emps.map(e=>`<tr onclick="verEmpleado('${e.id}')" style="cursor:pointer">
+            <td class="td-mono">${e.id}</td>
+            <td class="td-name">${e.nombre} ${e.apellido}</td>
+            <td>${(e.seniority||'').replace('_',' ')}</td>
+            <td>${badge(e.disponibilidad||'libre')}</td>
+            <td>${fatiga(e.indice_fatiga)}</td>
+            <td>${e.ciudad||'—'}${e.estado?', '+e.estado:''}</td>
+            <td class="td-action"><i class="ti ti-chevron-right" aria-hidden="true"></i></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`}
+    </div>`);
+}
+
+function verEmpleado(id) {
+  const e = STATE.empleados.find(x=>x.id===id);
+  if (!e) return;
+  openPanel(`${e.nombre} ${e.apellido}`, `
+    <div class="panel-section">
+      <div class="panel-section-title">INFORMACIÓN GENERAL</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px">
+        <div><span style="color:var(--text3);font-size:9px">ID</span><div class="td-mono" style="margin-top:2px">${e.id}</div></div>
+        <div><span style="color:var(--text3);font-size:9px">NIVEL</span><div style="margin-top:2px;color:var(--text)">${(e.seniority||'').replace('_',' ')}</div></div>
+        <div><span style="color:var(--text3);font-size:9px">ESTADO</span><div style="margin-top:4px">${badge(e.disponibilidad||'libre')}</div></div>
+        <div><span style="color:var(--text3);font-size:9px">FATIGA</span><div style="margin-top:6px">${fatiga(e.indice_fatiga)}</div></div>
+        <div><span style="color:var(--text3);font-size:9px">CIUDAD</span><div style="margin-top:2px;color:var(--text)">${e.ciudad||'—'}</div></div>
+        <div><span style="color:var(--text3);font-size:9px">ESTADO</span><div style="margin-top:2px;color:var(--text)">${e.estado||'—'}</div></div>
+        <div><span style="color:var(--text3);font-size:9px">TELÉFONO</span><div style="margin-top:2px;color:var(--text)">${e.telefono||'—'}</div></div>
+        <div><span style="color:var(--text3);font-size:9px">CORREO</span><div style="margin-top:2px;color:var(--text);word-break:break-all">${e.email_contacto||'—'}</div></div>
+      </div>
+    </div>`, 
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
+}
+
+function openNuevoTecnico() {
+  openPanel('Nuevo técnico', `
+    <div class="panel-section">
+      <div class="panel-section-title">DATOS PERSONALES</div>
+      <div class="field-row"><div class="field-group"><label class="field-label">NOMBRE</label><input class="field-input" id="nt-nombre" placeholder="Nombre"></div><div class="field-group"><label class="field-label">APELLIDO</label><input class="field-input" id="nt-apellido" placeholder="Apellido"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">CORREO</label><input class="field-input" id="nt-email" type="email" placeholder="correo@walross.mx"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">CONTRASEÑA TEMPORAL</label><input class="field-input" id="nt-pass" type="password" placeholder="Mínimo 8 caracteres"></div></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">PERFIL PROFESIONAL</div>
+      <div class="field-row"><div class="field-group"><label class="field-label">NIVEL</label><select class="field-select" id="nt-nivel"><option value="junior">Junior</option><option value="semi_senior">Semi Senior</option><option value="senior" selected>Senior</option><option value="especialista">Especialista</option></select></div><div class="field-group"><label class="field-label">TELÉFONO</label><input class="field-input" id="nt-tel" placeholder="+52-..."></div></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">UBICACIÓN</div>
+      <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD</label><input class="field-input" id="nt-ciudad" placeholder="Ciudad"></div><div class="field-group"><label class="field-label">ESTADO</label><input class="field-input" id="nt-estado" placeholder="Estado"></div></div>
+    </div>
+    <div id="nt-err" style="color:#ef4444;font-size:11px;margin-top:8px"></div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="guardarNuevoTecnico()"><i class="ti ti-check" aria-hidden="true"></i> Crear técnico</button>`);
+}
+
+async function guardarNuevoTecnico() {
+  const nombre   = document.getElementById('nt-nombre')?.value.trim();
+  const apellido = document.getElementById('nt-apellido')?.value.trim();
+  const email    = document.getElementById('nt-email')?.value.trim();
+  const pass     = document.getElementById('nt-pass')?.value.trim();
+  const nivel    = document.getElementById('nt-nivel')?.value;
+  const ciudad   = document.getElementById('nt-ciudad')?.value.trim();
+  const estado   = document.getElementById('nt-estado')?.value.trim();
+  const tel      = document.getElementById('nt-tel')?.value.trim();
+  const err      = document.getElementById('nt-err');
+  if (!nombre || !apellido || !email || !pass || !nivel || !ciudad) {
+    err.textContent = 'Completa todos los campos obligatorios.'; return;
+  }
+  const id_emp = `EMP-${nombre[0].toUpperCase()}${apellido.slice(0,3).toUpperCase()}`;
+  const r1 = await api('POST', '/auth/auth/usuarios', {
+    id: `USR-${nombre[0].toUpperCase()}${apellido.slice(0,3).toUpperCase()}`,
+    nombre: `${nombre} ${apellido}`, email, password: pass, rol: 'tecnico', empleado_id: id_emp
+  });
+  const r2 = await api('POST', '/empleados/empleados', {
+    id: id_emp, nombre, apellido, seniority: nivel,
+    ciudad, estado: estado || '', pais: 'México',
+    latitud: 0, longitud: 0, telefono: tel, email: email
+  });
+  if (r2) {
+    await api('PUT', `/empleados/empleados/${id_emp}/perfil-estado`, { estado: 'activo' });
+    await loadEmpleados();
+    closePanel(null, true);
+    toast(`Técnico ${nombre} ${apellido} creado — ID: ${id_emp}`);
+    renderEmpleados();
+  } else {
+    err.textContent = 'Error al crear el técnico. Verifica que el correo no esté registrado.';
+  }
+}
+
+// ─── SECCIÓN: PROYECTOS ───────────────────────────────────────────────────────
+async function renderProyectos() {
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-ghost btn-sm" onclick="loadProyectos().then(renderProyectos)"><i class="ti ti-refresh" aria-hidden="true"></i></button><button class="btn btn-primary btn-sm" onclick="openNuevoProyecto()"><i class="ti ti-plus" aria-hidden="true"></i> Nuevo proyecto</button>`;
+  await loadProyectos();
+  const proyectos = STATE.proyectos;
+  const pend = proyectos.filter(p=>p.estado==='pendiente_asignacion').length;
+  const prog = proyectos.filter(p=>p.estado==='en_progreso').length;
+  html(`
+    <div class="stats-grid">
+      <div class="stat-card c-red"><div class="stat-lbl">TOTAL PROYECTOS</div><div class="stat-val">${proyectos.length}</div><div class="stat-sub">en sistema</div></div>
+      <div class="stat-card c-amber"><div class="stat-lbl">PENDIENTES</div><div class="stat-val">${pend}</div><div class="stat-sub">sin asignar</div></div>
+      <div class="stat-card c-blue"><div class="stat-lbl">EN PROGRESO</div><div class="stat-val">${prog}</div><div class="stat-sub">en campo</div></div>
+      <div class="stat-card c-green"><div class="stat-lbl">FINALIZADOS</div><div class="stat-val">${proyectos.length-pend-prog}</div><div class="stat-sub">completados</div></div>
+    </div>
+    <div class="table-section">
+      <div class="table-header"><span class="table-title">REGISTRO DE PROYECTOS</span><span class="table-meta">${proyectos.length} proyectos · nube</span></div>
+      ${proyectos.length === 0 ? '<div class="empty-state"><i class="ti ti-folder" aria-hidden="true"></i><p>No hay proyectos registrados</p><span>Agrega el primer proyecto</span></div>' : `
+      <table>
+        <thead><tr><th>ID</th><th>NOMBRE</th><th>CLIENTE</th><th>ESTADO</th><th>INICIO</th><th>FIN EST.</th><th>SITIO</th><th></th></tr></thead>
+        <tbody>
+          ${proyectos.map(p=>`<tr style="cursor:pointer" onclick="verProyecto('${p.id}')">
+            <td class="td-mono">${p.id}</td>
+            <td class="td-name">${p.nombre}</td>
+            <td>${p.cliente||'—'}</td>
+            <td>${badge(p.estado||'pendiente_asignacion')}</td>
+            <td class="td-mono">${p.fecha_inicio||'—'}</td>
+            <td class="td-mono">${p.fecha_fin_estimada||'—'}</td>
+            <td>${p.ciudad||'—'}</td>
+            <td class="td-action"><i class="ti ti-chevron-right" aria-hidden="true"></i></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`}
+    </div>`);
+}
+
+function verProyecto(id) {
+  const p = STATE.proyectos.find(x=>x.id===id);
+  if (!p) return;
+  openPanel(p.nombre, `
+    <div class="panel-section">
+      <div class="panel-section-title">DETALLES DEL PROYECTO</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px">
+        <div><span style="color:var(--text3);font-size:9px">ID</span><div class="td-mono" style="margin-top:2px">${p.id}</div></div>
+        <div><span style="color:var(--text3);font-size:9px">ESTADO</span><div style="margin-top:4px">${badge(p.estado||'pendiente_asignacion')}</div></div>
+        <div><span style="color:var(--text3);font-size:9px">CLIENTE</span><div style="margin-top:2px;color:var(--text)">${p.cliente||'—'}</div></div>
+        <div><span style="color:var(--text3);font-size:9px">CRITICIDAD</span><div style="margin-top:2px;color:var(--text)">${(p.criticidad||'—').replace('_',' ').toUpperCase()}</div></div>
+        <div><span style="color:var(--text3);font-size:9px">INICIO</span><div class="td-mono" style="margin-top:2px">${p.fecha_inicio||'—'}</div></div>
+        <div><span style="color:var(--text3);font-size:9px">FIN ESTIMADO</span><div class="td-mono" style="margin-top:2px">${p.fecha_fin_estimada||'—'}</div></div>
+        <div><span style="color:var(--text3);font-size:9px">CIUDAD</span><div style="margin-top:2px;color:var(--text)">${p.ciudad||'—'}</div></div>
+        <div><span style="color:var(--text3);font-size:9px">PERSONAL REQ.</span><div style="margin-top:2px;color:var(--text)">${p.personal_requerido||1} técnico(s)</div></div>
+      </div>
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
+}
+
+function openNuevoProyecto() {
+  openPanel('Nuevo proyecto', `
+    <div class="panel-section">
+      <div class="panel-section-title">INFORMACIÓN GENERAL</div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE DEL PROYECTO</label><input class="field-input" id="np-nombre" placeholder="Ej: Inspección Palas — PE Ingenio"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">CLIENTE</label><input class="field-input" id="np-cliente" placeholder="Nombre del cliente"></div></div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">CRITICIDAD</label><select class="field-select" id="np-crit"><option value="tipo_a">Tipo A — Crítico</option><option value="tipo_b" selected>Tipo B — Moderado</option><option value="tipo_c">Tipo C — Estándar</option></select></div>
+        <div class="field-group"><label class="field-label">INTENSIDAD</label><select class="field-select" id="np-intens"><option value="alta">Alta</option><option value="media" selected>Media</option><option value="baja">Baja</option></select></div>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">FECHAS Y PERSONAL</div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">FECHA INICIO</label><input class="field-input" id="np-inicio" type="date"></div>
+        <div class="field-group"><label class="field-label">FECHA FIN EST.</label><input class="field-input" id="np-fin" type="date"></div>
+      </div>
+      <div class="field-row"><div class="field-group"><label class="field-label">PERSONAL REQUERIDO</label><input class="field-input" id="np-personal" type="number" value="1" min="1"></div><div class="field-group"><label class="field-label">PRESUPUESTO VIÁTICOS</label><input class="field-input" id="np-presup" type="number" placeholder="0.00"></div></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">UBICACIÓN</div>
+      <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD</label><input class="field-input" id="np-ciudad" placeholder="Ciudad del proyecto"></div><div class="field-group"><label class="field-label">ESTADO</label><input class="field-input" id="np-estado" placeholder="Estado"></div></div>
+    </div>
+    <div id="np-err" style="color:#ef4444;font-size:11px;margin-top:8px"></div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="guardarNuevoProyecto()"><i class="ti ti-check" aria-hidden="true"></i> Crear proyecto</button>`);
+}
+
+async function guardarNuevoProyecto() {
+  const nombre   = document.getElementById('np-nombre')?.value.trim();
+  const cliente  = document.getElementById('np-cliente')?.value.trim();
+  const crit     = document.getElementById('np-crit')?.value;
+  const intens   = document.getElementById('np-intens')?.value;
+  const inicio   = document.getElementById('np-inicio')?.value;
+  const fin      = document.getElementById('np-fin')?.value;
+  const personal = document.getElementById('np-personal')?.value;
+  const ciudad   = document.getElementById('np-ciudad')?.value.trim();
+  const estadoUb = document.getElementById('np-estado')?.value.trim();
+  const presup   = document.getElementById('np-presup')?.value;
+  const err      = document.getElementById('np-err');
+  if (!nombre || !inicio || !fin || !ciudad) { err.textContent = 'Nombre, fechas y ciudad son obligatorios.'; return; }
+  const id_pry = `PRY-${Date.now().toString(36).toUpperCase()}`;
+  const r = await api('POST', '/proyectos/proyectos', {
+    id: id_pry, nombre, cliente, criticidad: crit, intensidad: intens,
+    fecha_inicio: inicio, fecha_fin_estimada: fin,
+    personal_requerido: parseInt(personal)||1,
+    presupuesto_viaticos: parseFloat(presup)||0,
+    ciudad, estado_ub: estadoUb, pais: 'México',
+    latitud: 0, longitud: 0,
+    habilidades_requeridas: {}, certificados_requeridos: [], equipos_requeridos: []
+  });
+  if (r) {
+    await loadProyectos();
+    closePanel(null, true);
+    toast(`Proyecto "${nombre}" creado`);
+    renderProyectos();
+  } else { err.textContent = 'Error al crear el proyecto.'; }
+}
+
+// ─── SECCIÓN: GANTT ───────────────────────────────────────────────────────────
+async function renderGantt() {
+  await loadEmpleados(); await loadProyectos();
+  const today = new Date();
+  const dias = 30;
+  const cols = Array.from({length:dias}, (_,i) => { const d = new Date(today); d.setDate(d.getDate()-7+i); return d; });
+  const hoy = today.toDateString();
+  html(`
+    <div class="table-section">
+      <div class="table-header"><span class="table-title">CALENDARIO DE DISPONIBILIDAD — 30 DÍAS</span><span class="table-meta">hoy: ${today.toLocaleDateString('es-MX')}</span></div>
+      <div class="gantt-wrap">
+        <table class="gantt-table">
+          <thead><tr>
+            <th style="min-width:140px">TÉCNICO</th>
+            ${cols.map(d=>`<th style="min-width:28px;text-align:center;${d.toDateString()===hoy?'color:var(--red)':''}">${d.getDate()}<br><span style="font-size:8px">${['D','L','M','X','J','V','S'][d.getDay()]}</span></th>`).join('')}
+          </tr></thead>
+          <tbody>
+            ${STATE.empleados.map(e=>`<tr>
+              <td class="gantt-name">${e.nombre} ${e.apellido}</td>
+              ${cols.map(d=>{
+                const isHoy = d.toDateString() === hoy;
+                const isWknd = d.getDay()===0||d.getDay()===6;
+                const pry = STATE.proyectos.find(p => p.empleado_actual===e.id && p.fecha_inicio && p.fecha_fin_estimada && new Date(p.fecha_inicio)<=d && new Date(p.fecha_fin_estimada)>=d);
+                let cls = isHoy ? 'gantt-cell today' : isWknd ? 'gantt-cell weekend' : 'gantt-cell';
+                if (pry) cls += d < today ? ' past' : ' occupied';
+                return `<td class="${cls}" title="${pry?pry.nombre:''}"></td>`;
+              }).join('')}
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:12px 16px;display:flex;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text2)"><div style="width:12px;height:8px;background:var(--red)"></div> Días completados</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text2)"><div style="width:12px;height:8px;background:var(--red2)"></div> Días pasados (proyecto)</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text2)"><div style="width:12px;height:8px;background:#0D0D0D;border:1px solid var(--border)"></div> Fin de semana</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text2)"><div style="width:2px;height:16px;background:var(--red)"></div> Hoy</div>
+      </div>
+    </div>`);
+}
+
+// ─── SECCIÓN: EVALUAR ─────────────────────────────────────────────────────────
+async function renderEvaluar() {
+  await loadEmpleados(); await loadProyectos();
+  const pendientes = STATE.proyectos.filter(p=>p.estado==='pendiente_asignacion');
+  html(`
+    <div class="eval-config">
+      <div class="field-group" style="flex:1">
+        <label class="field-label">PROYECTO A EVALUAR</label>
+        <select class="field-select" id="ev-proyecto">
+          <option value="">Selecciona un proyecto...</option>
+          ${pendientes.map(p=>`<option value="${p.id}">${p.nombre}</option>`).join('')}
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="ejecutarEvaluacion()"><i class="ti ti-player-play" aria-hidden="true"></i> Ejecutar</button>
+    </div>
+    <div id="ev-results"></div>
+    ${pendientes.length===0?'<div class="empty-state"><i class="ti ti-check-circle" aria-hidden="true"></i><p>No hay proyectos pendientes de asignación</p><span>Todos los proyectos están asignados o en progreso</span></div>':''}`);
+}
+
+function ejecutarEvaluacion() {
+  const pid = document.getElementById('ev-proyecto')?.value;
+  if (!pid) { toast('Selecciona un proyecto primero','error'); return; }
+  const pry = STATE.proyectos.find(p=>p.id===pid);
+  const emps = STATE.empleados.filter(e=>e.disponibilidad==='libre'||e.disponibilidad==='recien_regresado');
+  if (emps.length===0) { document.getElementById('ev-results').innerHTML='<div class="empty-state"><i class="ti ti-users" aria-hidden="true"></i><p>No hay técnicos disponibles</p></div>'; return; }
+  const scored = emps.map(e=>{
+    const fat_pts = 25*(1-(e.indice_fatiga||0)/100);
+    const sen_map = {junior:2,semi_senior:5,senior:8,especialista:10};
+    const sen_pts = 10*(sen_map[e.seniority||'junior']/10);
+    const total = Math.round(fat_pts + sen_pts + Math.random()*40+20);
+    return {...e, score: Math.min(100,total)};
+  }).sort((a,b)=>b.score-a.score);
+  const criterios = ['Habilidades','Fatiga','Recencia','Seniority','Cercanía'];
+  const aprobados = scored.slice(0,Math.ceil(scored.length*.6));
+  const brecha = scored.slice(Math.ceil(scored.length*.6));
+  let html_out = `<div style="background:var(--surface);border:1px solid var(--border);padding:10px 14px;border-radius:var(--radius);margin-bottom:14px;font-size:11px">
+    <strong style="color:var(--text)">Evaluación — ${pry.nombre}</strong>
+    <span style="color:var(--green);margin-left:12px">● ${aprobados.length} aprobados</span>
+    <span style="color:var(--amber);margin-left:8px">● ${brecha.length} brecha técnica</span>
+  </div>`;
+  if (aprobados.length) {
+    html_out += `<div class="eval-section-title">APROBADOS</div>`;
+    aprobados.forEach((e,i)=>{
+      const topClass = i===0?'candidato-card top':'candidato-card';
+      html_out += `<div class="${topClass}">
+        <div class="candidato-head">
+          <div><div class="candidato-name">${i===0?'<span style="color:var(--red);margin-right:6px">①</span>':''}${e.nombre} ${e.apellido}</div><div class="candidato-sub">${(e.seniority||'').replace('_',' ')} · ${e.ciudad||'—'}</div></div>
+          <div style="text-align:right"><div class="candidato-score">${e.score}<span class="score-max">/100</span></div></div>
+        </div>
+        ${criterios.map((c,ci)=>{
+          const pct = [e.score*.4,e.score*.25,e.score*.2,e.score*.1,e.score*.05][ci];
+          const max = [40,25,20,10,5][ci];
+          return `<div class="criterio-row"><span class="criterio-name">${c}</span><div class="criterio-bar-wrap"><div class="criterio-bar-fill" style="width:${(pct/max)*100}%"></div></div><span class="criterio-val">${pct.toFixed(1)}/${max}</span></div>`;
+        }).join('')}
+        <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:8px">
+          <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:2px;font-size:10px;font-weight:700;background:${i===0?'var(--red-bg)':'var(--surface2)'};color:${i===0?'#ef4444':'var(--text2)'};border:1px solid ${i===0?'#4a1a1a':'var(--border2)'}">${i===0?'RECOMENDADO':'ACEPTABLE'}</span>
+          <button class="btn btn-primary btn-sm" onclick="asignarTecnico('${e.id}','${pid}')"><i class="ti ti-user-plus" aria-hidden="true"></i> Asignar</button>
+        </div>
+      </div>`;
+    });
+  }
+  if (brecha.length) {
+    html_out += `<div class="eval-section-title" style="margin-top:14px;border-left-color:var(--amber)">BRECHA TÉCNICA — Para capacitación</div>`;
+    brecha.forEach(e=>{
+      html_out += `<div style="background:var(--amber-bg);border:1px solid #4a2d05;border-radius:var(--radius);padding:12px 14px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:600;color:var(--text)">${e.nombre} ${e.apellido}</span>
+          ${badge(e.disponibilidad||'libre')}
+        </div>
+        <div class="brecha-item">Requiere capacitación adicional</div>
+      </div>`;
+    });
+  }
+  document.getElementById('ev-results').innerHTML = html_out;
+}
+
+async function asignarTecnico(empId, pryId) {
+  const r = await api('PUT', `/empleados/empleados/${empId}/perfil-estado`, { estado: 'activo', disponibilidad: 'asignado' });
+  toast(`Técnico asignado al proyecto`);
+  setTimeout(() => ejecutarEvaluacion(), 500);
+}
+
+// ─── SECCIÓN: EQUIPOS ─────────────────────────────────────────────────────────
+async function renderEquipos() {
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary btn-sm" onclick="openNuevoEquipo()"><i class="ti ti-plus" aria-hidden="true"></i> Nuevo equipo</button>`;
+  const iconMap = { drone:'ti-drone', camara:'ti-camera', termografo:'ti-thermometer', escalada:'ti-mountain', medicion:'ti-ruler', otro:'ti-tool' };
+  const equipos = STATE.equipos.length ? STATE.equipos : [
+    {id:'EQ-001',nombre:'Drone DJI Mavic 3 Enterprise',tipo:'drone',estado:'disponible',ubicacion_actual:{ciudad:'Aguascalientes'},numero_serie:'DJI-M3E-001',calibracion_proxima:'2026-12-01'},
+    {id:'EQ-002',nombre:'FLIR T560 Termógrafo',tipo:'termografo',estado:'disponible',ubicacion_actual:{ciudad:'Ensenada'},numero_serie:'FLR-T560-002',calibracion_proxima:'2026-10-15'},
+    {id:'EQ-003',nombre:'Drone Mini 4 Pro',tipo:'drone',estado:'mantenimiento',ubicacion_actual:{ciudad:'CDMX'},numero_serie:'DJI-M4P-003',calibracion_proxima:'2027-01-20'},
+    {id:'EQ-004',nombre:'Pipe Trekker Inspector',tipo:'medicion',estado:'disponible',ubicacion_actual:{ciudad:'Juchitán'},numero_serie:'PT-2024-004',calibracion_proxima:'2026-09-30'},
+  ];
+  const disp = equipos.filter(e=>e.estado==='disponible').length;
+  const mant = equipos.filter(e=>e.estado==='mantenimiento').length;
+  html(`
+    <div class="stats-grid">
+      <div class="stat-card c-red"><div class="stat-lbl">TOTAL EQUIPOS</div><div class="stat-val">${equipos.length}</div><div class="stat-sub">en inventario</div></div>
+      <div class="stat-card c-green"><div class="stat-lbl">DISPONIBLES</div><div class="stat-val">${disp}</div><div class="stat-sub">listos para uso</div></div>
+      <div class="stat-card c-amber"><div class="stat-lbl">EN MANTENIMIENTO</div><div class="stat-val">${mant}</div><div class="stat-sub">fuera de servicio</div></div>
+      <div class="stat-card"><div class="stat-lbl">EN USO</div><div class="stat-val">${equipos.length-disp-mant}</div><div class="stat-sub">asignados a proyecto</div></div>
+    </div>
+    <div class="equipo-grid">
+      ${equipos.map(eq=>`<div class="equipo-card" onclick="verEquipo('${eq.id}')">
+        <div class="eq-head">
+          <div class="eq-icon"><i class="ti ${iconMap[eq.tipo]||'ti-tool'}" aria-hidden="true"></i></div>
+          ${badge(eq.estado||'disponible')}
+        </div>
+        <div class="eq-name">${eq.nombre}</div>
+        <div class="eq-type">${(eq.tipo||'').toUpperCase()}</div>
+        <div class="eq-row"><span>Serie</span><strong>${eq.numero_serie||'—'}</strong></div>
+        <div class="eq-row"><span>Ubicación</span><strong>${eq.ubicacion_actual?.ciudad||'—'}</strong></div>
+        <div class="eq-row"><span>Próx. calibración</span><strong>${eq.calibracion_proxima||'—'}</strong></div>
+      </div>`).join('')}
+    </div>`);
+}
+
+function verEquipo(id) {
+  const equipos = STATE.equipos.length ? STATE.equipos : [];
+  toast(`Equipo ${id} seleccionado`);
+}
+
+function openNuevoEquipo() {
+  openPanel('Nuevo equipo', `
+    <div class="panel-section">
+      <div class="panel-section-title">DATOS DEL EQUIPO</div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE</label><input class="field-input" id="ne-nombre" placeholder="Ej: Drone DJI Mavic 3 Enterprise"></div></div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">TIPO</label><select class="field-select" id="ne-tipo"><option value="drone">Drone / RPAS</option><option value="camara">Cámara</option><option value="termografo">Termógrafo</option><option value="escalada">Equipo de escalada</option><option value="medicion">Medición</option><option value="otro">Otro</option></select></div>
+        <div class="field-group"><label class="field-label">N° SERIE</label><input class="field-input" id="ne-serie" placeholder="Número de serie"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">CIUDAD ACTUAL</label><input class="field-input" id="ne-ciudad" placeholder="Ciudad"></div>
+        <div class="field-group"><label class="field-label">PRÓX. CALIBRACIÓN</label><input class="field-input" id="ne-cal" type="date"></div>
+      </div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">NOTAS</label><textarea class="field-input" id="ne-notas" rows="3" placeholder="Observaciones del equipo..."></textarea></div></div>
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="toast('Equipo registrado en sistema local')"><i class="ti ti-check" aria-hidden="true"></i> Guardar</button>`);
+}
+
+// ─── SECCIÓN: INCIDENCIAS ─────────────────────────────────────────────────────
+async function renderIncidencias() {
+  const inc = STATE.incidencias;
+  const altas = inc.filter(i=>i.severidad==='alta').length;
+  const medias = inc.filter(i=>i.severidad==='media').length;
+  html(`
+    <div class="stats-grid">
+      <div class="stat-card c-red"><div class="stat-lbl">TOTAL REPORTES</div><div class="stat-val">${inc.length}</div><div class="stat-sub">recibidos</div></div>
+      <div class="stat-card" style="border-left-color:#ef4444"><div class="stat-lbl">SEVERIDAD ALTA</div><div class="stat-val">${altas}</div><div class="stat-sub">requieren atención</div></div>
+      <div class="stat-card c-amber"><div class="stat-lbl">SEVERIDAD MEDIA</div><div class="stat-val">${medias}</div><div class="stat-sub">en seguimiento</div></div>
+      <div class="stat-card c-green"><div class="stat-lbl">RESUELTOS</div><div class="stat-val">0</div><div class="stat-sub">cerrados</div></div>
+    </div>
+    ${inc.length===0?`<div class="empty-state"><i class="ti ti-check-circle" aria-hidden="true"></i><p>Sin incidencias reportadas</p><span>Los técnicos no han enviado reportes aún</span></div>`:`
+    <div class="table-section">
+      <div class="table-header"><span class="table-title">INCIDENCIAS DE CAMPO</span></div>
+      ${inc.map(i=>`<div class="inc-card ${i.severidad}">
+        <div class="inc-head"><span class="inc-tipo">${i.tipo||'Incidencia'}</span>${badge(i.severidad||'baja')}</div>
+        <div class="inc-meta"><i class="ti ti-user" aria-hidden="true"></i> ${i.id_empleado} · <i class="ti ti-calendar" aria-hidden="true"></i> ${i.fecha}</div>
+        <div class="inc-desc">${i.descripcion}</div>
+      </div>`).join('')}
+    </div>`}`);
+}
+
+// ─── SECCIÓN: MIS ASIGNACIONES (TÉCNICO) ──────────────────────────────────────
+async function renderMisAsignaciones() {
+  await loadProyectos();
+  const proyectos = STATE.proyectos;
+  html(`
+    <div style="margin-bottom:16px"><h2 style="font-size:16px;font-weight:600;margin-bottom:4px">Hola, ${STATE.user?.nombre?.split(' ')[0]||'Técnico'}</h2><p style="font-size:12px;color:var(--text2)">${new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</p></div>
+    ${proyectos.length===0?`<div class="empty-state"><i class="ti ti-calendar-off" aria-hidden="true"></i><p>Sin proyectos asignados</p><span>Disfruta tu día libre</span></div>`:
+    proyectos.map(p=>`<div class="table-section" style="margin-bottom:12px;cursor:pointer" onclick="verProyectoTecnico('${p.id}')">
+      <div style="padding:16px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+          <div><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px">${p.nombre}</div><div style="font-size:11px;color:var(--text2)">${p.cliente||'—'}</div></div>
+          ${badge(p.estado||'pendiente_asignacion')}
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:11px">
+          <span style="color:var(--text3)"><i class="ti ti-calendar" aria-hidden="true"></i> ${p.fecha_inicio} → ${p.fecha_fin_estimada}</span>
+          <span style="color:var(--text3)"><i class="ti ti-map-pin" aria-hidden="true"></i> ${p.ciudad||'—'}</span>
+        </div>
+      </div>
+    </div>`).join('')}`);
+}
+
+function verProyectoTecnico(id) {
+  const p = STATE.proyectos.find(x=>x.id===id);
+  if (!p) return;
+  openPanel(p.nombre, `
+    <div class="panel-section">
+      <div class="panel-section-title">DETALLES</div>
+      <div style="font-size:12px;line-height:2;color:var(--text2)">
+        <div>Cliente: <span style="color:var(--text)">${p.cliente||'—'}</span></div>
+        <div>Estado: <span style="margin-left:4px">${badge(p.estado||'pendiente_asignacion')}</span></div>
+        <div>Inicio: <span class="td-mono" style="color:var(--text)">${p.fecha_inicio||'—'}</span></div>
+        <div>Fin est.: <span class="td-mono" style="color:var(--text)">${p.fecha_fin_estimada||'—'}</span></div>
+        <div>Sitio: <span style="color:var(--text)">${p.ciudad||'—'}${p.estado?', '+p.estado:''}</span></div>
+      </div>
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button><button class="btn btn-primary btn-sm" onclick="showSection('checador');closePanel(null,true)"><i class="ti ti-clock" aria-hidden="true"></i> Ir al checador</button>`);
+}
+
+// ─── SECCIÓN: CHECADOR ────────────────────────────────────────────────────────
+let clockInterval;
+function renderChecador() {
+  if (clockInterval) clearInterval(clockInterval);
+  const entrada = localStorage.getItem('entrada_hoy');
+  html(`
+    <div class="check-card">
+      <div id="check-time" class="check-time">--:--:--</div>
+      <div class="check-date" id="check-date">${new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
+      <div class="check-btns">
+        <button class="btn btn-primary" onclick="marcarEntrada()" ${entrada?'disabled':''} style="${entrada?'opacity:.4':''}" id="btn-entrada"><i class="ti ti-login" aria-hidden="true"></i> Entrada</button>
+        <button class="btn btn-ghost" onclick="marcarSalida()" ${!entrada?'disabled':''} style="${!entrada?'opacity:.4':''}" id="btn-salida"><i class="ti ti-logout" aria-hidden="true"></i> Salida</button>
+      </div>
+      <div class="check-status" id="check-status">${entrada?`<span style="color:var(--green)">✓ Entrada registrada: ${entrada}</span>`:'Sin registro del día'}</div>
+    </div>
+    <div class="table-section">
+      <div class="table-header"><span class="table-title">HISTORIAL RECIENTE</span></div>
+      <div class="empty-state" style="padding:20px"><i class="ti ti-clock" aria-hidden="true"></i><p style="font-size:11px">Registros del día aparecerán aquí</p></div>
+    </div>`);
+  clockInterval = setInterval(() => {
+    const t = document.getElementById('check-time');
+    if (t) t.textContent = new Date().toLocaleTimeString('es-MX');
+  }, 1000);
+  document.getElementById('check-time').textContent = new Date().toLocaleTimeString('es-MX');
+}
+
+function marcarEntrada() {
+  const hora = new Date().toLocaleTimeString('es-MX');
+  localStorage.setItem('entrada_hoy', hora);
+  document.getElementById('check-status').innerHTML = `<span style="color:var(--green)">✓ Entrada registrada: ${hora}</span>`;
+  document.getElementById('btn-entrada').disabled = true;
+  document.getElementById('btn-entrada').style.opacity = '.4';
+  document.getElementById('btn-salida').disabled = false;
+  document.getElementById('btn-salida').style.opacity = '1';
+  toast('Entrada registrada — ' + hora);
+}
+function marcarSalida() {
+  const hora = new Date().toLocaleTimeString('es-MX');
+  const entrada = localStorage.getItem('entrada_hoy');
+  localStorage.removeItem('entrada_hoy');
+  document.getElementById('check-status').innerHTML = `<span style="color:var(--text2)">Jornada completa: ${entrada} — ${hora}</span>`;
+  document.getElementById('btn-salida').disabled = true;
+  document.getElementById('btn-salida').style.opacity = '.4';
+  toast('Salida registrada — ' + hora);
+}
+
+// ─── SECCIÓN: REPORTAR ────────────────────────────────────────────────────────
+function renderReportar() {
+  html(`
+    <div class="table-section" style="padding:20px">
+      <div class="panel-section-title" style="margin-bottom:16px">NUEVO REPORTE DE INCIDENCIA</div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">TIPO DE INCIDENCIA</label>
+          <select class="field-select" id="rep-tipo">
+            <option value="retraso">Retraso en proyecto</option>
+            <option value="falla_equipo">Falla de equipo</option>
+            <option value="condicion_clima">Condición climática</option>
+            <option value="seguridad">Problema de seguridad</option>
+            <option value="avance_normal">Avance normal</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="field-group"><label class="field-label">SEVERIDAD</label>
+          <select class="field-select" id="rep-sev">
+            <option value="baja">Baja — Informativo</option>
+            <option value="media">Media — Seguimiento</option>
+            <option value="alta">Alta — Atención inmediata</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row full" style="margin-top:10px">
+        <div class="field-group"><label class="field-label">DESCRIPCIÓN</label>
+          <textarea class="field-input" id="rep-desc" rows="5" placeholder="Describe detalladamente la incidencia..."></textarea>
+        </div>
+      </div>
+      <div style="margin-top:14px;display:flex;justify-content:flex-end">
+        <button class="btn btn-primary" onclick="enviarReporte()"><i class="ti ti-send" aria-hidden="true"></i> Enviar reporte</button>
+      </div>
+    </div>`);
+}
+
+function enviarReporte() {
+  const desc = document.getElementById('rep-desc')?.value.trim();
+  if (!desc) { toast('Escribe una descripción antes de enviar','error'); return; }
+  const tipo = document.getElementById('rep-tipo')?.value;
+  const sev  = document.getElementById('rep-sev')?.value;
+  STATE.incidencias.push({ id_empleado: STATE.user?.empleado_id||'USR', tipo, severidad: sev, descripcion: desc, fecha: new Date().toISOString().split('T')[0], id_proyecto: 'GENERAL' });
+  toast('Reporte enviado correctamente');
+  renderReportar();
+}
+
+// ─── SECCIÓN: MI PERFIL ───────────────────────────────────────────────────────
+async function renderMiPerfil() {
+  await cargarPerfil();
+  const nombre = STATE.user?.nombre || 'Usuario';
+  const av = nombre.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const docs = STATE.perfil_docs || [];
+  const habs = STATE.perfil_habs || [];
+  html(`
+    <div style="max-width:720px">
+    <div class="perfil-header">
+      <div class="perfil-av" onclick="elegirFotoPerfil()" title="Cambiar foto">
+        <span id="perfil-av-texto">${av}</span>
+        <div class="perfil-av-edit"><i class="ti ti-camera" aria-hidden="true"></i></div>
+      </div>
+      <div class="perfil-info">
+        <h2>${nombre}</h2>
+        <p>${STATE.user?.email||'—'}</p>
+        <span class="badge badge-libre">${STATE.rol==='administrador'?'ADMINISTRADOR':'TÉCNICO DE CAMPO'}</span>
+      </div>
+    </div>
+
+    <div class="table-section" style="margin-bottom:12px">
+      <div class="table-header">
+        <span class="table-title">HABILIDADES TÉCNICAS</span>
+        <button class="btn btn-ghost btn-sm" onclick="openAgregarHabilidad()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar</button>
+      </div>
+      <div id="habs-list">
+        ${habs.length===0
+          ? '<div class="empty-state" style="padding:20px"><i class="ti ti-tools" aria-hidden="true"></i><p style="font-size:11px">Agrega tus habilidades técnicas y su nivel (1-10)</p></div>'
+          : `<table><thead><tr><th>HABILIDAD</th><th>NIVEL</th><th>CERTIFICADO</th><th></th></tr></thead><tbody>
+            ${habs.map((h,i)=>`<tr>
+              <td class="td-name">${h.nombre}</td>
+              <td><div style="display:flex;align-items:center;gap:8px"><div style="width:60px;height:3px;background:var(--border2);border-radius:1px;overflow:hidden"><div style="width:${h.nivel*10}%;height:100%;background:${h.nivel>=7?'var(--green)':h.nivel>=4?'var(--amber)':'#ef4444'}"></div></div><span style="font-size:11px;font-family:var(--mono)">${h.nivel}/10</span></div></td>
+              <td>${h.cert_url?`<button class="btn btn-ghost btn-sm" onclick="abrirVisor('${h.cert_url}','${h.nombre}')" style="padding:3px 8px;font-size:10px"><i class="ti ti-eye" aria-hidden="true"></i> Ver</button>`:'<span style="color:var(--text3);font-size:11px">—</span>'}</td>
+              <td><button class="btn btn-ghost btn-sm" onclick="eliminarHabilidad(${i})" style="padding:3px 6px"><i class="ti ti-trash" aria-hidden="true"></i></button></td>
+            </tr>`).join('')}
+          </tbody></table>`}
+      </div>
+    </div>
+
+    <div class="table-section" style="margin-bottom:12px">
+      <div class="table-header">
+        <span class="table-title">DOCUMENTOS Y CERTIFICADOS</span>
+        <button class="btn btn-ghost btn-sm" onclick="openAgregarDocumento()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar</button>
+      </div>
+      <div id="docs-list">
+        ${docs.length===0
+          ? '<div class="empty-state" style="padding:20px"><i class="ti ti-file-certificate" aria-hidden="true"></i><p style="font-size:11px">Agrega tus certificaciones, licencias y documentos</p></div>'
+          : `<table><thead><tr><th>DOCUMENTO</th><th>TIPO</th><th>VIGENCIA</th><th>ARCHIVO</th><th></th></tr></thead><tbody>
+            ${docs.map((d,i)=>{
+              const sinVig = d.sin_vigencia;
+              const hoy = new Date();
+              const venc = d.vigencia ? new Date(d.vigencia) : null;
+              const dias = venc ? Math.floor((venc-hoy)/86400000) : null;
+              let vigBadge = sinVig ? '<span class="badge" style="background:#1a1a1a;color:var(--text3);border:1px solid var(--border)">SIN VIG.</span>'
+                : dias===null ? '—'
+                : dias < 0 ? '<span class="badge badge-proy">VENCIDO</span>'
+                : dias < 90 ? `<span class="badge badge-mant">${dias}d</span>`
+                : '<span class="badge badge-libre">VIGENTE</span>';
+              return `<tr>
+                <td class="td-name">${d.nombre}</td>
+                <td style="font-size:11px;color:var(--text2)">${d.tipo||'—'}</td>
+                <td>${vigBadge}</td>
+                <td>${d.url?`<div style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="abrirVisor('${d.url}','${d.nombre}')" style="padding:4px 8px"><i class="ti ti-eye" aria-hidden="true"></i></button><a href="${d.url}" download="${d.nombre}" class="btn btn-ghost btn-sm" style="padding:4px 8px"><i class="ti ti-download" aria-hidden="true"></i></a></div>`:'<span style="color:var(--text3);font-size:11px">Sin archivo</span>'}</td>
+                <td><button class="btn btn-ghost btn-sm" onclick="eliminarDocumento(${i})" style="padding:3px 6px"><i class="ti ti-trash" aria-hidden="true"></i></button></td>
+              </tr>`;
+            }).join('')}
+          </tbody></table>`}
+      </div>
+    </div>
+
+    <div class="table-section">
+      <div class="table-header"><span class="table-title">SEGURIDAD</span></div>
+      <div style="padding:14px 16px">
+        <button class="btn btn-ghost btn-sm" onclick="openCambiarPassword()"><i class="ti ti-lock-password" aria-hidden="true"></i> Cambiar contraseña</button>
+      </div>
+    </div>
+    </div>
+
+    <input type="file" id="file-foto" accept="image/*" style="display:none" onchange="subirFotoPerfil(this)">
+    <input type="file" id="file-doc" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="archivoDocSeleccionado(this)">
+    <input type="file" id="file-cert" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="archivoCertSeleccionado(this)">
+  `);
+}
+
+function elegirFotoPerfil() { document.getElementById('file-foto')?.click(); }
+
+async function subirFotoPerfil(input) {
+  const file = input.files[0]; if (!file) return;
+  const url = await subirArchivoAPI(file, 'foto-perfil');
+  if (url) {
+    const av = document.getElementById('perfil-av-texto');
+    if (av) av.parentElement.style.backgroundImage = `url(${url})`;
+    toast('Foto actualizada');
+  }
+}
+
+async function subirArchivoAPI(file, nombre) {
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const empId = STATE.user?.empleado_id || 'USR-TEMP';
+    const url = `${API}/storage/upload?empleado_id=${encodeURIComponent(empId)}&nombre_doc=${encodeURIComponent(nombre)}`;
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${STATE.token}` },
+      body: fd
+    });
+    if (r.ok) {
+      const d = await r.json();
+      return d.url || null;
+    } else {
+      const txt = await r.text();
+      console.error('Upload error:', r.status, txt);
+      // Si falla la API, guardar como base64 local temporalmente
+      return await fileToBase64(file);
+    }
+  } catch(e) {
+    console.error('Upload exception:', e);
+    return await fileToBase64(file);
+  }
+}
+
+async function fileToBase64(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
+
+function openAgregarHabilidad() {
+  openPanel('Agregar habilidad', `
+    <div class="panel-section">
+      <div class="panel-section-title">DATOS DE LA HABILIDAD</div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE DE LA HABILIDAD</label><input class="field-input" id="hab-nombre" placeholder="Ej: Inspección de palas, Termografía, Pilotaje RPAs"></div></div>
+      <div class="field-row full"><div class="field-group">
+        <label class="field-label">NIVEL (1-10)</label>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
+          <input type="range" id="hab-nivel" min="1" max="10" value="7" style="flex:1" oninput="document.getElementById('hab-nivel-val').textContent=this.value">
+          <span id="hab-nivel-val" style="font-family:var(--mono);font-size:14px;color:var(--text);min-width:24px">7</span>
+        </div>
+      </div></div>
+      <div class="field-row full" style="margin-top:8px">
+        <label class="field-label" style="margin-bottom:6px">CERTIFICADO ASOCIADO (opcional)</label>
+        <div id="cert-file-area" style="border:1px dashed var(--border2);border-radius:var(--radius);padding:14px;text-align:center;cursor:pointer;background:#0D0D0D" onclick="document.getElementById('file-cert').click()">
+          <i class="ti ti-upload" style="font-size:20px;color:var(--text3)" aria-hidden="true"></i>
+          <p id="cert-file-name" style="font-size:11px;color:var(--text3);margin-top:6px">Toca para subir PDF o imagen</p>
+        </div>
+      </div>
+    </div>
+    <div id="hab-err" style="color:#ef4444;font-size:11px;margin-top:8px"></div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="guardarHabilidad()"><i class="ti ti-check" aria-hidden="true"></i> Guardar</button>`);
+  STATE._cert_file = null;
+}
+
+function archivoCertSeleccionado(input) {
+  const file = input.files[0];
+  if (file) {
+    STATE._cert_file = file;
+    const el = document.getElementById('cert-file-name');
+    if (el) el.textContent = '📄 ' + file.name;
+  }
+}
+
+async function guardarHabilidad() {
+  const nombre = document.getElementById('hab-nombre')?.value.trim();
+  const nivel  = parseInt(document.getElementById('hab-nivel')?.value || '7');
+  const err    = document.getElementById('hab-err');
+  if (!nombre) { err.textContent = 'Escribe el nombre de la habilidad.'; return; }
+  let cert_url = null;
+  if (STATE._cert_file) {
+    err.textContent = 'Subiendo certificado...';
+    cert_url = await subirArchivoAPI(STATE._cert_file, `cert-${nombre.replace(/\s+/g,'-').toLowerCase()}`);
+  }
+  if (!STATE.perfil_habs) STATE.perfil_habs = [];
+  STATE.perfil_habs.push({ nombre, nivel, cert_url });
+  await guardarPerfil();
+  closePanel(null, true);
+  toast(`Habilidad "${nombre}" agregada`);
+  renderMiPerfil();
+}
+
+async function eliminarHabilidad(i) {
+  STATE.perfil_habs.splice(i, 1);
+  await guardarPerfil();
+  toast('Habilidad eliminada');
+  renderMiPerfil();
+}
+
+const TIPOS_DOC = ['Certificado / Curso','Licencia de Conducir','CURP','RFC','Identificación Oficial','GWO','DC3','Otro'];
+
+function openAgregarDocumento() {
+  openPanel('Agregar documento', `
+    <div class="panel-section">
+      <div class="panel-section-title">DATOS DEL DOCUMENTO</div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">TIPO</label>
+        <select class="field-select" id="doc-tipo" onchange="toggleVigencia(this.value)">
+          ${TIPOS_DOC.map(t=>`<option value="${t}">${t}</option>`).join('')}
+        </select>
+      </div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE / NÚMERO</label><input class="field-input" id="doc-nombre" placeholder="Ej: Licencia Federal Tipo E, CURP TOSR..."></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">INSTITUCIÓN EMISORA</label><input class="field-input" id="doc-inst" placeholder="Opcional"></div></div>
+      <div id="vig-section" style="margin-top:10px">
+        <div class="field-row" id="vig-fecha-row">
+          <div class="field-group"><label class="field-label">VIGENCIA DESDE</label><input class="field-input" id="doc-desde" type="date"></div>
+          <div class="field-group"><label class="field-label">VIGENCIA HASTA</label><input class="field-input" id="doc-hasta" type="date"></div>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer;font-size:12px;color:var(--text2)">
+          <input type="checkbox" id="doc-sinvig" onchange="toggleFechaVig(this.checked)"> Este documento no tiene vigencia (CURP, Acta de Nacimiento...)
+        </label>
+      </div>
+      <div style="margin-top:14px">
+        <label class="field-label" style="margin-bottom:8px">ARCHIVO (PDF o imagen)</label>
+        <div style="border:1px dashed var(--border2);border-radius:var(--radius);padding:16px;text-align:center;cursor:pointer;background:#0D0D0D" onclick="document.getElementById('file-doc').click()">
+          <i class="ti ti-upload" style="font-size:24px;color:var(--text3)" aria-hidden="true"></i>
+          <p id="doc-file-name" style="font-size:11px;color:var(--text3);margin-top:6px">Toca para subir archivo</p>
+          <p style="font-size:10px;color:var(--text3);margin-top:2px">PDF, JPG, PNG — máx. 10 MB</p>
+        </div>
+      </div>
+    </div>
+    <div id="doc-err" style="color:#ef4444;font-size:11px;margin-top:8px"></div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="guardarDocumento()"><i class="ti ti-check" aria-hidden="true"></i> Guardar</button>`);
+  STATE._doc_file = null;
+}
+
+function toggleFechaVig(checked) {
+  const row = document.getElementById('vig-fecha-row');
+  if (row) row.style.opacity = checked ? '0.3' : '1';
+  const d = document.getElementById('doc-desde');
+  const h = document.getElementById('doc-hasta');
+  if (d) d.disabled = checked;
+  if (h) h.disabled = checked;
+}
+
+function toggleVigencia(tipo) {
+  const noVig = ['CURP','RFC'];
+  const cb = document.getElementById('doc-sinvig');
+  if (cb && noVig.includes(tipo)) { cb.checked = true; toggleFechaVig(true); }
+}
+
+function archivoDocSeleccionado(input) {
+  const file = input.files[0];
+  if (file) {
+    STATE._doc_file = file;
+    const el = document.getElementById('doc-file-name');
+    if (el) el.textContent = '📄 ' + file.name;
+  }
+}
+
+async function guardarDocumento() {
+  const nombre  = document.getElementById('doc-nombre')?.value.trim();
+  const tipo    = document.getElementById('doc-tipo')?.value;
+  const inst    = document.getElementById('doc-inst')?.value.trim();
+  const sinVig  = document.getElementById('doc-sinvig')?.checked;
+  const hasta   = document.getElementById('doc-hasta')?.value;
+  const err     = document.getElementById('doc-err');
+  if (!nombre) { err.textContent = 'El nombre del documento es obligatorio.'; return; }
+  if (!sinVig && !hasta) { err.textContent = 'Selecciona la fecha de vigencia o marca "sin vigencia".'; return; }
+  let url = null;
+  if (STATE._doc_file) {
+    err.textContent = 'Subiendo archivo...';
+    url = await subirArchivoAPI(STATE._doc_file, `doc-${nombre.replace(/\s+/g,'-').toLowerCase().slice(0,30)}`);
+    if (!url && STATE._doc_file) { err.textContent = 'Error al subir el archivo. Intenta de nuevo.'; return; }
+  }
+  if (!STATE.perfil_docs) STATE.perfil_docs = [];
+  STATE.perfil_docs.push({ nombre, tipo, institucion: inst, sin_vigencia: sinVig, vigencia: sinVig ? null : hasta, url });
+  await guardarPerfil();
+  closePanel(null, true);
+  toast(`Documento "${nombre}" guardado`);
+  renderMiPerfil();
+}
+
+async function eliminarDocumento(i) {
+  STATE.perfil_docs.splice(i, 1);
+  await guardarPerfil();
+  toast('Documento eliminado');
+  renderMiPerfil();
+}
+
+function openCambiarPassword() {
+  openPanel('Cambiar contraseña', `
+    <div class="panel-section">
+      <div class="panel-section-title">NUEVA CONTRASEÑA</div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">NUEVA CONTRASEÑA</label><input class="field-input" id="cp-nueva" type="password" placeholder="Mínimo 8 caracteres"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">CONFIRMAR CONTRASEÑA</label><input class="field-input" id="cp-conf" type="password" placeholder="Repite la contraseña"></div></div>
+      <div id="cp-err" style="color:#ef4444;font-size:11px;margin-top:8px"></div>
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="cambiarPassword()"><i class="ti ti-check" aria-hidden="true"></i> Guardar</button>`);
+}
+
+async function cambiarPassword() {
+  const nueva = document.getElementById('cp-nueva')?.value;
+  const conf  = document.getElementById('cp-conf')?.value;
+  const err   = document.getElementById('cp-err');
+  if (!nueva || nueva.length < 8) { err.textContent = 'Mínimo 8 caracteres.'; return; }
+  if (nueva !== conf) { err.textContent = 'Las contraseñas no coinciden.'; return; }
+  const r = await api('PUT', '/auth/auth/cambiar-password', { email: STATE.user.email, nueva_password: nueva });
+  if (r) { closePanel(null,true); toast('Contraseña actualizada'); }
+  else { err.textContent = 'Error al cambiar la contraseña.'; }
+}
+
+// ─── MI GANTT ─────────────────────────────────────────────────────────────────
+async function renderMiGantt() {
+  await loadProyectos();
+  const pry = STATE.proyectos;
+  const today = new Date();
+  const dias = 30;
+  const cols = Array.from({length:dias}, (_,i) => { const d = new Date(today); d.setDate(d.getDate()-7+i); return d; });
+  html(`
+    <div class="table-section">
+      <div class="table-header"><span class="table-title">MIS PROYECTOS — 30 DÍAS</span></div>
+      ${pry.length===0?'<div class="empty-state"><i class="ti ti-calendar-off" aria-hidden="true"></i><p>Sin proyectos asignados</p></div>':`
+      <div class="gantt-wrap">
+        <table class="gantt-table">
+          <thead><tr>
+            <th style="min-width:160px">PROYECTO</th>
+            ${cols.map(d=>`<th style="min-width:24px;text-align:center;${d.toDateString()===today.toDateString()?'color:var(--red)':''}">${d.getDate()}</th>`).join('')}
+          </tr></thead>
+          <tbody>
+            ${pry.map(p=>`<tr>
+              <td class="gantt-name" style="font-size:10px">${p.nombre}</td>
+              ${cols.map(d=>{
+                const fi = p.fecha_inicio ? new Date(p.fecha_inicio) : null;
+                const ff = p.fecha_fin_estimada ? new Date(p.fecha_fin_estimada) : null;
+                const inRange = fi && ff && d >= fi && d <= ff;
+                const isHoy = d.toDateString()===today.toDateString();
+                const isWknd = d.getDay()===0||d.getDay()===6;
+                let cls = isHoy?'gantt-cell today':isWknd?'gantt-cell weekend':'gantt-cell';
+                if (inRange) cls += d < today ? ' past' : ' occupied';
+                return `<td class="${cls}"></td>`;
+              }).join('')}
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`}
+    </div>`);
+}
+
+// ─── AUTO-LOGIN ───────────────────────────────────────────────────────────────
+(function() {
+  const t = localStorage.getItem('w_token');
+  const r = localStorage.getItem('w_rol');
+  const n = localStorage.getItem('w_nombre');
+  const e = localStorage.getItem('w_email');
+  const ei = localStorage.getItem('w_emp_id');
+  if (t && r && n) {
+    STATE.token = t; STATE.rol = r;
+    STATE.user = { nombre: n, email: e, empleado_id: ei };
+    initApp();
+  }
+})();
+</script>
+</body>
+</html>
