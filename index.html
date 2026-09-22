@@ -746,23 +746,24 @@ async function guardarNuevoTecnico() {
     err.textContent = 'Completa todos los campos obligatorios.'; return;
   }
   const id_emp = `EMP-${nombre[0].toUpperCase()}${apellido.slice(0,3).toUpperCase()}`;
-  const r1 = await api('POST', '/auth/auth/usuarios', {
-    id: `USR-${nombre[0].toUpperCase()}${apellido.slice(0,3).toUpperCase()}`,
-    nombre: `${nombre} ${apellido}`, email, password: pass, rol: 'tecnico', empleado_id: id_emp
-  });
   const r2 = await api('POST', '/empleados', {
     id: id_emp, nombre, apellido, seniority: nivel,
     ciudad, estado: estado || '', pais: 'México',
     latitud: 0, longitud: 0, telefono: tel, email: email
   });
-  if (r2) {
+  if (!r2) { err.textContent = 'Error al crear el técnico. Verifica que el correo no esté registrado.'; return; }
+  const r1 = await api('POST', '/auth/auth/usuarios', {
+    id: `USR-${nombre[0].toUpperCase()}${apellido.slice(0,3).toUpperCase()}`,
+    nombre: `${nombre} ${apellido}`, email, password: pass, rol: 'tecnico', empleado_id: id_emp
+  });
+  if (r1) {
     await api('PUT', `/empleados/${id_emp}/perfil-estado`, { estado: 'activo' });
     await loadEmpleados();
     closePanel(null, true);
     toast(`Técnico ${nombre} ${apellido} creado — ID: ${id_emp}`);
     renderEmpleados();
   } else {
-    err.textContent = 'Error al crear el técnico. Verifica que el correo no esté registrado.';
+    err.textContent = 'El perfil del técnico se creó, pero falló crear su usuario de acceso (¿correo ya registrado?).';
   }
 }
 
