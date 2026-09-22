@@ -419,17 +419,25 @@ async function initApp() {
 
 function switchModo() {
   STATE.modoTecnico = !STATE.modoTecnico;
-  const label = document.getElementById('switch-modo-label');
-  const icon = document.querySelector('#nav-switch-modo i');
+  const adminNav = document.getElementById('admin-nav');
+  const tecnicoNav = document.getElementById('tecnico-nav');
+
   if (STATE.modoTecnico) {
-    if (label) label.textContent = 'Vista Admin';
-    if (icon) icon.className = 'ti ti-shield';
-    // Mostrar nav de técnico
-    document.getElementById('admin-nav').style.display = 'none';
-    document.getElementById('tecnico-nav').style.display = 'block';
+    // Modo técnico
+    adminNav.style.display = 'none';
+    tecnicoNav.style.display = 'block';
+    tecnicoNav.innerHTML = `
+      <div class="nav-section">MIS ACTIVIDADES</div>
+      <div class="nav-item" onclick="showSection('mis-asignaciones')" data-sec="mis-asignaciones"><i class="ti ti-briefcase" aria-hidden="true"></i> Mis Asignaciones</div>
+      <div class="nav-item" onclick="showSection('mi-gantt')" data-sec="mi-gantt"><i class="ti ti-calendar-stats" aria-hidden="true"></i> Mi Calendario</div>
+      <div class="nav-item" onclick="showSection('checador')" data-sec="checador"><i class="ti ti-clock" aria-hidden="true"></i> Reloj Checador</div>
+      <div class="nav-item" onclick="showSection('reportar')" data-sec="reportar"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Reportar</div>
+      <div class="nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i> Mi Perfil</div>
+      <div class="nav-section">CUENTA</div>
+      <div class="nav-item" onclick="switchModo()"><i class="ti ti-shield" aria-hidden="true"></i> Volver a Admin</div>`;
     document.getElementById('mobile-nav-bar').innerHTML = `
       <div class="mobile-nav-items">
-        <div class="mobile-nav-item" onclick="showSection('mis-asignaciones')" data-sec="mis-asignaciones"><i class="ti ti-briefcase" aria-hidden="true"></i>Mis Proyectos</div>
+        <div class="mobile-nav-item" onclick="showSection('mis-asignaciones')" data-sec="mis-asignaciones"><i class="ti ti-briefcase" aria-hidden="true"></i>Proyectos</div>
         <div class="mobile-nav-item" onclick="showSection('checador')" data-sec="checador"><i class="ti ti-clock" aria-hidden="true"></i>Checador</div>
         <div class="mobile-nav-item" onclick="showSection('reportar')" data-sec="reportar"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Reportar</div>
         <div class="mobile-nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i>Mi Perfil</div>
@@ -437,11 +445,9 @@ function switchModo() {
       </div>`;
     showSection('mis-asignaciones');
   } else {
-    if (label) label.textContent = 'Vista Técnico';
-    if (icon) icon.className = 'ti ti-arrows-exchange';
-    // Mostrar nav de admin
-    document.getElementById('admin-nav').style.display = 'block';
-    document.getElementById('tecnico-nav').style.display = 'none';
+    // Modo admin
+    adminNav.style.display = 'block';
+    tecnicoNav.style.display = 'none';
     buildMobileNavAdmin();
     showSection('empleados');
   }
