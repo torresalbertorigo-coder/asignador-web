@@ -985,7 +985,9 @@ async function verProyecto(id) {
   }
 
   const personalOk = idsAsignados.length >= (p.personal_requerido||1);
-  const equipoOk = p.no_requiere_equipo || (dispEquipo ? dispEquipo.todo_disponible : true);
+  const totalEquipoRequerido = (p.equipo_requerido_resumen||[]).reduce((s,e)=>s+e.cantidad, 0);
+  const equipoOk = p.no_requiere_equipo || totalEquipoRequerido === 0 || equiposAsignados.length >= totalEquipoRequerido;
+  const editando = STATE._pdEditandoId === id;
 
   openPanel(p.nombre, `
     <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
@@ -995,7 +997,7 @@ async function verProyecto(id) {
       </div>
       <div style="flex:1;min-width:140px;background:${p.no_requiere_equipo?'var(--surface2)':equipoOk?'var(--green-bg)':'var(--amber-bg)'};border:1px solid ${p.no_requiere_equipo?'var(--border2)':equipoOk?'#1a4a24':'#4a2d05'};border-radius:var(--radius);padding:10px 14px">
         <div style="font-size:10px;color:${p.no_requiere_equipo?'var(--text3)':equipoOk?'var(--green)':'var(--amber)'};font-weight:700">${p.no_requiere_equipo?'EQUIPO: NO REQUIERE':equipoOk?'EQUIPO ✓ COMPLETO':'EQUIPO ⚠ INCOMPLETO'}</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:2px">${p.no_requiere_equipo?'—':(dispEquipo&&dispEquipo.items.length?dispEquipo.items.map(it=>`${it.disponibles}/${it.cantidad_requerida}`).join(', '):'sin requisitos')}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px">${p.no_requiere_equipo?'—':totalEquipoRequerido===0?'sin requisitos':`${equiposAsignados.length}/${totalEquipoRequerido} unidad(es) apartada(s)`}</div>
       </div>
     </div>
     <div class="panel-section">
@@ -1017,25 +1019,26 @@ async function verProyecto(id) {
       ${(p.habilidades_requeridas_items||[]).length ? p.habilidades_requeridas_items.map(h=>
         `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;color:var(--text)">
           <span>${h.nombre} — nivel ${h.nivel}</span>
-          <button class="btn btn-ghost btn-sm" style="padding:2px 6px" onclick="ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','habilidad-requerida',${h.id}))"><i class="ti ti-x" aria-hidden="true"></i></button>
+          ${editando ? `<button class="btn btn-ghost btn-sm" style="padding:2px 6px" onclick="ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','habilidad-requerida',${h.id}))"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}
         </div>`
       ).join('') : '<div style="font-size:12px;color:var(--text3)">Sin requisitos de habilidad configurados.</div>'}
-      <div style="display:flex;gap:8px;margin-top:8px">
+      ${editando ? `<div style="display:flex;gap:8px;margin-top:8px">
         <input class="field-input" id="pd-hab-nombre" list="dl-habilidades" placeholder="Nombre de habilidad" style="flex:2">
         <input class="field-input" id="pd-hab-nivel" type="number" min="1" max="10" value="5" style="width:70px">
         <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => agregarRequisitoProyecto('${p.id}'))"><i class="ti ti-plus" aria-hidden="true"></i></button>
-      </div>
+      </div>` : ''}
       <div style="font-size:11px;color:var(--text3);margin:14px 0 6px">CERTIFICADOS TÉCNICOS REQUERIDOS</div>
       ${(p.certificados_requeridos_items||[]).length ? p.certificados_requeridos_items.map(c=>
         `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;color:var(--text)">
           <span>${c.nombre}</span>
-          <button class="btn btn-ghost btn-sm" style="padding:2px 6px" onclick="ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','certificado-requerido',${c.id}))"><i class="ti ti-x" aria-hidden="true"></i></button>
+          ${editando ? `<button class="btn btn-ghost btn-sm" style="padding:2px 6px" onclick="ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','certificado-requerido',${c.id}))"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}
         </div>`
       ).join('') : '<div style="font-size:12px;color:var(--text3)">Sin certificados requeridos configurados.</div>'}
-      <div style="display:flex;gap:8px;margin-top:8px">
+      ${editando ? `<div style="display:flex;gap:8px;margin-top:8px">
         <input class="field-input" id="pd-cert-nombre" list="dl-certificados" placeholder="Nombre de certificado" style="flex:1">
         <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => agregarCertRequeridoProyecto('${p.id}'))"><i class="ti ti-plus" aria-hidden="true"></i></button>
-      </div>
+      </div>` : ''}
+      <button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="toggleEditarRequisitos('${p.id}')"><i class="ti ${editando?'ti-eye-off':'ti-pencil'}" aria-hidden="true"></i> ${editando?'Ocultar edición':'Editar requisitos'}</button>
     </div>
     <div class="panel-section">
       <div class="panel-section-title">PERSONAL ASIGNADO</div>
@@ -1053,14 +1056,14 @@ async function verProyecto(id) {
           const labels = { drone:'Drone / RPAS', camara:'Cámara', termografo:'Termógrafo', escalada:'Equipo de escalada', medicion:'Medición', otro:'Otro' };
           return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;color:var(--text)">
             <span>${labels[it.tipo]||it.tipo} — cantidad ${it.cantidad}</span>
-            <button class="btn btn-ghost btn-sm" style="padding:2px 6px" onclick="ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','equipo-requerido',${it.id}))"><i class="ti ti-x" aria-hidden="true"></i></button>
+            ${editando ? `<button class="btn btn-ghost btn-sm" style="padding:2px 6px" onclick="ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','equipo-requerido',${it.id}))"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}
           </div>`;
         }).join('') : '<div style="font-size:12px;color:var(--text3);margin-bottom:10px">Sin equipo requerido configurado.</div>'}
-        <div style="display:flex;gap:8px;margin:8px 0 14px">
+        ${editando ? `<div style="display:flex;gap:8px;margin:8px 0 14px">
           <select class="field-select" id="pd-eq-tipo" style="flex:2"><option value="drone">Drone / RPAS</option><option value="camara">Cámara</option><option value="termografo">Termógrafo</option><option value="escalada">Equipo de escalada</option><option value="medicion">Medición</option><option value="otro">Otro</option></select>
           <input class="field-input" id="pd-eq-cantidad" type="number" min="1" value="1" style="width:70px">
           <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => agregarEquipoRequeridoProyecto('${p.id}'))"><i class="ti ti-plus" aria-hidden="true"></i></button>
-        </div>
+        </div>` : ''}
         ${dispEquipo && !dispEquipo.todo_disponible ? `
           <div style="background:var(--amber-bg);border:1px solid #4a2d05;border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--amber)">
             <i class="ti ti-alert-triangle" aria-hidden="true"></i> <strong>Falta equipo disponible para estas fechas</strong> — revisa si comprar, rentar o conseguir de otro lado. Esto no bloquea el proyecto.
@@ -1076,12 +1079,18 @@ async function verProyecto(id) {
         ${equiposAsignados.length ? equiposAsignados.map(eq=>`
           <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
             <span>${eq.nombre} <span style="color:var(--text3)">(${eq.numero_serie||'sin serie'})</span></span>
-            <button class="btn btn-ghost btn-sm" style="padding:2px 8px;color:#ef4444" onclick="liberarEquipoDeProyecto('${p.id}','${eq.id}')"><i class="ti ti-x" aria-hidden="true"></i></button>
+            ${editando ? `<button class="btn btn-ghost btn-sm" style="padding:2px 8px;color:#ef4444" onclick="liberarEquipoDeProyecto('${p.id}','${eq.id}')"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}
           </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Ninguna todavía.</div>'}
         <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="abrirAsignacionEquipo('${p.id}')"><i class="ti ti-tool" aria-hidden="true"></i> Asignar equipo específico</button>
+        <button class="btn btn-ghost btn-sm" style="margin-top:10px;margin-left:8px" onclick="toggleEditarRequisitos('${p.id}')"><i class="ti ${editando?'ti-eye-off':'ti-pencil'}" aria-hidden="true"></i> ${editando?'Ocultar edición':'Editar requisitos'}</button>
       `}
     </div>`,
     footerBtns);
+}
+
+function toggleEditarRequisitos(proyectoId) {
+  STATE._pdEditandoId = (STATE._pdEditandoId === proyectoId) ? null : proyectoId;
+  verProyecto(proyectoId);
 }
 
 async function agregarRequisitoProyecto(proyectoId) {
