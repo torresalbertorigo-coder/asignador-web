@@ -423,10 +423,10 @@ async function initApp() {
   const av = (STATE.user.nombre || 'U').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   document.getElementById('sb-avatar').textContent = av;
   document.getElementById('sb-name').textContent = STATE.user.nombre;
-  document.getElementById('sb-rol').textContent = STATE.rol === 'administrador' ? 'Administrador' : 'Técnico de campo';
+  document.getElementById('sb-rol').textContent = STATE.rol === 'administrador' ? 'Administrador' : STATE.rol === 'director_proyecto' ? 'Director de Proyecto' : 'Técnico de campo';
   buildNav();
   cargarCatalogos();
-  if (STATE.rol === 'administrador') {
+  if (STATE.rol === 'administrador' || STATE.rol === 'director_proyecto') {
     await loadEmpleados();
     showSection('empleados');
   } else {
@@ -435,7 +435,7 @@ async function initApp() {
 }
 
 function buildNav() {
-  if (STATE.rol === 'administrador') {
+  if (STATE.rol === 'administrador' || STATE.rol === 'director_proyecto') {
     document.getElementById('admin-nav').innerHTML = `
       <div class="nav-section">GESTIÓN</div>
       <div class="nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i> Empleados</div>
@@ -847,12 +847,14 @@ function verDocumentosEmpleado(id) {
 }
 
 function openNuevoTecnico() {
-  openPanel('Nuevo técnico', `
+  const puedeElegirRol = STATE.rol === 'administrador';
+  openPanel('Nuevo miembro del equipo', `
     <div class="panel-section">
       <div class="panel-section-title">DATOS PERSONALES</div>
       <div class="field-row"><div class="field-group"><label class="field-label">NOMBRE</label><input class="field-input" id="nt-nombre" placeholder="Nombre"></div><div class="field-group"><label class="field-label">APELLIDO</label><input class="field-input" id="nt-apellido" placeholder="Apellido"></div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">CORREO</label><input class="field-input" id="nt-email" type="email" placeholder="correo@walross.mx"></div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">CONTRASEÑA TEMPORAL</label><input class="field-input" id="nt-pass" type="password" placeholder="Mínimo 8 caracteres"></div></div>
+      ${puedeElegirRol ? `<div class="field-row full"><div class="field-group"><label class="field-label">ROL EN EL SISTEMA</label><select class="field-select" id="nt-rol"><option value="tecnico" selected>Técnico de campo</option><option value="director_proyecto">Director de proyecto (gerente)</option><option value="administrador">Administrador</option></select></div></div>` : ''}
     </div>
     <div class="panel-section">
       <div class="panel-section-title">PERFIL PROFESIONAL</div>
@@ -863,7 +865,7 @@ function openNuevoTecnico() {
       <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD</label><input class="field-input" id="nt-ciudad" placeholder="Ciudad"></div><div class="field-group"><label class="field-label">ESTADO</label><select class="field-select" id="nt-estado"><option value="">Selecciona...</option>${ESTADOS_MX.map(e=>`<option value="${e}">${e}</option>`).join('')}</select></div></div>
     </div>
     <div id="nt-err" style="color:#ef4444;font-size:12px;margin-top:8px"></div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="guardarNuevoTecnico()"><i class="ti ti-check" aria-hidden="true"></i> Crear técnico</button>`);
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="guardarNuevoTecnico()"><i class="ti ti-check" aria-hidden="true"></i> Crear</button>`);
 }
 
 async function guardarNuevoTecnico() {
@@ -875,6 +877,7 @@ async function guardarNuevoTecnico() {
   const ciudad   = document.getElementById('nt-ciudad')?.value.trim();
   const estado   = document.getElementById('nt-estado')?.value.trim();
   const tel      = document.getElementById('nt-tel')?.value.trim();
+  const rol      = document.getElementById('nt-rol')?.value || 'tecnico';
   const err      = document.getElementById('nt-err');
   if (!nombre || !apellido || !email || !pass || !nivel || !ciudad) {
     err.textContent = 'Completa todos los campos obligatorios.'; return;
@@ -888,7 +891,7 @@ async function guardarNuevoTecnico() {
   if (!r2) { err.textContent = 'Error al crear el técnico. Verifica que el correo no esté registrado.'; return; }
   const r1 = await api('POST', '/auth/auth/usuarios', {
     id: `USR-${nombre[0].toUpperCase()}${apellido.slice(0,3).toUpperCase()}`,
-    nombre: `${nombre} ${apellido}`, email, password: pass, rol: 'tecnico', empleado_id: id_emp
+    nombre: `${nombre} ${apellido}`, email, password: pass, rol, empleado_id: id_emp
   });
   if (r1) {
     const r3 = await api('PUT', `/empleados/${id_emp}/perfil-estado`, { nuevo_estado: 'activo' });
@@ -952,7 +955,9 @@ function verProyecto(id) {
     }
     footerBtns += `<button class="btn btn-ghost btn-sm" style="color:#ef4444" onclick="if(confirm('¿Cancelar este proyecto? Se liberará al personal asignado.'))cambiarEstadoProyecto('${p.id}','cancelado')"><i class="ti ti-ban" aria-hidden="true"></i> Cancelar</button>`;
   }
-  footerBtns += `<button class="btn btn-ghost btn-sm" style="color:#ef4444" onclick="eliminarProyectoConfirm('${p.id}')"><i class="ti ti-trash" aria-hidden="true"></i> Eliminar</button>`;
+  if (STATE.rol === 'administrador') {
+    footerBtns += `<button class="btn btn-ghost btn-sm" style="color:#ef4444" onclick="eliminarProyectoConfirm('${p.id}')"><i class="ti ti-trash" aria-hidden="true"></i> Eliminar</button>`;
+  }
 
   openPanel(p.nombre, `
     <div class="panel-section">
