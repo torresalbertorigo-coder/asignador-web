@@ -704,6 +704,8 @@ function badge(val) {
     mantenimiento:'badge-mant MANT.', pendiente_asignacion:'badge-pend PENDIENTE', en_progreso:'badge-prog EN PROG.',
     pausado:'badge-mant PAUSADO', completado:'badge-libre COMPLETADO', cancelado:'badge-proy CANCELADO',
     en_preparacion:'badge-mant EN PREPARACIÓN',
+    archivado:'badge-proy ARCHIVADO', rechazado:'badge-proy RECHAZADO', suspendido:'badge-proy SUSPENDIDO',
+    incompleto:'badge-pend INCOMPLETO', pendiente_validacion:'badge-mant PENDIENTE VALID.',
     disponible:'badge-libre DISPONIBLE' };
   const [cls, lbl] = (map[val] || 'badge-pend ' + val).split(' ').reduce((a,c,i)=>i===0?[c,a[1]]:[a[0],a[1]+(i>1?' ':'')+c], ['','']);
   return `<span class="badge ${cls}">${(map[val]||'').split(' ').slice(1).join(' ')||val.toUpperCase()}</span>`;
@@ -785,8 +787,15 @@ function closePanel(e, force) {
 
 // ─── SECCIÓN: EMPLEADOS ───────────────────────────────────────────────────────
 async function renderEmpleados() {
-  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-ghost btn-sm" onclick="loadEmpleados(true).then(renderEmpleados)"><i class="ti ti-refresh" aria-hidden="true"></i></button><button class="btn btn-primary btn-sm" onclick="openNuevoTecnico()"><i class="ti ti-plus" aria-hidden="true"></i> Nuevo miembro</button>`;
+  const verArch = STATE._verArchivados || false;
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-ghost btn-sm" onclick="toggleVerArchivados()">${verArch?'<i class="ti ti-eye-off" aria-hidden="true"></i> Ocultar archivados':'<i class="ti ti-archive" aria-hidden="true"></i> Ver archivados'}</button><button class="btn btn-ghost btn-sm" onclick="loadEmpleados(true).then(renderEmpleados)"><i class="ti ti-refresh" aria-hidden="true"></i></button><button class="btn btn-primary btn-sm" onclick="openNuevoTecnico()"><i class="ti ti-plus" aria-hidden="true"></i> Nuevo miembro</button>`;
   await loadProyectos();
+  if (verArch) {
+    const d = await api('GET', '/empleados?solo_activos=false');
+    if (d) STATE.empleados = d;
+  } else {
+    await loadEmpleados();
+  }
   const emps = STATE.empleados;
   const total = emps.length;
   const libres = emps.filter(e=>e.disponibilidad==='libre').length;
@@ -812,7 +821,7 @@ async function renderEmpleados() {
             <td class="td-mono">${e.id}</td>
             <td class="td-name">${e.nombre} ${e.apellido}</td>
             <td>${(e.seniority||'').replace('_',' ')}</td>
-            <td>${badge(estadoVisible(e))}</td>
+            <td>${e.estado_perfil && e.estado_perfil!=='activo' ? badge(e.estado_perfil) : badge(estadoVisible(e))}</td>
             <td>${fatiga(e.indice_fatiga)}</td>
             <td>${e.ciudad||'—'}${e.estado?', '+e.estado:''}</td>
             <td class="td-action"><i class="ti ti-chevron-right" aria-hidden="true"></i></td>
@@ -820,6 +829,38 @@ async function renderEmpleados() {
         </tbody>
       </table>`}
     </div>`);
+}
+
+async function archivarEmpleado(id) {
+  const r = await api('PUT', `/empleados/${id}/perfil-estado`, { nuevo_estado: 'archivado' });
+  if (!r) { toast('Error al archivar','error'); return; }
+  toast('Empleado archivado — ya no aparece en la lista activa');
+  await loadEmpleados(true);
+  closePanel(null, true);
+  renderEmpleados();
+}
+
+async function reactivarEmpleado(id) {
+  const r = await api('PUT', `/empleados/${id}/perfil-estado`, { nuevo_estado: 'activo' });
+  if (!r) { toast('Error al reactivar','error'); return; }
+  toast('Empleado reactivado');
+  await loadEmpleados(true);
+  closePanel(null, true);
+  renderEmpleados();
+}
+
+async function eliminarEmpleadoConfirm(id) {
+  const e = STATE.empleados.find(x=>x.id===id);
+  if (!e) return;
+  if (!confirm(`¿Eliminar a "${e.nombre} ${e.apellido}" definitivamente? Esto borra su perfil, habilidades, certificados y su acceso al sistema. No se puede deshacer.\n\nSi solo quieres ocultarlo temporalmente, usa "Archivar" en vez de esto.`)) return;
+  const r = await fetch(`${API}/empleados/${id}`, {
+    method: 'DELETE', headers: { 'Authorization': `Bearer ${STATE.token}` }
+  });
+  if (!r.ok) { toast('Error al eliminar','error'); return; }
+  toast('Empleado eliminado');
+  await loadEmpleados(true);
+  closePanel(null, true);
+  renderEmpleados();
 }
 
 function verEmpleado(id) {
@@ -839,7 +880,10 @@ function verEmpleado(id) {
         <div><span style="color:var(--text3);font-size:10px">CORREO</span><div style="margin-top:2px;color:var(--text);word-break:break-all">${e.email_contacto||'—'}</div></div>
       </div>
     </div>`, 
-    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button><button class="btn btn-primary btn-sm" onclick="verDocumentosEmpleado('${e.id}')"><i class="ti ti-file-text" aria-hidden="true"></i> Ver documentos y habilidades</button>`);
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>
+     <button class="btn btn-primary btn-sm" onclick="verDocumentosEmpleado('${e.id}')"><i class="ti ti-file-text" aria-hidden="true"></i> Ver documentos y habilidades</button>
+     ${e.estado_perfil !== 'archivado' ? `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => archivarEmpleado('${e.id}'))"><i class="ti ti-archive" aria-hidden="true"></i> Archivar</button>` : `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => reactivarEmpleado('${e.id}'))"><i class="ti ti-archive-off" aria-hidden="true"></i> Reactivar</button>`}
+     ${STATE.rol==='administrador' ? `<button class="btn btn-ghost btn-sm" style="color:#ef4444" onclick="eliminarEmpleadoConfirm('${e.id}')"><i class="ti ti-trash" aria-hidden="true"></i> Eliminar</button>` : ''}`);
 }
 
 function verDocumentosEmpleado(id) {
@@ -904,10 +948,10 @@ async function guardarNuevoTecnico() {
   if (!nombre || !apellido || !email || !pass || !nivel || !ciudad) {
     err.textContent = 'Completa todos los campos obligatorios.'; return;
   }
-  await loadEmpleados(true);   // datos frescos, para no chocar con un ID que ya existe
+  const todosEmpleados = await api('GET', '/empleados?solo_activos=false');   // TODOS, no solo activos, para no chocar con un ID que ya existe
   const baseId = `${nombre[0].toUpperCase()}${apellido.slice(0,3).toUpperCase()}`;
   let id_emp = `EMP-${baseId}`, id_usr = `USR-${baseId}`, sufijo = 1;
-  while ((STATE.empleados||[]).some(e => e.id === id_emp)) {
+  while ((todosEmpleados||[]).some(e => e.id === id_emp)) {
     sufijo++;
     id_emp = `EMP-${baseId}${sufijo}`;
     id_usr = `USR-${baseId}${sufijo}`;
@@ -1559,6 +1603,11 @@ async function asignarTecnico(empId, pryId) {
 }
 
 // ─── SECCIÓN: EQUIPOS ─────────────────────────────────────────────────────────
+function toggleVerArchivados() {
+  STATE._verArchivados = !STATE._verArchivados;
+  renderEmpleados();
+}
+
 async function loadEquipos(forzar) {
   const ahora = Date.now();
   if (!forzar && STATE._eqCargadosEn && (ahora - STATE._eqCargadosEn) < 8000) return;
