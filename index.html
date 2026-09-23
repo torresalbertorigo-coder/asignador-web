@@ -1627,18 +1627,19 @@ async function renderEquipos() {
       <div class="stat-card c-red"><div class="stat-lbl">TOTAL EQUIPOS</div><div class="stat-val">${equipos.length}</div><div class="stat-sub">en inventario</div></div>
       <div class="stat-card c-green"><div class="stat-lbl">DISPONIBLES</div><div class="stat-val">${disp}</div><div class="stat-sub">listos para uso</div></div>
       <div class="stat-card c-amber"><div class="stat-lbl">EN MANTENIMIENTO</div><div class="stat-val">${mant}</div><div class="stat-sub">fuera de servicio</div></div>
-      <div class="stat-card"><div class="stat-lbl">EN USO</div><div class="stat-val">${equipos.length-disp-mant}</div><div class="stat-sub">asignados a proyecto</div></div>
+      <div class="stat-card"><div class="stat-lbl">EN USO</div><div class="stat-val">${equipos.filter(e=>e.proyecto_actual_nombre).length}</div><div class="stat-sub">asignados a proyecto</div></div>
     </div>
     <div class="equipo-grid">
       ${equipos.length ? equipos.map(eq=>`<div class="equipo-card" onclick="verEquipo('${eq.id}')">
         <div class="eq-head">
           <div class="eq-icon"><i class="ti ${iconMap[eq.tipo]||'ti-tool'}" aria-hidden="true"></i></div>
-          ${badge(eq.estado||'disponible')}
+          ${eq.proyecto_actual_nombre ? badge('en_proyecto') : badge(eq.estado||'disponible')}
         </div>
         <div class="eq-name">${eq.nombre}</div>
         <div class="eq-type">${(eq.tipo||'').toUpperCase()}</div>
         <div class="eq-row"><span>Serie</span><strong>${eq.numero_serie||'—'}</strong></div>
-        <div class="eq-row"><span>Ubicación</span><strong>${eq.ciudad_actual||'—'}</strong></div>
+        <div class="eq-row"><span>Ubicación</span><strong>${eq.proyecto_actual_ciudad || eq.ciudad_actual || '—'}</strong></div>
+        ${eq.proyecto_actual_nombre ? `<div class="eq-row"><span>En proyecto</span><strong>${eq.proyecto_actual_nombre}</strong></div>` : ''}
         <div class="eq-row"><span>Próx. calibración</span><strong>${eq.proxima_calibracion||'—'}</strong></div>
       </div>`).join('') : '<div class="empty-state" style="grid-column:1/-1"><i class="ti ti-tool" aria-hidden="true"></i><p>Aún no hay equipo registrado</p></div>'}
     </div>`);
