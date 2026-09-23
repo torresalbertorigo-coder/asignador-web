@@ -904,18 +904,31 @@ async function guardarNuevoTecnico() {
   if (!nombre || !apellido || !email || !pass || !nivel || !ciudad) {
     err.textContent = 'Completa todos los campos obligatorios.'; return;
   }
-  const id_emp = `EMP-${nombre[0].toUpperCase()}${apellido.slice(0,3).toUpperCase()}`;
-  const r2 = await api('POST', '/empleados', {
-    id: id_emp, nombre, apellido, seniority: nivel,
-    ciudad, estado: estado || '', pais: 'México',
-    latitud: 0, longitud: 0, telefono: tel, email: email
+  await loadEmpleados(true);   // datos frescos, para no chocar con un ID que ya existe
+  const baseId = `${nombre[0].toUpperCase()}${apellido.slice(0,3).toUpperCase()}`;
+  let id_emp = `EMP-${baseId}`, id_usr = `USR-${baseId}`, sufijo = 1;
+  while ((STATE.empleados||[]).some(e => e.id === id_emp)) {
+    sufijo++;
+    id_emp = `EMP-${baseId}${sufijo}`;
+    id_usr = `USR-${baseId}${sufijo}`;
+  }
+
+  const headers = { 'Authorization': `Bearer ${STATE.token}`, 'Content-Type': 'application/json' };
+  const r2raw = await fetch(`${API}/empleados`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ id: id_emp, nombre, apellido, seniority: nivel, ciudad, estado: estado || '', pais: 'México', latitud: 0, longitud: 0, telefono: tel, email })
   });
-  if (!r2) { err.textContent = 'Error al crear el técnico. Verifica que el correo no esté registrado.'; return; }
-  const r1 = await api('POST', '/auth/auth/usuarios', {
-    id: `USR-${nombre[0].toUpperCase()}${apellido.slice(0,3).toUpperCase()}`,
-    nombre: `${nombre} ${apellido}`, email, password: pass, rol, empleado_id: id_emp
+  if (!r2raw.ok) {
+    const d = await r2raw.json().catch(()=>({}));
+    err.textContent = d.detail || 'Error al crear el técnico.';
+    return;
+  }
+
+  const r1raw = await fetch(`${API}/auth/auth/usuarios`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ id: id_usr, nombre: `${nombre} ${apellido}`, email, password: pass, rol, empleado_id: id_emp })
   });
-  if (r1) {
+  if (r1raw.ok) {
     const r3 = await api('PUT', `/empleados/${id_emp}/perfil-estado`, { nuevo_estado: 'activo' });
     if (!r3) console.warn('No se pudo activar automáticamente el perfil del nuevo técnico.');
     await loadEmpleados(true);
@@ -923,7 +936,8 @@ async function guardarNuevoTecnico() {
     toast(`Técnico ${nombre} ${apellido} creado — ID: ${id_emp}`);
     renderEmpleados();
   } else {
-    err.textContent = 'El perfil del técnico se creó, pero falló crear su usuario de acceso (¿correo ya registrado?).';
+    const d = await r1raw.json().catch(()=>({}));
+    err.textContent = `El perfil del técnico se creó, pero falló crear su usuario de acceso: ${d.detail || 'correo ya registrado o error del servidor'}.`;
   }
 }
 
@@ -1054,9 +1068,13 @@ async function verProyecto(id) {
       ${p.no_requiere_equipo ? '<div style="font-size:12px;color:var(--text3)">Este proyecto no requiere equipo.</div>' : `
         ${(p.equipo_requerido_items||[]).length ? p.equipo_requerido_items.map(it=>{
           const labels = { drone:'Drone / RPAS', camara:'Cámara', termografo:'Termógrafo', escalada:'Equipo de escalada', medicion:'Medición', otro:'Otro' };
-          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;color:var(--text)">
-            <span>${labels[it.tipo]||it.tipo} — cantidad ${it.cantidad}</span>
-            ${editando ? `<button class="btn btn-ghost btn-sm" style="padding:2px 6px" onclick="ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','equipo-requerido',${it.id}))"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}
+          const dispInfo = dispEquipo ? dispEquipo.items.find(d=>d.tipo===it.tipo) : null;
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+            <span>${labels[it.tipo]||it.tipo} — necesita ${it.cantidad}</span>
+            <span style="display:flex;align-items:center;gap:10px">
+              ${dispInfo ? `<span style="color:${dispInfo.suficiente?'var(--green)':'var(--amber)'}">${dispInfo.disponibles} disponible(s)</span>` : ''}
+              ${editando ? `<button class="btn btn-ghost btn-sm" style="padding:2px 6px" onclick="ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','equipo-requerido',${it.id}))"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}
+            </span>
           </div>`;
         }).join('') : '<div style="font-size:12px;color:var(--text3);margin-bottom:10px">Sin equipo requerido configurado.</div>'}
         ${editando ? `<div style="display:flex;gap:8px;margin:8px 0 14px">
@@ -1065,16 +1083,9 @@ async function verProyecto(id) {
           <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => agregarEquipoRequeridoProyecto('${p.id}'))"><i class="ti ti-plus" aria-hidden="true"></i></button>
         </div>` : ''}
         ${dispEquipo && !dispEquipo.todo_disponible ? `
-          <div style="background:var(--amber-bg);border:1px solid #4a2d05;border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--amber)">
+          <div style="background:var(--amber-bg);border:1px solid #4a2d05;border-radius:var(--radius);padding:10px 14px;margin:12px 0;font-size:12px;color:var(--amber)">
             <i class="ti ti-alert-triangle" aria-hidden="true"></i> <strong>Falta equipo disponible para estas fechas</strong> — revisa si comprar, rentar o conseguir de otro lado. Esto no bloquea el proyecto.
           </div>` : ''}
-        ${dispEquipo ? dispEquipo.items.map(it=>{
-          const labels = { drone:'Drone / RPAS', camara:'Cámara', termografo:'Termógrafo', escalada:'Equipo de escalada', medicion:'Medición', otro:'Otro' };
-          return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
-            <span>${labels[it.tipo]||it.tipo}</span>
-            <span style="color:${it.suficiente?'var(--green)':'var(--amber)'}">${it.disponibles}/${it.cantidad_requerida} disponibles</span>
-          </div>`;
-        }).join('') : ''}
         <div style="font-size:11px;color:var(--text3);margin:14px 0 6px">UNIDADES YA APARTADAS PARA ESTE PROYECTO</div>
         ${equiposAsignados.length ? equiposAsignados.map(eq=>`
           <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
@@ -1143,22 +1154,30 @@ async function quitarRequisitoProyecto(proyectoId, tipoRuta, itemId) {
   verProyecto(proyectoId);
 }
 
-function abrirAsignacionEquipo(proyectoId) {
-  const disponibles = (STATE.equipos||[]).filter(e=>e.estado!=='baja');
+async function abrirAsignacionEquipo(proyectoId) {
+  const lista = await api('GET', `/proyectos/proyectos/${proyectoId}/equipos-para-asignar`);
+  const candidatos = (lista||[]).filter(e=>!e.ya_asignado_aqui);
   openPanel('Asignar equipo específico', `
     <div class="panel-section">
       <div class="field-row full"><div class="field-group"><label class="field-label">EQUIPO</label>
         <select class="field-select" id="asig-eq-select">
-          ${disponibles.map(e=>`<option value="${e.id}">${e.nombre} — ${e.numero_serie||'sin serie'} (${e.estado})</option>`).join('')}
+          ${candidatos.map(e=>`<option value="${e.id}" data-disponible="${e.disponible}" data-conflicto="${e.conflicto_con||''}">${e.nombre} — ${e.numero_serie||'sin serie'} (${e.disponible ? 'disponible' : 'no disponible — en uso en "'+e.conflicto_con+'"'})</option>`).join('')}
         </select>
       </div></div>
+      ${candidatos.length===0 ? '<div style="font-size:12px;color:var(--text3)">No hay más equipo registrado para asignar.</div>' : ''}
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="verProyecto('${proyectoId}')">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => confirmarAsignacionEquipo('${proyectoId}'))"><i class="ti ti-check" aria-hidden="true"></i> Asignar</button>`);
 }
 
 async function confirmarAsignacionEquipo(proyectoId) {
-  const equipoId = document.getElementById('asig-eq-select')?.value;
+  const sel = document.getElementById('asig-eq-select');
+  const equipoId = sel?.value;
   if (!equipoId) return;
+  const opt = sel.selectedOptions[0];
+  if (opt && opt.dataset.disponible === 'false') {
+    const seguro = confirm(`Este equipo ya está en uso en "${opt.dataset.conflicto}" durante fechas que se encimarían con este proyecto. ¿Asignarlo de todas formas?`);
+    if (!seguro) return;
+  }
   const r = await api('POST', `/proyectos/proyectos/${proyectoId}/asignar-equipo/${equipoId}`);
   if (!r) { toast('Error al asignar el equipo','error'); return; }
   toast(r.mensaje || 'Equipo asignado');
