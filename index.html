@@ -259,9 +259,9 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .cal-cell{aspect-ratio:1;border-radius:4px;background:var(--surface2);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;color:var(--text2);position:relative;cursor:default}
 .cal-cell.empty{background:transparent}
 .cal-cell.hoy{outline:1.5px solid var(--red);color:var(--text)}
-.cal-cell.ocupado{background:var(--green-bg);color:var(--green);cursor:pointer;font-weight:600}
-.cal-cell.ocupado.hoy{outline:1.5px solid var(--green)}
-.cal-dot{width:4px;height:4px;border-radius:50%;background:var(--green);position:absolute;bottom:4px}
+.cal-cell.ocupado{background:var(--red-bg);color:#ef4444;cursor:pointer;font-weight:600}
+.cal-cell.ocupado.hoy{outline:1.5px solid #ef4444}
+.cal-dot{width:4px;height:4px;border-radius:50%;background:#ef4444;position:absolute;bottom:4px}
 </style>
 </head>
 <body>
@@ -642,7 +642,7 @@ async function abrirCalendarioMensual(empId, nombre, offsetMeses) {
         ${['D','L','M','X','J','V','S'].map(w=>`<div class="cal-weekday">${w}</div>`).join('')}
         ${celdas}
       </div>
-      <div style="margin-top:10px;font-size:11px;color:var(--text3)">● Días con proyecto asignado — toca un día para ver el detalle del proyecto.</div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text3)"><span style="color:#ef4444">●</span> Días con proyecto asignado — toca un día para ver el detalle del proyecto.</div>
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
 }
