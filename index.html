@@ -801,7 +801,15 @@ async function renderEmpleados() {
   const libres = emps.filter(e=>e.disponibilidad==='libre').length;
   const enProy = emps.filter(e=>e.disponibilidad==='en_proyecto').length;
   const asig   = emps.filter(e=>e.disponibilidad==='asignado').length;
+  const alertasCert = await api('GET', '/empleados/alertas/certificados-por-vencer') || [];
+  const vencidos = alertasCert.filter(a=>a.vencido).length;
+  const porVencer = alertasCert.length - vencidos;
   html(`
+    ${alertasCert.length ? `<div style="background:${vencidos?'var(--red-bg)':'var(--amber-bg)'};border:1px solid ${vencidos?'#4a1a1a':'#4a2d05'};border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;font-size:12px;color:${vencidos?'#ef4444':'var(--amber)'};cursor:pointer;display:flex;align-items:center;gap:8px" onclick="verAlertasCertificados()">
+      <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+      <strong>${vencidos ? `${vencidos} certificado(s) vencido(s)` : ''}${vencidos && porVencer ? ' y ' : ''}${porVencer ? `${porVencer} por vencer en los próximos 30 días` : ''}</strong>
+      <span style="margin-left:auto;color:var(--text3)">Ver detalle →</span>
+    </div>` : ''}
     <div class="stats-grid">
       <div class="stat-card c-red"><div class="stat-lbl">TÉCNICOS ACTIVOS</div><div class="stat-val">${total}</div><div class="stat-sub">en el sistema</div></div>
       <div class="stat-card c-green"><div class="stat-lbl">DISPONIBLES</div><div class="stat-val">${libres}</div><div class="stat-sub">listos para asignar</div></div>
@@ -890,7 +898,16 @@ function verDocumentosEmpleado(id) {
   const e = STATE.empleados.find(x=>x.id===id);
   if (!e) return;
   const habs = e.habilidades_declaradas || {};
-  const certs = e.certificados || [];
+  const certs = (e.certificados || []).map(c => {
+    let vigenciaColor = 'var(--text3)', vigenciaTexto = 'Sin vigencia';
+    if (c.fecha_vencimiento) {
+      const dias = Math.ceil((new Date(c.fecha_vencimiento) - new Date()) / 86400000);
+      if (dias < 0) { vigenciaColor = '#ef4444'; vigenciaTexto = 'Venció hace ' + Math.abs(dias) + ' día(s) (' + c.fecha_vencimiento + ')'; }
+      else if (dias <= 30) { vigenciaColor = 'var(--amber)'; vigenciaTexto = 'Vence en ' + dias + ' día(s) (' + c.fecha_vencimiento + ')'; }
+      else { vigenciaTexto = 'Vigencia hasta ' + c.fecha_vencimiento; }
+    }
+    return Object.assign({}, c, { vigenciaColor, vigenciaTexto });
+  });
   openPanel(`Documentos — ${e.nombre} ${e.apellido}`, `
     <div class="panel-section">
       <div class="panel-section-title">HABILIDADES OPERATIVAS</div>
@@ -904,7 +921,7 @@ function verDocumentosEmpleado(id) {
         <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
           <div>
             <div style="color:var(--text);font-weight:600">${c.nombre}${c.tipo?` <span style="color:var(--text3);font-weight:400">(${c.tipo})</span>`:''}</div>
-            <div style="color:var(--text3);font-size:11px">${c.fecha_vencimiento ? `Vigencia hasta ${c.fecha_vencimiento}` : 'Sin vigencia'}</div>
+            <div style="color:${c.vigenciaColor};font-size:11px">${c.vigenciaTexto}</div>
           </div>
           ${c.ruta_pdf ? `<button class="btn btn-ghost btn-sm" onclick="abrirVisor('${c.ruta_pdf}','${c.nombre}')" style="padding:3px 10px;font-size:11px"><i class="ti ti-eye" aria-hidden="true"></i> Ver</button>` : '<span style="color:var(--text3);font-size:11px">Sin archivo</span>'}
         </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Sin documentos registrados.</div>'}
@@ -1606,6 +1623,22 @@ async function asignarTecnico(empId, pryId) {
 function toggleVerArchivadosEq() {
   STATE._verArchivadosEq = !STATE._verArchivadosEq;
   renderEquipos();
+}
+
+async function verAlertasCertificados() {
+  const alertas = await api('GET', '/empleados/alertas/certificados-por-vencer') || [];
+  openPanel('Certificados por vencer', `
+    <div class="panel-section">
+      ${alertas.length ? alertas.map(a=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;cursor:pointer" onclick="verEmpleado('${a.empleado_id}')">
+          <div>
+            <div style="color:var(--text);font-weight:600">${a.certificado_nombre}${a.tipo?` <span style="color:var(--text3);font-weight:400">(${a.tipo})</span>`:''}</div>
+            <div style="color:var(--text3);font-size:11px">${a.empleado_nombre}</div>
+          </div>
+          <span style="color:${a.vencido?'#ef4444':'var(--amber)'};font-weight:600">${a.vencido ? `Venció hace ${Math.abs(a.dias_restantes)} día(s)` : `Vence en ${a.dias_restantes} día(s)`}</span>
+        </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Sin certificados por vencer.</div>'}
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
 }
 
 function toggleVerArchivados() {
