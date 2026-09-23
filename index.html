@@ -1620,6 +1620,22 @@ async function asignarTecnico(empId, pryId) {
 }
 
 // ─── SECCIÓN: EQUIPOS ─────────────────────────────────────────────────────────
+async function verAlertasCalibracion() {
+  const alertas = await api('GET', '/equipos/alertas/calibracion-por-vencer') || [];
+  openPanel('Calibraciones por vencer', `
+    <div class="panel-section">
+      ${alertas.length ? alertas.map(a=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;cursor:pointer" onclick="verEquipo('${a.equipo_id}')">
+          <div>
+            <div style="color:var(--text);font-weight:600">${a.equipo_nombre}</div>
+            <div style="color:var(--text3);font-size:11px">${a.numero_serie||'sin serie'}</div>
+          </div>
+          <span style="color:${a.vencido?'#ef4444':'var(--amber)'};font-weight:600">${a.vencido ? `Venció hace ${Math.abs(a.dias_restantes)} día(s)` : `Vence en ${a.dias_restantes} día(s)`}</span>
+        </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Sin calibraciones por vencer.</div>'}
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
+}
+
 function toggleVerArchivadosEq() {
   STATE._verArchivadosEq = !STATE._verArchivadosEq;
   renderEquipos();
@@ -1666,7 +1682,15 @@ async function renderEquipos() {
   const equipos = STATE.equipos || [];
   const disp = equipos.filter(e=>e.estado==='disponible').length;
   const mant = equipos.filter(e=>e.estado==='mantenimiento').length;
+  const alertasCal = await api('GET', '/equipos/alertas/calibracion-por-vencer') || [];
+  const calVencidos = alertasCal.filter(a=>a.vencido).length;
+  const calPorVencer = alertasCal.length - calVencidos;
   html(`
+    ${alertasCal.length ? `<div style="background:${calVencidos?'var(--red-bg)':'var(--amber-bg)'};border:1px solid ${calVencidos?'#4a1a1a':'#4a2d05'};border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;font-size:12px;color:${calVencidos?'#ef4444':'var(--amber)'};cursor:pointer;display:flex;align-items:center;gap:8px" onclick="verAlertasCalibracion()">
+      <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+      <strong>${calVencidos ? `${calVencidos} calibración(es) vencida(s)` : ''}${calVencidos && calPorVencer ? ' y ' : ''}${calPorVencer ? `${calPorVencer} por vencer en los próximos 30 días` : ''}</strong>
+      <span style="margin-left:auto;color:var(--text3)">Ver detalle →</span>
+    </div>` : ''}
     <div class="stats-grid">
       <div class="stat-card c-red"><div class="stat-lbl">TOTAL EQUIPOS</div><div class="stat-val">${equipos.length}</div><div class="stat-sub">en inventario</div></div>
       <div class="stat-card c-green"><div class="stat-lbl">DISPONIBLES</div><div class="stat-val">${disp}</div><div class="stat-sub">listos para uso</div></div>
@@ -1676,6 +1700,12 @@ async function renderEquipos() {
     <div class="equipo-grid">
       ${equipos.length ? equipos.map(eq=>{
         const estadoMostrar = eq.proyecto_actual_nombre ? 'en_proyecto' : (eq.estado==='mantenimiento' ? 'mantenimiento' : eq.estado==='baja' ? 'baja' : eq.estado==='archivado' ? 'archivado' : 'oficina');
+        let calColor = 'var(--text)', calTexto = eq.proxima_calibracion || '—';
+        if (eq.proxima_calibracion) {
+          const diasCal = Math.ceil((new Date(eq.proxima_calibracion) - new Date()) / 86400000);
+          if (diasCal < 0) { calColor = '#ef4444'; calTexto = eq.proxima_calibracion + ' (vencida)'; }
+          else if (diasCal <= 30) { calColor = 'var(--amber)'; calTexto = eq.proxima_calibracion + ' (' + diasCal + 'd)'; }
+        }
         return `<div class="equipo-card" onclick="verEquipo('${eq.id}')">
         <div class="eq-head">
           <div class="eq-icon"><i class="ti ${iconMap[eq.tipo]||'ti-tool'}" aria-hidden="true"></i></div>
@@ -1686,7 +1716,7 @@ async function renderEquipos() {
         <div class="eq-row"><span>Serie</span><strong>${eq.numero_serie||'—'}</strong></div>
         <div class="eq-row"><span>Ubicación</span><strong>${eq.proyecto_actual_ciudad || eq.ciudad_actual || '—'}</strong></div>
         ${eq.proyecto_actual_nombre ? `<div class="eq-row"><span>En proyecto</span><strong>${eq.proyecto_actual_nombre}</strong></div>` : ''}
-        <div class="eq-row"><span>Próx. calibración</span><strong>${eq.proxima_calibracion||'—'}</strong></div>
+        <div class="eq-row"><span>Próx. calibración</span><strong style="color:${calColor}">${calTexto}</strong></div>
       </div>`;
       }).join('') : '<div class="empty-state" style="grid-column:1/-1"><i class="ti ti-tool" aria-hidden="true"></i><p>Aún no hay equipo registrado</p></div>'}
     </div>`);
