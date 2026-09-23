@@ -984,7 +984,20 @@ async function verProyecto(id) {
     footerBtns += `<button class="btn btn-ghost btn-sm" style="color:#ef4444" onclick="ejecutarConCarga(this, () => eliminarProyectoConfirm('${p.id}'))"><i class="ti ti-trash" aria-hidden="true"></i> Eliminar</button>`;
   }
 
+  const personalOk = idsAsignados.length >= (p.personal_requerido||1);
+  const equipoOk = p.no_requiere_equipo || (dispEquipo ? dispEquipo.todo_disponible : true);
+
   openPanel(p.nombre, `
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:140px;background:${personalOk?'var(--green-bg)':'var(--amber-bg)'};border:1px solid ${personalOk?'#1a4a24':'#4a2d05'};border-radius:var(--radius);padding:10px 14px">
+        <div style="font-size:10px;color:${personalOk?'var(--green)':'var(--amber)'};font-weight:700">PERSONAL ${personalOk?'✓ COMPLETO':'⚠ INCOMPLETO'}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px">${idsAsignados.length}/${p.personal_requerido||1} técnico(s)</div>
+      </div>
+      <div style="flex:1;min-width:140px;background:${p.no_requiere_equipo?'var(--surface2)':equipoOk?'var(--green-bg)':'var(--amber-bg)'};border:1px solid ${p.no_requiere_equipo?'var(--border2)':equipoOk?'#1a4a24':'#4a2d05'};border-radius:var(--radius);padding:10px 14px">
+        <div style="font-size:10px;color:${p.no_requiere_equipo?'var(--text3)':equipoOk?'var(--green)':'var(--amber)'};font-weight:700">${p.no_requiere_equipo?'EQUIPO: NO REQUIERE':equipoOk?'EQUIPO ✓ COMPLETO':'EQUIPO ⚠ INCOMPLETO'}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px">${p.no_requiere_equipo?'—':(dispEquipo&&dispEquipo.items.length?dispEquipo.items.map(it=>`${it.disponibles}/${it.cantidad_requerida}`).join(', '):'sin requisitos')}</div>
+      </div>
+    </div>
     <div class="panel-section">
       <div class="panel-section-title">DETALLES DEL PROYECTO</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
@@ -1001,13 +1014,28 @@ async function verProyecto(id) {
     <div class="panel-section">
       <div class="panel-section-title">REQUISITOS PARA ASIGNACIÓN</div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:6px">HABILIDADES OPERATIVAS MÍNIMAS</div>
-      ${Object.keys(p.habilidades_requeridas_dict||{}).length ? Object.entries(p.habilidades_requeridas_dict).map(([nom,niv])=>
-        `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;color:var(--text)"><span>${nom}</span><span class="td-mono">nivel ${niv}</span></div>`
+      ${(p.habilidades_requeridas_items||[]).length ? p.habilidades_requeridas_items.map(h=>
+        `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;color:var(--text)">
+          <span>${h.nombre} — nivel ${h.nivel}</span>
+          <button class="btn btn-ghost btn-sm" style="padding:2px 6px" onclick="ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','habilidad-requerida',${h.id}))"><i class="ti ti-x" aria-hidden="true"></i></button>
+        </div>`
       ).join('') : '<div style="font-size:12px;color:var(--text3)">Sin requisitos de habilidad configurados.</div>'}
-      <div style="font-size:11px;color:var(--text3);margin:10px 0 6px">CERTIFICADOS TÉCNICOS REQUERIDOS</div>
-      ${(p.certificados_requeridos_nombres||[]).length ? p.certificados_requeridos_nombres.map(c=>
-        `<div style="padding:4px 0;font-size:12px;color:var(--text)">${c}</div>`
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input class="field-input" id="pd-hab-nombre" list="dl-habilidades" placeholder="Nombre de habilidad" style="flex:2">
+        <input class="field-input" id="pd-hab-nivel" type="number" min="1" max="10" value="5" style="width:70px">
+        <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => agregarRequisitoProyecto('${p.id}'))"><i class="ti ti-plus" aria-hidden="true"></i></button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin:14px 0 6px">CERTIFICADOS TÉCNICOS REQUERIDOS</div>
+      ${(p.certificados_requeridos_items||[]).length ? p.certificados_requeridos_items.map(c=>
+        `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;color:var(--text)">
+          <span>${c.nombre}</span>
+          <button class="btn btn-ghost btn-sm" style="padding:2px 6px" onclick="ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','certificado-requerido',${c.id}))"><i class="ti ti-x" aria-hidden="true"></i></button>
+        </div>`
       ).join('') : '<div style="font-size:12px;color:var(--text3)">Sin certificados requeridos configurados.</div>'}
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input class="field-input" id="pd-cert-nombre" list="dl-certificados" placeholder="Nombre de certificado" style="flex:1">
+        <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => agregarCertRequeridoProyecto('${p.id}'))"><i class="ti ti-plus" aria-hidden="true"></i></button>
+      </div>
     </div>
     <div class="panel-section">
       <div class="panel-section-title">PERSONAL ASIGNADO</div>
@@ -1021,7 +1049,18 @@ async function verProyecto(id) {
     <div class="panel-section">
       <div class="panel-section-title">EQUIPO Y HERRAMIENTAS</div>
       ${p.no_requiere_equipo ? '<div style="font-size:12px;color:var(--text3)">Este proyecto no requiere equipo.</div>' : `
-        ${(p.equipo_requerido_resumen||[]).length ? '' : '<div style="font-size:12px;color:var(--text3);margin-bottom:10px">Sin equipo requerido configurado.</div>'}
+        ${(p.equipo_requerido_items||[]).length ? p.equipo_requerido_items.map(it=>{
+          const labels = { drone:'Drone / RPAS', camara:'Cámara', termografo:'Termógrafo', escalada:'Equipo de escalada', medicion:'Medición', otro:'Otro' };
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;color:var(--text)">
+            <span>${labels[it.tipo]||it.tipo} — cantidad ${it.cantidad}</span>
+            <button class="btn btn-ghost btn-sm" style="padding:2px 6px" onclick="ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','equipo-requerido',${it.id}))"><i class="ti ti-x" aria-hidden="true"></i></button>
+          </div>`;
+        }).join('') : '<div style="font-size:12px;color:var(--text3);margin-bottom:10px">Sin equipo requerido configurado.</div>'}
+        <div style="display:flex;gap:8px;margin:8px 0 14px">
+          <select class="field-select" id="pd-eq-tipo" style="flex:2"><option value="drone">Drone / RPAS</option><option value="camara">Cámara</option><option value="termografo">Termógrafo</option><option value="escalada">Equipo de escalada</option><option value="medicion">Medición</option><option value="otro">Otro</option></select>
+          <input class="field-input" id="pd-eq-cantidad" type="number" min="1" value="1" style="width:70px">
+          <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => agregarEquipoRequeridoProyecto('${p.id}'))"><i class="ti ti-plus" aria-hidden="true"></i></button>
+        </div>
         ${dispEquipo && !dispEquipo.todo_disponible ? `
           <div style="background:var(--amber-bg);border:1px solid #4a2d05;border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--amber)">
             <i class="ti ti-alert-triangle" aria-hidden="true"></i> <strong>Falta equipo disponible para estas fechas</strong> — revisa si comprar, rentar o conseguir de otro lado. Esto no bloquea el proyecto.
@@ -1043,6 +1082,56 @@ async function verProyecto(id) {
       `}
     </div>`,
     footerBtns);
+}
+
+async function agregarRequisitoProyecto(proyectoId) {
+  const nombre = document.getElementById('pd-hab-nombre')?.value.trim();
+  const nivel  = document.getElementById('pd-hab-nivel')?.value || 5;
+  if (!nombre) { toast('Escribe el nombre de la habilidad','error'); return; }
+  const params = new URLSearchParams({ nombre, nivel });
+  const r = await fetch(`${API}/proyectos/proyectos/${proyectoId}/habilidad-requerida?${params}`, {
+    method: 'POST', headers: { 'Authorization': `Bearer ${STATE.token}` }
+  });
+  if (!r.ok) { toast('Error al agregar la habilidad','error'); return; }
+  toast('Habilidad agregada al proyecto');
+  await loadProyectos(true);
+  verProyecto(proyectoId);
+}
+
+async function agregarCertRequeridoProyecto(proyectoId) {
+  const nombre = document.getElementById('pd-cert-nombre')?.value.trim();
+  if (!nombre) { toast('Escribe el nombre del certificado','error'); return; }
+  const params = new URLSearchParams({ nombre });
+  const r = await fetch(`${API}/proyectos/proyectos/${proyectoId}/certificado-requerido?${params}`, {
+    method: 'POST', headers: { 'Authorization': `Bearer ${STATE.token}` }
+  });
+  if (!r.ok) { toast('Error al agregar el certificado','error'); return; }
+  toast('Certificado agregado al proyecto');
+  await loadProyectos(true);
+  verProyecto(proyectoId);
+}
+
+async function agregarEquipoRequeridoProyecto(proyectoId) {
+  const tipo = document.getElementById('pd-eq-tipo')?.value;
+  const cantidad = document.getElementById('pd-eq-cantidad')?.value || 1;
+  const params = new URLSearchParams({ tipo, cantidad });
+  const r = await fetch(`${API}/proyectos/proyectos/${proyectoId}/equipo-requerido?${params}`, {
+    method: 'POST', headers: { 'Authorization': `Bearer ${STATE.token}` }
+  });
+  if (!r.ok) { toast('Error al agregar el requisito de equipo','error'); return; }
+  toast('Requisito de equipo agregado');
+  await loadProyectos(true);
+  verProyecto(proyectoId);
+}
+
+async function quitarRequisitoProyecto(proyectoId, tipoRuta, itemId) {
+  const r = await fetch(`${API}/proyectos/proyectos/${proyectoId}/${tipoRuta}/${itemId}`, {
+    method: 'DELETE', headers: { 'Authorization': `Bearer ${STATE.token}` }
+  });
+  if (!r.ok) { toast('Error al eliminar el requisito','error'); return; }
+  toast('Requisito eliminado');
+  await loadProyectos(true);
+  verProyecto(proyectoId);
 }
 
 function abrirAsignacionEquipo(proyectoId) {
