@@ -801,7 +801,19 @@ async function renderEmpleados() {
   const libres = emps.filter(e=>e.disponibilidad==='libre').length;
   const enProy = emps.filter(e=>e.disponibilidad==='en_proyecto').length;
   const asig   = emps.filter(e=>e.disponibilidad==='asignado').length;
-  const alertasCert = await api('GET', '/empleados/alertas/certificados-por-vencer') || [];
+  const filtroEmp = (STATE._empFiltro||'').toLowerCase().trim();
+  const filtrados = filtroEmp ? emps.filter(e =>
+    (e.nombre||'').toLowerCase().includes(filtroEmp) ||
+    (e.apellido||'').toLowerCase().includes(filtroEmp) ||
+    (e.id||'').toLowerCase().includes(filtroEmp) ||
+    (e.ciudad||'').toLowerCase().includes(filtroEmp)
+  ) : emps;
+  const ahoraCert = Date.now();
+  if (!STATE._alertasCertCargadasEn || (ahoraCert - STATE._alertasCertCargadasEn) > 8000) {
+    STATE._alertasCert = await api('GET', '/empleados/alertas/certificados-por-vencer') || [];
+    STATE._alertasCertCargadasEn = ahoraCert;
+  }
+  const alertasCert = STATE._alertasCert || [];
   const vencidos = alertasCert.filter(a=>a.vencido).length;
   const porVencer = alertasCert.length - vencidos;
   html(`
@@ -819,13 +831,14 @@ async function renderEmpleados() {
     <div class="table-section">
       <div class="table-header">
         <span class="table-title">REGISTRO DE PERSONAL</span>
-        <span class="table-meta">${total} registros · nube</span>
+        <input class="field-input" id="emp-buscar" placeholder="Buscar por nombre, ID o ciudad..." style="max-width:280px" value="${filtroEmp}" oninput="STATE._empFiltro=this.value;renderEmpleados();" onclick="event.stopPropagation()">
+        <span class="table-meta">${filtrados.length} de ${total} registros · nube</span>
       </div>
-      ${total === 0 ? '<div class="empty-state"><i class="ti ti-users" aria-hidden="true"></i><p>No hay técnicos registrados</p><span>Agrega el primer técnico con el botón de arriba</span></div>' : `
+      ${filtrados.length === 0 ? '<div class="empty-state"><i class="ti ti-users" aria-hidden="true"></i><p>Sin resultados</p></div>' : `
       <table>
         <thead><tr><th>ID</th><th>NOMBRE</th><th>NIVEL</th><th>ESTADO</th><th>FATIGA</th><th>UBICACIÓN</th><th></th></tr></thead>
         <tbody>
-          ${emps.map(e=>`<tr onclick="verEmpleado('${e.id}')" style="cursor:pointer">
+          ${filtrados.map(e=>`<tr onclick="verEmpleado('${e.id}')" style="cursor:pointer">
             <td class="td-mono">${e.id}</td>
             <td class="td-name">${e.nombre} ${e.apellido}</td>
             <td>${(e.seniority||'').replace('_',' ')}</td>
@@ -837,6 +850,8 @@ async function renderEmpleados() {
         </tbody>
       </table>`}
     </div>`);
+  const buscarEmpInput = document.getElementById('emp-buscar');
+  if (buscarEmpInput) { buscarEmpInput.focus(); buscarEmpInput.setSelectionRange(buscarEmpInput.value.length, buscarEmpInput.value.length); }
 }
 
 async function archivarEmpleado(id) {
@@ -1007,21 +1022,46 @@ async function renderProyectos() {
   document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-ghost btn-sm" onclick="loadProyectos(true).then(renderProyectos)"><i class="ti ti-refresh" aria-hidden="true"></i></button><button class="btn btn-primary btn-sm" onclick="openNuevoProyecto()"><i class="ti ti-plus" aria-hidden="true"></i> Nuevo proyecto</button>`;
   await loadProyectos();
   await loadEmpleados();
-  const proyectos = STATE.proyectos;
+  let proyectos = STATE.proyectos;
   const pend = proyectos.filter(p=>p.estado==='pendiente_asignacion').length;
   const prog = proyectos.filter(p=>p.estado==='en_progreso').length;
+
+  const filtro = (STATE._pryFiltro||'').toLowerCase().trim();
+  if (filtro) {
+    proyectos = proyectos.filter(p =>
+      (p.nombre||'').toLowerCase().includes(filtro) ||
+      (p.cliente||'').toLowerCase().includes(filtro) ||
+      (p.id||'').toLowerCase().includes(filtro) ||
+      (p.ciudad||'').toLowerCase().includes(filtro)
+    );
+  }
+  const sortCampo = STATE._prySortCampo;
+  const sortDir = STATE._prySortDir || 'asc';
+  if (sortCampo) {
+    proyectos = proyectos.slice().sort((a,b) => {
+      const va = a[sortCampo] || '';
+      const vb = b[sortCampo] || '';
+      return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+  }
+  const flecha = (campo) => sortCampo===campo ? (sortDir==='asc' ? ' ▲' : ' ▼') : '';
+
   html(`
     <div class="stats-grid">
-      <div class="stat-card c-red"><div class="stat-lbl">TOTAL PROYECTOS</div><div class="stat-val">${proyectos.length}</div><div class="stat-sub">en sistema</div></div>
+      <div class="stat-card c-red"><div class="stat-lbl">TOTAL PROYECTOS</div><div class="stat-val">${STATE.proyectos.length}</div><div class="stat-sub">en sistema</div></div>
       <div class="stat-card c-amber"><div class="stat-lbl">PENDIENTES</div><div class="stat-val">${pend}</div><div class="stat-sub">sin asignar</div></div>
       <div class="stat-card c-blue"><div class="stat-lbl">EN PROGRESO</div><div class="stat-val">${prog}</div><div class="stat-sub">en campo</div></div>
-      <div class="stat-card c-green"><div class="stat-lbl">FINALIZADOS</div><div class="stat-val">${proyectos.length-pend-prog}</div><div class="stat-sub">completados</div></div>
+      <div class="stat-card c-green"><div class="stat-lbl">FINALIZADOS</div><div class="stat-val">${STATE.proyectos.length-pend-prog}</div><div class="stat-sub">completados</div></div>
     </div>
     <div class="table-section">
-      <div class="table-header"><span class="table-title">REGISTRO DE PROYECTOS</span><span class="table-meta">${proyectos.length} proyectos · nube</span></div>
-      ${proyectos.length === 0 ? '<div class="empty-state"><i class="ti ti-folder" aria-hidden="true"></i><p>No hay proyectos registrados</p><span>Agrega el primer proyecto</span></div>' : `
+      <div class="table-header">
+        <span class="table-title">REGISTRO DE PROYECTOS</span>
+        <input class="field-input" id="pry-buscar" placeholder="Buscar por nombre, cliente, ID o ciudad..." style="max-width:280px" value="${filtro}" oninput="STATE._pryFiltro=this.value;renderProyectos();" onclick="event.stopPropagation()">
+        <span class="table-meta">${proyectos.length} de ${STATE.proyectos.length} proyectos · nube</span>
+      </div>
+      ${proyectos.length === 0 ? '<div class="empty-state"><i class="ti ti-folder" aria-hidden="true"></i><p>Sin resultados</p></div>' : `
       <table>
-        <thead><tr><th>ID</th><th>NOMBRE</th><th>CLIENTE</th><th>ESTADO</th><th>INICIO</th><th>FIN EST.</th><th>SITIO</th><th></th></tr></thead>
+        <thead><tr><th>ID</th><th>NOMBRE</th><th>CLIENTE</th><th>ESTADO</th><th style="cursor:pointer" onclick="ordenarProyectosPor('fecha_inicio')">INICIO${flecha('fecha_inicio')}</th><th style="cursor:pointer" onclick="ordenarProyectosPor('fecha_fin_estimada')">FIN EST.${flecha('fecha_fin_estimada')}</th><th>SITIO</th><th></th></tr></thead>
         <tbody>
           ${proyectos.map(p=>`<tr style="cursor:pointer" onclick="verProyecto('${p.id}')">
             <td class="td-mono">${p.id}</td>
@@ -1036,6 +1076,18 @@ async function renderProyectos() {
         </tbody>
       </table>`}
     </div>`);
+  const buscarInput = document.getElementById('pry-buscar');
+  if (buscarInput) { buscarInput.focus(); buscarInput.setSelectionRange(buscarInput.value.length, buscarInput.value.length); }
+}
+
+function ordenarProyectosPor(campo) {
+  if (STATE._prySortCampo === campo) {
+    STATE._prySortDir = STATE._prySortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    STATE._prySortCampo = campo;
+    STATE._prySortDir = 'asc';
+  }
+  renderProyectos();
 }
 
 async function verProyecto(id) {
@@ -1682,7 +1734,12 @@ async function renderEquipos() {
   const equipos = STATE.equipos || [];
   const disp = equipos.filter(e=>e.estado==='disponible').length;
   const mant = equipos.filter(e=>e.estado==='mantenimiento').length;
-  const alertasCal = await api('GET', '/equipos/alertas/calibracion-por-vencer') || [];
+  const ahoraCal = Date.now();
+  if (!STATE._alertasCalCargadasEn || (ahoraCal - STATE._alertasCalCargadasEn) > 8000) {
+    STATE._alertasCal = await api('GET', '/equipos/alertas/calibracion-por-vencer') || [];
+    STATE._alertasCalCargadasEn = ahoraCal;
+  }
+  const alertasCal = STATE._alertasCal || [];
   const calVencidos = alertasCal.filter(a=>a.vencido).length;
   const calPorVencer = alertasCal.length - calVencidos;
   html(`
