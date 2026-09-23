@@ -249,7 +249,16 @@ tbody tr:hover .td-action i{color:var(--text2)}
   .eval-config{flex-direction:column}
   .field-row{grid-template-columns:1fr}
   .panel-side{width:100vw}
-}
+}.cal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.cal-monthlabel{font-size:13px;font-weight:600;color:var(--text);text-transform:capitalize}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-weekday{font-size:9px;color:var(--text3);text-align:center;padding:4px 0;font-weight:600}
+.cal-cell{aspect-ratio:1;border-radius:4px;background:var(--surface2);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;color:var(--text2);position:relative;cursor:default}
+.cal-cell.empty{background:transparent}
+.cal-cell.hoy{outline:1.5px solid var(--red);color:var(--text)}
+.cal-cell.ocupado{background:var(--green-bg);color:var(--green);cursor:pointer;font-weight:600}
+.cal-cell.ocupado.hoy{outline:1.5px solid var(--green)}
+.cal-dot{width:4px;height:4px;border-radius:50%;background:var(--green);position:absolute;bottom:4px}
 </style>
 </head>
 <body>
@@ -576,6 +585,63 @@ async function cargarCatalogos() {
   if (dlCerts && certs) dlCerts.innerHTML = certs.map(n=>`<option value="${n.replace(/"/g,'&quot;')}">`).join('');
 }
 
+// ─── CALENDARIO MENSUAL (popup reutilizable: admin y técnico) ────────────────
+STATE._cal_offset = 0;
+
+function eventosProyectosPorDia(empId) {
+  const mapa = {};
+  (STATE.proyectos||[]).filter(p => (p.tecnicos_asignados||[]).includes(empId) && p.fecha_inicio && p.fecha_fin_estimada)
+    .forEach(p => {
+      let d = new Date(p.fecha_inicio);
+      const fin = new Date(p.fecha_fin_estimada);
+      while (d <= fin) {
+        const key = d.toISOString().split('T')[0];
+        if (!mapa[key]) mapa[key] = [];
+        mapa[key].push(p);
+        d.setDate(d.getDate()+1);
+      }
+    });
+  return mapa;
+}
+
+async function abrirCalendarioMensual(empId, nombre, offsetMeses) {
+  STATE._cal_offset = offsetMeses || 0;
+  await loadProyectos();
+  const hoy = new Date();
+  const base = new Date(hoy.getFullYear(), hoy.getMonth() + STATE._cal_offset, 1);
+  const year = base.getFullYear(), month = base.getMonth();
+  const eventos = eventosProyectosPorDia(empId);
+  const primerDia = new Date(year, month, 1);
+  const diasEnMes = new Date(year, month+1, 0).getDate();
+  const offset = primerDia.getDay();
+  let celdas = '';
+  for (let i=0;i<offset;i++) celdas += `<div class="cal-cell empty"></div>`;
+  for (let d=1; d<=diasEnMes; d++) {
+    const fecha = new Date(year, month, d);
+    const key = fecha.toISOString().split('T')[0];
+    const evs = eventos[key] || [];
+    const esHoy = fecha.toDateString() === hoy.toDateString();
+    const nombres = evs.map(p=>p.nombre).join(', ');
+    const click = evs.length ? ` onclick="verProyecto('${evs[0].id}')"` : '';
+    celdas += `<div class="cal-cell ${esHoy?'hoy':''} ${evs.length?'ocupado':''}" title="${nombres.replace(/"/g,'&quot;')}"${click}>${d}${evs.length?'<div class="cal-dot"></div>':''}</div>`;
+  }
+  const mesLabel = base.toLocaleDateString('es-MX',{month:'long',year:'numeric'});
+  openPanel(`Calendario — ${nombre}`, `
+    <div class="panel-section">
+      <div class="cal-header">
+        <button class="btn btn-ghost btn-sm" onclick="abrirCalendarioMensual('${empId}','${nombre.replace(/'/g,"\\'")}',${STATE._cal_offset-1})"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+        <span class="cal-monthlabel">${mesLabel}</span>
+        <button class="btn btn-ghost btn-sm" onclick="abrirCalendarioMensual('${empId}','${nombre.replace(/'/g,"\\'")}',${STATE._cal_offset+1})"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+      </div>
+      <div class="cal-grid">
+        ${['D','L','M','X','J','V','S'].map(w=>`<div class="cal-weekday">${w}</div>`).join('')}
+        ${celdas}
+      </div>
+      <div style="margin-top:10px;font-size:10px;color:var(--text3)">● Días con proyecto asignado — toca un día para ver el detalle del proyecto.</div>
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
+}
+
 async function loadEmpleados() {
   const d = await api('GET', '/empleados');
   if (d) STATE.empleados = d;
@@ -588,9 +654,29 @@ async function loadProyectos() {
 // ─── HELPER UI ────────────────────────────────────────────────────────────────
 function html(el) { document.getElementById('main-content').innerHTML = el; }
 
+function estadoVisible(e) {
+  // El estado guardado en BD siempre es 'en_proyecto' desde el momento de
+  // la asignación (lo necesita el motor para otros cálculos). Aquí solo
+  // se calcula qué ETIQUETA mostrar, sin tocar el dato real:
+  //   > 2 días antes de iniciar  → "Asignado"
+  //   2 días antes hasta iniciar → "En preparación"
+  //   ya dentro de las fechas    → "En proyecto"
+  if (e.disponibilidad !== 'en_proyecto' || !e.id_proyecto_actual) return e.disponibilidad;
+  const pry = (STATE.proyectos||[]).find(p => p.id === e.id_proyecto_actual);
+  if (!pry || !pry.fecha_inicio) return e.disponibilidad;
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const inicio = new Date(pry.fecha_inicio);
+  const diasHastaInicio = Math.ceil((inicio - hoy) / 86400000);
+  if (diasHastaInicio > 2) return 'asignado';
+  if (diasHastaInicio > 0) return 'en_preparacion';
+  return 'en_proyecto';
+}
+
 function badge(val) {
   const map = { libre:'badge-libre LIBRE', asignado:'badge-asig ASIGNADO', en_proyecto:'badge-proy EN PROYECTO',
     mantenimiento:'badge-mant MANT.', pendiente_asignacion:'badge-pend PENDIENTE', en_progreso:'badge-prog EN PROG.',
+    pausado:'badge-mant PAUSADO', completado:'badge-libre COMPLETADO', cancelado:'badge-proy CANCELADO',
+    en_preparacion:'badge-mant EN PREPARACIÓN',
     disponible:'badge-libre DISPONIBLE' };
   const [cls, lbl] = (map[val] || 'badge-pend ' + val).split(' ').reduce((a,c,i)=>i===0?[c,a[1]]:[a[0],a[1]+(i>1?' ':'')+c], ['','']);
   return `<span class="badge ${cls}">${(map[val]||'').split(' ').slice(1).join(' ')||val.toUpperCase()}</span>`;
@@ -673,6 +759,7 @@ function closePanel(e, force) {
 // ─── SECCIÓN: EMPLEADOS ───────────────────────────────────────────────────────
 async function renderEmpleados() {
   document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-ghost btn-sm" onclick="loadEmpleados().then(renderEmpleados)"><i class="ti ti-refresh" aria-hidden="true"></i></button><button class="btn btn-primary btn-sm" onclick="openNuevoTecnico()"><i class="ti ti-plus" aria-hidden="true"></i> Nuevo técnico</button>`;
+  await loadProyectos();
   const emps = STATE.empleados;
   const total = emps.length;
   const libres = emps.filter(e=>e.disponibilidad==='libre').length;
@@ -698,7 +785,7 @@ async function renderEmpleados() {
             <td class="td-mono">${e.id}</td>
             <td class="td-name">${e.nombre} ${e.apellido}</td>
             <td>${(e.seniority||'').replace('_',' ')}</td>
-            <td>${badge(e.disponibilidad||'libre')}</td>
+            <td>${badge(estadoVisible(e))}</td>
             <td>${fatiga(e.indice_fatiga)}</td>
             <td>${e.ciudad||'—'}${e.estado?', '+e.estado:''}</td>
             <td class="td-action"><i class="ti ti-chevron-right" aria-hidden="true"></i></td>
@@ -717,7 +804,7 @@ function verEmpleado(id) {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px">
         <div><span style="color:var(--text3);font-size:9px">ID</span><div class="td-mono" style="margin-top:2px">${e.id}</div></div>
         <div><span style="color:var(--text3);font-size:9px">NIVEL</span><div style="margin-top:2px;color:var(--text)">${(e.seniority||'').replace('_',' ')}</div></div>
-        <div><span style="color:var(--text3);font-size:9px">ESTADO</span><div style="margin-top:4px">${badge(e.disponibilidad||'libre')}</div></div>
+        <div><span style="color:var(--text3);font-size:9px">ESTADO</span><div style="margin-top:4px">${badge(estadoVisible(e))}</div></div>
         <div><span style="color:var(--text3);font-size:9px">FATIGA</span><div style="margin-top:6px">${fatiga(e.indice_fatiga)}</div></div>
         <div><span style="color:var(--text3);font-size:9px">CIUDAD</span><div style="margin-top:2px;color:var(--text)">${e.ciudad||'—'}</div></div>
         <div><span style="color:var(--text3);font-size:9px">ESTADO</span><div style="margin-top:2px;color:var(--text)">${e.estado||'—'}</div></div>
@@ -725,7 +812,33 @@ function verEmpleado(id) {
         <div><span style="color:var(--text3);font-size:9px">CORREO</span><div style="margin-top:2px;color:var(--text);word-break:break-all">${e.email_contacto||'—'}</div></div>
       </div>
     </div>`, 
-    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button><button class="btn btn-primary btn-sm" onclick="verDocumentosEmpleado('${e.id}')"><i class="ti ti-file-text" aria-hidden="true"></i> Ver documentos y habilidades</button>`);
+}
+
+function verDocumentosEmpleado(id) {
+  const e = STATE.empleados.find(x=>x.id===id);
+  if (!e) return;
+  const habs = e.habilidades_declaradas || {};
+  const certs = e.certificados || [];
+  openPanel(`Documentos — ${e.nombre} ${e.apellido}`, `
+    <div class="panel-section">
+      <div class="panel-section-title">HABILIDADES OPERATIVAS</div>
+      ${Object.keys(habs).length ? Object.entries(habs).map(([n,niv])=>
+        `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:11px;color:var(--text)"><span>${n}</span><span class="td-mono">${niv}/10</span></div>`
+      ).join('') : '<div style="font-size:11px;color:var(--text3)">Sin habilidades declaradas.</div>'}
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">DOCUMENTOS Y CERTIFICADOS TÉCNICOS</div>
+      ${certs.length ? certs.map(c=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:11px">
+          <div>
+            <div style="color:var(--text);font-weight:600">${c.nombre}${c.tipo?` <span style="color:var(--text3);font-weight:400">(${c.tipo})</span>`:''}</div>
+            <div style="color:var(--text3);font-size:10px">${c.fecha_vencimiento ? `Vigencia hasta ${c.fecha_vencimiento}` : 'Sin vigencia'}</div>
+          </div>
+          ${c.ruta_pdf ? `<button class="btn btn-ghost btn-sm" onclick="abrirVisor('${c.ruta_pdf}','${c.nombre}')" style="padding:3px 10px;font-size:10px"><i class="ti ti-eye" aria-hidden="true"></i> Ver</button>` : '<span style="color:var(--text3);font-size:10px">Sin archivo</span>'}
+        </div>`).join('') : '<div style="font-size:11px;color:var(--text3)">Sin documentos registrados.</div>'}
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="verEmpleado('${e.id}')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Volver</button><button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
 }
 
 function openNuevoTecnico() {
@@ -742,7 +855,7 @@ function openNuevoTecnico() {
     </div>
     <div class="panel-section">
       <div class="panel-section-title">UBICACIÓN</div>
-      <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD</label><input class="field-input" id="nt-ciudad" placeholder="Ciudad"></div><div class="field-group"><label class="field-label">ESTADO</label><input class="field-input" id="nt-estado" placeholder="Estado"></div></div>
+      <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD</label><input class="field-input" id="nt-ciudad" placeholder="Ciudad"></div><div class="field-group"><label class="field-label">ESTADO</label><select class="field-select" id="nt-estado"><option value="">Selecciona...</option>${ESTADOS_MX.map(e=>`<option value="${e}">${e}</option>`).join('')}</select></div></div>
     </div>
     <div id="nt-err" style="color:#ef4444;font-size:11px;margin-top:8px"></div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="guardarNuevoTecnico()"><i class="ti ti-check" aria-hidden="true"></i> Crear técnico</button>`);
@@ -825,6 +938,17 @@ function verProyecto(id) {
   if (!p) return;
   const idsAsignados = p.tecnicos_asignados || [];
   const tecnicos = idsAsignados.map(empId => STATE.empleados.find(e=>e.id===empId)).filter(Boolean);
+  let footerBtns = `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`;
+  if (p.estado !== 'cancelado' && p.estado !== 'completado') {
+    if (p.estado === 'pausado') {
+      footerBtns += `<button class="btn btn-ghost btn-sm" onclick="cambiarEstadoProyecto('${p.id}','${idsAsignados.length>=(p.personal_requerido||1)?'en_progreso':'pendiente_asignacion'}')"><i class="ti ti-player-play" aria-hidden="true"></i> Reanudar</button>`;
+    } else {
+      footerBtns += `<button class="btn btn-ghost btn-sm" onclick="cambiarEstadoProyecto('${p.id}','pausado')"><i class="ti ti-player-pause" aria-hidden="true"></i> Pausar</button>`;
+    }
+    footerBtns += `<button class="btn btn-ghost btn-sm" style="color:#ef4444" onclick="if(confirm('¿Cancelar este proyecto? Se liberará al personal asignado.'))cambiarEstadoProyecto('${p.id}','cancelado')"><i class="ti ti-ban" aria-hidden="true"></i> Cancelar</button>`;
+  }
+  footerBtns += `<button class="btn btn-ghost btn-sm" style="color:#ef4444" onclick="eliminarProyectoConfirm('${p.id}')"><i class="ti ti-trash" aria-hidden="true"></i> Eliminar</button>`;
+
   openPanel(p.nombre, `
     <div class="panel-section">
       <div class="panel-section-title">DETALLES DEL PROYECTO</div>
@@ -855,14 +979,35 @@ function verProyecto(id) {
       ${tecnicos.length ? tecnicos.map(e=>`
         <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:11px">
           <div><div style="color:var(--text);font-weight:600">${e.nombre} ${e.apellido}</div><div style="color:var(--text3);font-size:9px">${(e.seniority||'').replace('_',' ')}</div></div>
-          ${badge(e.disponibilidad||'en_proyecto')}
+          ${badge(estadoVisible(e))}
         </div>`).join('') : '<div style="font-size:11px;color:var(--text3)">Aún no hay técnicos asignados a este proyecto.</div>'}
     </div>
     <div class="panel-section">
       <div class="panel-section-title">EQUIPO Y HERRAMIENTAS</div>
       <div style="font-size:11px;color:var(--text3)">Aún no vinculado — pendiente de conectar Equipos a Supabase.</div>
     </div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
+    footerBtns);
+}
+
+async function cambiarEstadoProyecto(id, nuevoEstado) {
+  const r = await api('PATCH', `/proyectos/proyectos/${id}/estado`, { nuevo_estado: nuevoEstado });
+  if (!r) { toast('Error al actualizar el proyecto','error'); return; }
+  toast(r.mensaje || 'Proyecto actualizado');
+  await loadProyectos();
+  await loadEmpleados();
+  verProyecto(id);
+}
+
+async function eliminarProyectoConfirm(id) {
+  const p = STATE.proyectos.find(x=>x.id===id);
+  if (!p) return;
+  if (!confirm(`¿Eliminar el proyecto "${p.nombre}" definitivamente? Esta acción no se puede deshacer.`)) return;
+  const r = await api('DELETE', `/proyectos/proyectos/${id}`);
+  if (!r) { toast('Error al eliminar el proyecto','error'); return; }
+  toast(r.mensaje || 'Proyecto eliminado');
+  closePanel(null, true);
+  await loadProyectos();
+  renderProyectos();
 }
 
 function openNuevoProyecto() {
@@ -904,7 +1049,7 @@ function openNuevoProyecto() {
     </div>
     <div class="panel-section">
       <div class="panel-section-title">UBICACIÓN</div>
-      <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD</label><input class="field-input" id="np-ciudad" placeholder="Ciudad del proyecto"></div><div class="field-group"><label class="field-label">ESTADO</label><input class="field-input" id="np-estado" placeholder="Estado"></div></div>
+      <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD</label><input class="field-input" id="np-ciudad" placeholder="Ciudad del proyecto"></div><div class="field-group"><label class="field-label">ESTADO</label><select class="field-select" id="np-estado"><option value="">Selecciona...</option>${ESTADOS_MX.map(e=>`<option value="${e}">${e}</option>`).join('')}</select></div></div>
     </div>
     <div id="np-err" style="color:#ef4444;font-size:11px;margin-top:8px"></div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="guardarNuevoProyecto()"><i class="ti ti-check" aria-hidden="true"></i> Crear proyecto</button>`);
@@ -1006,7 +1151,7 @@ async function renderGantt() {
           </tr></thead>
           <tbody>
             ${STATE.empleados.map(e=>`<tr>
-              <td class="gantt-name">${e.nombre} ${e.apellido}</td>
+              <td class="gantt-name" style="cursor:pointer" onclick="abrirCalendarioMensual('${e.id}','${(e.nombre+' '+e.apellido).replace(/'/g,"\\'")}',0)">${e.nombre} ${e.apellido}</td>
               ${cols.map(d=>{
                 const isHoy = d.toDateString() === hoy;
                 const isWknd = d.getDay()===0||d.getDay()===6;
@@ -1531,6 +1676,10 @@ async function sincronizarHabilidades() {
 }
 
 const TIPOS_DOC = ['Certificado / Curso','Licencia de Conducir','CURP','RFC','Identificación Oficial','GWO','DC3','Otro'];
+const ESTADOS_MX = ['Aguascalientes','Baja California','Baja California Sur','Campeche','Chiapas','Chihuahua',
+  'Ciudad de México','Coahuila','Colima','Durango','Estado de México','Guanajuato','Guerrero','Hidalgo',
+  'Jalisco','Michoacán','Morelos','Nayarit','Nuevo León','Oaxaca','Puebla','Querétaro','Quintana Roo',
+  'San Luis Potosí','Sinaloa','Sonora','Tabasco','Tamaulipas','Tlaxcala','Veracruz','Yucatán','Zacatecas'];
 
 function openAgregarDocumento() {
   cargarCatalogos();
@@ -1669,7 +1818,7 @@ async function renderMiGantt() {
   const cols = Array.from({length:dias}, (_,i) => { const d = new Date(today); d.setDate(d.getDate()-7+i); return d; });
   html(`
     <div class="table-section">
-      <div class="table-header"><span class="table-title">MIS PROYECTOS — 30 DÍAS</span></div>
+      <div class="table-header"><span class="table-title">MIS PROYECTOS — 30 DÍAS</span><button class="btn btn-primary btn-sm" onclick="abrirCalendarioMensual('${empId}','${(STATE.user?.nombre||'Mi calendario').replace(/'/g,"\\'")}',0)"><i class="ti ti-calendar" aria-hidden="true"></i> Ver calendario mensual</button></div>
       ${pry.length===0?'<div class="empty-state"><i class="ti ti-calendar-off" aria-hidden="true"></i><p>Sin proyectos asignados</p></div>':`
       <div class="gantt-wrap">
         <table class="gantt-table">
