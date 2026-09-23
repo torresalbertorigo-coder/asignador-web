@@ -147,6 +147,13 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .field-label{font-size:11px;color:var(--text3);letter-spacing:.08em;font-weight:600}
 .field-input{background:#151517;border:1px solid var(--border2);color:var(--text);padding:8px 12px;border-radius:var(--radius);outline:none;font-size:13px;width:100%}
 .field-input:focus{border-color:var(--red)}
+.search-box{position:relative;max-width:280px;flex:1}
+.search-box input{padding-left:32px !important;background:var(--surface2);border-color:var(--border)}
+.search-box input:focus{border-color:var(--border2)!important}
+.search-box .ti-search{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
+.th-sortable{cursor:pointer;user-select:none;white-space:nowrap}
+.th-sortable .ti{font-size:13px;vertical-align:-1px;margin-left:3px;color:var(--text3)}
+.th-sortable.activo .ti{color:var(--text)}
 .field-select{background:#151517;border:1px solid var(--border2);color:var(--text);padding:8px 12px;border-radius:var(--radius);outline:none;font-size:13px;width:100%;appearance:none}
 .panel-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;position:sticky;bottom:0;background:var(--surface)}
 
@@ -831,7 +838,7 @@ async function renderEmpleados() {
     <div class="table-section">
       <div class="table-header">
         <span class="table-title">REGISTRO DE PERSONAL</span>
-        <input class="field-input" id="emp-buscar" placeholder="Buscar por nombre, ID o ciudad..." style="max-width:280px" value="${filtroEmp}" oninput="STATE._empFiltro=this.value;renderEmpleados();" onclick="event.stopPropagation()">
+        <div class="search-box"><i class="ti ti-search" aria-hidden="true"></i><input class="field-input" id="emp-buscar" placeholder="Buscar por nombre, ID o ciudad..." value="${filtroEmp}" oninput="STATE._empFiltro=this.value;renderEmpleados();" onclick="event.stopPropagation()"></div>
         <span class="table-meta">${filtrados.length} de ${total} registros · nube</span>
       </div>
       ${filtrados.length === 0 ? '<div class="empty-state"><i class="ti ti-users" aria-hidden="true"></i><p>Sin resultados</p></div>' : `
@@ -1044,7 +1051,6 @@ async function renderProyectos() {
       return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
     });
   }
-  const flecha = (campo) => sortCampo===campo ? (sortDir==='asc' ? ' ▲' : ' ▼') : '';
 
   html(`
     <div class="stats-grid">
@@ -1056,12 +1062,12 @@ async function renderProyectos() {
     <div class="table-section">
       <div class="table-header">
         <span class="table-title">REGISTRO DE PROYECTOS</span>
-        <input class="field-input" id="pry-buscar" placeholder="Buscar por nombre, cliente, ID o ciudad..." style="max-width:280px" value="${filtro}" oninput="STATE._pryFiltro=this.value;renderProyectos();" onclick="event.stopPropagation()">
+        <div class="search-box"><i class="ti ti-search" aria-hidden="true"></i><input class="field-input" id="pry-buscar" placeholder="Buscar por nombre, cliente, ID o ciudad..." value="${filtro}" oninput="STATE._pryFiltro=this.value;renderProyectos();" onclick="event.stopPropagation()"></div>
         <span class="table-meta">${proyectos.length} de ${STATE.proyectos.length} proyectos · nube</span>
       </div>
       ${proyectos.length === 0 ? '<div class="empty-state"><i class="ti ti-folder" aria-hidden="true"></i><p>Sin resultados</p></div>' : `
       <table>
-        <thead><tr><th>ID</th><th>NOMBRE</th><th>CLIENTE</th><th>ESTADO</th><th style="cursor:pointer" onclick="ordenarProyectosPor('fecha_inicio')">INICIO${flecha('fecha_inicio')}</th><th style="cursor:pointer" onclick="ordenarProyectosPor('fecha_fin_estimada')">FIN EST.${flecha('fecha_fin_estimada')}</th><th>SITIO</th><th></th></tr></thead>
+        <thead><tr><th>ID</th><th>NOMBRE</th><th>CLIENTE</th><th>ESTADO</th><th class="th-sortable${sortCampo==='fecha_inicio'?' activo':''}" onclick="ordenarProyectosPor('fecha_inicio')">INICIO<i class="ti ${sortCampo==='fecha_inicio'?(sortDir==='asc'?'ti-sort-ascending':'ti-sort-descending'):'ti-arrows-sort'}" aria-hidden="true"></i></th><th class="th-sortable${sortCampo==='fecha_fin_estimada'?' activo':''}" onclick="ordenarProyectosPor('fecha_fin_estimada')">FIN EST.<i class="ti ${sortCampo==='fecha_fin_estimada'?(sortDir==='asc'?'ti-sort-ascending':'ti-sort-descending'):'ti-arrows-sort'}" aria-hidden="true"></i></th><th>SITIO</th><th></th></tr></thead>
         <tbody>
           ${proyectos.map(p=>`<tr style="cursor:pointer" onclick="verProyecto('${p.id}')">
             <td class="td-mono">${p.id}</td>
