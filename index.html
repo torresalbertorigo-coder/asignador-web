@@ -17,9 +17,29 @@
   --green:#22c55e;--green-bg:#0d2d14;
   --amber:#f59e0b;--amber-bg:#2d1a05;
   --blue:#3b82f6;--blue-bg:#0d1a2d;
+  --red-border:#4a1a1a;--amber-border:#4a2d05;--green-border:#1a4a24;--blue-border:#1a2d4a;
+  --red-text:#ef4444;--red-text-light:#f87171;
+  --input-bg:#151517;
+  --grad-fill-top:#3a3a40;--grad-fill-card:#2a2a2e;--grad-fill-panel:#262629;
+  --sidebar-grad-top:#232326;--btn-ghost-grad:#2c2c30;--btn-primary-grad-bottom:#9e0f1a;
   --mono:'JetBrains Mono',monospace;
   --sans:'Inter',system-ui,sans-serif;
   --radius:3px;
+}
+:root[data-theme="light"]{
+  color-scheme: light;
+  --bg:#F6F6F7;--surface:#FFFFFF;--surface2:#F1F1F3;
+  --border:#E2E2E5;--border2:#D2D2D7;
+  --text:#1B1B1E;--text2:#5C5C63;--text3:#8D8D94;
+  --red:#C1121F;--red2:#8B1A1A;--red-bg:#FBEAEC;
+  --green:#15803D;--green-bg:#E7F6EC;
+  --amber:#B45309;--amber-bg:#FCF1DF;
+  --blue:#2563EB;--blue-bg:#E9F0FE;
+  --red-border:#F3C6CA;--amber-border:#F6DFAF;--green-border:#BFE6CC;--blue-border:#C4D9FB;
+  --red-text:#DC2626;--red-text-light:#EF4444;
+  --input-bg:#FFFFFF;
+  --grad-fill-top:#EDEDF0;--grad-fill-card:#F3F3F5;--grad-fill-panel:#FBFBFC;
+  --sidebar-grad-top:#FFFFFF;--btn-ghost-grad:#EDEDF0;--btn-primary-grad-bottom:#E11D2A;
 }
 body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:15px;height:100vh;overflow:hidden}
 @media(min-width:1200px){body{font-size:16px}}
@@ -37,12 +57,12 @@ a{text-decoration:none;color:inherit}
 .login-desc{font-size:12px;color:var(--text2);margin-bottom:24px}
 .form-group{margin-bottom:14px}
 .form-label{display:block;font-size:11px;color:var(--text3);letter-spacing:.08em;font-weight:600;margin-bottom:6px}
-.form-input{width:100%;background:#151517;border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:var(--radius);outline:none;transition:border-color .15s}
+.form-input{width:100%;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:var(--radius);outline:none;transition:border-color .15s}
 .form-input:focus{border-color:var(--red)}
 .form-input::placeholder{color:var(--text3)}
 .btn-login{width:100%;background:var(--red);color:#fff;border:none;padding:10px;font-weight:600;border-radius:var(--radius);margin-top:8px;font-size:13px;letter-spacing:.03em;transition:background .15s}
 .btn-login:hover{background:#a50e18}
-.login-error{color:#ef4444;font-size:12px;margin-top:8px;min-height:16px}
+.login-error{color:var(--red-text);font-size:12px;margin-top:8px;min-height:16px}
 .login-hint{font-size:11px;color:var(--text3);margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
 
 /* ── APP LAYOUT ──────────────────────────────────────────────────────── */
@@ -51,7 +71,7 @@ a{text-decoration:none;color:inherit}
 .app-body{display:flex;flex:1;overflow:hidden}
 
 /* SIDEBAR */
-.sidebar{width:240px;background:linear-gradient(to top, var(--bg) 0%, #232326 100%);border-right:1px solid transparent;border-image:linear-gradient(to top, transparent 0%, var(--border2) 100%) 1;display:flex;flex-direction:column;flex-shrink:0;transition:width .18s ease,margin-left .18s ease;overflow:hidden}
+.sidebar{width:240px;background:linear-gradient(to top, var(--bg) 0%, var(--sidebar-grad-top) 100%);border-right:1px solid transparent;border-image:linear-gradient(to top, transparent 0%, var(--border2) 100%) 1;display:flex;flex-direction:column;flex-shrink:0;transition:width .18s ease,margin-left .18s ease;overflow:hidden}
 @media(min-width:769px){
   .sidebar.collapsed{width:0;border-right:none}
 }
@@ -74,7 +94,7 @@ a{text-decoration:none;color:inherit}
 
 /* MAIN */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
-.topbar{padding:0 20px;height:48px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:#151517;flex-shrink:0}
+.topbar{padding:0 20px;height:48px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--input-bg);flex-shrink:0}
 .page-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--text)}
 .page-title .sep{color:var(--text3);font-weight:400}
 .page-title i{color:var(--red);font-size:17px}
@@ -86,14 +106,14 @@ a{text-decoration:none;color:inherit}
 .btn:disabled{opacity:.55;cursor:not-allowed}
 .btn:disabled .ti-loader-2{animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.btn-primary{background:linear-gradient(to top, #9e0f1a 0%, var(--red) 100%);color:#fff}.btn-primary:hover{background:#a50e18}
-.btn-ghost{background:linear-gradient(to top, transparent 0%, #2c2c30 100%) padding-box, linear-gradient(to top, transparent 0%, var(--border2) 100%) border-box;color:var(--text2);border:1px solid transparent}.btn-ghost:hover{color:var(--text);border-color:var(--text3)}
+.btn-primary{background:linear-gradient(to top, var(--btn-primary-grad-bottom) 0%, var(--red) 100%);color:#fff}.btn-primary:hover{background:#a50e18}
+.btn-ghost{background:linear-gradient(to top, transparent 0%, var(--btn-ghost-grad) 100%) padding-box, linear-gradient(to top, transparent 0%, var(--border2) 100%) border-box;color:var(--text2);border:1px solid transparent}.btn-ghost:hover{color:var(--text);border-color:var(--text3)}
 .btn-sm{padding:4px 10px;font-size:11px}
 .btn-icon{padding:6px;background:transparent;border:1px solid var(--border2);color:var(--text2)}.btn-icon:hover{color:var(--text)}
 
 /* STATS */
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
-.stat-card{background:linear-gradient(to top, transparent 0%, #2a2a2e 100%);border:1px solid var(--border);padding:12px 14px;border-radius:var(--radius);border-left:2px solid var(--border)}
+.stat-card{background:linear-gradient(to top, transparent 0%, var(--grad-fill-card) 100%);border:1px solid var(--border);padding:12px 14px;border-radius:var(--radius);border-left:2px solid var(--border)}
 .stat-card.c-red{border-left-color:var(--red)}
 .stat-card.c-green{border-left-color:var(--green)}
 .stat-card.c-amber{border-left-color:var(--amber)}
@@ -103,7 +123,7 @@ a{text-decoration:none;color:inherit}
 .stat-sub{font-size:10px;color:var(--text3);margin-top:3px}
 
 /* TABLE */
-.table-section{background:linear-gradient(to top, transparent 0%, #262629 100%) padding-box, linear-gradient(to top, transparent 0%, var(--border2) 100%) border-box;border:1px solid transparent;border-radius:var(--radius);margin-bottom:14px;overflow:hidden}
+.table-section{background:linear-gradient(to top, transparent 0%, var(--grad-fill-panel) 100%) padding-box, linear-gradient(to top, transparent 0%, var(--border2) 100%) border-box;border:1px solid transparent;border-radius:var(--radius);margin-bottom:14px;overflow:hidden}
 .table-header{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .table-title{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:.08em}
 .table-meta{font-size:10px;color:var(--text3);font-family:var(--mono)}
@@ -111,7 +131,7 @@ table{width:100%;border-collapse:collapse}
 th{padding:8px 16px;text-align:left;font-size:11px;color:var(--text3);letter-spacing:.1em;font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap}
 td{padding:10px 16px;font-size:13px;color:var(--text2);border-bottom:1px solid #141414;white-space:nowrap}
 tbody tr:last-child td{border-bottom:none}
-tbody tr:hover td{background:var(--surface2);color:#c8c8c8}
+tbody tr:hover td{background:var(--surface2);color:var(--text)}
 .td-name{color:var(--text);font-weight:500}
 .td-mono{font-family:var(--mono);font-size:11px;color:var(--text3)}
 .td-action{text-align:right;cursor:pointer}
@@ -120,12 +140,12 @@ tbody tr:hover .td-action i{color:var(--text2)}
 
 /* BADGES */
 .badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:2px;font-size:10px;font-weight:700;letter-spacing:.05em}
-.badge-libre{background:var(--green-bg);color:var(--green);border:1px solid #1a4a24}
-.badge-asig{background:var(--blue-bg);color:var(--blue);border:1px solid #1a2d4a}
-.badge-proy{background:var(--red-bg);color:#ef4444;border:1px solid #4a1a1a}
-.badge-mant{background:var(--amber-bg);color:var(--amber);border:1px solid #4a2d05}
-.badge-pend{background:#1a1a0d;color:#a3a300;border:1px solid #2d2d00}
-.badge-prog{background:var(--blue-bg);color:var(--blue);border:1px solid #1a2d4a}
+.badge-libre{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.badge-asig{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
+.badge-proy{background:var(--red-bg);color:var(--red-text);border:1px solid var(--red-border)}
+.badge-mant{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+.badge-pend{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+.badge-prog{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
 
 /* FATIGA BAR */
 .fat-wrap{display:flex;align-items:center;gap:6px}
@@ -136,7 +156,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 /* PANEL DERECHO / MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;display:none;align-items:center;justify-content:center;padding:20px}
 .modal-overlay.open{display:flex}
-.panel-side{background:linear-gradient(to top, transparent 0%, #262629 100%) padding-box, linear-gradient(to top, transparent 0%, var(--border2) 100%) border-box;border:1px solid transparent;border-radius:6px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.8)}
+.panel-side{background:linear-gradient(to top, transparent 0%, var(--grad-fill-panel) 100%) padding-box, linear-gradient(to top, transparent 0%, var(--border2) 100%) border-box;border:1px solid transparent;border-radius:6px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.8)}
 .panel-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;background:var(--surface);z-index:1}
 .panel-title{font-size:15px;font-weight:600;color:var(--text)}
 .panel-body{padding:20px;flex:1}
@@ -146,10 +166,10 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .field-row.full{grid-template-columns:1fr}
 .field-group{display:flex;flex-direction:column;gap:5px}
 .field-label{font-size:11px;color:var(--text3);letter-spacing:.08em;font-weight:600}
-.field-input{background:linear-gradient(to top, transparent 0%, #3a3a40 100%) padding-box, linear-gradient(to top, transparent 0%, var(--border2) 100%) border-box;border:1px solid transparent;color:var(--text);padding:8px 12px;border-radius:var(--radius);outline:none;font-size:13px;width:100%}
+.field-input{background:linear-gradient(to top, transparent 0%, var(--grad-fill-top) 100%) padding-box, linear-gradient(to top, transparent 0%, var(--border2) 100%) border-box;border:1px solid transparent;color:var(--text);padding:8px 12px;border-radius:var(--radius);outline:none;font-size:13px;width:100%}
 .field-input:focus{border-color:var(--red)}
 .filter-bar{border-radius:var(--radius);padding:1px;flex:1;max-width:420px;background:linear-gradient(to top, transparent 0%, var(--border2) 100%)}
-.filter-bar-inner{display:flex;align-items:stretch;border-radius:calc(var(--radius) - 1px);overflow:hidden;background:linear-gradient(to top, transparent 0%, #3a3a40 100%)}
+.filter-bar-inner{display:flex;align-items:stretch;border-radius:calc(var(--radius) - 1px);overflow:hidden;background:linear-gradient(to top, transparent 0%, var(--grad-fill-top) 100%)}
 .filter-bar-inner .search-box{flex:1;max-width:none}
 .filter-bar-inner .search-box input,.filter-bar-inner select{background:transparent!important;border:none!important;border-radius:0!important}
 .filter-bar-inner .search-box input:focus,.filter-bar-inner select:focus{border:none!important;box-shadow:none!important}
@@ -161,7 +181,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .th-sortable{cursor:pointer;user-select:none;white-space:nowrap}
 .th-sortable .ti{font-size:13px;vertical-align:-1px;margin-left:3px;color:var(--text3)}
 .th-sortable.activo .ti{color:var(--text)}
-.field-select{background:linear-gradient(to top, transparent 0%, #3a3a40 100%) padding-box, linear-gradient(to top, transparent 0%, var(--border2) 100%) border-box, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center;border:1px solid transparent;color:var(--text);padding:8px 30px 8px 12px;border-radius:var(--radius);outline:none;font-size:13px;width:100%;appearance:none}
+.field-select{background:linear-gradient(to top, transparent 0%, var(--grad-fill-top) 100%) padding-box, linear-gradient(to top, transparent 0%, var(--border2) 100%) border-box, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center;border:1px solid transparent;color:var(--text);padding:8px 30px 8px 12px;border-radius:var(--radius);outline:none;font-size:13px;width:100%;appearance:none}
 .panel-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;position:sticky;bottom:0;background:var(--surface)}
 
 /* EMPTY STATE */
@@ -190,14 +210,14 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .gantt-name{padding:6px 12px;background:var(--surface);font-size:12px;color:var(--text);min-width:140px;white-space:nowrap}
 .gantt-cell{width:28px;background:transparent}
 .gantt-cell.today{background:#1a0505;border-left:2px solid var(--red)!important}
-.gantt-cell.weekend{background:#151517}
+.gantt-cell.weekend{background:var(--input-bg)}
 .gantt-cell.occupied{background:var(--red)}
 .gantt-cell.assigned{background:var(--blue-bg)}
 .gantt-cell.past{background:var(--red2)}
 
 /* EQUIPOS */
 .equipo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
-.equipo-card{background:linear-gradient(to top, transparent 0%, #2a2a2e 100%) padding-box, linear-gradient(to top, transparent 0%, var(--border2) 100%) border-box;border:1px solid transparent;border-radius:var(--radius);padding:14px;cursor:pointer;transition:border-color .12s}
+.equipo-card{background:linear-gradient(to top, transparent 0%, var(--grad-fill-card) 100%) padding-box, linear-gradient(to top, transparent 0%, var(--border2) 100%) border-box;border:1px solid transparent;border-radius:var(--radius);padding:14px;cursor:pointer;transition:border-color .12s}
 .equipo-card:hover{border-color:var(--border2)}
 .equipo-card.selected{border-color:var(--red)}
 .eq-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
@@ -224,14 +244,14 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .criterio-bar-wrap{flex:1;height:3px;background:var(--border2);border-radius:1px;overflow:hidden}
 .criterio-bar-fill{height:100%;background:var(--green);border-radius:1px}
 .criterio-val{font-size:11px;font-family:var(--mono);color:var(--text2);width:45px;text-align:right;flex-shrink:0}
-.brecha-item-rojo{display:flex;align-items:center;gap:6px;font-size:11px;color:#ef4444;padding:3px 0}
-.brecha-item-rojo::before{content:'·';color:#ef4444}
+.brecha-item-rojo{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--red-text);padding:3px 0}
+.brecha-item-rojo::before{content:'·';color:var(--red-text)}
 .brecha-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--amber);padding:3px 0}
 .brecha-item::before{content:'·';color:var(--amber)}
 
 /* INCIDENCIAS */
 .inc-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:8px}
-.inc-card.alta{border-left:3px solid #ef4444}
+.inc-card.alta{border-left:3px solid var(--red-text)}
 .inc-card.media{border-left:3px solid var(--amber)}
 .inc-card.baja{border-left:3px solid var(--green)}
 .inc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
@@ -257,7 +277,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border2);padding:12px 16px;border-radius:var(--radius);font-size:13px;color:var(--text);z-index:999;display:none;align-items:center;gap:10px;min-width:240px;max-width:340px}
 .toast.show{display:flex}
 .toast.success{border-left:3px solid var(--green)}
-.toast.error{border-left:3px solid #ef4444}
+.toast.error{border-left:3px solid var(--red-text)}
 
 /* RESPONSIVE */
 @media(max-width:768px){
@@ -276,9 +296,9 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .cal-cell{aspect-ratio:1;border-radius:4px;background:var(--surface2);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;color:var(--text2);position:relative;cursor:default}
 .cal-cell.empty{background:transparent}
 .cal-cell.hoy{outline:1.5px solid var(--red);color:var(--text)}
-.cal-cell.ocupado{background:var(--red-bg);color:#ef4444;cursor:pointer;font-weight:600}
-.cal-cell.ocupado.hoy{outline:1.5px solid #ef4444}
-.cal-dot{width:4px;height:4px;border-radius:50%;background:#ef4444;position:absolute;bottom:4px}
+.cal-cell.ocupado{background:var(--red-bg);color:var(--red-text);cursor:pointer;font-weight:600}
+.cal-cell.ocupado.hoy{outline:1.5px solid var(--red-text)}
+.cal-dot{width:4px;height:4px;border-radius:50%;background:var(--red-text);position:absolute;bottom:4px}
 </style>
 </head>
 <body>
@@ -330,6 +350,11 @@ tbody tr:hover .td-action i{color:var(--text2)}
       <div class="sidebar-footer">
         <div class="api-dot"><div class="dot"></div> API conectada</div>
         <div style="margin-top:8px">
+          <button class="btn btn-ghost btn-sm" onclick="toggleTema()" style="width:100%;justify-content:center" id="btn-tema">
+            <i class="ti ti-moon" aria-hidden="true"></i> Modo oscuro
+          </button>
+        </div>
+        <div style="margin-top:8px">
           <button class="btn btn-ghost btn-sm" onclick="doLogout()" style="width:100%;justify-content:center">
             <i class="ti ti-logout" aria-hidden="true"></i> Cerrar sesión
           </button>
@@ -374,13 +399,13 @@ tbody tr:hover .td-action i{color:var(--text2)}
 
 <!-- VISOR DE DOCUMENTOS -->
 <div id="visor-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:200;flex-direction:column" onclick="cerrarVisor(event)">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid #2a2a2a;flex-shrink:0">
-    <span id="visor-titulo" style="font-size:14px;font-weight:600;color:#f0f0f0"></span>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+    <span id="visor-titulo" style="font-size:14px;font-weight:600;color:var(--text)"></span>
     <div style="display:flex;gap:8px">
-      <a id="visor-dl" href="#" download style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:3px;font-size:12px;font-weight:600;border:1px solid #2a2a2a;color:#888;text-decoration:none;cursor:pointer">
+      <a id="visor-dl" href="#" download style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:3px;font-size:12px;font-weight:600;border:1px solid var(--border);color:var(--text2);text-decoration:none;cursor:pointer">
         <i class="ti ti-download" aria-hidden="true"></i> Descargar
       </a>
-      <button onclick="cerrarVisor(null,true)" style="background:transparent;border:1px solid #2a2a2a;color:#888;padding:6px 12px;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer">
+      <button onclick="cerrarVisor(null,true)" style="background:transparent;border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer">
         <i class="ti ti-x" aria-hidden="true"></i> Cerrar
       </button>
     </div>
@@ -394,6 +419,23 @@ tbody tr:hover .td-action i{color:var(--text2)}
 <script>
 const API = 'https://asignador-inteligente.vercel.app';
 let STATE = { token: null, user: null, rol: null, empleados: [], proyectos: [], equipos: [], incidencias: [], sesionEmp: null, modoTecnico: false };
+
+// ─── TEMA (claro/oscuro) ──────────────────────────────────────────────────────
+function aplicarTema(tema) {
+  document.documentElement.setAttribute('data-theme', tema);
+  localStorage.setItem('tema', tema);
+  const btn = document.getElementById('btn-tema');
+  if (btn) {
+    btn.innerHTML = tema === 'light'
+      ? '<i class="ti ti-sun" aria-hidden="true"></i> Modo claro'
+      : '<i class="ti ti-moon" aria-hidden="true"></i> Modo oscuro';
+  }
+}
+function toggleTema() {
+  const actual = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+  aplicarTema(actual === 'light' ? 'dark' : 'light');
+}
+aplicarTema(localStorage.getItem('tema') || 'dark');
 
 // ─── AUTH ────────────────────────────────────────────────────────────────────
 async function doLogin() {
@@ -674,7 +716,7 @@ async function abrirCalendarioMensual(empId, nombre, offsetMeses) {
         ${['D','L','M','X','J','V','S'].map(w=>`<div class="cal-weekday">${w}</div>`).join('')}
         ${celdas}
       </div>
-      <div style="margin-top:10px;font-size:11px;color:var(--text3)"><span style="color:#ef4444">●</span> Días con proyecto asignado — toca un día para ver el detalle del proyecto.</div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text3)"><span style="color:var(--red-text)">●</span> Días con proyecto asignado — toca un día para ver el detalle del proyecto.</div>
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
 }
@@ -727,7 +769,7 @@ function badge(val) {
 
 function fatiga(val) {
   const pct = Math.min(100, val || 0);
-  const col = pct < 40 ? 'var(--green)' : pct < 75 ? 'var(--amber)' : '#ef4444';
+  const col = pct < 40 ? 'var(--green)' : pct < 75 ? 'var(--amber)' : 'var(--red-text)';
   return `<div class="fat-wrap"><div class="fat-bar"><div class="fat-fill" style="width:${pct}%;background:${col}"></div></div><span class="fat-val" style="color:${col}">${pct}/100</span></div>`;
 }
 
@@ -767,7 +809,7 @@ function abrirVisor(url, nombre) {
   } else if (esPDF) {
     body.innerHTML = `<iframe src="${url}" style="width:min(900px,95vw);height:calc(100vh - 100px);border:none;border-radius:4px;background:#fff"></iframe>`;
   } else {
-    body.innerHTML = `<div style="text-align:center;color:#888"><i class="ti ti-file" style="font-size:49px;display:block;margin-bottom:12px" aria-hidden="true"></i><p style="font-size:15px;margin-bottom:16px">${nombre}</p><a href="${url}" download="${nombre}" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#C1121F;color:#fff;border-radius:3px;text-decoration:none;font-size:13px;font-weight:600"><i class="ti ti-download" aria-hidden="true"></i> Descargar archivo</a></div>`;
+    body.innerHTML = `<div style="text-align:center;color:var(--text2)"><i class="ti ti-file" style="font-size:49px;display:block;margin-bottom:12px" aria-hidden="true"></i><p style="font-size:15px;margin-bottom:16px">${nombre}</p><a href="${url}" download="${nombre}" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:var(--red);color:#fff;border-radius:3px;text-decoration:none;font-size:13px;font-weight:600"><i class="ti ti-download" aria-hidden="true"></i> Descargar archivo</a></div>`;
   }
   overlay.style.display = 'flex';
 }
@@ -835,7 +877,7 @@ async function renderEmpleados() {
   const vencidos = alertasCert.filter(a=>a.vencido).length;
   const porVencer = alertasCert.length - vencidos;
   html(`
-    ${alertasCert.length ? `<div style="background:${vencidos?'var(--red-bg)':'var(--amber-bg)'};border:1px solid ${vencidos?'#4a1a1a':'#4a2d05'};border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;font-size:12px;color:${vencidos?'#ef4444':'var(--amber)'};cursor:pointer;display:flex;align-items:center;gap:8px" onclick="verAlertasCertificados()">
+    ${alertasCert.length ? `<div style="background:${vencidos?'var(--red-bg)':'var(--amber-bg)'};border:1px solid ${vencidos?'var(--red-border)':'var(--amber-border)'};border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;font-size:12px;color:${vencidos?'var(--red-text)':'var(--amber)'};cursor:pointer;display:flex;align-items:center;gap:8px" onclick="verAlertasCertificados()">
       <i class="ti ti-alert-triangle" aria-hidden="true"></i>
       <strong>${vencidos ? `${vencidos} certificado(s) vencido(s)` : ''}${vencidos && porVencer ? ' y ' : ''}${porVencer ? `${porVencer} por vencer en los próximos 30 días` : ''}</strong>
       <span style="margin-left:auto;color:var(--text3)">Ver detalle →</span>
@@ -935,7 +977,7 @@ function verEmpleado(id) {
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>
      <button class="btn btn-primary btn-sm" onclick="verDocumentosEmpleado('${e.id}')"><i class="ti ti-file-text" aria-hidden="true"></i> Ver documentos y habilidades</button>
      ${e.estado_perfil !== 'archivado' ? `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => archivarEmpleado('${e.id}'))"><i class="ti ti-archive" aria-hidden="true"></i> Archivar</button>` : `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => reactivarEmpleado('${e.id}'))"><i class="ti ti-archive-off" aria-hidden="true"></i> Reactivar</button>`}
-     ${STATE.rol==='administrador' ? `<button class="btn btn-ghost btn-sm" style="color:#ef4444" onclick="eliminarEmpleadoConfirm('${e.id}')"><i class="ti ti-trash" aria-hidden="true"></i> Eliminar</button>` : ''}`);
+     ${STATE.rol==='administrador' ? `<button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="eliminarEmpleadoConfirm('${e.id}')"><i class="ti ti-trash" aria-hidden="true"></i> Eliminar</button>` : ''}`);
 }
 
 function verDocumentosEmpleado(id) {
@@ -946,7 +988,7 @@ function verDocumentosEmpleado(id) {
     let vigenciaColor = 'var(--text3)', vigenciaTexto = 'Sin vigencia';
     if (c.fecha_vencimiento) {
       const dias = Math.ceil((new Date(c.fecha_vencimiento) - new Date()) / 86400000);
-      if (dias < 0) { vigenciaColor = '#ef4444'; vigenciaTexto = 'Venció hace ' + Math.abs(dias) + ' día(s) (' + c.fecha_vencimiento + ')'; }
+      if (dias < 0) { vigenciaColor = 'var(--red-text)'; vigenciaTexto = 'Venció hace ' + Math.abs(dias) + ' día(s) (' + c.fecha_vencimiento + ')'; }
       else if (dias <= 30) { vigenciaColor = 'var(--amber)'; vigenciaTexto = 'Vence en ' + dias + ' día(s) (' + c.fecha_vencimiento + ')'; }
       else { vigenciaTexto = 'Vigencia hasta ' + c.fecha_vencimiento; }
     }
@@ -991,7 +1033,7 @@ function openNuevoTecnico() {
       <div class="panel-section-title">UBICACIÓN</div>
       <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD</label><input class="field-input" id="nt-ciudad" placeholder="Ciudad"></div><div class="field-group"><label class="field-label">ESTADO</label><select class="field-select" id="nt-estado"><option value="">Selecciona...</option>${ESTADOS_MX.map(e=>`<option value="${e}">${e}</option>`).join('')}</select></div></div>
     </div>
-    <div id="nt-err" style="color:#ef4444;font-size:12px;margin-top:8px"></div>`,
+    <div id="nt-err" style="color:var(--red-text);font-size:12px;margin-top:8px"></div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, guardarNuevoTecnico)"><i class="ti ti-check" aria-hidden="true"></i> Crear</button>`);
 }
 
@@ -1147,10 +1189,10 @@ async function verProyecto(id) {
     } else {
       footerBtns += `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => cambiarEstadoProyecto('${p.id}','pausado'))"><i class="ti ti-player-pause" aria-hidden="true"></i> Pausar</button>`;
     }
-    footerBtns += `<button class="btn btn-ghost btn-sm" style="color:#ef4444" onclick="if(confirm('¿Cancelar este proyecto? Se liberará al personal asignado.'))ejecutarConCarga(this, () => cambiarEstadoProyecto('${p.id}','cancelado'))"><i class="ti ti-ban" aria-hidden="true"></i> Cancelar</button>`;
+    footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="if(confirm('¿Cancelar este proyecto? Se liberará al personal asignado.'))ejecutarConCarga(this, () => cambiarEstadoProyecto('${p.id}','cancelado'))"><i class="ti ti-ban" aria-hidden="true"></i> Cancelar</button>`;
   }
   if (STATE.rol === 'administrador') {
-    footerBtns += `<button class="btn btn-ghost btn-sm" style="color:#ef4444" onclick="ejecutarConCarga(this, () => eliminarProyectoConfirm('${p.id}'))"><i class="ti ti-trash" aria-hidden="true"></i> Eliminar</button>`;
+    footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="ejecutarConCarga(this, () => eliminarProyectoConfirm('${p.id}'))"><i class="ti ti-trash" aria-hidden="true"></i> Eliminar</button>`;
   }
 
   const personalOk = idsAsignados.length >= (p.personal_requerido||1);
@@ -1160,11 +1202,11 @@ async function verProyecto(id) {
 
   openPanel(p.nombre, `
     <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
-      <div style="flex:1;min-width:140px;background:${personalOk?'var(--green-bg)':'var(--amber-bg)'};border:1px solid ${personalOk?'#1a4a24':'#4a2d05'};border-radius:var(--radius);padding:10px 14px">
+      <div style="flex:1;min-width:140px;background:${personalOk?'var(--green-bg)':'var(--amber-bg)'};border:1px solid ${personalOk?'var(--green-border)':'var(--amber-border)'};border-radius:var(--radius);padding:10px 14px">
         <div style="font-size:10px;color:${personalOk?'var(--green)':'var(--amber)'};font-weight:700">PERSONAL ${personalOk?'✓ COMPLETO':'⚠ INCOMPLETO'}</div>
         <div style="font-size:12px;color:var(--text2);margin-top:2px">${idsAsignados.length}/${p.personal_requerido||1} técnico(s)</div>
       </div>
-      <div style="flex:1;min-width:140px;background:${p.no_requiere_equipo?'var(--surface2)':equipoOk?'var(--green-bg)':'var(--amber-bg)'};border:1px solid ${p.no_requiere_equipo?'var(--border2)':equipoOk?'#1a4a24':'#4a2d05'};border-radius:var(--radius);padding:10px 14px">
+      <div style="flex:1;min-width:140px;background:${p.no_requiere_equipo?'var(--surface2)':equipoOk?'var(--green-bg)':'var(--amber-bg)'};border:1px solid ${p.no_requiere_equipo?'var(--border2)':equipoOk?'var(--green-border)':'var(--amber-border)'};border-radius:var(--radius);padding:10px 14px">
         <div style="font-size:10px;color:${p.no_requiere_equipo?'var(--text3)':equipoOk?'var(--green)':'var(--amber)'};font-weight:700">${p.no_requiere_equipo?'EQUIPO: NO REQUIERE':equipoOk?'EQUIPO ✓ COMPLETO':'EQUIPO ⚠ INCOMPLETO'}</div>
         <div style="font-size:12px;color:var(--text2);margin-top:2px">${p.no_requiere_equipo?'—':totalEquipoRequerido===0?'sin requisitos':`${equiposAsignados.length}/${totalEquipoRequerido} unidad(es) apartada(s)`}</div>
       </div>
@@ -1238,14 +1280,14 @@ async function verProyecto(id) {
           <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => agregarEquipoRequeridoProyecto('${p.id}'))"><i class="ti ti-plus" aria-hidden="true"></i></button>
         </div>` : ''}
         ${dispEquipo && !dispEquipo.todo_disponible ? `
-          <div style="background:var(--amber-bg);border:1px solid #4a2d05;border-radius:var(--radius);padding:10px 14px;margin:12px 0;font-size:12px;color:var(--amber)">
+          <div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);padding:10px 14px;margin:12px 0;font-size:12px;color:var(--amber)">
             <i class="ti ti-alert-triangle" aria-hidden="true"></i> <strong>Falta equipo disponible para estas fechas</strong> — revisa si comprar, rentar o conseguir de otro lado. Esto no bloquea el proyecto.
           </div>` : ''}
         <div style="font-size:11px;color:var(--text3);margin:14px 0 6px">UNIDADES YA APARTADAS PARA ESTE PROYECTO</div>
         ${equiposAsignados.length ? equiposAsignados.map(eq=>`
           <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
             <span>${eq.nombre} <span style="color:var(--text3)">(${eq.numero_serie||'sin serie'})</span></span>
-            ${editando ? `<button class="btn btn-ghost btn-sm" style="padding:2px 8px;color:#ef4444" onclick="liberarEquipoDeProyecto('${p.id}','${eq.id}')"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}
+            ${editando ? `<button class="btn btn-ghost btn-sm" style="padding:2px 8px;color:var(--red-text)" onclick="liberarEquipoDeProyecto('${p.id}','${eq.id}')"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}
           </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Ninguna todavía.</div>'}
         <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="abrirAsignacionEquipo('${p.id}')"><i class="ti ti-tool" aria-hidden="true"></i> Asignar equipo específico</button>
         <button class="btn btn-ghost btn-sm" style="margin-top:10px;margin-left:8px" onclick="toggleEditarRequisitos('${p.id}')"><i class="ti ${editando?'ti-eye-off':'ti-pencil'}" aria-hidden="true"></i> ${editando?'Ocultar edición':'Editar requisitos'}</button>
@@ -1452,7 +1494,7 @@ function openNuevoProyecto() {
       <div class="panel-section-title">UBICACIÓN</div>
       <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD</label><input class="field-input" id="np-ciudad" placeholder="Ciudad del proyecto"></div><div class="field-group"><label class="field-label">ESTADO</label><select class="field-select" id="np-estado"><option value="">Selecciona...</option>${ESTADOS_MX.map(e=>`<option value="${e}">${e}</option>`).join('')}</select></div></div>
     </div>
-    <div id="np-err" style="color:#ef4444;font-size:12px;margin-top:8px"></div>`,
+    <div id="np-err" style="color:var(--red-text);font-size:12px;margin-top:8px"></div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, guardarNuevoProyecto)"><i class="ti ti-check" aria-hidden="true"></i> Crear proyecto</button>`);
 }
 
@@ -1594,7 +1636,7 @@ async function renderGantt() {
       <div style="padding:12px 16px;display:flex;gap:16px;flex-wrap:wrap">
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:12px;height:8px;background:var(--red)"></div> Días completados</div>
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:12px;height:8px;background:var(--red2)"></div> Días pasados (proyecto)</div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:12px;height:8px;background:#151517;border:1px solid var(--border)"></div> Fin de semana</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:12px;height:8px;background:var(--input-bg);border:1px solid var(--border)"></div> Fin de semana</div>
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:2px;height:16px;background:var(--red)"></div> Hoy</div>
       </div>
     </div>`);
@@ -1638,7 +1680,7 @@ async function ejecutarEvaluacion() {
   if (dispEquipo && !dispEquipo.no_requiere_equipo && !dispEquipo.todo_disponible) {
     const eqLabels = { drone:'Drone / RPAS', camara:'Cámara', termografo:'Termógrafo', escalada:'Equipo de escalada', medicion:'Medición', otro:'Otro' };
     const faltantes = dispEquipo.items.filter(it=>!it.suficiente).map(it=>`${eqLabels[it.tipo]||it.tipo} (${it.disponibles}/${it.cantidad_requerida})`).join(', ');
-    html_out += `<div style="background:var(--amber-bg);border:1px solid #4a2d05;border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--amber)">
+    html_out += `<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--amber)">
       <i class="ti ti-alert-triangle" aria-hidden="true"></i> <strong>Aunque el personal califique, falta equipo disponible para estas fechas:</strong> ${faltantes}. No bloquea la asignación, pero revísalo antes de confirmar.
     </div>`;
   }
@@ -1647,7 +1689,7 @@ async function ejecutarEvaluacion() {
     <strong style="color:var(--text)">Evaluación — ${proyecto_nombre}</strong>
     <span style="color:var(--green);margin-left:12px">● ${aprobados.length} aprobados</span>
     <span style="color:var(--amber);margin-left:8px">● ${amarillos.length} podrían aprobarse</span>
-    <span style="color:#ef4444;margin-left:8px">● ${rojos.length} descartados</span>
+    <span style="color:var(--red-text);margin-left:8px">● ${rojos.length} descartados</span>
   </div>`;
 
   if (aprobados.length) {
@@ -1665,7 +1707,7 @@ async function ejecutarEvaluacion() {
           return `<div class="criterio-row" title="${d.justificacion||''}"><span class="criterio-name">${labels[key]}</span><div class="criterio-bar-wrap"><div class="criterio-bar-fill" style="width:${d.porcentaje}%"></div></div><span class="criterio-val">${d.puntos}/${d.maximo}</span></div>`;
         }).join('')}
         <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:8px">
-          <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:2px;font-size:11px;font-weight:700;background:var(--green-bg);color:var(--green);border:1px solid #1a4a24">${c.recomendacion}</span>
+          <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:2px;font-size:11px;font-weight:700;background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)">${c.recomendacion}</span>
           <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => asignarTecnico('${c.id_empleado}','${pid}'))"><i class="ti ti-user-plus" aria-hidden="true"></i> Asignar</button>
         </div>
       </div>`;
@@ -1675,7 +1717,7 @@ async function ejecutarEvaluacion() {
   if (amarillos.length) {
     html_out += `<div class="eval-section-title" style="margin-top:14px;border-left-color:var(--amber)">PODRÍAN APROBARSE — les falta una sola cosa</div>`;
     amarillos.forEach(d=>{
-      html_out += `<div style="background:var(--amber-bg);border:1px solid #4a2d05;border-radius:var(--radius);padding:12px 14px;margin-bottom:8px">
+      html_out += `<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <span style="font-weight:600;color:var(--text)">${d.nombre}</span>
           <span style="font-size:11px;color:var(--text3)">${d.filtro_falla}</span>
@@ -1686,12 +1728,12 @@ async function ejecutarEvaluacion() {
   }
 
   if (rojos.length) {
-    html_out += `<div class="eval-section-title" style="margin-top:14px;border-left-color:#ef4444">DESCARTADOS — varios pendientes a la vez</div>`;
+    html_out += `<div class="eval-section-title" style="margin-top:14px;border-left-color:var(--red-text)">DESCARTADOS — varios pendientes a la vez</div>`;
     rojos.forEach(d=>{
-      html_out += `<div style="background:var(--red-bg);border:1px solid #4a1a1a;border-radius:var(--radius);padding:12px 14px;margin-bottom:8px">
+      html_out += `<div style="background:var(--red-bg);border:1px solid var(--red-border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px">
         <div style="font-weight:600;color:var(--text);margin-bottom:6px">${d.nombre}</div>
         ${(d.filtros_fallidos||[{filtro:d.filtro_falla,razon:d.razon}]).map(f=>
-          `<div class="brecha-item-rojo"><span style="color:#f87171;font-size:11px">${f.filtro}:</span> ${f.razon}</div>`
+          `<div class="brecha-item-rojo"><span style="color:var(--red-text-light);font-size:11px">${f.filtro}:</span> ${f.razon}</div>`
         ).join('')}
       </div>`;
     });
@@ -1724,7 +1766,7 @@ async function verAlertasCalibracion() {
             <div style="color:var(--text);font-weight:600">${a.equipo_nombre}</div>
             <div style="color:var(--text3);font-size:11px">${a.numero_serie||'sin serie'}</div>
           </div>
-          <span style="color:${a.vencido?'#ef4444':'var(--amber)'};font-weight:600">${a.vencido ? `Venció hace ${Math.abs(a.dias_restantes)} día(s)` : `Vence en ${a.dias_restantes} día(s)`}</span>
+          <span style="color:${a.vencido?'var(--red-text)':'var(--amber)'};font-weight:600">${a.vencido ? `Venció hace ${Math.abs(a.dias_restantes)} día(s)` : `Vence en ${a.dias_restantes} día(s)`}</span>
         </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Sin calibraciones por vencer.</div>'}
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
@@ -1745,7 +1787,7 @@ async function verAlertasCertificados() {
             <div style="color:var(--text);font-weight:600">${a.certificado_nombre}${a.tipo?` <span style="color:var(--text3);font-weight:400">(${a.tipo})</span>`:''}</div>
             <div style="color:var(--text3);font-size:11px">${a.empleado_nombre}</div>
           </div>
-          <span style="color:${a.vencido?'#ef4444':'var(--amber)'};font-weight:600">${a.vencido ? `Venció hace ${Math.abs(a.dias_restantes)} día(s)` : `Vence en ${a.dias_restantes} día(s)`}</span>
+          <span style="color:${a.vencido?'var(--red-text)':'var(--amber)'};font-weight:600">${a.vencido ? `Venció hace ${Math.abs(a.dias_restantes)} día(s)` : `Vence en ${a.dias_restantes} día(s)`}</span>
         </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Sin certificados por vencer.</div>'}
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
@@ -1785,7 +1827,7 @@ async function renderEquipos() {
   const calVencidos = alertasCal.filter(a=>a.vencido).length;
   const calPorVencer = alertasCal.length - calVencidos;
   html(`
-    ${alertasCal.length ? `<div style="background:${calVencidos?'var(--red-bg)':'var(--amber-bg)'};border:1px solid ${calVencidos?'#4a1a1a':'#4a2d05'};border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;font-size:12px;color:${calVencidos?'#ef4444':'var(--amber)'};cursor:pointer;display:flex;align-items:center;gap:8px" onclick="verAlertasCalibracion()">
+    ${alertasCal.length ? `<div style="background:${calVencidos?'var(--red-bg)':'var(--amber-bg)'};border:1px solid ${calVencidos?'var(--red-border)':'var(--amber-border)'};border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;font-size:12px;color:${calVencidos?'var(--red-text)':'var(--amber)'};cursor:pointer;display:flex;align-items:center;gap:8px" onclick="verAlertasCalibracion()">
       <i class="ti ti-alert-triangle" aria-hidden="true"></i>
       <strong>${calVencidos ? `${calVencidos} calibración(es) vencida(s)` : ''}${calVencidos && calPorVencer ? ' y ' : ''}${calPorVencer ? `${calPorVencer} por vencer en los próximos 30 días` : ''}</strong>
       <span style="margin-left:auto;color:var(--text3)">Ver detalle →</span>
@@ -1802,7 +1844,7 @@ async function renderEquipos() {
         let calColor = 'var(--text)', calTexto = eq.proxima_calibracion || '—';
         if (eq.proxima_calibracion) {
           const diasCal = Math.ceil((new Date(eq.proxima_calibracion) - new Date()) / 86400000);
-          if (diasCal < 0) { calColor = '#ef4444'; calTexto = eq.proxima_calibracion + ' (vencida)'; }
+          if (diasCal < 0) { calColor = 'var(--red-text)'; calTexto = eq.proxima_calibracion + ' (vencida)'; }
           else if (diasCal <= 30) { calColor = 'var(--amber)'; calTexto = eq.proxima_calibracion + ' (' + diasCal + 'd)'; }
         }
         return `<div class="equipo-card" onclick="verEquipo('${eq.id}')">
@@ -1868,7 +1910,7 @@ function verEquipo(id) {
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>
      <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarEdicionEquipo('${eq.id}'))"><i class="ti ti-check" aria-hidden="true"></i> Guardar cambios</button>
      ${eq.estado !== 'baja' ? `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => archivarEquipo('${eq.id}'))"><i class="ti ti-archive" aria-hidden="true"></i> Archivar</button>` : `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => reactivarEquipo('${eq.id}'))"><i class="ti ti-archive-off" aria-hidden="true"></i> Reactivar</button>`}
-     ${STATE.rol==='administrador' ? `<button class="btn btn-ghost btn-sm" style="color:#ef4444" onclick="eliminarEquipoConfirm('${eq.id}')"><i class="ti ti-trash" aria-hidden="true"></i> Eliminar</button>` : ''}`);
+     ${STATE.rol==='administrador' ? `<button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="eliminarEquipoConfirm('${eq.id}')"><i class="ti ti-trash" aria-hidden="true"></i> Eliminar</button>` : ''}`);
 }
 
 async function guardarEdicionEquipo(id) {
@@ -1935,7 +1977,7 @@ async function renderIncidencias() {
   html(`
     <div class="stats-grid">
       <div class="stat-card c-red"><div class="stat-lbl">TOTAL REPORTES</div><div class="stat-val">${inc.length}</div><div class="stat-sub">recibidos</div></div>
-      <div class="stat-card" style="border-left-color:#ef4444"><div class="stat-lbl">SEVERIDAD ALTA</div><div class="stat-val">${altas}</div><div class="stat-sub">requieren atención</div></div>
+      <div class="stat-card" style="border-left-color:var(--red-text)"><div class="stat-lbl">SEVERIDAD ALTA</div><div class="stat-val">${altas}</div><div class="stat-sub">requieren atención</div></div>
       <div class="stat-card c-amber"><div class="stat-lbl">SEVERIDAD MEDIA</div><div class="stat-val">${medias}</div><div class="stat-sub">en seguimiento</div></div>
       <div class="stat-card c-green"><div class="stat-lbl">RESUELTOS</div><div class="stat-val">0</div><div class="stat-sub">cerrados</div></div>
     </div>
@@ -2112,7 +2154,7 @@ async function renderMiPerfil() {
           : `<table><thead><tr><th>HABILIDAD</th><th>NIVEL</th><th>ÚLTIMO USO</th><th></th></tr></thead><tbody>
             ${habs.map((h,i)=>`<tr>
               <td class="td-name">${h.nombre}</td>
-              <td><div style="display:flex;align-items:center;gap:8px"><div style="width:60px;height:3px;background:var(--border2);border-radius:1px;overflow:hidden"><div style="width:${h.nivel*10}%;height:100%;background:${h.nivel>=7?'var(--green)':h.nivel>=4?'var(--amber)':'#ef4444'}"></div></div><span style="font-size:12px;font-family:var(--mono)">${h.nivel}/10</span></div></td>
+              <td><div style="display:flex;align-items:center;gap:8px"><div style="width:60px;height:3px;background:var(--border2);border-radius:1px;overflow:hidden"><div style="width:${h.nivel*10}%;height:100%;background:${h.nivel>=7?'var(--green)':h.nivel>=4?'var(--amber)':'var(--red-text)'}"></div></div><span style="font-size:12px;font-family:var(--mono)">${h.nivel}/10</span></div></td>
               <td class="td-mono" style="font-size:12px;color:var(--text2)">${h.ultimo_uso||'—'}</td>
               <td><button class="btn btn-ghost btn-sm" onclick="eliminarHabilidad(${i})" style="padding:3px 6px"><i class="ti ti-trash" aria-hidden="true"></i></button></td>
             </tr>`).join('')}
@@ -2227,7 +2269,7 @@ function openAgregarHabilidad() {
       </div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">ÚLTIMA VEZ QUE LA EJECUTASTE</label><input class="field-input" id="hab-fecha" type="date" value="${hoy}"></div></div>
     </div>
-    <div id="hab-err" style="color:#ef4444;font-size:12px;margin-top:8px"></div>`,
+    <div id="hab-err" style="color:var(--red-text);font-size:12px;margin-top:8px"></div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, guardarHabilidad)"><i class="ti ti-check" aria-hidden="true"></i> Guardar</button>`);
 }
 
@@ -2296,14 +2338,14 @@ function openAgregarDocumento() {
       </div>
       <div style="margin-top:14px">
         <label class="field-label" style="margin-bottom:8px">ARCHIVO (PDF o imagen)</label>
-        <div style="border:1px dashed var(--border2);border-radius:var(--radius);padding:16px;text-align:center;cursor:pointer;background:#151517" onclick="document.getElementById('file-doc').click()">
+        <div style="border:1px dashed var(--border2);border-radius:var(--radius);padding:16px;text-align:center;cursor:pointer;background:var(--input-bg)" onclick="document.getElementById('file-doc').click()">
           <i class="ti ti-upload" style="font-size:25px;color:var(--text3)" aria-hidden="true"></i>
           <p id="doc-file-name" style="font-size:12px;color:var(--text3);margin-top:6px">Toca para subir archivo</p>
           <p style="font-size:11px;color:var(--text3);margin-top:2px">PDF, JPG, PNG — máx. 10 MB</p>
         </div>
       </div>
     </div>
-    <div id="doc-err" style="color:#ef4444;font-size:12px;margin-top:8px"></div>`,
+    <div id="doc-err" style="color:var(--red-text);font-size:12px;margin-top:8px"></div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, guardarDocumento)"><i class="ti ti-check" aria-hidden="true"></i> Guardar</button>`);
   STATE._doc_file = null;
 }
@@ -2384,7 +2426,7 @@ function openCambiarPassword() {
       <div class="panel-section-title">NUEVA CONTRASEÑA</div>
       <div class="field-row full"><div class="field-group"><label class="field-label">NUEVA CONTRASEÑA</label><input class="field-input" id="cp-nueva" type="password" placeholder="Mínimo 8 caracteres"></div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">CONFIRMAR CONTRASEÑA</label><input class="field-input" id="cp-conf" type="password" placeholder="Repite la contraseña"></div></div>
-      <div id="cp-err" style="color:#ef4444;font-size:12px;margin-top:8px"></div>
+      <div id="cp-err" style="color:var(--red-text);font-size:12px;margin-top:8px"></div>
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="cambiarPassword()"><i class="ti ti-check" aria-hidden="true"></i> Guardar</button>`);
 }
