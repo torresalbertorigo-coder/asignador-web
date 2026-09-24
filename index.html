@@ -809,12 +809,16 @@ async function renderEmpleados() {
   const enProy = emps.filter(e=>e.disponibilidad==='en_proyecto').length;
   const asig   = emps.filter(e=>e.disponibilidad==='asignado').length;
   const filtroEmp = (STATE._empFiltro||'').toLowerCase().trim();
-  const filtrados = filtroEmp ? emps.filter(e =>
+  let filtrados = filtroEmp ? emps.filter(e =>
     (e.nombre||'').toLowerCase().includes(filtroEmp) ||
     (e.apellido||'').toLowerCase().includes(filtroEmp) ||
     (e.id||'').toLowerCase().includes(filtroEmp) ||
     (e.ciudad||'').toLowerCase().includes(filtroEmp)
   ) : emps;
+  const filtroEstadoEmp = STATE._empFiltroEstado || '';
+  if (filtroEstadoEmp) {
+    filtrados = filtrados.filter(e => estadoVisible(e) === filtroEstadoEmp);
+  }
   const ahoraCert = Date.now();
   if (!STATE._alertasCertCargadasEn || (ahoraCert - STATE._alertasCertCargadasEn) > 8000) {
     STATE._alertasCert = await api('GET', '/empleados/alertas/certificados-por-vencer') || [];
@@ -838,7 +842,18 @@ async function renderEmpleados() {
     <div class="table-section">
       <div class="table-header">
         <span class="table-title">REGISTRO DE PERSONAL</span>
-        <div class="search-box"><i class="ti ti-search" aria-hidden="true"></i><input class="field-input" id="emp-buscar" placeholder="Buscar por nombre, ID o ciudad..." value="${filtroEmp}" oninput="STATE._empFiltro=this.value;renderEmpleados();" onclick="event.stopPropagation()"></div>
+        <div style="display:flex;gap:8px;flex:1;max-width:420px">
+          <div class="search-box" style="max-width:none;flex:1"><i class="ti ti-search" aria-hidden="true"></i><input class="field-input" id="emp-buscar" placeholder="Buscar por nombre, ID o ciudad..." value="${filtroEmp}" oninput="STATE._empFiltro=this.value;renderEmpleados();" onclick="event.stopPropagation()"></div>
+          <select class="field-select" style="width:auto" onchange="STATE._empFiltroEstado=this.value;renderEmpleados();" onclick="event.stopPropagation()">
+            <option value="">Todos los estados</option>
+            <option value="libre" ${filtroEstadoEmp==='libre'?'selected':''}>Libre</option>
+            <option value="asignado" ${filtroEstadoEmp==='asignado'?'selected':''}>Asignado</option>
+            <option value="en_preparacion" ${filtroEstadoEmp==='en_preparacion'?'selected':''}>En preparación</option>
+            <option value="en_proyecto" ${filtroEstadoEmp==='en_proyecto'?'selected':''}>En proyecto</option>
+            <option value="vacaciones" ${filtroEstadoEmp==='vacaciones'?'selected':''}>Vacaciones</option>
+            <option value="baja_medica" ${filtroEstadoEmp==='baja_medica'?'selected':''}>Baja médica</option>
+          </select>
+        </div>
         <span class="table-meta">${filtrados.length} de ${total} registros · nube</span>
       </div>
       ${filtrados.length === 0 ? '<div class="empty-state"><i class="ti ti-users" aria-hidden="true"></i><p>Sin resultados</p></div>' : `
@@ -1042,6 +1057,10 @@ async function renderProyectos() {
       (p.ciudad||'').toLowerCase().includes(filtro)
     );
   }
+  const filtroEstadoPry = STATE._pryFiltroEstado || '';
+  if (filtroEstadoPry) {
+    proyectos = proyectos.filter(p => (p.estado||'pendiente_asignacion') === filtroEstadoPry);
+  }
   const sortCampo = STATE._prySortCampo;
   const sortDir = STATE._prySortDir || 'asc';
   if (sortCampo) {
@@ -1062,7 +1081,17 @@ async function renderProyectos() {
     <div class="table-section">
       <div class="table-header">
         <span class="table-title">REGISTRO DE PROYECTOS</span>
-        <div class="search-box"><i class="ti ti-search" aria-hidden="true"></i><input class="field-input" id="pry-buscar" placeholder="Buscar por nombre, cliente, ID o ciudad..." value="${filtro}" oninput="STATE._pryFiltro=this.value;renderProyectos();" onclick="event.stopPropagation()"></div>
+        <div style="display:flex;gap:8px;flex:1;max-width:420px">
+          <div class="search-box" style="max-width:none;flex:1"><i class="ti ti-search" aria-hidden="true"></i><input class="field-input" id="pry-buscar" placeholder="Buscar por nombre, cliente, ID o ciudad..." value="${filtro}" oninput="STATE._pryFiltro=this.value;renderProyectos();" onclick="event.stopPropagation()"></div>
+          <select class="field-select" style="width:auto" onchange="STATE._pryFiltroEstado=this.value;renderProyectos();" onclick="event.stopPropagation()">
+            <option value="">Todos los estados</option>
+            <option value="pendiente_asignacion" ${filtroEstadoPry==='pendiente_asignacion'?'selected':''}>Pendiente</option>
+            <option value="en_progreso" ${filtroEstadoPry==='en_progreso'?'selected':''}>En progreso</option>
+            <option value="pausado" ${filtroEstadoPry==='pausado'?'selected':''}>Pausado</option>
+            <option value="completado" ${filtroEstadoPry==='completado'?'selected':''}>Completado</option>
+            <option value="cancelado" ${filtroEstadoPry==='cancelado'?'selected':''}>Cancelado</option>
+          </select>
+        </div>
         <span class="table-meta">${proyectos.length} de ${STATE.proyectos.length} proyectos · nube</span>
       </div>
       ${proyectos.length === 0 ? '<div class="empty-state"><i class="ti ti-folder" aria-hidden="true"></i><p>Sin resultados</p></div>' : `
