@@ -210,8 +210,8 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .gantt-table th{background:var(--surface2);font-size:10px;color:var(--text3);padding:6px 8px;border:1px solid var(--border);letter-spacing:.08em;font-weight:600;white-space:nowrap}
 .gantt-table td{border:1px solid var(--border);padding:0;height:32px}
 .gantt-name{padding:6px 12px;background:var(--surface);font-size:12px;color:var(--text);min-width:140px;white-space:nowrap}
-.gantt-cell{width:28px;background:transparent}
-.gantt-cell.today{border-left:2px solid var(--red)!important}
+.gantt-cell{width:28px;background:transparent;position:relative}
+.gantt-cell.today::after{content:'';position:absolute;top:0;bottom:0;left:var(--hoy-pos,50%);width:2px;background:var(--red);transform:translateX(-50%);pointer-events:none}
 .gantt-cell.weekend{background:var(--input-bg)}
 .gantt-cell.occupied{background:var(--gantt-occupied)}
 .gantt-cell.assigned{background:var(--blue-bg)}
@@ -1614,6 +1614,7 @@ async function renderGantt() {
   const dias = 30;
   const cols = Array.from({length:dias}, (_,i) => { const d = new Date(today); d.setDate(d.getDate()-7+i); return d; });
   const hoy = today.toDateString();
+  const horaHoyPct = ((today.getHours()*60+today.getMinutes())/1440*100).toFixed(1);
   html(`
     <div class="table-section">
       <div class="table-header"><span class="table-title">CALENDARIO DE DISPONIBILIDAD — 30 DÍAS</span><span class="table-meta">hoy: ${today.toLocaleDateString('es-MX')}</span></div>
@@ -1633,8 +1634,9 @@ async function renderGantt() {
                 let cls = isHoy ? 'gantt-cell today' : isWknd ? 'gantt-cell weekend' : 'gantt-cell';
                 if (pry) cls += d < today ? ' past' : ' occupied';
                 const tip = pry ? `${pry.nombre}${pry.cliente?' · '+pry.cliente:''} (${pry.fecha_inicio} → ${pry.fecha_fin_estimada})`.replace(/"/g,'&quot;') : '';
-                const click = pry ? ` onclick="verProyecto('${pry.id}')" style="cursor:pointer"` : '';
-                return `<td class="${cls}" title="${tip}"${click}></td>`;
+                const estilos = [pry ? 'cursor:pointer' : '', isHoy ? `--hoy-pos:${horaHoyPct}%` : ''].filter(Boolean).join(';');
+                const click = pry ? ` onclick="verProyecto('${pry.id}')"` : '';
+                return `<td class="${cls}" title="${tip}"${click}${estilos?` style="${estilos}"`:''}></td>`;
               }).join('')}
             </tr>`).join('')}
           </tbody>
@@ -2457,6 +2459,7 @@ async function renderMiGantt() {
   const today = new Date();
   const dias = 30;
   const cols = Array.from({length:dias}, (_,i) => { const d = new Date(today); d.setDate(d.getDate()-7+i); return d; });
+  const horaHoyPct = ((today.getHours()*60+today.getMinutes())/1440*100).toFixed(1);
   html(`
     <div class="table-section">
       <div class="table-header"><span class="table-title">MIS PROYECTOS — 30 DÍAS</span><button class="btn btn-primary btn-sm" onclick="abrirCalendarioMensual('${empId}','${(STATE.user?.nombre||'Mi calendario').replace(/'/g,"\\'")}',0)"><i class="ti ti-calendar" aria-hidden="true"></i> Ver calendario mensual</button></div>
@@ -2478,7 +2481,7 @@ async function renderMiGantt() {
                 const isWknd = d.getDay()===0||d.getDay()===6;
                 let cls = isHoy?'gantt-cell today':isWknd?'gantt-cell weekend':'gantt-cell';
                 if (inRange) cls += d < today ? ' past' : ' occupied';
-                return `<td class="${cls}"></td>`;
+                return `<td class="${cls}"${isHoy?` style="--hoy-pos:${horaHoyPct}%"`:''}></td>`;
               }).join('')}
             </tr>`).join('')}
           </tbody>
