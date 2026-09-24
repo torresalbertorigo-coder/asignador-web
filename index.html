@@ -22,6 +22,7 @@
   --input-bg:#151517;
   --grad-fill-top:#3a3a40;--grad-fill-card:#2a2a2e;--grad-fill-panel:#262629;
   --sidebar-grad-top:#232326;--btn-ghost-grad:#2c2c30;--btn-primary-grad-bottom:#9e0f1a;
+  --gantt-occupied:var(--red);--gantt-past:var(--red2);
   --mono:'JetBrains Mono',monospace;
   --sans:'Inter',system-ui,sans-serif;
   --radius:3px;
@@ -40,6 +41,7 @@
   --input-bg:#FFFFFF;
   --grad-fill-top:#EDEDF0;--grad-fill-card:#F3F3F5;--grad-fill-panel:#FBFBFC;
   --sidebar-grad-top:#FFFFFF;--btn-ghost-grad:#EDEDF0;--btn-primary-grad-bottom:#E11D2A;
+  --gantt-occupied:#E3959D;--gantt-past:#F0C7CC;
 }
 body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:15px;height:100vh;overflow:hidden}
 @media(min-width:1200px){body{font-size:16px}}
@@ -209,11 +211,11 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .gantt-table td{border:1px solid var(--border);padding:0;height:32px}
 .gantt-name{padding:6px 12px;background:var(--surface);font-size:12px;color:var(--text);min-width:140px;white-space:nowrap}
 .gantt-cell{width:28px;background:transparent}
-.gantt-cell.today{background:#1a0505;border-left:2px solid var(--red)!important}
+.gantt-cell.today{border-left:2px solid var(--red)!important}
 .gantt-cell.weekend{background:var(--input-bg)}
-.gantt-cell.occupied{background:var(--red)}
+.gantt-cell.occupied{background:var(--gantt-occupied)}
 .gantt-cell.assigned{background:var(--blue-bg)}
-.gantt-cell.past{background:var(--red2)}
+.gantt-cell.past{background:var(--gantt-past)}
 
 /* EQUIPOS */
 .equipo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
@@ -373,6 +375,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
           </div>
         </div>
         <div class="topbar-right" id="topbar-actions"></div>
+        <button class="topbar-menu-btn" onclick="toggleTema()" aria-label="Cambiar tema" style="margin-left:8px" id="btn-tema-topbar"><i class="ti ti-moon" aria-hidden="true"></i></button>
       </div>
 
       <div class="content" id="main-content">
@@ -429,6 +432,10 @@ function aplicarTema(tema) {
     btn.innerHTML = tema === 'light'
       ? '<i class="ti ti-sun" aria-hidden="true"></i> Modo claro'
       : '<i class="ti ti-moon" aria-hidden="true"></i> Modo oscuro';
+  }
+  const btnTop = document.getElementById('btn-tema-topbar');
+  if (btnTop) {
+    btnTop.innerHTML = tema === 'light' ? '<i class="ti ti-sun" aria-hidden="true"></i>' : '<i class="ti ti-moon" aria-hidden="true"></i>';
   }
 }
 function toggleTema() {
