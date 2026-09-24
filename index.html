@@ -148,11 +148,12 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .field-label{font-size:11px;color:var(--text3);letter-spacing:.08em;font-weight:600}
 .field-input{background:#151517;border:1px solid var(--border2);color:var(--text);padding:8px 12px;border-radius:var(--radius);outline:none;font-size:13px;width:100%}
 .field-input:focus{border-color:var(--red)}
-.filter-bar{display:flex;align-items:stretch;border:1px solid var(--border2);border-radius:var(--radius);overflow:hidden;flex:1;max-width:420px;background:linear-gradient(to top, transparent 0%, #3a3a40 100%)}
-.filter-bar .search-box{flex:1;max-width:none}
-.filter-bar .search-box input,.filter-bar select{background:transparent!important;border:none!important;border-radius:0!important}
-.filter-bar .search-box input:focus,.filter-bar select:focus{border:none!important;box-shadow:none!important}
-.filter-bar select{width:auto;flex-shrink:0;border-left:1px solid var(--border)!important;color:var(--text2);padding-right:26px!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")!important;background-repeat:no-repeat!important;background-position:right 10px center!important}
+.filter-bar{border-radius:var(--radius);padding:1px;flex:1;max-width:420px;background:linear-gradient(to top, transparent 0%, var(--border2) 100%)}
+.filter-bar-inner{display:flex;align-items:stretch;border-radius:calc(var(--radius) - 1px);overflow:hidden;background:linear-gradient(to top, transparent 0%, #3a3a40 100%)}
+.filter-bar-inner .search-box{flex:1;max-width:none}
+.filter-bar-inner .search-box input,.filter-bar-inner select{background:transparent!important;border:none!important;border-radius:0!important}
+.filter-bar-inner .search-box input:focus,.filter-bar-inner select:focus{border:none!important;box-shadow:none!important}
+.filter-bar-inner select{width:auto;flex-shrink:0;border-left:1px solid var(--border)!important;color:var(--text2);padding-right:26px!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")!important;background-repeat:no-repeat!important;background-position:right 10px center!important}
 .search-box{position:relative;max-width:280px;flex:1}
 .search-box input{padding-left:32px !important;background:var(--surface2);border-color:var(--border)}
 .search-box input:focus{border-color:var(--border2)!important}
@@ -848,7 +849,7 @@ async function renderEmpleados() {
     <div class="table-section">
       <div class="table-header">
         <span class="table-title">REGISTRO DE PERSONAL</span>
-        <div class="filter-bar">
+        <div class="filter-bar"><div class="filter-bar-inner">
           <div class="search-box" style="max-width:none"><i class="ti ti-search" aria-hidden="true"></i><input class="field-input" id="emp-buscar" placeholder="Buscar por nombre, ID o ciudad..." value="${filtroEmp}" oninput="STATE._empFiltro=this.value;renderEmpleados();" onclick="event.stopPropagation()"></div>
           <select class="field-select" onchange="STATE._empFiltroEstado=this.value;renderEmpleados();" onclick="event.stopPropagation()">
             <option value="">Todos los estados</option>
@@ -859,7 +860,7 @@ async function renderEmpleados() {
             <option value="vacaciones" ${filtroEstadoEmp==='vacaciones'?'selected':''}>Vacaciones</option>
             <option value="baja_medica" ${filtroEstadoEmp==='baja_medica'?'selected':''}>Baja médica</option>
           </select>
-        </div>
+        </div></div>
         <span class="table-meta">${filtrados.length} de ${total} registros · nube</span>
       </div>
       ${filtrados.length === 0 ? '<div class="empty-state"><i class="ti ti-users" aria-hidden="true"></i><p>Sin resultados</p></div>' : `
@@ -1087,7 +1088,7 @@ async function renderProyectos() {
     <div class="table-section">
       <div class="table-header">
         <span class="table-title">REGISTRO DE PROYECTOS</span>
-        <div class="filter-bar">
+        <div class="filter-bar"><div class="filter-bar-inner">
           <div class="search-box" style="max-width:none"><i class="ti ti-search" aria-hidden="true"></i><input class="field-input" id="pry-buscar" placeholder="Buscar por nombre, cliente, ID o ciudad..." value="${filtro}" oninput="STATE._pryFiltro=this.value;renderProyectos();" onclick="event.stopPropagation()"></div>
           <select class="field-select" onchange="STATE._pryFiltroEstado=this.value;renderProyectos();" onclick="event.stopPropagation()">
             <option value="">Todos los estados</option>
@@ -1097,7 +1098,7 @@ async function renderProyectos() {
             <option value="completado" ${filtroEstadoPry==='completado'?'selected':''}>Completado</option>
             <option value="cancelado" ${filtroEstadoPry==='cancelado'?'selected':''}>Cancelado</option>
           </select>
-        </div>
+        </div></div>
         <span class="table-meta">${proyectos.length} de ${STATE.proyectos.length} proyectos · nube</span>
       </div>
       ${proyectos.length === 0 ? '<div class="empty-state"><i class="ti ti-folder" aria-hidden="true"></i><p>Sin resultados</p></div>' : `
