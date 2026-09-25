@@ -689,8 +689,8 @@ function eventosProyectosPorDia(empId) {
   const mapa = {};
   (STATE.proyectos||[]).filter(p => (p.tecnicos_asignados||[]).includes(empId) && p.fecha_inicio && p.fecha_fin_estimada)
     .forEach(p => {
-      let d = new Date(p.fecha_inicio);
-      const fin = new Date(p.fecha_fin_estimada);
+      let d = fechaLocal(p.fecha_inicio);
+      const fin = fechaLocal(p.fecha_fin_estimada);
       while (d <= fin) {
         const key = d.toISOString().split('T')[0];
         if (!mapa[key]) mapa[key] = [];
@@ -766,7 +766,7 @@ function estadoVisible(e) {
   const pry = (STATE.proyectos||[]).find(p => p.id === e.id_proyecto_actual);
   if (!pry || !pry.fecha_inicio) return e.disponibilidad;
   const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const inicio = new Date(pry.fecha_inicio);
+  const inicio = fechaLocal(pry.fecha_inicio);
   const diasHastaInicio = Math.ceil((inicio - hoy) / 86400000);
   if (diasHastaInicio > 2) return 'asignado';
   if (diasHastaInicio > 0) return 'en_preparacion';
@@ -1005,7 +1005,7 @@ function verDocumentosEmpleado(id) {
   const certs = (e.certificados || []).map(c => {
     let vigenciaColor = 'var(--text3)', vigenciaTexto = 'Sin vigencia';
     if (c.fecha_vencimiento) {
-      const dias = Math.ceil((new Date(c.fecha_vencimiento) - new Date()) / 86400000);
+      const dias = Math.ceil((fechaLocal(c.fecha_vencimiento) - new Date()) / 86400000);
       if (dias < 0) { vigenciaColor = 'var(--red-text)'; vigenciaTexto = 'Venció hace ' + Math.abs(dias) + ' día(s) (' + c.fecha_vencimiento + ')'; }
       else if (dias <= 30) { vigenciaColor = 'var(--amber)'; vigenciaTexto = 'Vence en ' + dias + ' día(s) (' + c.fecha_vencimiento + ')'; }
       else { vigenciaTexto = 'Vigencia hasta ' + c.fecha_vencimiento; }
@@ -1650,7 +1650,7 @@ async function renderGantt() {
               ${cols.map(d=>{
                 const isHoy = d.toDateString() === hoy;
                 const isWknd = d.getDay()===0||d.getDay()===6;
-                const pry = STATE.proyectos.find(p => (p.tecnicos_asignados||[]).includes(e.id) && p.fecha_inicio && p.fecha_fin_estimada && new Date(p.fecha_inicio)<=d && new Date(p.fecha_fin_estimada)>=d);
+                const pry = STATE.proyectos.find(p => (p.tecnicos_asignados||[]).includes(e.id) && p.fecha_inicio && p.fecha_fin_estimada && fechaLocal(p.fecha_inicio)<=d && fechaLocal(p.fecha_fin_estimada)>=d);
                 let cls = isHoy ? 'gantt-cell today' : isWknd ? 'gantt-cell weekend' : 'gantt-cell';
                 if (pry) cls += d < today ? ' past' : ' occupied';
                 const tip = pry ? `${pry.nombre}${pry.cliente?' · '+pry.cliente:''} (${pry.fecha_inicio} → ${pry.fecha_fin_estimada})`.replace(/"/g,'&quot;') : '';
@@ -1822,6 +1822,15 @@ async function verAlertasCertificados() {
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
 }
 
+// Parsea "YYYY-MM-DD" como medianoche LOCAL, no UTC — evita que fechas de
+// proyecto se "recorran" un día hacia atrás en zonas horarias negativas
+// (México es UTC-6), que es lo que pasaba al usar new Date("2026-09-23")
+// directo y compararla contra fechas construidas localmente (como el Gantt).
+function fechaLocal(str) {
+  if (!str) return null;
+  return new Date(str + 'T00:00:00');
+}
+
 function toggleTodosDocs(master) {
   document.querySelectorAll('.doc-check').forEach(cb => { cb.checked = master.checked; });
   actualizarSeleccionDocs();
@@ -1936,7 +1945,7 @@ async function renderEquipos() {
         const estadoMostrar = eq.proyecto_actual_nombre ? 'en_proyecto' : (eq.estado==='mantenimiento' ? 'mantenimiento' : eq.estado==='baja' ? 'baja' : eq.estado==='archivado' ? 'archivado' : 'oficina');
         let calColor = 'var(--text)', calTexto = eq.proxima_calibracion || '—';
         if (eq.proxima_calibracion) {
-          const diasCal = Math.ceil((new Date(eq.proxima_calibracion) - new Date()) / 86400000);
+          const diasCal = Math.ceil((fechaLocal(eq.proxima_calibracion) - new Date()) / 86400000);
           if (diasCal < 0) { calColor = 'var(--red-text)'; calTexto = eq.proxima_calibracion + ' (vencida)'; }
           else if (diasCal <= 30) { calColor = 'var(--amber)'; calTexto = eq.proxima_calibracion + ' (' + diasCal + 'd)'; }
         }
@@ -2558,8 +2567,8 @@ async function renderMiGantt() {
             ${pry.map(p=>`<tr>
               <td class="gantt-name" style="font-size:11px">${p.nombre}</td>
               ${cols.map(d=>{
-                const fi = p.fecha_inicio ? new Date(p.fecha_inicio) : null;
-                const ff = p.fecha_fin_estimada ? new Date(p.fecha_fin_estimada) : null;
+                const fi = p.fecha_inicio ? fechaLocal(p.fecha_inicio) : null;
+                const ff = p.fecha_fin_estimada ? fechaLocal(p.fecha_fin_estimada) : null;
                 const inRange = fi && ff && d >= fi && d <= ff;
                 const isHoy = d.toDateString()===today.toDateString();
                 const isWknd = d.getDay()===0||d.getDay()===6;
