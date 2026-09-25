@@ -773,6 +773,22 @@ function estadoVisible(e) {
   return 'en_proyecto';
 }
 
+function estadoProyectoVisible(p) {
+  // El estado guardado en BD pasa a 'asignado' apenas se completa el
+  // personal requerido (ver registrar_asignacion en el backend). Aquí solo
+  // se calcula qué ETIQUETA mostrar según la fecha real de inicio:
+  //   > 2 días antes de iniciar  → "Asignado"
+  //   2 días antes hasta iniciar → "En preparativos"
+  //   ya llegó la fecha de inicio → "En progreso"
+  if (p.estado !== 'asignado' || !p.fecha_inicio) return p.estado || 'pendiente_asignacion';
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const inicio = fechaLocal(p.fecha_inicio);
+  const diasHastaInicio = Math.ceil((inicio - hoy) / 86400000);
+  if (diasHastaInicio > 2) return 'asignado';
+  if (diasHastaInicio > 0) return 'en_preparacion';
+  return 'en_progreso';
+}
+
 function badge(val) {
   const map = { libre:'badge-libre LIBRE', asignado:'badge-asig ASIGNADO', en_proyecto:'badge-proy EN PROYECTO',
     mantenimiento:'badge-mant CALIBRACIÓN', pendiente_asignacion:'badge-pend PENDIENTE', en_progreso:'badge-prog EN PROG.',
@@ -1121,8 +1137,8 @@ async function renderProyectos() {
   await loadProyectos();
   await loadEmpleados();
   let proyectos = STATE.proyectos;
-  const pend = proyectos.filter(p=>p.estado==='pendiente_asignacion').length;
-  const prog = proyectos.filter(p=>p.estado==='en_progreso').length;
+  const pend = proyectos.filter(p=>estadoProyectoVisible(p)==='pendiente_asignacion').length;
+  const prog = proyectos.filter(p=>['asignado','en_preparacion','en_progreso'].includes(estadoProyectoVisible(p))).length;
 
   const filtro = (STATE._pryFiltro||'').toLowerCase().trim();
   if (filtro) {
@@ -1135,7 +1151,7 @@ async function renderProyectos() {
   }
   const filtroEstadoPry = STATE._pryFiltroEstado || '';
   if (filtroEstadoPry) {
-    proyectos = proyectos.filter(p => (p.estado||'pendiente_asignacion') === filtroEstadoPry);
+    proyectos = proyectos.filter(p => estadoProyectoVisible(p) === filtroEstadoPry);
   }
   const sortCampo = STATE._prySortCampo;
   const sortDir = STATE._prySortDir || 'asc';
@@ -1162,6 +1178,8 @@ async function renderProyectos() {
           <select class="field-select" onchange="STATE._pryFiltroEstado=this.value;renderProyectos();" onclick="event.stopPropagation()">
             <option value="">Todos los estados</option>
             <option value="pendiente_asignacion" ${filtroEstadoPry==='pendiente_asignacion'?'selected':''}>Pendiente</option>
+            <option value="asignado" ${filtroEstadoPry==='asignado'?'selected':''}>Asignado</option>
+            <option value="en_preparacion" ${filtroEstadoPry==='en_preparacion'?'selected':''}>En preparativos</option>
             <option value="en_progreso" ${filtroEstadoPry==='en_progreso'?'selected':''}>En progreso</option>
             <option value="pausado" ${filtroEstadoPry==='pausado'?'selected':''}>Pausado</option>
             <option value="completado" ${filtroEstadoPry==='completado'?'selected':''}>Completado</option>
@@ -1178,7 +1196,7 @@ async function renderProyectos() {
             <td class="td-mono">${p.id}</td>
             <td class="td-name">${p.nombre}</td>
             <td>${p.cliente||'—'}</td>
-            <td>${badge(p.estado||'pendiente_asignacion')}</td>
+            <td>${badge(estadoProyectoVisible(p))}</td>
             <td class="td-mono">${p.fecha_inicio||'—'}</td>
             <td class="td-mono">${p.fecha_fin_estimada||'—'}</td>
             <td>${p.ciudad||'—'}</td>
@@ -1242,7 +1260,7 @@ async function verProyecto(id) {
       <div class="panel-section-title">DETALLES DEL PROYECTO</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
         <div><span style="color:var(--text3);font-size:10px">ID</span><div class="td-mono" style="margin-top:2px">${p.id}</div></div>
-        <div><span style="color:var(--text3);font-size:10px">ESTADO</span><div style="margin-top:4px">${badge(p.estado||'pendiente_asignacion')}</div></div>
+        <div><span style="color:var(--text3);font-size:10px">ESTADO</span><div style="margin-top:4px">${badge(estadoProyectoVisible(p))}</div></div>
         <div><span style="color:var(--text3);font-size:10px">CLIENTE</span><div style="margin-top:2px;color:var(--text)">${p.cliente||'—'}</div></div>
         <div><span style="color:var(--text3);font-size:10px">CRITICIDAD</span><div style="margin-top:2px;color:var(--text)">${(p.criticidad||'—').replace('_',' ').toUpperCase()}</div></div>
         <div><span style="color:var(--text3);font-size:10px">INICIO</span><div class="td-mono" style="margin-top:2px">${p.fecha_inicio||'—'}</div></div>
@@ -2106,7 +2124,7 @@ async function renderMisAsignaciones() {
       <div style="padding:16px">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
           <div><div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">${p.nombre}</div><div style="font-size:12px;color:var(--text2)">${p.cliente||'—'}</div></div>
-          ${badge(p.estado||'pendiente_asignacion')}
+          ${badge(estadoProyectoVisible(p))}
         </div>
         <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px">
           <span style="color:var(--text3)"><i class="ti ti-calendar" aria-hidden="true"></i> ${p.fecha_inicio} → ${p.fecha_fin_estimada}</span>
@@ -2124,7 +2142,7 @@ function verProyectoTecnico(id) {
       <div class="panel-section-title">DETALLES</div>
       <div style="font-size:13px;line-height:2;color:var(--text2)">
         <div>Cliente: <span style="color:var(--text)">${p.cliente||'—'}</span></div>
-        <div>Estado: <span style="margin-left:4px">${badge(p.estado||'pendiente_asignacion')}</span></div>
+        <div>Estado: <span style="margin-left:4px">${badge(estadoProyectoVisible(p))}</span></div>
         <div>Inicio: <span class="td-mono" style="color:var(--text)">${p.fecha_inicio||'—'}</span></div>
         <div>Fin est.: <span class="td-mono" style="color:var(--text)">${p.fecha_fin_estimada||'—'}</span></div>
         <div>Sitio: <span style="color:var(--text)">${p.ciudad||'—'}${p.estado?', '+p.estado:''}</span></div>
