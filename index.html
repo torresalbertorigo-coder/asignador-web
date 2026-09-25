@@ -1244,6 +1244,9 @@ async function verProyecto(id) {
     } else {
       footerBtns += `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => cambiarEstadoProyecto('${p.id}','pausado'))"><i class="ti ti-player-pause" aria-hidden="true"></i> Pausar</button>`;
     }
+    if (!p.fecha_inicio_real) {
+      footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="ejecutarConCarga(this, () => iniciarProyecto('${p.id}'))"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Iniciar proyecto</button>`;
+    }
     footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar</button>`;
     footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="if(confirm('¿Cancelar este proyecto? Se liberará al personal asignado.'))ejecutarConCarga(this, () => cambiarEstadoProyecto('${p.id}','cancelado'))"><i class="ti ti-ban" aria-hidden="true"></i> Cancelar</button>`;
   }
@@ -1276,6 +1279,8 @@ async function verProyecto(id) {
         <div><span style="color:var(--text3);font-size:10px">CRITICIDAD</span><div style="margin-top:2px;color:var(--text)">${(p.criticidad||'—').replace('_',' ').toUpperCase()}</div></div>
         <div><span style="color:var(--text3);font-size:10px">INICIO</span><div class="td-mono" style="margin-top:2px">${p.fecha_inicio||'—'}</div></div>
         <div><span style="color:var(--text3);font-size:10px">FIN ESTIMADO</span><div class="td-mono" style="margin-top:2px">${p.fecha_fin_estimada||'—'}</div></div>
+        ${p.fecha_inicio_real ? `<div><span style="color:var(--text3);font-size:10px">INICIO REAL</span><div class="td-mono" style="margin-top:2px;color:var(--blue)">${p.fecha_inicio_real}</div></div>` : ''}
+        ${p.fecha_fin_real ? `<div><span style="color:var(--text3);font-size:10px">FIN REAL</span><div class="td-mono" style="margin-top:2px;color:var(--green)">${p.fecha_fin_real}</div></div>` : ''}
         <div><span style="color:var(--text3);font-size:10px">CIUDAD</span><div style="margin-top:2px;color:var(--text)">${p.ciudad||'—'}</div></div>
         <div><span style="color:var(--text3);font-size:10px">PERSONAL REQ.</span><div style="margin-top:2px;color:var(--text)">${idsAsignados.length}/${p.personal_requerido||1} técnico(s)</div></div>
       </div>
@@ -1479,6 +1484,14 @@ async function cambiarEstadoProyecto(id, nuevoEstado) {
   await loadProyectos(true);
   await loadEmpleados(true);
   verProyecto(id);
+}
+
+async function iniciarProyecto(id, volverA) {
+  const r = await api('POST', `/proyectos/proyectos/${id}/iniciar`, {});
+  if (!r) { toast('Error al iniciar el proyecto','error'); return; }
+  toast(r.mensaje || 'Proyecto marcado como iniciado');
+  await loadProyectos(true);
+  if (volverA === 'tecnico') { verProyectoTecnico(id); } else { verProyecto(id); }
 }
 
 async function finalizarProyecto(id, volverA) {
@@ -2324,10 +2337,12 @@ function verProyectoTecnico(id) {
         <div>Estado: <span style="margin-left:4px">${badge(estadoProyectoVisible(p))}</span></div>
         <div>Inicio: <span class="td-mono" style="color:var(--text)">${p.fecha_inicio||'—'}</span></div>
         <div>Fin est.: <span class="td-mono" style="color:var(--text)">${p.fecha_fin_estimada||'—'}</span></div>
+        ${p.fecha_inicio_real ? `<div>Inicio real: <span class="td-mono" style="color:var(--blue)">${p.fecha_inicio_real}</span></div>` : ''}
+        ${p.fecha_fin_real ? `<div>Fin real: <span class="td-mono" style="color:var(--green)">${p.fecha_fin_real}</span></div>` : ''}
         <div>Sitio: <span style="color:var(--text)">${p.ciudad||'—'}${p.estado?', '+p.estado:''}</span></div>
       </div>
     </div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>${p.estado!=='completado'&&p.estado!=='cancelado'?`<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}','tecnico'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar proyecto</button>`:''}<button class="btn btn-primary btn-sm" onclick="showSection('checador');closePanel(null,true)"><i class="ti ti-clock" aria-hidden="true"></i> Ir al checador</button>`);
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>${p.estado!=='completado'&&p.estado!=='cancelado'&&!p.fecha_inicio_real?`<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="ejecutarConCarga(this, () => iniciarProyecto('${p.id}','tecnico'))"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Iniciar proyecto</button>`:''}${p.estado!=='completado'&&p.estado!=='cancelado'?`<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}','tecnico'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar proyecto</button>`:''}<button class="btn btn-primary btn-sm" onclick="showSection('checador');closePanel(null,true)"><i class="ti ti-clock" aria-hidden="true"></i> Ir al checador</button>`);
 }
 
 // ─── SECCIÓN: CHECADOR ────────────────────────────────────────────────────────
