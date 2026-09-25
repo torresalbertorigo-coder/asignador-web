@@ -6,6 +6,8 @@
 <title>Asignador Inteligente — Walross</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
@@ -164,6 +166,13 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .panel-tab.active{color:var(--text);border-bottom-color:var(--red)}
 .badge-orange{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border)}
 .badge-gray{background:var(--gray-bg);color:var(--gray);border:1px solid var(--gray-border)}
+.map-container{height:calc(100vh - 230px);min-height:420px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--surface);color:var(--text);box-shadow:0 6px 20px rgba(0,0,0,.4)}
+.leaflet-popup-content a{color:var(--blue)}
+.leaflet-container{background:var(--bg)!important}
+.leaflet-control-zoom a{background:var(--surface)!important;color:var(--text)!important;border-color:var(--border)!important}
+.leaflet-control-attribution{background:rgba(0,0,0,.4)!important;color:var(--text3)!important}
+.leaflet-control-attribution a{color:var(--text2)!important}
 .badge-prog{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
 
 /* FATIGA BAR */
@@ -443,6 +452,9 @@ tbody tr:hover .td-action i{color:var(--text2)}
 <script>
 const API = 'https://asignador-inteligente.vercel.app';
 let STATE = { token: null, user: null, rol: null, empleados: [], proyectos: [], equipos: [], incidencias: [], sesionEmp: null, modoTecnico: false };
+let MAPA_LEAFLET = null;
+let MAPA_TILE_LAYER = null;
+let MAPA_MARKERS = [];
 
 // ─── TEMA (claro/oscuro) ──────────────────────────────────────────────────────
 function aplicarTema(tema) {
@@ -458,6 +470,7 @@ function aplicarTema(tema) {
   if (btnTop) {
     btnTop.innerHTML = tema === 'light' ? '<i class="ti ti-sun" aria-hidden="true"></i>' : '<i class="ti ti-moon" aria-hidden="true"></i>';
   }
+  if (MAPA_LEAFLET) aplicarTileMapa();
 }
 function toggleTema() {
   const actual = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
@@ -515,7 +528,7 @@ async function initApp() {
   cargarCatalogos();
   if (STATE.rol === 'administrador' || STATE.rol === 'director_proyecto') {
     await loadEmpleados();
-    showSection('empleados');
+    showSection('mapa');
   } else {
     showSection('mis-asignaciones');
   }
@@ -524,6 +537,7 @@ async function initApp() {
 function buildNav() {
   if (STATE.rol === 'administrador' || STATE.rol === 'director_proyecto') {
     document.getElementById('admin-nav').innerHTML = `
+      <div class="nav-item" onclick="showSection('mapa')" data-sec="mapa"><i class="ti ti-home" aria-hidden="true"></i> Inicio</div>
       <div class="nav-section">GESTIÓN</div>
       <div class="nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i> Empleados</div>
       <div class="nav-item" onclick="showSection('proyectos')" data-sec="proyectos"><i class="ti ti-folder" aria-hidden="true"></i> Proyectos</div>
@@ -618,6 +632,7 @@ const TITLES = {
   'evaluar':          ['ti-adjustments-horizontal','Evaluar Candidatos'],
   'equipos':          ['ti-tool',               'Equipos e Instrumentos'],
   'incidencias':      ['ti-alert-triangle',     'Incidencias de Campo'],
+  'mapa':             ['ti-home',               'Inicio'],
   'metricas':         ['ti-chart-bar',          'Métricas de Proyectos'],
   'mis-asignaciones': ['ti-briefcase',          'Mis Asignaciones'],
   'mi-gantt':         ['ti-calendar-stats',     'Mi Calendario'],
@@ -634,6 +649,7 @@ const RENDERERS = {
   evaluar:          renderEvaluar,
   equipos:          renderEquipos,
   incidencias:      renderIncidencias,
+  mapa:             renderMapa,
   metricas:         renderMetricas,
   'mis-asignaciones': renderMisAsignaciones,
   'mi-gantt':       renderMiGantt,
@@ -2308,6 +2324,93 @@ async function marcarIncidenciaResuelta(id) {
   if (!r) { toast('Error al actualizar','error'); return; }
   toast('Incidencia marcada como resuelta');
   renderIncidencias();
+}
+
+// ─── SECCIÓN: MAPA DE OPERACIONES ─────────────────────────────────────────────
+async function renderMapa() {
+  await loadEmpleados(); await loadProyectos(); await loadEquipos();
+  html(`
+    <div class="table-section" style="padding:14px 18px;margin-bottom:12px">
+      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="mapa-f-proyectos" checked onchange="actualizarMapa()"> Proyectos</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="mapa-f-personal" checked onchange="actualizarMapa()"> Personal</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="mapa-f-equipo" onchange="actualizarMapa()"> Equipo</label>
+        <span id="mapa-conteo" style="font-size:11px;color:var(--text3);margin-left:auto"></span>
+      </div>
+    </div>
+    <div id="map-container" class="map-container"></div>`);
+  setTimeout(inicializarMapa, 30);
+}
+
+function inicializarMapa() {
+  const cont = document.getElementById('map-container');
+  if (!cont || typeof L === 'undefined') return;
+  if (MAPA_LEAFLET) { MAPA_LEAFLET.remove(); MAPA_LEAFLET = null; }
+  MAPA_LEAFLET = L.map('map-container', { zoomControl: true }).setView([23.6345, -102.5528], 5);
+  aplicarTileMapa();
+  actualizarMapa();
+}
+
+function aplicarTileMapa() {
+  if (!MAPA_LEAFLET) return;
+  if (MAPA_TILE_LAYER) MAPA_LEAFLET.removeLayer(MAPA_TILE_LAYER);
+  const esClaro = document.documentElement.getAttribute('data-theme') === 'light';
+  const url = esClaro
+    ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+  MAPA_TILE_LAYER = L.tileLayer(url, {
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    subdomains: 'abcd', maxZoom: 18
+  }).addTo(MAPA_LEAFLET);
+}
+
+function actualizarMapa() {
+  if (!MAPA_LEAFLET) return;
+  MAPA_MARKERS.forEach(m => MAPA_LEAFLET.removeLayer(m));
+  MAPA_MARKERS = [];
+
+  const verProy = document.getElementById('mapa-f-proyectos')?.checked;
+  const verPers = document.getElementById('mapa-f-personal')?.checked;
+  const verEq   = document.getElementById('mapa-f-equipo')?.checked;
+  let n = 0;
+
+  const coloresProyecto = { en_progreso:'#C1121F', asignado:'#22c55e', en_preparacion:'#f59e0b', pausado:'#f97316', cancelado:'#9ca3af', completado:'#3b82f6', pendiente_asignacion:'#6b7280' };
+
+  if (verProy) {
+    STATE.proyectos.forEach(p => {
+      if (!p.latitud || !p.longitud) return;
+      const estadoVis = estadoProyectoVisible(p);
+      const color = coloresProyecto[estadoVis] || '#6b7280';
+      const m = L.circleMarker([p.latitud, p.longitud], { radius: 8, color: '#fff', weight: 1.5, fillColor: color, fillOpacity: 0.9 })
+        .bindPopup(`<strong>${p.nombre}</strong><br>${p.cliente||'—'}<br>${p.ciudad||'—'}<br><a href="#" onclick="verProyecto('${p.id}');return false;">Ver detalle →</a>`)
+        .addTo(MAPA_LEAFLET);
+      MAPA_MARKERS.push(m); n++;
+    });
+  }
+  if (verPers) {
+    STATE.empleados.forEach(e => {
+      if (!e.latitud || !e.longitud || e.estado_perfil !== 'activo') return;
+      const color = e.disponibilidad === 'libre' ? '#22c55e' : '#3b82f6';
+      const m = L.circleMarker([e.latitud, e.longitud], { radius: 6, color: '#fff', weight: 1.5, fillColor: color, fillOpacity: 0.9 })
+        .bindPopup(`<strong>${e.nombre} ${e.apellido}</strong><br>${e.ciudad||'—'}<br><a href="#" onclick="verEmpleado('${e.id}');return false;">Ver perfil →</a>`)
+        .addTo(MAPA_LEAFLET);
+      MAPA_MARKERS.push(m); n++;
+    });
+  }
+  if (verEq) {
+    STATE.equipos.forEach(eq => {
+      if (!eq.proyecto_actual_id) return;
+      const p = STATE.proyectos.find(x=>x.id===eq.proyecto_actual_id);
+      if (!p || !p.latitud || !p.longitud) return;
+      const m = L.circleMarker([p.latitud, p.longitud], { radius: 5, color: '#fff', weight: 1.5, fillColor: '#a78bfa', fillOpacity: 0.9 })
+        .bindPopup(`<strong>${eq.nombre}</strong><br>En: ${p.nombre}`)
+        .addTo(MAPA_LEAFLET);
+      MAPA_MARKERS.push(m); n++;
+    });
+  }
+
+  const conteo = document.getElementById('mapa-conteo');
+  if (conteo) conteo.textContent = `${n} punto(s) en el mapa`;
 }
 
 // ─── SECCIÓN: MÉTRICAS DE PROYECTOS ───────────────────────────────────────────
