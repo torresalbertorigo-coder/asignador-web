@@ -1022,8 +1022,19 @@ function verEmpleado(id, tab) {
         <div><span style="color:var(--text3);font-size:10px">CORREO</span><div style="margin-top:2px;color:var(--text);word-break:break-all">${e.email_contacto||'—'}</div></div>
       </div>
     </div>`;
+  const totalDias = historial.reduce((acc, h) => {
+    const ini = h.fecha_inicio_real || h.fecha_inicio;
+    const fin = h.fecha_fin_real || h.fecha_fin_estimada;
+    if (!ini || !fin) return acc;
+    const dias = Math.round((fechaLocal(fin) - fechaLocal(ini)) / 86400000) + 1;
+    return acc + Math.max(dias, 0);
+  }, 0);
   const contenidoHistorial = `
     <div class="panel-section">
+      ${historial.length ? `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0 12px;border-bottom:1px solid var(--border);margin-bottom:8px">
+        <span style="font-size:12px;color:var(--text2)">Total en ${historial.length} proyecto(s)</span>
+        <span style="font-size:13px;font-weight:700;color:var(--text)">${totalDias} día(s) en campo</span>
+      </div>` : ''}
       ${historial.length ? historial.map(h=>`
         <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;cursor:pointer" onclick="verProyecto('${h.proyecto_id}')">
           <div>
