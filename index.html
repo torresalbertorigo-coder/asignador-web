@@ -2356,11 +2356,11 @@ function aplicarTileMapa() {
   if (MAPA_TILE_LAYER) MAPA_LEAFLET.removeLayer(MAPA_TILE_LAYER);
   const esClaro = document.documentElement.getAttribute('data-theme') === 'light';
   const url = esClaro
-    ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+    ? 'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+    : 'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}';
   MAPA_TILE_LAYER = L.tileLayer(url, {
-    attribution: '&copy; OpenStreetMap &copy; CARTO',
-    subdomains: 'abcd', maxZoom: 18
+    attribution: 'Tiles &copy; Esri',
+    maxZoom: 16
   }).addTo(MAPA_LEAFLET);
 }
 
