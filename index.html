@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -528,6 +529,7 @@ function buildNav() {
       <div class="nav-item" onclick="showSection('evaluar')" data-sec="evaluar"><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i> Evaluar</div>
       <div class="nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-tool" aria-hidden="true"></i> Equipos</div>
       <div class="nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Incidencias</div>
+      <div class="nav-item" onclick="showSection('metricas')" data-sec="metricas"><i class="ti ti-chart-bar" aria-hidden="true"></i> Métricas</div>
       <div class="nav-section">MI CUENTA</div>
       <div class="nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i> Mi Perfil</div>
       <div class="nav-item" onclick="switchModo()" id="nav-switch-modo"><i class="ti ti-arrows-exchange" aria-hidden="true"></i> <span id="switch-modo-label">Vista Técnico</span></div>`;
@@ -613,6 +615,7 @@ const TITLES = {
   'evaluar':          ['ti-adjustments-horizontal','Evaluar Candidatos'],
   'equipos':          ['ti-tool',               'Equipos e Instrumentos'],
   'incidencias':      ['ti-alert-triangle',     'Incidencias de Campo'],
+  'metricas':         ['ti-chart-bar',          'Métricas de Proyectos'],
   'mis-asignaciones': ['ti-briefcase',          'Mis Asignaciones'],
   'mi-gantt':         ['ti-calendar-stats',     'Mi Calendario'],
   'checador':         ['ti-clock',              'Reloj Checador'],
@@ -628,6 +631,7 @@ const RENDERERS = {
   evaluar:          renderEvaluar,
   equipos:          renderEquipos,
   incidencias:      renderIncidencias,
+  metricas:         renderMetricas,
   'mis-asignaciones': renderMisAsignaciones,
   'mi-gantt':       renderMiGantt,
   checador:         renderChecador,
@@ -1236,10 +1240,11 @@ async function verProyecto(id) {
   let footerBtns = `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`;
   if (p.estado !== 'cancelado' && p.estado !== 'completado') {
     if (p.estado === 'pausado') {
-      footerBtns += `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => cambiarEstadoProyecto('${p.id}','${idsAsignados.length>=(p.personal_requerido||1)?'en_progreso':'pendiente_asignacion'}'))"><i class="ti ti-player-play" aria-hidden="true"></i> Reanudar</button>`;
+      footerBtns += `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => cambiarEstadoProyecto('${p.id}','${idsAsignados.length>=(p.personal_requerido||1)?'asignado':'pendiente_asignacion'}'))"><i class="ti ti-player-play" aria-hidden="true"></i> Reanudar</button>`;
     } else {
       footerBtns += `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => cambiarEstadoProyecto('${p.id}','pausado'))"><i class="ti ti-player-pause" aria-hidden="true"></i> Pausar</button>`;
     }
+    footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar</button>`;
     footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="if(confirm('¿Cancelar este proyecto? Se liberará al personal asignado.'))ejecutarConCarga(this, () => cambiarEstadoProyecto('${p.id}','cancelado'))"><i class="ti ti-ban" aria-hidden="true"></i> Cancelar</button>`;
   }
   if (STATE.rol === 'administrador') {
@@ -1474,6 +1479,15 @@ async function cambiarEstadoProyecto(id, nuevoEstado) {
   await loadProyectos(true);
   await loadEmpleados(true);
   verProyecto(id);
+}
+
+async function finalizarProyecto(id, volverA) {
+  if (!confirm('¿Finalizar este proyecto? Se marcará como completado con la fecha de hoy como fecha real de término. Esto no se puede deshacer.')) return;
+  const r = await api('POST', `/proyectos/proyectos/${id}/finalizar`, {});
+  if (!r) { toast('Error al finalizar el proyecto','error'); return; }
+  toast(r.mensaje || 'Proyecto finalizado');
+  await loadProyectos(true);
+  if (volverA === 'tecnico') { renderMisAsignaciones(); } else { verProyecto(id); }
 }
 
 async function eliminarProyectoConfirm(id) {
@@ -2098,25 +2112,183 @@ async function guardarNuevoEquipo() {
 
 // ─── SECCIÓN: INCIDENCIAS ─────────────────────────────────────────────────────
 async function renderIncidencias() {
-  const inc = STATE.incidencias;
-  const altas = inc.filter(i=>i.severidad==='alta').length;
-  const medias = inc.filter(i=>i.severidad==='media').length;
+  await loadProyectos(); await loadEmpleados();
+  const inc = await api('GET', '/incidencias') || [];
+  STATE.incidencias = inc;
+  const altas = inc.filter(i=>i.severidad==='alta' && i.estado!=='resuelta').length;
+  const medias = inc.filter(i=>i.severidad==='media' && i.estado!=='resuelta').length;
+  const resueltas = inc.filter(i=>i.estado==='resuelta').length;
+  const nombreProyecto = id => (STATE.proyectos.find(p=>p.id===id)||{}).nombre || id || '—';
+  const nombreEmpleado = id => { const e = STATE.empleados.find(x=>x.id===id); return e ? `${e.nombre} ${e.apellido}` : (id||'—'); };
   html(`
     <div class="stats-grid">
       <div class="stat-card c-red"><div class="stat-lbl">TOTAL REPORTES</div><div class="stat-val">${inc.length}</div><div class="stat-sub">recibidos</div></div>
       <div class="stat-card" style="border-left-color:var(--red-text)"><div class="stat-lbl">SEVERIDAD ALTA</div><div class="stat-val">${altas}</div><div class="stat-sub">requieren atención</div></div>
       <div class="stat-card c-amber"><div class="stat-lbl">SEVERIDAD MEDIA</div><div class="stat-val">${medias}</div><div class="stat-sub">en seguimiento</div></div>
-      <div class="stat-card c-green"><div class="stat-lbl">RESUELTOS</div><div class="stat-val">0</div><div class="stat-sub">cerrados</div></div>
+      <div class="stat-card c-green"><div class="stat-lbl">RESUELTOS</div><div class="stat-val">${resueltas}</div><div class="stat-sub">cerrados</div></div>
     </div>
     ${inc.length===0?`<div class="empty-state"><i class="ti ti-check-circle" aria-hidden="true"></i><p>Sin incidencias reportadas</p><span>Los técnicos no han enviado reportes aún</span></div>`:`
     <div class="table-section">
       <div class="table-header"><span class="table-title">INCIDENCIAS DE CAMPO</span></div>
-      ${inc.map(i=>`<div class="inc-card ${i.severidad}">
-        <div class="inc-head"><span class="inc-tipo">${i.tipo||'Incidencia'}</span>${badge(i.severidad||'baja')}</div>
-        <div class="inc-meta"><i class="ti ti-user" aria-hidden="true"></i> ${i.id_empleado} · <i class="ti ti-calendar" aria-hidden="true"></i> ${i.fecha}</div>
+      ${inc.map(i=>`<div class="inc-card ${i.severidad}" style="${i.estado==='resuelta'?'opacity:.55':''}">
+        <div class="inc-head"><span class="inc-tipo">${i.tipo||'Incidencia'}</span><div style="display:flex;gap:6px;align-items:center">${i.estado==='resuelta'?badge('completado'):badge(i.severidad||'baja')}${STATE.rol!=='tecnico' && i.estado!=='resuelta' ? `<button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px" onclick="ejecutarConCarga(this, () => marcarIncidenciaResuelta('${i.id}'))">Marcar resuelta</button>` : ''}</div></div>
+        <div class="inc-meta"><i class="ti ti-folder" aria-hidden="true"></i> ${nombreProyecto(i.proyecto_id)} · <i class="ti ti-user" aria-hidden="true"></i> ${nombreEmpleado(i.empleado_id)} · <i class="ti ti-calendar" aria-hidden="true"></i> ${(i.fecha||'').split('T')[0]}</div>
         <div class="inc-desc">${i.descripcion}</div>
       </div>`).join('')}
     </div>`}`);
+}
+
+async function marcarIncidenciaResuelta(id) {
+  const r = await api('PUT', `/incidencias/${id}/estado`, { estado: 'resuelta' });
+  if (!r) { toast('Error al actualizar','error'); return; }
+  toast('Incidencia marcada como resuelta');
+  renderIncidencias();
+}
+
+// ─── SECCIÓN: MÉTRICAS DE PROYECTOS ───────────────────────────────────────────
+async function renderMetricas() {
+  await loadProyectos();
+  const proyectosOrdenados = STATE.proyectos.slice().sort((a,b)=>(b.fecha_inicio||'').localeCompare(a.fecha_inicio||''));
+  html(`
+    <div class="table-section" style="padding:18px;margin-bottom:14px">
+      <div class="panel-section-title" style="margin-bottom:12px">GENERAR REPORTE DE MÉTRICAS</div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">PROYECTO ESPECÍFICO (OPCIONAL)</label>
+          <select class="field-select" id="met-proyecto">
+            <option value="">— Usar rango de fechas en su lugar —</option>
+            ${proyectosOrdenados.map(p=>`<option value="${p.id}">${p.nombre}${p.fecha_inicio?' ('+p.fecha_inicio+')':''}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="field-row" style="margin-top:10px">
+        <div class="field-group"><label class="field-label">DESDE</label><input type="date" class="field-input" id="met-desde"></div>
+        <div class="field-group"><label class="field-label">HASTA</label><input type="date" class="field-input" id="met-hasta"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="aplicarRangoMetricas(7)">Últimos 7 días</button>
+        <button class="btn btn-ghost btn-sm" onclick="aplicarRangoMetricas(30)">Últimos 30 días</button>
+        <button class="btn btn-ghost btn-sm" onclick="aplicarRangoMetricas(90)">Últimos 90 días</button>
+      </div>
+      <div style="margin-top:14px;display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, generarMetricas)"><i class="ti ti-chart-bar" aria-hidden="true"></i> Generar métricas</button>
+      </div>
+    </div>
+    <div id="metricas-resultado"></div>`);
+}
+
+function aplicarRangoMetricas(dias) {
+  const hoy = new Date();
+  const desde = new Date(hoy); desde.setDate(desde.getDate()-dias);
+  document.getElementById('met-desde').value = desde.toISOString().split('T')[0];
+  document.getElementById('met-hasta').value = hoy.toISOString().split('T')[0];
+  document.getElementById('met-proyecto').value = '';
+}
+
+async function generarMetricas() {
+  const proyectoId = document.getElementById('met-proyecto')?.value;
+  const desde = document.getElementById('met-desde')?.value;
+  const hasta = document.getElementById('met-hasta')?.value;
+  let url = '/proyectos/proyectos/metricas';
+  const params = [];
+  if (proyectoId) params.push(`proyecto_id=${encodeURIComponent(proyectoId)}`);
+  else {
+    if (desde) params.push(`fecha_desde=${desde}`);
+    if (hasta) params.push(`fecha_hasta=${hasta}`);
+  }
+  if (params.length) url += '?' + params.join('&');
+
+  const datos = await api('GET', url);
+  const cont = document.getElementById('metricas-resultado');
+  if (!datos) { cont.innerHTML = '<div class="empty-state"><i class="ti ti-alert-circle" aria-hidden="true"></i><p>Error al generar el reporte</p></div>'; return; }
+  STATE._ultimasMetricas = datos;
+
+  if (datos.length === 0) {
+    cont.innerHTML = '<div class="empty-state"><i class="ti ti-chart-bar" aria-hidden="true"></i><p>Sin proyectos finalizados en ese criterio</p><span>Las métricas solo aplican a proyectos ya finalizados</span></div>';
+    return;
+  }
+
+  const retrasoTexto = r => r===null||r===undefined ? '—' : r>0 ? `+${r} día(s) de retraso` : r<0 ? `${Math.abs(r)} día(s) antes de lo estimado` : 'A tiempo';
+  const retrasoColor = r => r===null||r===undefined ? 'var(--text3)' : r>0 ? 'var(--red-text)' : r<0 ? 'var(--green)' : 'var(--text2)';
+
+  cont.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="font-size:12px;color:var(--text3)">${datos.length} proyecto(s) en el resultado</span>
+      <button class="btn btn-primary btn-sm" onclick="exportarMetricasPDF()"><i class="ti ti-file-download" aria-hidden="true"></i> Exportar a PDF</button>
+    </div>
+    ${datos.map(p=>`<div class="table-section" style="margin-bottom:12px;padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div><div style="font-size:14px;font-weight:600;color:var(--text)">${p.nombre}</div><div style="font-size:12px;color:var(--text2)">${p.cliente||'—'} · ${p.ciudad||'—'}</div></div>
+        <span style="font-weight:600;font-size:12px;color:${retrasoColor(p.retraso_dias)}">${retrasoTexto(p.retraso_dias)}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;font-size:12px;margin-bottom:10px">
+        <div><span style="color:var(--text3)">Inicio estimado</span><div class="td-mono" style="color:var(--text)">${p.fecha_inicio_estimada||'—'}</div></div>
+        <div><span style="color:var(--text3)">Inicio real</span><div class="td-mono" style="color:var(--text)">${p.fecha_inicio_real||'—'}</div></div>
+        <div><span style="color:var(--text3)">Fin estimado</span><div class="td-mono" style="color:var(--text)">${p.fecha_fin_estimada||'—'}</div></div>
+        <div><span style="color:var(--text3)">Fin real</span><div class="td-mono" style="color:var(--text)">${p.fecha_fin_real||'—'}</div></div>
+        <div><span style="color:var(--text3)">Duración estimada</span><div style="color:var(--text)">${p.duracion_estimada_dias??'—'} día(s)</div></div>
+        <div><span style="color:var(--text3)">Duración real</span><div style="color:var(--text)">${p.duracion_real_dias??'—'} día(s)</div></div>
+        <div><span style="color:var(--text3)">Personal asignado</span><div style="color:var(--text)">${p.personal_asignado}</div></div>
+        <div><span style="color:var(--text3)">Incidencias</span><div style="color:var(--text)">${p.total_incidencias} (${p.incidencias_altas} alta(s))</div></div>
+      </div>
+      ${p.incidencias.length ? `<div style="border-top:1px solid var(--border);padding-top:8px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">POSIBLES CAUSAS (INCIDENCIAS REGISTRADAS)</div>
+        ${p.incidencias.map(i=>`<div style="font-size:12px;color:var(--text2);padding:3px 0">• <strong style="color:var(--text)">${i.tipo}</strong> (${i.severidad}) — ${i.descripcion||'sin descripción'} <span style="color:var(--text3)">[${(i.fecha||'').split('T')[0]}]</span></div>`).join('')}
+      </div>` : '<div style="font-size:12px;color:var(--text3)">Sin incidencias registradas durante este proyecto.</div>'}
+    </div>`).join('')}`;
+}
+
+function exportarMetricasPDF() {
+  const datos = STATE._ultimasMetricas || [];
+  if (!datos.length) { toast('No hay métricas generadas para exportar','error'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  let y = 20;
+
+  doc.setFontSize(16);
+  doc.setFont(undefined, 'bold');
+  doc.text('Reporte de Métricas de Proyectos', 14, y);
+  y += 8;
+  doc.setFontSize(9);
+  doc.setFont(undefined, 'normal');
+  doc.setTextColor(120);
+  doc.text(`Generado el ${new Date().toLocaleString('es-MX')} — ${datos.length} proyecto(s)`, 14, y);
+  doc.setTextColor(0);
+  y += 10;
+
+  datos.forEach((p, idx) => {
+    if (y > 250) { doc.addPage(); y = 20; }
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text(`${idx+1}. ${p.nombre}`, 14, y); y += 6;
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(9);
+    doc.text(`Cliente: ${p.cliente||'—'}    Ciudad: ${p.ciudad||'—'}`, 14, y); y += 5;
+    doc.text(`Inicio estimado: ${p.fecha_inicio_estimada||'—'}    Inicio real: ${p.fecha_inicio_real||'—'}`, 14, y); y += 5;
+    doc.text(`Fin estimado: ${p.fecha_fin_estimada||'—'}    Fin real: ${p.fecha_fin_real||'—'}`, 14, y); y += 5;
+    const retrasoTxt = p.retraso_dias>0 ? `+${p.retraso_dias} día(s) de retraso` : p.retraso_dias<0 ? `${Math.abs(p.retraso_dias)} día(s) antes de lo estimado` : (p.retraso_dias===0?'A tiempo':'—');
+    doc.text(`Resultado: ${retrasoTxt}`, 14, y); y += 5;
+    doc.text(`Duración estimada: ${p.duracion_estimada_dias??'—'} día(s)    Duración real: ${p.duracion_real_dias??'—'} día(s)`, 14, y); y += 5;
+    doc.text(`Personal asignado: ${p.personal_asignado}    Incidencias: ${p.total_incidencias} (${p.incidencias_altas} alta(s))`, 14, y); y += 6;
+
+    if (p.incidencias.length) {
+      doc.setFont(undefined, 'italic');
+      doc.text('Incidencias registradas (posibles causas):', 14, y); y += 5;
+      doc.setFont(undefined, 'normal');
+      p.incidencias.forEach(i => {
+        if (y > 270) { doc.addPage(); y = 20; }
+        const linea = `• ${i.tipo} (${i.severidad}): ${i.descripcion||'sin descripción'}`;
+        const wrapped = doc.splitTextToSize(linea, 178);
+        doc.text(wrapped, 18, y);
+        y += wrapped.length * 4.5;
+      });
+      y += 2;
+    }
+    doc.setDrawColor(200);
+    doc.line(14, y, 196, y);
+    y += 8;
+  });
+
+  doc.save(`metricas_proyectos_${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
 // ─── SECCIÓN: MIS ASIGNACIONES (TÉCNICO) ──────────────────────────────────────
@@ -2155,7 +2327,7 @@ function verProyectoTecnico(id) {
         <div>Sitio: <span style="color:var(--text)">${p.ciudad||'—'}${p.estado?', '+p.estado:''}</span></div>
       </div>
     </div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button><button class="btn btn-primary btn-sm" onclick="showSection('checador');closePanel(null,true)"><i class="ti ti-clock" aria-hidden="true"></i> Ir al checador</button>`);
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>${p.estado!=='completado'&&p.estado!=='cancelado'?`<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}','tecnico'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar proyecto</button>`:''}<button class="btn btn-primary btn-sm" onclick="showSection('checador');closePanel(null,true)"><i class="ti ti-clock" aria-hidden="true"></i> Ir al checador</button>`);
 }
 
 // ─── SECCIÓN: CHECADOR ────────────────────────────────────────────────────────
@@ -2205,11 +2377,21 @@ function marcarSalida() {
 }
 
 // ─── SECCIÓN: REPORTAR ────────────────────────────────────────────────────────
-function renderReportar() {
+async function renderReportar() {
+  await loadProyectos();
+  const empId = STATE.user?.empleado_id;
+  const misProyectos = STATE.proyectos.filter(p => (p.tecnicos_asignados||[]).includes(empId));
   html(`
     <div class="table-section" style="padding:20px">
       <div class="panel-section-title" style="margin-bottom:16px">NUEVO REPORTE DE INCIDENCIA</div>
       <div class="field-row">
+        <div class="field-group"><label class="field-label">PROYECTO</label>
+          <select class="field-select" id="rep-proyecto">
+            ${misProyectos.length ? misProyectos.map(p=>`<option value="${p.id}">${p.nombre}</option>`).join('') : '<option value="">Sin proyectos asignados</option>'}
+          </select>
+        </div>
+      </div>
+      <div class="field-row" style="margin-top:10px">
         <div class="field-group"><label class="field-label">TIPO DE INCIDENCIA</label>
           <select class="field-select" id="rep-tipo">
             <option value="retraso">Retraso en proyecto</option>
@@ -2234,17 +2416,20 @@ function renderReportar() {
         </div>
       </div>
       <div style="margin-top:14px;display:flex;justify-content:flex-end">
-        <button class="btn btn-primary" onclick="enviarReporte()"><i class="ti ti-send" aria-hidden="true"></i> Enviar reporte</button>
+        <button class="btn btn-primary" ${misProyectos.length?'':'disabled'} onclick="ejecutarConCarga(this, enviarReporte)"><i class="ti ti-send" aria-hidden="true"></i> Enviar reporte</button>
       </div>
     </div>`);
 }
 
-function enviarReporte() {
+async function enviarReporte() {
+  const proyecto_id = document.getElementById('rep-proyecto')?.value;
   const desc = document.getElementById('rep-desc')?.value.trim();
+  if (!proyecto_id) { toast('No tienes proyectos asignados para reportar','error'); return; }
   if (!desc) { toast('Escribe una descripción antes de enviar','error'); return; }
   const tipo = document.getElementById('rep-tipo')?.value;
   const sev  = document.getElementById('rep-sev')?.value;
-  STATE.incidencias.push({ id_empleado: STATE.user?.empleado_id||'USR', tipo, severidad: sev, descripcion: desc, fecha: new Date().toISOString().split('T')[0], id_proyecto: 'GENERAL' });
+  const r = await api('POST', '/incidencias', { proyecto_id, tipo, severidad: sev, descripcion: desc });
+  if (!r) { toast('Error al enviar el reporte','error'); return; }
   toast('Reporte enviado correctamente');
   renderReportar();
 }
