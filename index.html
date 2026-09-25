@@ -24,6 +24,8 @@
   --grad-fill-top:#3a3a40;--grad-fill-card:#2a2a2e;--grad-fill-panel:#262629;
   --sidebar-grad-top:#232326;--btn-ghost-grad:#2c2c30;--btn-primary-grad-bottom:#9e0f1a;
   --gantt-occupied:var(--red);--gantt-past:var(--red2);
+  --orange:#f97316;--orange-bg:#2d1505;--orange-border:#4a2508;
+  --gray:#9ca3af;--gray-bg:#1f2023;--gray-border:#3a3b3f;
   --mono:'JetBrains Mono',monospace;
   --sans:'Inter',system-ui,sans-serif;
   --radius:3px;
@@ -43,6 +45,8 @@
   --grad-fill-top:#EDEDF0;--grad-fill-card:#F3F3F5;--grad-fill-panel:#FBFBFC;
   --sidebar-grad-top:#FFFFFF;--btn-ghost-grad:#EDEDF0;--btn-primary-grad-bottom:#E11D2A;
   --gantt-occupied:#E3959D;--gantt-past:#F0C7CC;
+  --orange:#C2410C;--orange-bg:#FDECD8;--orange-border:#F5CBA0;
+  --gray:#4B5563;--gray-bg:#F1F2F4;--gray-border:#D8DADE;
 }
 body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:15px;height:100vh;overflow:hidden}
 @media(min-width:1200px){body{font-size:16px}}
@@ -154,6 +158,8 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .badge-proy{background:var(--red-bg);color:var(--red-text);border:1px solid var(--red-border)}
 .badge-mant{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
 .badge-pend{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+.badge-orange{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border)}
+.badge-gray{background:var(--gray-bg);color:var(--gray);border:1px solid var(--gray-border)}
 .badge-prog{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
 
 /* FATIGA BAR */
@@ -790,9 +796,9 @@ function estadoProyectoVisible(p) {
 }
 
 function badge(val) {
-  const map = { libre:'badge-libre LIBRE', asignado:'badge-asig ASIGNADO', en_proyecto:'badge-proy EN PROYECTO',
-    mantenimiento:'badge-mant CALIBRACIÓN', pendiente_asignacion:'badge-pend PENDIENTE', en_progreso:'badge-prog EN PROG.',
-    pausado:'badge-mant PAUSADO', completado:'badge-libre COMPLETADO', cancelado:'badge-proy CANCELADO',
+  const map = { libre:'badge-libre LIBRE', asignado:'badge-libre ASIGNADO', en_proyecto:'badge-proy EN PROYECTO',
+    mantenimiento:'badge-mant CALIBRACIÓN', pendiente_asignacion:'badge-pend PENDIENTE', en_progreso:'badge-proy EN PROG.',
+    pausado:'badge-orange PAUSADO', completado:'badge-libre COMPLETADO', cancelado:'badge-gray CANCELADO',
     en_preparacion:'badge-mant EN PREPARACIÓN', oficina:'badge-libre OFICINA', baja:'badge-proy BAJA',
     archivado:'badge-proy ARCHIVADO', rechazado:'badge-proy RECHAZADO', suspendido:'badge-proy SUSPENDIDO',
     incompleto:'badge-pend INCOMPLETO', pendiente_validacion:'badge-mant PENDIENTE VALID.',
@@ -1682,8 +1688,8 @@ async function renderGantt() {
         </table>
       </div>
       <div style="padding:12px 16px;display:flex;gap:16px;flex-wrap:wrap">
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:12px;height:8px;background:var(--red)"></div> Días completados</div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:12px;height:8px;background:var(--red2)"></div> Días pasados (proyecto)</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:12px;height:8px;background:var(--gantt-occupied)"></div> Días completados</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:12px;height:8px;background:var(--gantt-past)"></div> Días pasados (proyecto)</div>
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:12px;height:8px;background:var(--input-bg);border:1px solid var(--border)"></div> Fin de semana</div>
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:2px;height:16px;background:var(--red)"></div> Hoy</div>
       </div>
