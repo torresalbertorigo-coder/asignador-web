@@ -1064,6 +1064,17 @@ function verDocumentosEmpleado(id) {
           ${c.ruta_pdf ? `<button class="btn btn-ghost btn-sm" onclick="abrirVisor('${c.ruta_pdf}','${c.nombre}')" style="padding:3px 10px;font-size:11px"><i class="ti ti-eye" aria-hidden="true"></i> Ver</button>` : '<span style="color:var(--text3);font-size:11px">Sin archivo</span>'}
         </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Sin documentos registrados.</div>'}
       <div id="doc-descarga-msg" style="font-size:11px;color:var(--text3);margin-top:10px"></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">HISTORIAL DE PROYECTOS</div>
+      ${(e.historial_proyectos_real||[]).length ? e.historial_proyectos_real.map(h=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;cursor:pointer" onclick="verProyecto('${h.proyecto_id}')">
+          <div>
+            <div style="color:var(--text);font-weight:600">${h.nombre}</div>
+            <div style="color:var(--text3);font-size:11px">${h.cliente||'—'} · ${h.ciudad||'—'} · ${h.fecha_inicio||'—'} → ${h.fecha_fin_estimada||'—'}${h.fecha_fin_real?` (real: ${h.fecha_fin_real})`:''}</div>
+          </div>
+          ${badge(estadoProyectoVisible(h))}
+        </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Sin proyectos registrados en el sistema todavía.</div>'}
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="verEmpleado('${e.id}')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Volver</button><button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>${certsConArchivo.length ? `<button class="btn btn-primary btn-sm" id="btn-descargar-docs" disabled onclick="ejecutarConCarga(this, descargarDocumentosSeleccionados)"><i class="ti ti-download" aria-hidden="true"></i> Descargar seleccionados (0)</button>` : ''}`);
 }
@@ -1468,16 +1479,41 @@ function abrirAsignacionDirecta(proyectoId) {
       </div>
       <div class="field-row full"><div class="field-group"><label class="field-label">TÉCNICO</label>
         <select class="field-select" id="asig-directa-emp">
-          ${disponibles.map(e=>`<option value="${e.id}">${e.nombre} ${e.apellido} — ${(e.seniority||'').replace('_',' ')} (${e.ciudad||'sin ciudad'})</option>`).join('')}
+          ${disponibles.map(e=>{
+            const conflicto = detectarTraslapes(e.id, proyectoId).length > 0;
+            return `<option value="${e.id}">${conflicto?'⚠️ ':''}${e.nombre} ${e.apellido} — ${(e.seniority||'').replace('_',' ')} (${e.ciudad||'sin ciudad'})${conflicto?' — fechas traslapadas':''}</option>`;
+          }).join('')}
         </select>
       </div></div>
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="verProyecto('${proyectoId}')">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => confirmarAsignacionDirecta('${proyectoId}'))"><i class="ti ti-user-plus" aria-hidden="true"></i> Asignar</button>`);
 }
 
+function detectarTraslapes(empId, proyectoId) {
+  const objetivo = STATE.proyectos.find(p=>p.id===proyectoId);
+  if (!objetivo || !objetivo.fecha_inicio || !objetivo.fecha_fin_estimada) return [];
+  const inicioObj = fechaLocal(objetivo.fecha_inicio);
+  const finObj = fechaLocal(objetivo.fecha_fin_estimada);
+  return STATE.proyectos.filter(p =>
+    p.id !== proyectoId &&
+    !['completado','cancelado'].includes(p.estado) &&
+    (p.tecnicos_asignados||[]).includes(empId) &&
+    p.fecha_inicio && p.fecha_fin_estimada &&
+    fechaLocal(p.fecha_inicio) <= finObj &&
+    fechaLocal(p.fecha_fin_estimada) >= inicioObj
+  );
+}
+
 async function confirmarAsignacionDirecta(proyectoId) {
   const empId = document.getElementById('asig-directa-emp')?.value;
   if (!empId) return;
+  const emp = STATE.empleados.find(e=>e.id===empId);
+  const traslapes = detectarTraslapes(empId, proyectoId);
+  if (traslapes.length) {
+    const detalle = traslapes.map(p=>`• ${p.nombre} (${p.fecha_inicio} → ${p.fecha_fin_estimada})`).join('\n');
+    const continuar = confirm(`⚠️ ${emp?.nombre||'Este técnico'} ya tiene fechas que se traslapan con este proyecto:\n\n${detalle}\n\n¿Asignarlo de todos modos?`);
+    if (!continuar) return;
+  }
   await asignarTecnico(empId, proyectoId);
   verProyecto(proyectoId);
 }
@@ -1545,6 +1581,7 @@ async function eliminarProyectoConfirm(id) {
   toast(r.mensaje || 'Proyecto eliminado');
   closePanel(null, true);
   await loadProyectos(true);
+  await loadEmpleados(true);
   renderProyectos();
 }
 
@@ -1771,6 +1808,20 @@ async function renderEvaluar() {
       </div>
       <button class="btn btn-primary" onclick="ejecutarEvaluacion()"><i class="ti ti-player-play" aria-hidden="true"></i> Ejecutar</button>
     </div>
+    ${pendientes.length ? `
+    <div class="table-section" style="margin-bottom:14px">
+      <div class="table-header"><span class="table-title">PROYECTOS PENDIENTES DE ASIGNACIÓN (${pendientes.length})</span></div>
+      ${pendientes.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer" onclick="document.getElementById('ev-proyecto').value='${p.id}';ejecutarEvaluacion()">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${p.nombre}</div>
+          <div style="font-size:11px;color:var(--text2)">${p.cliente||'—'} · ${p.ciudad||'—'} · ${p.fecha_inicio||'—'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:11px;color:var(--text3)">${(p.tecnicos_asignados||[]).length}/${p.personal_requerido||1} personal</span>
+          <i class="ti ti-chevron-right" aria-hidden="true" style="color:var(--text3)"></i>
+        </div>
+      </div>`).join('')}
+    </div>` : ''}
     <div id="ev-results"></div>
     ${pendientes.length===0?'<div class="empty-state"><i class="ti ti-check-circle" aria-hidden="true"></i><p>No hay proyectos pendientes de asignación</p><span>Todos los proyectos están asignados o en progreso</span></div>':''}`);
 }
