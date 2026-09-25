@@ -6,6 +6,7 @@
 <title>Asignador Inteligente — Walross</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -1011,6 +1012,7 @@ function verDocumentosEmpleado(id) {
     }
     return Object.assign({}, c, { vigenciaColor, vigenciaTexto });
   });
+  const certsConArchivo = certs.filter(c=>c.ruta_pdf);
   openPanel(`Documentos — ${e.nombre} ${e.apellido}`, `
     <div class="panel-section">
       <div class="panel-section-title">HABILIDADES OPERATIVAS</div>
@@ -1019,17 +1021,24 @@ function verDocumentosEmpleado(id) {
       ).join('') : '<div style="font-size:12px;color:var(--text3)">Sin habilidades declaradas.</div>'}
     </div>
     <div class="panel-section">
-      <div class="panel-section-title">DOCUMENTOS Y CERTIFICADOS TÉCNICOS</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div class="panel-section-title" style="margin:0">DOCUMENTOS Y CERTIFICADOS TÉCNICOS</div>
+        ${certsConArchivo.length ? `<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);cursor:pointer"><input type="checkbox" id="doc-check-all" onchange="toggleTodosDocs(this)"> Seleccionar todos</label>` : ''}
+      </div>
       ${certs.length ? certs.map(c=>`
         <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
-          <div>
-            <div style="color:var(--text);font-weight:600">${c.nombre}${c.tipo?` <span style="color:var(--text3);font-weight:400">(${c.tipo})</span>`:''}</div>
-            <div style="color:${c.vigenciaColor};font-size:11px">${c.vigenciaTexto}</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            ${c.ruta_pdf ? `<input type="checkbox" class="doc-check" data-url="${c.ruta_pdf}" data-nombre="${c.nombre.replace(/"/g,'&quot;')}" onchange="actualizarSeleccionDocs()">` : '<span style="width:13px;display:inline-block"></span>'}
+            <div>
+              <div style="color:var(--text);font-weight:600">${c.nombre}${c.tipo?` <span style="color:var(--text3);font-weight:400">(${c.tipo})</span>`:''}</div>
+              <div style="color:${c.vigenciaColor};font-size:11px">${c.vigenciaTexto}</div>
+            </div>
           </div>
           ${c.ruta_pdf ? `<button class="btn btn-ghost btn-sm" onclick="abrirVisor('${c.ruta_pdf}','${c.nombre}')" style="padding:3px 10px;font-size:11px"><i class="ti ti-eye" aria-hidden="true"></i> Ver</button>` : '<span style="color:var(--text3);font-size:11px">Sin archivo</span>'}
         </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Sin documentos registrados.</div>'}
+      <div id="doc-descarga-msg" style="font-size:11px;color:var(--text3);margin-top:10px"></div>
     </div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="verEmpleado('${e.id}')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Volver</button><button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
+    `<button class="btn btn-ghost btn-sm" onclick="verEmpleado('${e.id}')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Volver</button><button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>${certsConArchivo.length ? `<button class="btn btn-primary btn-sm" id="btn-descargar-docs" disabled onclick="ejecutarConCarga(this, descargarDocumentosSeleccionados)"><i class="ti ti-download" aria-hidden="true"></i> Descargar seleccionados (0)</button>` : ''}`);
 }
 
 function openNuevoTecnico() {
@@ -1810,6 +1819,65 @@ async function verAlertasCertificados() {
         </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Sin certificados por vencer.</div>'}
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
+}
+
+function toggleTodosDocs(master) {
+  document.querySelectorAll('.doc-check').forEach(cb => { cb.checked = master.checked; });
+  actualizarSeleccionDocs();
+}
+
+function actualizarSeleccionDocs() {
+  const marcados = document.querySelectorAll('.doc-check:checked');
+  const btn = document.getElementById('btn-descargar-docs');
+  if (btn) {
+    btn.disabled = marcados.length === 0;
+    btn.innerHTML = `<i class="ti ti-download" aria-hidden="true"></i> Descargar seleccionados (${marcados.length})`;
+  }
+  const todos = document.querySelectorAll('.doc-check');
+  const masterCb = document.getElementById('doc-check-all');
+  if (masterCb) masterCb.checked = todos.length > 0 && marcados.length === todos.length;
+}
+
+async function descargarDocumentosSeleccionados() {
+  const marcados = Array.from(document.querySelectorAll('.doc-check:checked'));
+  if (marcados.length === 0) return;
+  const msg = document.getElementById('doc-descarga-msg');
+  if (msg) msg.textContent = `Descargando ${marcados.length} archivo(s)...`;
+
+  const zip = new JSZip();
+  const usados = {};
+  let fallidos = 0;
+  for (const cb of marcados) {
+    const url = cb.dataset.url;
+    let nombre = cb.dataset.nombre || 'documento';
+    const ext = (url.split('.').pop() || 'pdf').split('?')[0];
+    if (!nombre.toLowerCase().endsWith('.'+ext.toLowerCase())) nombre += '.' + ext;
+    usados[nombre] = (usados[nombre]||0) + 1;
+    if (usados[nombre] > 1) nombre = nombre.replace(/(\.[^.]+)$/, ` (${usados[nombre]})$1`);
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error('fetch failed');
+      const blob = await resp.blob();
+      zip.file(nombre, blob);
+    } catch (err) {
+      fallidos++;
+    }
+  }
+
+  if (Object.keys(zip.files).length === 0) {
+    if (msg) msg.textContent = 'No se pudo descargar ningún archivo.';
+    return;
+  }
+
+  const contenido = await zip.generateAsync({ type: 'blob' });
+  const enlace = document.createElement('a');
+  enlace.href = URL.createObjectURL(contenido);
+  enlace.download = `documentos_${new Date().toISOString().split('T')[0]}.zip`;
+  document.body.appendChild(enlace);
+  enlace.click();
+  document.body.removeChild(enlace);
+
+  if (msg) msg.textContent = fallidos ? `Listo — ${fallidos} archivo(s) no se pudieron incluir.` : 'Descarga lista.';
 }
 
 function toggleVerArchivados() {
