@@ -159,6 +159,9 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .badge-proy{background:var(--red-bg);color:var(--red-text);border:1px solid var(--red-border)}
 .badge-mant{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
 .badge-pend{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+.panel-tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin:-4px 0 14px}
+.panel-tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:12px;font-weight:600;padding:10px 4px;margin-right:18px;cursor:pointer;text-transform:uppercase;letter-spacing:.03em}
+.panel-tab.active{color:var(--text);border-bottom-color:var(--red)}
 .badge-orange{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border)}
 .badge-gray{background:var(--gray-bg);color:var(--gray);border:1px solid var(--gray-border)}
 .badge-prog{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
@@ -1001,12 +1004,13 @@ async function eliminarEmpleadoConfirm(id) {
   renderEmpleados();
 }
 
-function verEmpleado(id) {
+function verEmpleado(id, tab) {
   const e = STATE.empleados.find(x=>x.id===id);
   if (!e) return;
-  openPanel(`${e.nombre} ${e.apellido}`, `
+  tab = tab || 'info';
+  const historial = e.historial_proyectos_real || [];
+  const contenidoInfo = `
     <div class="panel-section">
-      <div class="panel-section-title">INFORMACIÓN GENERAL</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
         <div><span style="color:var(--text3);font-size:10px">ID</span><div class="td-mono" style="margin-top:2px">${e.id}</div></div>
         <div><span style="color:var(--text3);font-size:10px">NIVEL</span><div style="margin-top:2px;color:var(--text)">${(e.seniority||'').replace('_',' ')}</div></div>
@@ -1017,7 +1021,24 @@ function verEmpleado(id) {
         <div><span style="color:var(--text3);font-size:10px">TELÉFONO</span><div style="margin-top:2px;color:var(--text)">${e.telefono||'—'}</div></div>
         <div><span style="color:var(--text3);font-size:10px">CORREO</span><div style="margin-top:2px;color:var(--text);word-break:break-all">${e.email_contacto||'—'}</div></div>
       </div>
-    </div>`, 
+    </div>`;
+  const contenidoHistorial = `
+    <div class="panel-section">
+      ${historial.length ? historial.map(h=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;cursor:pointer" onclick="verProyecto('${h.proyecto_id}')">
+          <div>
+            <div style="color:var(--text);font-weight:600">${h.nombre}</div>
+            <div style="color:var(--text3);font-size:11px">${h.cliente||'—'} · ${h.ciudad||'—'} · ${h.fecha_inicio||'—'} → ${h.fecha_fin_estimada||'—'}${h.fecha_fin_real?` (real: ${h.fecha_fin_real})`:''}</div>
+          </div>
+          ${badge(estadoProyectoVisible(h))}
+        </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Sin proyectos registrados en el sistema todavía.</div>'}
+    </div>`;
+  openPanel(`${e.nombre} ${e.apellido}`, `
+    <div class="panel-tabs">
+      <button class="panel-tab ${tab==='info'?'active':''}" onclick="verEmpleado('${e.id}','info')">Información general</button>
+      <button class="panel-tab ${tab==='historial'?'active':''}" onclick="verEmpleado('${e.id}','historial')">Historial de proyectos${historial.length?` (${historial.length})`:''}</button>
+    </div>
+    ${tab==='historial' ? contenidoHistorial : contenidoInfo}`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>
      <button class="btn btn-primary btn-sm" onclick="verDocumentosEmpleado('${e.id}')"><i class="ti ti-file-text" aria-hidden="true"></i> Ver documentos y habilidades</button>
      ${e.estado_perfil !== 'archivado' ? `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => archivarEmpleado('${e.id}'))"><i class="ti ti-archive" aria-hidden="true"></i> Archivar</button>` : `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => reactivarEmpleado('${e.id}'))"><i class="ti ti-archive-off" aria-hidden="true"></i> Reactivar</button>`}
@@ -1064,17 +1085,6 @@ function verDocumentosEmpleado(id) {
           ${c.ruta_pdf ? `<button class="btn btn-ghost btn-sm" onclick="abrirVisor('${c.ruta_pdf}','${c.nombre}')" style="padding:3px 10px;font-size:11px"><i class="ti ti-eye" aria-hidden="true"></i> Ver</button>` : '<span style="color:var(--text3);font-size:11px">Sin archivo</span>'}
         </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Sin documentos registrados.</div>'}
       <div id="doc-descarga-msg" style="font-size:11px;color:var(--text3);margin-top:10px"></div>
-    </div>
-    <div class="panel-section">
-      <div class="panel-section-title">HISTORIAL DE PROYECTOS</div>
-      ${(e.historial_proyectos_real||[]).length ? e.historial_proyectos_real.map(h=>`
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;cursor:pointer" onclick="verProyecto('${h.proyecto_id}')">
-          <div>
-            <div style="color:var(--text);font-weight:600">${h.nombre}</div>
-            <div style="color:var(--text3);font-size:11px">${h.cliente||'—'} · ${h.ciudad||'—'} · ${h.fecha_inicio||'—'} → ${h.fecha_fin_estimada||'—'}${h.fecha_fin_real?` (real: ${h.fecha_fin_real})`:''}</div>
-          </div>
-          ${badge(estadoProyectoVisible(h))}
-        </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Sin proyectos registrados en el sistema todavía.</div>'}
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="verEmpleado('${e.id}')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Volver</button><button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>${certsConArchivo.length ? `<button class="btn btn-primary btn-sm" id="btn-descargar-docs" disabled onclick="ejecutarConCarga(this, descargarDocumentosSeleccionados)"><i class="ti ti-download" aria-hidden="true"></i> Descargar seleccionados (0)</button>` : ''}`);
 }
