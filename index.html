@@ -1013,6 +1013,7 @@ function verDocumentosEmpleado(id) {
     return Object.assign({}, c, { vigenciaColor, vigenciaTexto });
   });
   const certsConArchivo = certs.filter(c=>c.ruta_pdf);
+  STATE._docEmpleadoActual = { nombre: e.nombre, apellido: e.apellido };
   openPanel(`Documentos — ${e.nombre} ${e.apellido}`, `
     <div class="panel-section">
       <div class="panel-section-title">HABILIDADES OPERATIVAS</div>
@@ -1844,6 +1845,11 @@ async function descargarDocumentosSeleccionados() {
   const msg = document.getElementById('doc-descarga-msg');
   if (msg) msg.textContent = `Descargando ${marcados.length} archivo(s)...`;
 
+  const emp = STATE._docEmpleadoActual || {};
+  const nombrePersonal = `${emp.nombre||''} ${emp.apellido||''}`.trim() || 'Empleado';
+  const fecha = new Date().toISOString().split('T')[0];
+  const carpeta = `${nombrePersonal}/Documentos`;
+
   const zip = new JSZip();
   const usados = {};
   let fallidos = 0;
@@ -1858,7 +1864,7 @@ async function descargarDocumentosSeleccionados() {
       const resp = await fetch(url);
       if (!resp.ok) throw new Error('fetch failed');
       const blob = await resp.blob();
-      zip.file(nombre, blob);
+      zip.file(`${carpeta}/${nombre}`, blob);
     } catch (err) {
       fallidos++;
     }
@@ -1872,7 +1878,7 @@ async function descargarDocumentosSeleccionados() {
   const contenido = await zip.generateAsync({ type: 'blob' });
   const enlace = document.createElement('a');
   enlace.href = URL.createObjectURL(contenido);
-  enlace.download = `documentos_${new Date().toISOString().split('T')[0]}.zip`;
+  enlace.download = `${nombrePersonal} - Documentos - ${fecha}.zip`;
   document.body.appendChild(enlace);
   enlace.click();
   document.body.removeChild(enlace);
