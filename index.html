@@ -1662,6 +1662,11 @@ function openNuevoProyecto() {
     <div class="panel-section">
       <div class="panel-section-title">UBICACIÓN</div>
       <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD</label><input class="field-input" id="np-ciudad" placeholder="Ciudad del proyecto"></div><div class="field-group"><label class="field-label">ESTADO</label><select class="field-select" id="np-estado"><option value="">Selecciona...</option>${ESTADOS_MX.map(e=>`<option value="${e}">${e}</option>`).join('')}</select></div></div>
+      <div class="field-row" style="margin-top:8px">
+        <div class="field-group"><label class="field-label">LATITUD (OPCIONAL)</label><input class="field-input" id="np-lat" type="number" step="any" placeholder="ej. 20.6736"></div>
+        <div class="field-group"><label class="field-label">LONGITUD (OPCIONAL)</label><input class="field-input" id="np-lon" type="number" step="any" placeholder="ej. -103.3440"></div>
+      </div>
+      <p style="font-size:11px;color:var(--text3);margin-top:6px">Si el sitio está retirado de la ciudad (línea de transmisión, parque eólico, etc.), pega aquí las coordenadas exactas de Google Maps — mantén presionado el punto en el mapa y copia el par de números que aparece. Si lo dejas vacío, se calcula automáticamente a partir de la ciudad.</p>
     </div>
     <div id="np-err" style="color:var(--red-text);font-size:12px;margin-top:8px"></div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, guardarNuevoProyecto)"><i class="ti ti-check" aria-hidden="true"></i> Crear proyecto</button>`);
@@ -1743,6 +1748,9 @@ async function guardarNuevoProyecto() {
   const personal = document.getElementById('np-personal')?.value;
   const ciudad   = document.getElementById('np-ciudad')?.value.trim();
   const estadoUb = document.getElementById('np-estado')?.value.trim();
+  const latManual = parseFloat(document.getElementById('np-lat')?.value);
+  const lonManual = parseFloat(document.getElementById('np-lon')?.value);
+  const coordsManualesValidas = !isNaN(latManual) && !isNaN(lonManual);
   const presup   = document.getElementById('np-presup')?.value;
   const err      = document.getElementById('np-err');
   if (!nombre || !inicio || !fin || !ciudad) { err.textContent = 'Nombre, fechas y ciudad son obligatorios.'; return; }
@@ -1758,7 +1766,8 @@ async function guardarNuevoProyecto() {
     personal_requerido: parseInt(personal)||1,
     presupuesto_viaticos: parseFloat(presup)||0,
     ciudad, estado_ub: estadoUb, pais: 'México',
-    latitud: 0, longitud: 0,
+    latitud: coordsManualesValidas ? latManual : 0,
+    longitud: coordsManualesValidas ? lonManual : 0,
     habilidades_requeridas, certificados_requeridos, equipo_requerido, no_requiere_equipo
   });
   if (r) {
