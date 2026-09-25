@@ -1650,8 +1650,9 @@ async function renderGantt() {
   await loadEmpleados(); await loadProyectos();
   const today = new Date();
   const dias = 30;
-  const cols = Array.from({length:dias}, (_,i) => { const d = new Date(today); d.setDate(d.getDate()-7+i); return d; });
+  const cols = Array.from({length:dias}, (_,i) => { const d = new Date(today); d.setDate(d.getDate()-7+i); d.setHours(0,0,0,0); return d; });
   const hoy = today.toDateString();
+  const hoy00 = new Date(today); hoy00.setHours(0,0,0,0);
   const horaHoyPct = ((today.getHours()*60+today.getMinutes())/1440*100).toFixed(1);
   html(`
     <div class="table-section">
@@ -1670,7 +1671,7 @@ async function renderGantt() {
                 const isWknd = d.getDay()===0||d.getDay()===6;
                 const pry = STATE.proyectos.find(p => (p.tecnicos_asignados||[]).includes(e.id) && p.fecha_inicio && p.fecha_fin_estimada && fechaLocal(p.fecha_inicio)<=d && fechaLocal(p.fecha_fin_estimada)>=d);
                 let cls = isHoy ? 'gantt-cell today' : isWknd ? 'gantt-cell weekend' : 'gantt-cell';
-                if (pry) cls += d < today ? ' past' : ' occupied';
+                if (pry) cls += d < hoy00 ? ' past' : ' occupied';
                 const tip = pry ? `${pry.nombre}${pry.cliente?' · '+pry.cliente:''} (${pry.fecha_inicio} → ${pry.fecha_fin_estimada})`.replace(/"/g,'&quot;') : '';
                 const estilos = [pry ? 'cursor:pointer' : '', isHoy ? `--hoy-pos:${horaHoyPct}%` : ''].filter(Boolean).join(';');
                 const click = pry ? ` onclick="verProyecto('${pry.id}')"` : '';
@@ -2569,7 +2570,8 @@ async function renderMiGantt() {
   const pry = STATE.proyectos.filter(p => (p.tecnicos_asignados||[]).includes(empId));
   const today = new Date();
   const dias = 30;
-  const cols = Array.from({length:dias}, (_,i) => { const d = new Date(today); d.setDate(d.getDate()-7+i); return d; });
+  const cols = Array.from({length:dias}, (_,i) => { const d = new Date(today); d.setDate(d.getDate()-7+i); d.setHours(0,0,0,0); return d; });
+  const hoy00 = new Date(today); hoy00.setHours(0,0,0,0);
   const horaHoyPct = ((today.getHours()*60+today.getMinutes())/1440*100).toFixed(1);
   html(`
     <div class="table-section">
@@ -2591,7 +2593,7 @@ async function renderMiGantt() {
                 const isHoy = d.toDateString()===today.toDateString();
                 const isWknd = d.getDay()===0||d.getDay()===6;
                 let cls = isHoy?'gantt-cell today':isWknd?'gantt-cell weekend':'gantt-cell';
-                if (inRange) cls += d < today ? ' past' : ' occupied';
+                if (inRange) cls += d < hoy00 ? ' past' : ' occupied';
                 return `<td class="${cls}"${isHoy?` style="--hoy-pos:${horaHoyPct}%"`:''}></td>`;
               }).join('')}
             </tr>`).join('')}
