@@ -438,6 +438,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
   <div class="panel-side" id="panel-side">
     <div class="panel-head">
       <span class="panel-title" id="panel-title">Panel</span>
+      <span id="panel-header-actions" style="display:flex;align-items:center;gap:8px;margin-left:auto;margin-right:10px"></span>
       <button class="btn-icon" onclick="closePanel(null,true)" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button>
     </div>
     <div id="panel-body" class="panel-body"></div>
@@ -920,11 +921,13 @@ function _confirmarSalidaPanel() {
   if (continuar) STATE._panelDirty = false;
   return continuar;
 }
-function openPanel(title, bodyHtml, footerHtml) {
+function openPanel(title, bodyHtml, footerHtml, headerHtml) {
   if (!_confirmarSalidaPanel()) return;
   document.getElementById('panel-title').textContent = title;
   document.getElementById('panel-body').innerHTML = bodyHtml;
   document.getElementById('panel-footer').innerHTML = footerHtml || '';
+  document.getElementById('panel-footer').style.display = footerHtml ? 'flex' : 'none';
+  document.getElementById('panel-header-actions').innerHTML = headerHtml || '';
   document.getElementById('panel-overlay').classList.add('open');
   STATE._panelDirty = false;
 }
@@ -1340,10 +1343,7 @@ async function verProyecto(id) {
   await loadEquipos();
   const equiposAsignados = (p.equipo_asignado_ids||[]).map(eid => STATE.equipos.find(e=>e.id===eid)).filter(Boolean);
   const dispEquipo = p.no_requiere_equipo ? null : await api('GET', `/proyectos/proyectos/${id}/disponibilidad-equipo`);
-  let footerBtns = `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`;
-  if (STATE.rol !== 'tecnico') {
-    footerBtns += `<button class="btn btn-ghost btn-sm" onclick="exportarGanttProyectoPDF('${p.id}')"><i class="ti ti-file-download" aria-hidden="true"></i> Generar Gantt (PDF)</button>`;
-  }
+  let footerBtns = '';
   if (p.estado !== 'cancelado' && p.estado !== 'completado') {
     if (p.estado === 'pausado') {
       footerBtns += `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => cambiarEstadoProyecto('${p.id}','${idsAsignados.length>=(p.personal_requerido||1)?'asignado':'pendiente_asignacion'}'))"><i class="ti ti-player-play" aria-hidden="true"></i> Reanudar</button>`;
@@ -1466,7 +1466,8 @@ async function verProyecto(id) {
         <button class="btn btn-ghost btn-sm" style="margin-top:10px;margin-left:8px" onclick="toggleEditarRequisitos('${p.id}')"><i class="ti ${editando?'ti-eye-off':'ti-pencil'}" aria-hidden="true"></i> ${editando?'Ocultar edición':'Editar requisitos'}</button>
       `}
     </div>`,
-    footerBtns);
+    footerBtns,
+    STATE.rol !== 'tecnico' ? `<button class="btn btn-ghost btn-sm" onclick="exportarGanttProyectoPDF('${p.id}')" title="Generar Gantt en PDF"><i class="ti ti-file-download" aria-hidden="true"></i> PDF</button>` : '');
 }
 
 function toggleEditarRequisitos(proyectoId) {
