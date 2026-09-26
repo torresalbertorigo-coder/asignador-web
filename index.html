@@ -1903,9 +1903,15 @@ async function exportarGanttPDF() {
   const today = new Date();
   const dias = 30;
   const cols = Array.from({length:dias}, (_,i) => { const d = new Date(today); d.setDate(d.getDate()-7+i); d.setHours(0,0,0,0); return d; });
-  const hoy00 = new Date(today); hoy00.setHours(0,0,0,0);
   const diaLetra = ['D','L','M','X','J','V','S'];
-  const coloresProyecto = { en_progreso:[193,18,31], asignado:[34,197,94], en_preparacion:[245,158,11], pausado:[249,115,22], cancelado:[156,163,175], completado:[59,130,246], pendiente_asignacion:[229,229,232] };
+  const secciones = [
+    { key: 'asignado', label: 'ASIGNADO', color: [34,197,94] },
+    { key: 'en_preparacion', label: 'EN PREPARATIVOS', color: [245,158,11] },
+    { key: 'pausado', label: 'PAUSADO', color: [249,115,22] },
+    { key: 'cancelado', label: 'CANCELADO', color: [156,163,175] },
+    { key: 'completado', label: 'COMPLETADO', color: [59,130,246] },
+  ];
+  const coloresProyecto = Object.fromEntries(secciones.map(s=>[s.key,s.color]));
 
   doc.setFontSize(14);
   doc.setFont(undefined, 'bold');
@@ -1916,26 +1922,28 @@ async function exportarGanttPDF() {
 
   // Matriz de color y de "a quién pertenece" por celda, calculada de antemano
   const matrizColor = [];
-  const matrizProyecto = [];
+  const asignacionesPorSeccion = Object.fromEntries(secciones.map(s=>[s.key, []]));
+  const vistos = new Set();
   STATE.empleados.forEach(e => {
-    const filaColor = [], filaPry = [];
+    const filaColor = [];
     cols.forEach(d => {
       const isWknd = d.getDay()===0||d.getDay()===6;
       const pry = STATE.proyectos.find(p => (p.tecnicos_asignados||[]).includes(e.id) && p.fecha_inicio && p.fecha_fin_estimada && fechaLocal(p.fecha_inicio)<=d && fechaLocal(p.fecha_fin_estimada)>=d);
       if (pry) {
         const estadoVis = estadoProyectoVisible(pry);
         filaColor.push(coloresProyecto[estadoVis] || [156,163,175]);
-        filaPry.push(pry.nombre);
+        const clave = `${e.id}-${pry.id}`;
+        if (!vistos.has(clave) && asignacionesPorSeccion[estadoVis]) {
+          vistos.add(clave);
+          asignacionesPorSeccion[estadoVis].push(`${e.nombre} ${e.apellido} — ${pry.nombre} (${pry.fecha_inicio} → ${pry.fecha_fin_estimada})`);
+        }
       } else if (isWknd) {
         filaColor.push([243,244,246]);
-        filaPry.push(null);
       } else {
         filaColor.push([255,255,255]);
-        filaPry.push(null);
       }
     });
     matrizColor.push(filaColor);
-    matrizProyecto.push(filaPry);
   });
 
   const head = [['TÉCNICO', ...cols.map(d => `${d.getDate()}\n${diaLetra[d.getDay()]}`)]];
@@ -1950,46 +1958,47 @@ async function exportarGanttPDF() {
     columnStyles: { 0: { halign: 'left', cellWidth: 38, fontSize: 7 } },
     didParseCell: (data) => {
       if (data.section === 'body' && data.column.index > 0) {
-        const filaEmp = data.row.index;
-        const colDia = data.column.index - 1;
-        const color = matrizColor[filaEmp]?.[colDia];
+        const color = matrizColor[data.row.index]?.[data.column.index - 1];
         if (color) data.cell.styles.fillColor = color;
-        if (cols[colDia] && cols[colDia].toDateString() === today.toDateString()) {
-          data.cell.styles.lineColor = [193,18,31];
-          data.cell.styles.lineWidth = 0.4;
-        }
       }
     }
   });
 
-  // Leyenda: qué proyecto tiene cada técnico dentro de esta ventana de 30 días
+  // Leyenda adaptable: solo las secciones que realmente tienen algo, en 2 columnas
   let y = doc.lastAutoTable.finalY + 8;
-  doc.setFontSize(10);
+  if (y > 180) { doc.addPage(); y = 15; }
+  doc.setFontSize(11);
   doc.setFont(undefined, 'bold');
-  if (y > 190) { doc.addPage(); y = 15; }
   doc.text('Asignaciones dentro de este periodo', 10, y);
-  y += 6;
-  doc.setFontSize(8);
-  doc.setFont(undefined, 'normal');
-  STATE.empleados.forEach((e, i) => {
-    const proyectosUnicos = [...new Set(matrizProyecto[i].filter(Boolean))];
-    if (!proyectosUnicos.length) return;
-    if (y > 195) { doc.addPage(); y = 15; }
-    const detalle = proyectosUnicos.map(nombrePry => {
-      const p = STATE.proyectos.find(x => x.nombre === nombrePry);
-      return p ? `${nombrePry} (${p.fecha_inicio} → ${p.fecha_fin_estimada})` : nombrePry;
-    }).join('; ');
+  y += 7;
+
+  const seccionesConDatos = secciones.filter(s => asignacionesPorSeccion[s.key].length);
+  const colX = [10, 145];
+  const colY = [y, y];
+  seccionesConDatos.forEach((s, idx) => {
+    const col = idx % 2;
+    if (colY[col] > 195) { doc.addPage(); colY[0] = 15; colY[1] = 15; }
+    doc.setFillColor(...s.color);
+    doc.rect(colX[col], colY[col]-3, 3, 3, 'F');
+    doc.setFontSize(9);
     doc.setFont(undefined, 'bold');
-    doc.text(`${e.nombre} ${e.apellido}:`, 10, y);
+    doc.setTextColor(0);
+    doc.text(s.label, colX[col]+5, colY[col]);
+    colY[col] += 5;
+    doc.setFontSize(7.5);
     doc.setFont(undefined, 'normal');
-    const wrapped = doc.splitTextToSize(detalle, 240);
-    doc.text(wrapped, 55, y);
-    y += wrapped.length * 4.5 + 2;
+    asignacionesPorSeccion[s.key].forEach(linea => {
+      const wrapped = doc.splitTextToSize(linea, 128);
+      doc.text(wrapped, colX[col], colY[col]);
+      colY[col] += wrapped.length * 4;
+    });
+    colY[col] += 4;
   });
 
   doc.setFontSize(7);
   doc.setTextColor(120);
-  doc.text('Rojo = en progreso · Verde = asignado · Ámbar = en preparativos · Naranja = pausado · Gris = cancelado · Azul = completado', 10, 200);
+  const leyendaColores = seccionesConDatos.map(s => `${['Verde','Ámbar','Naranja','Gris','Azul'][secciones.indexOf(s)]} = ${s.label.toLowerCase()}`).join(' · ');
+  if (leyendaColores) doc.text(leyendaColores, 10, 285);
 
   doc.save(`Gantt General - ${today.toISOString().split('T')[0]}.pdf`);
 }
@@ -2015,7 +2024,6 @@ async function exportarGanttProyectoPDF(proyectoId) {
   if (!p) { toast('No se encontró el proyecto','error'); return; }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
-  const anchoPagina = 216;
   let y = 18;
 
   doc.setFontSize(9);
@@ -2034,25 +2042,42 @@ async function exportarGanttProyectoPDF(proyectoId) {
   doc.setTextColor(0);
   y += 12;
 
-  // Línea de tiempo simple
+  // Calendario visual del rango del proyecto (estimado)
   const inicio = fechaLocal(p.fecha_inicio);
   const fin = fechaLocal(p.fecha_fin_estimada);
   const duracionDias = Math.max(1, Math.round((fin - inicio) / 86400000) + 1);
+  const diaLetra = ['D','L','M','X','J','V','S'];
+  const diasProyecto = Array.from({length: duracionDias}, (_,i) => { const d = new Date(inicio); d.setDate(d.getDate()+i); return d; });
+
   doc.setFontSize(9);
   doc.setFont(undefined, 'bold');
-  doc.text('LÍNEA DE TIEMPO ESTIMADA', 14, y);
-  y += 6;
-  const barraX = 14, barraAncho = anchoPagina - 28, barraAlto = 8;
-  doc.setFillColor(193,18,31);
-  doc.roundedRect(barraX, y, barraAncho, barraAlto, 1, 1, 'F');
-  doc.setFontSize(8);
-  doc.setFont(undefined, 'normal');
-  doc.setTextColor(255);
-  doc.text(`${p.fecha_inicio}`, barraX+3, y+5.5);
-  doc.text(`${p.fecha_fin_estimada}`, barraX+barraAncho-3, y+5.5, { align: 'right' });
-  doc.setTextColor(0);
-  y += barraAlto + 6;
+  doc.text('CALENDARIO ESTIMADO', 14, y);
+  y += 5;
+
+  if (duracionDias > 60) {
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(9);
+    doc.text(`Del ${p.fecha_inicio} al ${p.fecha_fin_estimada} (${duracionDias} días — proyecto de larga duración, ver calendario detallado con el equipo del proyecto).`, 14, y);
+    y += 8;
+  } else {
+  const porFila = 15;
+  for (let inicioFila = 0; inicioFila < diasProyecto.length; inicioFila += porFila) {
+    const filaDias = diasProyecto.slice(inicioFila, inicioFila + porFila);
+    doc.autoTable({
+      startY: y,
+      margin: { left: 14 },
+      body: [filaDias.map(d => `${d.getDate()}\n${diaLetra[d.getDay()]}`)],
+      theme: 'grid',
+      styles: { fontSize: 7, cellPadding: 1.5, halign: 'center', fillColor: [193,18,31], textColor: 255, lineColor: [255,255,255], lineWidth: 0.3, cellWidth: 12 },
+      tableWidth: filaDias.length * 12,
+    });
+    y = doc.lastAutoTable.finalY + (inicioFila + porFila < diasProyecto.length ? 3 : 0);
+  }
+  y += 8;
+  }
+
   doc.setFontSize(8.5);
+  doc.setTextColor(0);
   doc.text(`Duración estimada: ${duracionDias} día(s)`, 14, y);
   if (p.fecha_inicio_real || p.fecha_fin_real) {
     y += 5;
@@ -2060,7 +2085,7 @@ async function exportarGanttProyectoPDF(proyectoId) {
   }
   y += 10;
 
-  // Detalles del proyecto
+  // Detalles del proyecto (solo lo relevante para el cliente)
   doc.setFontSize(9);
   doc.setFont(undefined, 'bold');
   doc.text('DETALLES DEL PROYECTO', 14, y);
@@ -2068,9 +2093,8 @@ async function exportarGanttProyectoPDF(proyectoId) {
   doc.setFont(undefined, 'normal');
   doc.setFontSize(9);
   const detalles = [
-    ['Criticidad', (p.criticidad||'—').replace('tipo_','Tipo ').toUpperCase()],
-    ['Intensidad', (p.intensidad||'—')],
     ['Personal requerido', `${(p.tecnicos_asignados||[]).length} / ${p.personal_requerido||1}`],
+    ['Equipo requerido', p.no_requiere_equipo ? 'Sin equipo requerido' : 'Sí'],
   ];
   detalles.forEach(([etiqueta, valor]) => {
     doc.setTextColor(120); doc.text(etiqueta, 14, y);
@@ -2088,7 +2112,7 @@ async function exportarGanttProyectoPDF(proyectoId) {
   doc.setFont(undefined, 'normal');
   if (personal.length) {
     personal.forEach(e => {
-      doc.text(`•  ${e.nombre} ${e.apellido} — ${(e.seniority||'').replace('_',' ')}`, 16, y);
+      doc.text(`•  ${e.nombre} ${e.apellido}`, 16, y);
       y += 5.5;
     });
   } else {
