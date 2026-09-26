@@ -2440,7 +2440,7 @@ async function renderIncidencias() {
     <div class="table-section">
       <div class="table-header"><span class="table-title">INCIDENCIAS DE CAMPO</span></div>
       ${inc.map(i=>`<div class="inc-card ${i.severidad}" style="${i.estado==='resuelta'?'opacity:.55':''}">
-        <div class="inc-head"><span class="inc-tipo">${i.tipo||'Incidencia'}</span><div style="display:flex;gap:6px;align-items:center">${i.estado==='resuelta'?badge('completado'):badge(i.severidad||'baja')}${STATE.rol!=='tecnico' && i.estado!=='resuelta' ? `<button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px" onclick="ejecutarConCarga(this, () => marcarIncidenciaResuelta('${i.id}'))">Marcar resuelta</button>` : ''}</div></div>
+        <div class="inc-head"><span class="inc-tipo">${i.tipo||'Incidencia'}</span><div style="display:flex;gap:6px;align-items:center">${i.estado==='resuelta'?badge('completado'):badge(i.severidad||'baja')}${STATE.rol!=='tecnico' && i.estado!=='resuelta' ? `<button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px" onclick="ejecutarConCarga(this, () => marcarIncidenciaResuelta('${i.id}'))">Marcar resuelta</button>` : ''}${STATE.rol!=='tecnico' ? `<button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px;color:var(--red-text)" onclick="eliminarIncidenciaConfirm('${i.id}')"><i class="ti ti-trash" aria-hidden="true"></i></button>` : ''}</div></div>
         <div class="inc-meta"><i class="ti ti-folder" aria-hidden="true"></i> ${nombreProyecto(i.proyecto_id)} · <i class="ti ti-user" aria-hidden="true"></i> ${nombreEmpleado(i.empleado_id)} · <i class="ti ti-calendar" aria-hidden="true"></i> ${(i.fecha||'').split('T')[0]}</div>
         <div class="inc-desc">${i.descripcion}</div>
       </div>`).join('')}
@@ -2451,6 +2451,14 @@ async function marcarIncidenciaResuelta(id) {
   const r = await api('PUT', `/incidencias/${id}/estado`, { estado: 'resuelta' });
   if (!r) { toast('Error al actualizar','error'); return; }
   toast('Incidencia marcada como resuelta');
+  renderIncidencias();
+}
+
+async function eliminarIncidenciaConfirm(id) {
+  if (!confirm('¿Eliminar este reporte de incidencia? No se puede deshacer.')) return;
+  const r = await fetch(`${API}/incidencias/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${STATE.token}` } });
+  if (!r.ok) { toast('Error al eliminar','error'); return; }
+  toast('Incidencia eliminada');
   renderIncidencias();
 }
 
@@ -2757,6 +2765,11 @@ function verProyectoTecnico(id) {
 let clockInterval;
 async function renderChecador() {
   if (clockInterval) clearInterval(clockInterval);
+  await loadProyectos();
+  const empId = STATE.user?.empleado_id;
+  const misProyectos = STATE.proyectos.filter(p => (p.tecnicos_asignados||[]).includes(empId));
+  const miEmpleado = STATE.empleados.find(e=>e.id===empId);
+  const proyectoActual = miEmpleado?.id_proyecto_actual;
   const [historial, faltantes] = await Promise.all([
     api('GET', '/checador/mis-checadas') || [],
     api('GET', '/checador/dias-faltantes') || []
@@ -2773,6 +2786,13 @@ async function renderChecador() {
       <div id="check-time" class="check-time">--:--:--</div>
       <div class="check-date" id="check-date">${new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
       <div class="field-group" style="max-width:260px;margin:14px auto 0">
+        <label class="field-label">PROYECTO</label>
+        <select class="field-select" id="chk-proyecto">
+          <option value="">Sin proyecto específico</option>
+          ${misProyectos.map(p=>`<option value="${p.id}" ${p.id===proyectoActual?'selected':''}>${p.nombre}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field-group" style="max-width:260px;margin:10px auto 0">
         <label class="field-label">FECHA Y HORA A REGISTRAR</label>
         <input type="datetime-local" class="field-input" id="chk-fecha-hora" value="${ahoraLocal}">
       </div>
@@ -2799,16 +2819,18 @@ async function renderChecador() {
 
 async function marcarEntrada() {
   const fechaHora = document.getElementById('chk-fecha-hora')?.value;
+  const proyectoId = document.getElementById('chk-proyecto')?.value || null;
   if (!fechaHora) { toast('Elige la fecha y hora','error'); return; }
-  const r = await api('POST', '/checador', { tipo: 'entrada', fecha_hora: fechaHora });
+  const r = await api('POST', '/checador', { tipo: 'entrada', fecha_hora: fechaHora, proyecto_id: proyectoId });
   if (!r) { toast('Error al registrar la entrada','error'); return; }
   toast('Entrada registrada');
   renderChecador();
 }
 async function marcarSalida() {
   const fechaHora = document.getElementById('chk-fecha-hora')?.value;
+  const proyectoId = document.getElementById('chk-proyecto')?.value || null;
   if (!fechaHora) { toast('Elige la fecha y hora','error'); return; }
-  const r = await api('POST', '/checador', { tipo: 'salida', fecha_hora: fechaHora });
+  const r = await api('POST', '/checador', { tipo: 'salida', fecha_hora: fechaHora, proyecto_id: proyectoId });
   if (!r) { toast('Error al registrar la salida','error'); return; }
   toast('Salida registrada');
   renderChecador();
