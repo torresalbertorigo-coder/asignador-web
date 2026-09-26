@@ -2496,7 +2496,7 @@ function actualizarMapa() {
       const anillo = L.circleMarker([lat, lon], { radius: 5, className: 'marker-pulso', color: 'transparent', weight: 0, fillColor: colorEq, fillOpacity: .6, interactive: false }).addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(anillo);
       const m = L.circleMarker([lat, lon], { radius: 5, className: 'marker-suave', color: '#fff', weight: 1.5, fillColor: colorEq, fillOpacity: 0.9 })
-        .bindPopup(`<strong>${eq.nombre}</strong><br>${enSitio?'En sitio: '+eq.proyecto_actual_nombre:(eq.ciudad_actual||'Sin ubicación asignada')}`)
+        .bindPopup(`<strong>${eq.nombre}</strong>${eq.apodo?`<br><em>${eq.apodo}</em>`:''}<br>${enSitio?'En sitio: '+eq.proyecto_actual_nombre:(eq.ciudad_actual||'Sin ubicación asignada')}`)
         .addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(m); n++;
     });
