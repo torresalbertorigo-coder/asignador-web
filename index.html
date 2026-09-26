@@ -10,6 +10,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -785,7 +786,7 @@ async function abrirCalendarioMensual(empId, nombre, offsetMeses) {
       </div>
       <div style="margin-top:10px;font-size:11px;color:var(--text3)"><span style="color:var(--red-text)">●</span> Días con proyecto asignado — toca un día para ver el detalle del proyecto.</div>
     </div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>${puedeExportar?`<button class="btn btn-primary btn-sm" onclick="exportarGanttPDF('cal-export-area','Calendario - ${nombre.replace(/[\\/:*?"<>|]/g,'-')} - ${mesLabel}')"><i class="ti ti-file-download" aria-hidden="true"></i> Exportar PDF</button>`:''}`);
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>${puedeExportar?`<button class="btn btn-primary btn-sm" onclick="exportarCalendarioEmpleadoPDF('cal-export-area','Calendario - ${nombre.replace(/[\\/:*?"<>|]/g,'-')} - ${mesLabel}')"><i class="ti ti-file-download" aria-hidden="true"></i> Exportar PDF</button>`:''}`);
 }
 
 async function loadEmpleados(forzar) {
@@ -1340,6 +1341,9 @@ async function verProyecto(id) {
   const equiposAsignados = (p.equipo_asignado_ids||[]).map(eid => STATE.equipos.find(e=>e.id===eid)).filter(Boolean);
   const dispEquipo = p.no_requiere_equipo ? null : await api('GET', `/proyectos/proyectos/${id}/disponibilidad-equipo`);
   let footerBtns = `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`;
+  if (STATE.rol !== 'tecnico') {
+    footerBtns += `<button class="btn btn-ghost btn-sm" onclick="exportarGanttProyectoPDF('${p.id}')"><i class="ti ti-file-download" aria-hidden="true"></i> Generar Gantt (PDF)</button>`;
+  }
   if (p.estado !== 'cancelado' && p.estado !== 'completado') {
     if (p.estado === 'pausado') {
       footerBtns += `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => cambiarEstadoProyecto('${p.id}','${idsAsignados.length>=(p.personal_requerido||1)?'asignado':'pendiente_asignacion'}'))"><i class="ti ti-player-play" aria-hidden="true"></i> Reanudar</button>`;
@@ -1892,9 +1896,105 @@ async function renderGantt() {
     </div>`);
 }
 
-async function exportarGanttPDF(elementId, nombreArchivo) {
-  elementId = elementId || 'gantt-export-area';
-  nombreArchivo = nombreArchivo || `Gantt General - ${new Date().toISOString().split('T')[0]}`;
+async function exportarGanttPDF() {
+  await loadEmpleados(); await loadProyectos();
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
+  const today = new Date();
+  const dias = 30;
+  const cols = Array.from({length:dias}, (_,i) => { const d = new Date(today); d.setDate(d.getDate()-7+i); d.setHours(0,0,0,0); return d; });
+  const hoy00 = new Date(today); hoy00.setHours(0,0,0,0);
+  const diaLetra = ['D','L','M','X','J','V','S'];
+  const coloresProyecto = { en_progreso:[193,18,31], asignado:[34,197,94], en_preparacion:[245,158,11], pausado:[249,115,22], cancelado:[156,163,175], completado:[59,130,246], pendiente_asignacion:[229,229,232] };
+
+  doc.setFontSize(14);
+  doc.setFont(undefined, 'bold');
+  doc.text('Calendario de Disponibilidad — 30 días', 10, 12);
+  doc.setFontSize(9);
+  doc.setFont(undefined, 'normal');
+  doc.text(`Generado el ${today.toLocaleString('es-MX')}`, 10, 18);
+
+  // Matriz de color y de "a quién pertenece" por celda, calculada de antemano
+  const matrizColor = [];
+  const matrizProyecto = [];
+  STATE.empleados.forEach(e => {
+    const filaColor = [], filaPry = [];
+    cols.forEach(d => {
+      const isWknd = d.getDay()===0||d.getDay()===6;
+      const pry = STATE.proyectos.find(p => (p.tecnicos_asignados||[]).includes(e.id) && p.fecha_inicio && p.fecha_fin_estimada && fechaLocal(p.fecha_inicio)<=d && fechaLocal(p.fecha_fin_estimada)>=d);
+      if (pry) {
+        const estadoVis = estadoProyectoVisible(pry);
+        filaColor.push(coloresProyecto[estadoVis] || [156,163,175]);
+        filaPry.push(pry.nombre);
+      } else if (isWknd) {
+        filaColor.push([243,244,246]);
+        filaPry.push(null);
+      } else {
+        filaColor.push([255,255,255]);
+        filaPry.push(null);
+      }
+    });
+    matrizColor.push(filaColor);
+    matrizProyecto.push(filaPry);
+  });
+
+  const head = [['TÉCNICO', ...cols.map(d => `${d.getDate()}\n${diaLetra[d.getDay()]}`)]];
+  const body = STATE.empleados.map(e => [`${e.nombre} ${e.apellido}`, ...cols.map(()=>'')]);
+
+  doc.autoTable({
+    startY: 22,
+    head, body,
+    theme: 'grid',
+    styles: { fontSize: 6, cellPadding: 1, halign: 'center', lineColor: [220,220,220], lineWidth: 0.1 },
+    headStyles: { fillColor: [30,30,33], textColor: 255, fontSize: 6 },
+    columnStyles: { 0: { halign: 'left', cellWidth: 38, fontSize: 7 } },
+    didParseCell: (data) => {
+      if (data.section === 'body' && data.column.index > 0) {
+        const filaEmp = data.row.index;
+        const colDia = data.column.index - 1;
+        const color = matrizColor[filaEmp]?.[colDia];
+        if (color) data.cell.styles.fillColor = color;
+        if (cols[colDia] && cols[colDia].toDateString() === today.toDateString()) {
+          data.cell.styles.lineColor = [193,18,31];
+          data.cell.styles.lineWidth = 0.4;
+        }
+      }
+    }
+  });
+
+  // Leyenda: qué proyecto tiene cada técnico dentro de esta ventana de 30 días
+  let y = doc.lastAutoTable.finalY + 8;
+  doc.setFontSize(10);
+  doc.setFont(undefined, 'bold');
+  if (y > 190) { doc.addPage(); y = 15; }
+  doc.text('Asignaciones dentro de este periodo', 10, y);
+  y += 6;
+  doc.setFontSize(8);
+  doc.setFont(undefined, 'normal');
+  STATE.empleados.forEach((e, i) => {
+    const proyectosUnicos = [...new Set(matrizProyecto[i].filter(Boolean))];
+    if (!proyectosUnicos.length) return;
+    if (y > 195) { doc.addPage(); y = 15; }
+    const detalle = proyectosUnicos.map(nombrePry => {
+      const p = STATE.proyectos.find(x => x.nombre === nombrePry);
+      return p ? `${nombrePry} (${p.fecha_inicio} → ${p.fecha_fin_estimada})` : nombrePry;
+    }).join('; ');
+    doc.setFont(undefined, 'bold');
+    doc.text(`${e.nombre} ${e.apellido}:`, 10, y);
+    doc.setFont(undefined, 'normal');
+    const wrapped = doc.splitTextToSize(detalle, 240);
+    doc.text(wrapped, 55, y);
+    y += wrapped.length * 4.5 + 2;
+  });
+
+  doc.setFontSize(7);
+  doc.setTextColor(120);
+  doc.text('Rojo = en progreso · Verde = asignado · Ámbar = en preparativos · Naranja = pausado · Gris = cancelado · Azul = completado', 10, 200);
+
+  doc.save(`Gantt General - ${today.toISOString().split('T')[0]}.pdf`);
+}
+
+async function exportarCalendarioEmpleadoPDF(elementId, nombreArchivo) {
   const elemento = document.getElementById(elementId);
   if (!elemento || typeof html2canvas === 'undefined') { toast('No se pudo generar el PDF','error'); return; }
   toast('Generando PDF, un momento...');
@@ -1902,11 +2002,123 @@ async function exportarGanttPDF(elementId, nombreArchivo) {
   const canvas = await html2canvas(elemento, { backgroundColor: fondo, scale: 2 });
   const imgData = canvas.toDataURL('image/png');
   const { jsPDF } = window.jspdf;
-  const anchoMM = 297;
-  const altoMM = anchoMM * canvas.height / canvas.width;
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [anchoMM, altoMM] });
-  doc.addImage(imgData, 'PNG', 0, 0, anchoMM, altoMM);
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+  const anchoDisponible = 190;
+  const altoMM = anchoDisponible * canvas.height / canvas.width;
+  doc.addImage(imgData, 'PNG', 10, 15, anchoDisponible, altoMM);
   doc.save(`${nombreArchivo}.pdf`);
+}
+
+async function exportarGanttProyectoPDF(proyectoId) {
+  await loadEmpleados(); await loadEquipos();
+  const p = STATE.proyectos.find(x=>x.id===proyectoId);
+  if (!p) { toast('No se encontró el proyecto','error'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+  const anchoPagina = 216;
+  let y = 18;
+
+  doc.setFontSize(9);
+  doc.setTextColor(150);
+  doc.text('WALROSS · ASIGNADOR INTELIGENTE', 14, y);
+  y += 9;
+  doc.setTextColor(0);
+  doc.setFontSize(17);
+  doc.setFont(undefined, 'bold');
+  doc.text(p.nombre, 14, y);
+  y += 7;
+  doc.setFontSize(10);
+  doc.setFont(undefined, 'normal');
+  doc.setTextColor(90);
+  doc.text(`${p.cliente||'—'}  ·  ${p.ciudad||'—'}`, 14, y);
+  doc.setTextColor(0);
+  y += 12;
+
+  // Línea de tiempo simple
+  const inicio = fechaLocal(p.fecha_inicio);
+  const fin = fechaLocal(p.fecha_fin_estimada);
+  const duracionDias = Math.max(1, Math.round((fin - inicio) / 86400000) + 1);
+  doc.setFontSize(9);
+  doc.setFont(undefined, 'bold');
+  doc.text('LÍNEA DE TIEMPO ESTIMADA', 14, y);
+  y += 6;
+  const barraX = 14, barraAncho = anchoPagina - 28, barraAlto = 8;
+  doc.setFillColor(193,18,31);
+  doc.roundedRect(barraX, y, barraAncho, barraAlto, 1, 1, 'F');
+  doc.setFontSize(8);
+  doc.setFont(undefined, 'normal');
+  doc.setTextColor(255);
+  doc.text(`${p.fecha_inicio}`, barraX+3, y+5.5);
+  doc.text(`${p.fecha_fin_estimada}`, barraX+barraAncho-3, y+5.5, { align: 'right' });
+  doc.setTextColor(0);
+  y += barraAlto + 6;
+  doc.setFontSize(8.5);
+  doc.text(`Duración estimada: ${duracionDias} día(s)`, 14, y);
+  if (p.fecha_inicio_real || p.fecha_fin_real) {
+    y += 5;
+    doc.text(`Fechas reales: ${p.fecha_inicio_real||'—'} → ${p.fecha_fin_real||'en curso'}`, 14, y);
+  }
+  y += 10;
+
+  // Detalles del proyecto
+  doc.setFontSize(9);
+  doc.setFont(undefined, 'bold');
+  doc.text('DETALLES DEL PROYECTO', 14, y);
+  y += 6;
+  doc.setFont(undefined, 'normal');
+  doc.setFontSize(9);
+  const detalles = [
+    ['Criticidad', (p.criticidad||'—').replace('tipo_','Tipo ').toUpperCase()],
+    ['Intensidad', (p.intensidad||'—')],
+    ['Personal requerido', `${(p.tecnicos_asignados||[]).length} / ${p.personal_requerido||1}`],
+  ];
+  detalles.forEach(([etiqueta, valor]) => {
+    doc.setTextColor(120); doc.text(etiqueta, 14, y);
+    doc.setTextColor(0); doc.text(String(valor), 70, y);
+    y += 5.5;
+  });
+  y += 4;
+
+  // Personal asignado
+  const personal = (p.tecnicos_asignados||[]).map(id => STATE.empleados.find(e=>e.id===id)).filter(Boolean);
+  doc.setFontSize(9);
+  doc.setFont(undefined, 'bold');
+  doc.text('PERSONAL ASIGNADO', 14, y);
+  y += 6;
+  doc.setFont(undefined, 'normal');
+  if (personal.length) {
+    personal.forEach(e => {
+      doc.text(`•  ${e.nombre} ${e.apellido} — ${(e.seniority||'').replace('_',' ')}`, 16, y);
+      y += 5.5;
+    });
+  } else {
+    doc.setTextColor(150); doc.text('Sin personal asignado todavía.', 16, y); doc.setTextColor(0); y += 5.5;
+  }
+  y += 4;
+
+  // Equipo asignado
+  const equipoAsignado = (p.equipo_asignado_ids||[]).map(id => STATE.equipos.find(x=>x.id===id)).filter(Boolean);
+  if (!p.no_requiere_equipo) {
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'bold');
+    doc.text('EQUIPO ASIGNADO', 14, y);
+    y += 6;
+    doc.setFont(undefined, 'normal');
+    if (equipoAsignado.length) {
+      equipoAsignado.forEach(eq => {
+        doc.text(`•  ${eq.nombre}${eq.apodo?' ("'+eq.apodo+'")':''} — N/S ${eq.numero_serie||'—'}`, 16, y);
+        y += 5.5;
+      });
+    } else {
+      doc.setTextColor(150); doc.text('Sin equipo asignado todavía.', 16, y); doc.setTextColor(0); y += 5.5;
+    }
+  }
+
+  doc.setFontSize(7.5);
+  doc.setTextColor(150);
+  doc.text(`Generado el ${new Date().toLocaleString('es-MX')}`, 14, 280);
+
+  doc.save(`Gantt - ${p.nombre.replace(/[\\/:*?"<>|]/g,'-')} - ${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
 // ─── SECCIÓN: EVALUAR ─────────────────────────────────────────────────────────
