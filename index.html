@@ -10,6 +10,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -85,7 +86,7 @@ a{text-decoration:none;color:inherit}
 @media(min-width:769px){
   .sidebar.collapsed{width:0;border-right:none}
 }
-.sidebar-brand{padding:16px;border-bottom:1px solid var(--border)}
+.sidebar-brand{padding:16px;border-bottom:1px solid var(--border);cursor:pointer}
 .sidebar-brand .b1{font-size:11px;font-weight:700;letter-spacing:.15em;color:var(--text)}
 .sidebar-brand .b2{font-size:10px;letter-spacing:.12em;color:var(--red);font-weight:600}
 .sidebar-user{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
@@ -184,6 +185,8 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .leaflet-control-zoom a{background:var(--surface)!important;color:var(--text)!important;border-color:var(--border)!important}
 .leaflet-control-attribution{background:rgba(0,0,0,.4)!important;color:var(--text3)!important}
 .leaflet-control-attribution a{color:var(--text2)!important}
+.mapa-tooltip{background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--border2)!important;font-size:10px!important;font-weight:600;padding:2px 6px!important;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.mapa-tooltip::before{border-top-color:var(--border2)!important}
 .badge-prog{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
 
 /* FATIGA BAR */
@@ -320,7 +323,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 
 /* RESPONSIVE */
 @media(max-width:768px){
-  .sidebar{display:none}.sidebar.mobile-open{display:flex;position:fixed;z-index:200;height:100vh}
+  .sidebar{display:none}.sidebar.mobile-open{display:flex;position:fixed;z-index:1000;height:100vh}
   .mobile-nav{display:block}
   .topbar-menu-btn{display:block}
   .stats-grid{grid-template-columns:1fr 1fr}
@@ -373,7 +376,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 
     <!-- SIDEBAR -->
     <div class="sidebar" id="sidebar">
-      <div class="sidebar-brand">
+      <div class="sidebar-brand" data-sec="mapa" onclick="showSection('mapa')" title="Ir a Inicio">
         <div class="b1">WALROSS</div>
         <div class="b2">ASIGNADOR INTELIGENTE</div>
       </div>
@@ -548,7 +551,6 @@ async function initApp() {
 function buildNav() {
   if (STATE.rol === 'administrador' || STATE.rol === 'director_proyecto') {
     document.getElementById('admin-nav').innerHTML = `
-      <div class="nav-item" onclick="showSection('mapa')" data-sec="mapa"><i class="ti ti-home" aria-hidden="true"></i> Inicio</div>
       <div class="nav-section">GESTIÓN</div>
       <div class="nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i> Empleados</div>
       <div class="nav-item" onclick="showSection('proyectos')" data-sec="proyectos"><i class="ti ti-folder" aria-hidden="true"></i> Proyectos</div>
@@ -769,8 +771,9 @@ async function abrirCalendarioMensual(empId, nombre, offsetMeses) {
     celdas += `<div class="cal-cell ${esHoy?'hoy':''} ${evs.length?'ocupado':''}" title="${nombres.replace(/"/g,'&quot;')}"${click}>${d}${evs.length?'<div class="cal-dot"></div>':''}</div>`;
   }
   const mesLabel = base.toLocaleDateString('es-MX',{month:'long',year:'numeric'});
+  const puedeExportar = STATE.rol !== 'tecnico';
   openPanel(`Calendario — ${nombre}`, `
-    <div class="panel-section">
+    <div class="panel-section" id="cal-export-area">
       <div class="cal-header">
         <button class="btn btn-ghost btn-sm" onclick="abrirCalendarioMensual('${empId}','${nombre.replace(/'/g,"\\'")}',${STATE._cal_offset-1})"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
         <span class="cal-monthlabel">${mesLabel}</span>
@@ -782,7 +785,7 @@ async function abrirCalendarioMensual(empId, nombre, offsetMeses) {
       </div>
       <div style="margin-top:10px;font-size:11px;color:var(--text3)"><span style="color:var(--red-text)">●</span> Días con proyecto asignado — toca un día para ver el detalle del proyecto.</div>
     </div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>${puedeExportar?`<button class="btn btn-primary btn-sm" onclick="exportarGanttPDF('cal-export-area','Calendario - ${nombre.replace(/[\\/:*?"<>|]/g,'-')} - ${mesLabel}')"><i class="ti ti-file-download" aria-hidden="true"></i> Exportar PDF</button>`:''}`);
 }
 
 async function loadEmpleados(forzar) {
@@ -1097,7 +1100,7 @@ function verEmpleado(id, tab) {
     <div class="panel-section">
       ${historial.length ? `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0 12px;border-bottom:1px solid var(--border);margin-bottom:8px">
         <span style="font-size:12px;color:var(--text2)">Total en ${historial.length} proyecto(s)</span>
-        <span style="font-size:13px;font-weight:700;color:var(--text)">${totalDias} día(s) en campo</span>
+        <span style="text-align:right"><span style="font-size:13px;font-weight:700;color:var(--text)">${totalDias} día(s) en campo</span><br><span style="font-size:11px;color:var(--text3)">${e.horas_totales_trabajadas||0} h trabajadas (checador)</span></span>
       </div>` : ''}
       ${historial.length ? historial.map(h=>`
         <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;cursor:pointer" onclick="verProyecto('${h.proyecto_id}')">
@@ -1854,8 +1857,8 @@ async function renderGantt() {
   const hoy00 = new Date(today); hoy00.setHours(0,0,0,0);
   const horaHoyPct = ((today.getHours()*60+today.getMinutes())/1440*100).toFixed(1);
   html(`
-    <div class="table-section">
-      <div class="table-header"><span class="table-title">CALENDARIO DE DISPONIBILIDAD — 30 DÍAS</span><span class="table-meta">hoy: ${today.toLocaleDateString('es-MX')}</span></div>
+    <div class="table-section" id="gantt-export-area">
+      <div class="table-header"><span class="table-title">CALENDARIO DE DISPONIBILIDAD — 30 DÍAS</span><span class="table-meta">hoy: ${today.toLocaleDateString('es-MX')}</span><button class="btn btn-ghost btn-sm" onclick="exportarGanttPDF()" style="margin-left:10px"><i class="ti ti-file-download" aria-hidden="true"></i> Exportar PDF</button></div>
       <div class="gantt-wrap">
         <table class="gantt-table">
           <thead><tr>
@@ -1869,7 +1872,7 @@ async function renderGantt() {
                 const isHoy = d.toDateString() === hoy;
                 const isWknd = d.getDay()===0||d.getDay()===6;
                 const pry = STATE.proyectos.find(p => (p.tecnicos_asignados||[]).includes(e.id) && p.fecha_inicio && p.fecha_fin_estimada && fechaLocal(p.fecha_inicio)<=d && fechaLocal(p.fecha_fin_estimada)>=d);
-                let cls = isHoy ? 'gantt-cell today' : isWknd ? 'gantt-cell weekend' : 'gantt-cell';
+                let cls = 'gantt-cell' + (isWknd ? ' weekend' : '') + (isHoy ? ' today' : '');
                 if (pry) cls += d < hoy00 ? ' past' : ' occupied';
                 const tip = pry ? `${pry.nombre}${pry.cliente?' · '+pry.cliente:''} (${pry.fecha_inicio} → ${pry.fecha_fin_estimada})`.replace(/"/g,'&quot;') : '';
                 const estilos = [pry ? 'cursor:pointer' : '', isHoy ? `--hoy-pos:${horaHoyPct}%` : ''].filter(Boolean).join(';');
@@ -1887,6 +1890,23 @@ async function renderGantt() {
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:2px;height:16px;background:var(--red)"></div> Hoy</div>
       </div>
     </div>`);
+}
+
+async function exportarGanttPDF(elementId, nombreArchivo) {
+  elementId = elementId || 'gantt-export-area';
+  nombreArchivo = nombreArchivo || `Gantt General - ${new Date().toISOString().split('T')[0]}`;
+  const elemento = document.getElementById(elementId);
+  if (!elemento || typeof html2canvas === 'undefined') { toast('No se pudo generar el PDF','error'); return; }
+  toast('Generando PDF, un momento...');
+  const fondo = getComputedStyle(document.body).backgroundColor || '#ffffff';
+  const canvas = await html2canvas(elemento, { backgroundColor: fondo, scale: 2 });
+  const imgData = canvas.toDataURL('image/png');
+  const { jsPDF } = window.jspdf;
+  const anchoMM = 297;
+  const altoMM = anchoMM * canvas.height / canvas.width;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [anchoMM, altoMM] });
+  doc.addImage(imgData, 'PNG', 0, 0, anchoMM, altoMM);
+  doc.save(`${nombreArchivo}.pdf`);
 }
 
 // ─── SECCIÓN: EVALUAR ─────────────────────────────────────────────────────────
@@ -2493,6 +2513,7 @@ function actualizarMapa() {
       MAPA_MARKERS.push(anillo);
       const m = L.circleMarker([p.latitud, p.longitud], { radius: 8, className: 'marker-suave', color: '#fff', weight: 1.5, fillColor: color, fillOpacity: 0.9 })
         .bindPopup(`<strong>${p.nombre}</strong><br>${p.cliente||'—'}<br>${p.ciudad||'—'}<br><a href="#" onclick="verProyecto('${p.id}');return false;">Ver detalle →</a>`)
+        .bindTooltip(p.nombre, { permanent: true, direction: 'top', className: 'mapa-tooltip', offset: [0,-6] })
         .addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(m); n++;
     });
@@ -2512,6 +2533,7 @@ function actualizarMapa() {
       MAPA_MARKERS.push(anillo);
       const m = L.circleMarker([lat, lon], { radius: 6, className: 'marker-suave', color: '#fff', weight: 1.5, fillColor: color, fillOpacity: 0.9 })
         .bindPopup(`<strong>${e.nombre} ${e.apellido}</strong><br>${enSitio?'En sitio: '+STATE.proyectos.find(x=>x.id===e.id_proyecto_actual)?.nombre:e.ciudad||'—'}<br><a href="#" onclick="verEmpleado('${e.id}');return false;">Ver perfil →</a>`)
+        .bindTooltip(`${e.nombre} — ${enSitio?'En proyecto: '+(STATE.proyectos.find(x=>x.id===e.id_proyecto_actual)?.nombre||''):'En base'}`, { permanent: true, direction: 'top', className: 'mapa-tooltip', offset: [0,-5] })
         .addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(m); n++;
     });
@@ -2529,6 +2551,7 @@ function actualizarMapa() {
       MAPA_MARKERS.push(anillo);
       const m = L.circleMarker([lat, lon], { radius: 5, className: 'marker-suave', color: '#fff', weight: 1.5, fillColor: colorEq, fillOpacity: 0.9 })
         .bindPopup(`<strong>${eq.nombre}</strong>${eq.apodo?`<br><em>${eq.apodo}</em>`:''}<br>${enSitio?'En sitio: '+eq.proyecto_actual_nombre:(eq.ciudad_actual||'Sin ubicación asignada')}`)
+        .bindTooltip(`${eq.nombre}${eq.apodo?' ('+eq.apodo+')':''} — ${enSitio?'En proyecto: '+eq.proyecto_actual_nombre:'En oficina'}`, { permanent: true, direction: 'top', className: 'mapa-tooltip', offset: [0,-4] })
         .addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(m); n++;
     });
@@ -2685,7 +2708,8 @@ function exportarMetricasPDF() {
     y += 8;
   });
 
-  doc.save(`metricas_proyectos_${new Date().toISOString().split('T')[0]}.pdf`);
+  const nombreArchivo = datos.length === 1 ? datos[0].nombre.replace(/[\\/:*?"<>|]/g,'-') : `${datos.length} proyectos`;
+  doc.save(`Metricas - ${nombreArchivo} - ${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
 // ─── SECCIÓN: MIS ASIGNACIONES (TÉCNICO) ──────────────────────────────────────
@@ -3199,7 +3223,7 @@ async function renderMiGantt() {
                 const inRange = fi && ff && d >= fi && d <= ff;
                 const isHoy = d.toDateString()===today.toDateString();
                 const isWknd = d.getDay()===0||d.getDay()===6;
-                let cls = isHoy?'gantt-cell today':isWknd?'gantt-cell weekend':'gantt-cell';
+                let cls = 'gantt-cell' + (isWknd ? ' weekend' : '') + (isHoy ? ' today' : '');
                 if (inRange) cls += d < hoy00 ? ' past' : ' occupied';
                 return `<td class="${cls}"${isHoy?` style="--hoy-pos:${horaHoyPct}%"`:''}></td>`;
               }).join('')}
