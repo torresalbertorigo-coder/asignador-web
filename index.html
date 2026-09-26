@@ -953,9 +953,9 @@ async function renderEmpleados() {
   }
   const emps = STATE.empleados;
   const total = emps.length;
-  const libres = emps.filter(e=>e.disponibilidad==='libre').length;
-  const enProy = emps.filter(e=>e.disponibilidad==='en_proyecto').length;
-  const asig   = emps.filter(e=>e.disponibilidad==='asignado').length;
+  const libres = emps.filter(e=>estadoVisible(e)==='libre').length;
+  const enProy = emps.filter(e=>estadoVisible(e)==='en_proyecto').length;
+  const asig   = emps.filter(e=>['asignado','en_preparacion'].includes(estadoVisible(e))).length;
   const filtroEmp = (STATE._empFiltro||'').toLowerCase().trim();
   let filtrados = filtroEmp ? emps.filter(e =>
     (e.nombre||'').toLowerCase().includes(filtroEmp) ||
