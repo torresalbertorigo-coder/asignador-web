@@ -2860,7 +2860,7 @@ function actualizarMapa() {
 // ─── SECCIÓN: MÉTRICAS DE PROYECTOS ───────────────────────────────────────────
 async function renderMetricas() {
   await loadProyectos();
-  const proyectosOrdenados = STATE.proyectos.slice().sort((a,b)=>(b.fecha_inicio||'').localeCompare(a.fecha_inicio||''));
+  const proyectosOrdenados = STATE.proyectos.filter(p=>p.fecha_inicio_real).slice().sort((a,b)=>(b.fecha_inicio_real||'').localeCompare(a.fecha_inicio_real||''));
   html(`
     <div class="table-section" style="padding:18px;margin-bottom:14px">
       <div class="panel-section-title" style="margin-bottom:12px">GENERAR REPORTE DE MÉTRICAS</div>
@@ -2868,7 +2868,7 @@ async function renderMetricas() {
         <div class="field-group"><label class="field-label">PROYECTO ESPECÍFICO (OPCIONAL)</label>
           <select class="field-select" id="met-proyecto">
             <option value="">— Usar rango de fechas en su lugar —</option>
-            ${proyectosOrdenados.map(p=>`<option value="${p.id}">${p.nombre}${p.fecha_inicio?' ('+p.fecha_inicio+')':''}</option>`).join('')}
+            ${proyectosOrdenados.map(p=>`<option value="${p.id}">${p.nombre} (${p.fecha_inicio_real}${p.fecha_fin_real?' → '+p.fecha_fin_real:' — en curso'})</option>`).join('')}
           </select>
         </div>
       </div>
