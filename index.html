@@ -2513,7 +2513,7 @@ function actualizarMapa() {
       MAPA_MARKERS.push(anillo);
       const m = L.circleMarker([p.latitud, p.longitud], { radius: 8, className: 'marker-suave', color: '#fff', weight: 1.5, fillColor: color, fillOpacity: 0.9 })
         .bindPopup(`<strong>${p.nombre}</strong><br>${p.cliente||'—'}<br>${p.ciudad||'—'}<br><a href="#" onclick="verProyecto('${p.id}');return false;">Ver detalle →</a>`)
-        .bindTooltip(p.nombre, { permanent: true, direction: 'top', className: 'mapa-tooltip', offset: [0,-6] })
+        .bindTooltip(p.nombre, { direction: 'top', className: 'mapa-tooltip', offset: [0,-6] })
         .addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(m); n++;
     });
@@ -2533,7 +2533,7 @@ function actualizarMapa() {
       MAPA_MARKERS.push(anillo);
       const m = L.circleMarker([lat, lon], { radius: 6, className: 'marker-suave', color: '#fff', weight: 1.5, fillColor: color, fillOpacity: 0.9 })
         .bindPopup(`<strong>${e.nombre} ${e.apellido}</strong><br>${enSitio?'En sitio: '+STATE.proyectos.find(x=>x.id===e.id_proyecto_actual)?.nombre:e.ciudad||'—'}<br><a href="#" onclick="verEmpleado('${e.id}');return false;">Ver perfil →</a>`)
-        .bindTooltip(`${e.nombre} — ${enSitio?'En proyecto: '+(STATE.proyectos.find(x=>x.id===e.id_proyecto_actual)?.nombre||''):'En base'}`, { permanent: true, direction: 'top', className: 'mapa-tooltip', offset: [0,-5] })
+        .bindTooltip(`${e.nombre} — ${enSitio?'En proyecto: '+(STATE.proyectos.find(x=>x.id===e.id_proyecto_actual)?.nombre||''):'En base'}`, { direction: 'top', className: 'mapa-tooltip', offset: [0,-5] })
         .addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(m); n++;
     });
@@ -2551,7 +2551,7 @@ function actualizarMapa() {
       MAPA_MARKERS.push(anillo);
       const m = L.circleMarker([lat, lon], { radius: 5, className: 'marker-suave', color: '#fff', weight: 1.5, fillColor: colorEq, fillOpacity: 0.9 })
         .bindPopup(`<strong>${eq.nombre}</strong>${eq.apodo?`<br><em>${eq.apodo}</em>`:''}<br>${enSitio?'En sitio: '+eq.proyecto_actual_nombre:(eq.ciudad_actual||'Sin ubicación asignada')}`)
-        .bindTooltip(`${eq.nombre}${eq.apodo?' ('+eq.apodo+')':''} — ${enSitio?'En proyecto: '+eq.proyecto_actual_nombre:'En oficina'}`, { permanent: true, direction: 'top', className: 'mapa-tooltip', offset: [0,-4] })
+        .bindTooltip(`${eq.nombre}${eq.apodo?' ('+eq.apodo+')':''} — ${enSitio?'En proyecto: '+eq.proyecto_actual_nombre:'En oficina'}`, { direction: 'top', className: 'mapa-tooltip', offset: [0,-4] })
         .addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(m); n++;
     });
