@@ -1935,7 +1935,7 @@ async function exportarGanttPDF() {
         const clave = `${e.id}-${pry.id}`;
         if (!vistos.has(clave) && asignacionesPorSeccion[estadoVis]) {
           vistos.add(clave);
-          asignacionesPorSeccion[estadoVis].push(`${e.nombre} ${e.apellido} — ${pry.nombre} (${pry.fecha_inicio} → ${pry.fecha_fin_estimada})`);
+          asignacionesPorSeccion[estadoVis].push(`${e.nombre} ${e.apellido} - ${pry.nombre} (${pry.fecha_inicio} al ${pry.fecha_fin_estimada})`);
         }
       } else if (isWknd) {
         filaColor.push([243,244,246]);
@@ -1964,35 +1964,47 @@ async function exportarGanttPDF() {
     }
   });
 
-  // Leyenda adaptable: solo las secciones que realmente tienen algo, en 2 columnas
+  // Leyenda adaptable: solo las secciones que realmente tienen algo, en 2 columnas balanceadas
   let y = doc.lastAutoTable.finalY + 8;
-  if (y > 180) { doc.addPage(); y = 15; }
+  if (y > 175) { doc.addPage(); y = 15; }
   doc.setFontSize(11);
   doc.setFont(undefined, 'bold');
+  doc.setTextColor(0);
   doc.text('Asignaciones dentro de este periodo', 10, y);
   y += 7;
 
   const seccionesConDatos = secciones.filter(s => asignacionesPorSeccion[s.key].length);
-  const colX = [10, 145];
+  const colX = [10, 148];       // página landscape carta = 279.4mm; cada columna cabe con margen de sobra
+  const colAncho = 122;         // ancho de texto disponible por columna
   const colY = [y, y];
-  seccionesConDatos.forEach((s, idx) => {
-    const col = idx % 2;
-    if (colY[col] > 195) { doc.addPage(); colY[0] = 15; colY[1] = 15; }
+  const maxY = 195;             // límite antes de saltar de página
+
+  const dibujarSeccion = (s, col) => {
+    if (colY[col] > maxY - 10) { doc.addPage(); colY[0] = 15; colY[1] = 15; }
     doc.setFillColor(...s.color);
     doc.rect(colX[col], colY[col]-3, 3, 3, 'F');
     doc.setFontSize(9);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(0);
     doc.text(s.label, colX[col]+5, colY[col]);
-    colY[col] += 5;
+    colY[col] += 5.5;
     doc.setFontSize(7.5);
     doc.setFont(undefined, 'normal');
     asignacionesPorSeccion[s.key].forEach(linea => {
-      const wrapped = doc.splitTextToSize(linea, 128);
-      doc.text(wrapped, colX[col], colY[col]);
-      colY[col] += wrapped.length * 4;
+      const wrapped = doc.splitTextToSize(linea, colAncho);
+      wrapped.forEach(l => {
+        if (colY[col] > maxY) { doc.addPage(); colY[col] = 15; }
+        doc.text(l, colX[col], colY[col]);
+        colY[col] += 4;
+      });
     });
     colY[col] += 4;
+  };
+
+  // Siempre se agrega a la columna que en ese momento esté más corta, para que quede balanceado
+  seccionesConDatos.forEach(s => {
+    const col = colY[0] <= colY[1] ? 0 : 1;
+    dibujarSeccion(s, col);
   });
 
   doc.setFontSize(7);
@@ -2016,6 +2028,52 @@ async function exportarCalendarioEmpleadoPDF(elementId, nombreArchivo) {
   const altoMM = anchoDisponible * canvas.height / canvas.width;
   doc.addImage(imgData, 'PNG', 10, 15, anchoDisponible, altoMM);
   doc.save(`${nombreArchivo}.pdf`);
+}
+
+function dibujarMesCalendarioPDF(doc, year, month, diasResaltadosSet, startY) {
+  const primerDia = new Date(year, month, 1);
+  const diasEnMes = new Date(year, month+1, 0).getDate();
+  const offset = primerDia.getDay();
+  const celdas = [];
+  for (let i=0;i<offset;i++) celdas.push(null);
+  for (let d=1; d<=diasEnMes; d++) celdas.push(d);
+  while (celdas.length % 7 !== 0) celdas.push(null);
+  const filas = [];
+  for (let i=0;i<celdas.length;i+=7) filas.push(celdas.slice(i,i+7));
+
+  const nombreMes = primerDia.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+  doc.setFontSize(9);
+  doc.setFont(undefined, 'bold');
+  doc.setTextColor(0);
+  doc.text(nombreMes.charAt(0).toUpperCase()+nombreMes.slice(1), 14, startY);
+  startY += 5;
+
+  const body = filas.map(fila => fila.map(d => d===null ? '' : String(d)));
+  doc.autoTable({
+    startY,
+    margin: { left: 14 },
+    head: [['D','L','M','X','J','V','S']],
+    body,
+    theme: 'grid',
+    styles: { fontSize: 8, cellPadding: 2.5, halign: 'center', lineColor: [255,255,255], lineWidth: 0.4 },
+    headStyles: { fillColor: [30,30,33], textColor: 255, fontSize: 7 },
+    tableWidth: 140,
+    didParseCell: (data) => {
+      if (data.section !== 'body') return;
+      const val = data.cell.raw;
+      if (val === '') { data.cell.styles.fillColor = [255,255,255]; return; }
+      const fechaCelda = new Date(year, month, parseInt(val)).toDateString();
+      if (diasResaltadosSet.has(fechaCelda)) {
+        data.cell.styles.fillColor = [193,18,31];
+        data.cell.styles.textColor = 255;
+        data.cell.styles.fontStyle = 'bold';
+      } else {
+        data.cell.styles.fillColor = [245,245,246];
+        data.cell.styles.textColor = [140,140,140];
+      }
+    }
+  });
+  return doc.lastAutoTable.finalY;
 }
 
 async function exportarGanttProyectoPDF(proyectoId) {
@@ -2046,42 +2104,35 @@ async function exportarGanttProyectoPDF(proyectoId) {
   const inicio = fechaLocal(p.fecha_inicio);
   const fin = fechaLocal(p.fecha_fin_estimada);
   const duracionDias = Math.max(1, Math.round((fin - inicio) / 86400000) + 1);
-  const diaLetra = ['D','L','M','X','J','V','S'];
   const diasProyecto = Array.from({length: duracionDias}, (_,i) => { const d = new Date(inicio); d.setDate(d.getDate()+i); return d; });
 
   doc.setFontSize(9);
   doc.setFont(undefined, 'bold');
   doc.text('CALENDARIO ESTIMADO', 14, y);
-  y += 5;
+  y += 6;
 
-  if (duracionDias > 60) {
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(9);
-    doc.text(`Del ${p.fecha_inicio} al ${p.fecha_fin_estimada} (${duracionDias} días — proyecto de larga duración, ver calendario detallado con el equipo del proyecto).`, 14, y);
-    y += 8;
-  } else {
-  const porFila = 15;
-  for (let inicioFila = 0; inicioFila < diasProyecto.length; inicioFila += porFila) {
-    const filaDias = diasProyecto.slice(inicioFila, inicioFila + porFila);
-    doc.autoTable({
-      startY: y,
-      margin: { left: 14 },
-      body: [filaDias.map(d => `${d.getDate()}\n${diaLetra[d.getDay()]}`)],
-      theme: 'grid',
-      styles: { fontSize: 7, cellPadding: 1.5, halign: 'center', fillColor: [193,18,31], textColor: 255, lineColor: [255,255,255], lineWidth: 0.3, cellWidth: 12 },
-      tableWidth: filaDias.length * 12,
-    });
-    y = doc.lastAutoTable.finalY + (inicioFila + porFila < diasProyecto.length ? 3 : 0);
+  const diasProyectoSet = new Set(diasProyecto.map(d => d.toDateString()));
+  const meses = [];
+  let cursorMes = new Date(inicio.getFullYear(), inicio.getMonth(), 1);
+  const ultimoMes = new Date(fin.getFullYear(), fin.getMonth(), 1);
+  while (cursorMes <= ultimoMes && meses.length < 8) {
+    meses.push({ year: cursorMes.getFullYear(), month: cursorMes.getMonth() });
+    cursorMes = new Date(cursorMes.getFullYear(), cursorMes.getMonth()+1, 1);
   }
+
+  meses.forEach((m, idx) => {
+    if (y > 220) { doc.addPage(); y = 18; }
+    y = dibujarMesCalendarioPDF(doc, m.year, m.month, diasProyectoSet, y);
+    y += idx < meses.length-1 ? 8 : 0;
+  });
   y += 8;
-  }
 
   doc.setFontSize(8.5);
   doc.setTextColor(0);
   doc.text(`Duración estimada: ${duracionDias} día(s)`, 14, y);
   if (p.fecha_inicio_real || p.fecha_fin_real) {
     y += 5;
-    doc.text(`Fechas reales: ${p.fecha_inicio_real||'—'} → ${p.fecha_fin_real||'en curso'}`, 14, y);
+    doc.text(`Fechas reales: ${p.fecha_inicio_real||'—'} al ${p.fecha_fin_real||'en curso'}`, 14, y);
   }
   y += 10;
 
