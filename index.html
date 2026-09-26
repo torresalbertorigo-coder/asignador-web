@@ -167,8 +167,12 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .badge-orange{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border)}
 .badge-gray{background:var(--gray-bg);color:var(--gray);border:1px solid var(--gray-border)}
 .map-container{height:calc(100vh - 230px);min-height:420px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
-.marker-pulso{animation:pulsoMapa 2.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center;filter:blur(2px)}
-.marker-suave{filter:blur(.6px)}
+.marker-pulso{animation:pulsoMapa 2.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center;filter:blur(2.5px)}
+.marker-suave{animation:latidoMapa 2.2s ease-in-out infinite;filter:blur(1.2px)}
+@keyframes latidoMapa{
+  0%, 100% { opacity:1; }
+  50%      { opacity:0; }
+}
 @keyframes pulsoMapa{
   0%   { opacity:.5; transform:scale(1); }
   70%  { opacity:0; transform:scale(2.6); }
@@ -2443,7 +2447,8 @@ function actualizarMapa() {
         if (p && p.latitud && p.longitud) { lat = p.latitud; lon = p.longitud; enSitio = true; }
       }
       if (!lat || !lon) return;
-      const color = enSitio ? '#C1121F' : (e.disponibilidad === 'libre' ? '#22c55e' : '#3b82f6');
+      const coloresPersonal = { libre:'#22c55e', asignado:'#22c55e', en_preparacion:'#f59e0b', en_proyecto:'#C1121F' };
+      const color = enSitio ? '#C1121F' : (coloresPersonal[estadoVisible(e)] || '#6b7280');
       const anillo = L.circleMarker([lat, lon], { radius: 6, className: 'marker-pulso', color: 'transparent', weight: 0, fillColor: color, fillOpacity: .6, interactive: false }).addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(anillo);
       const m = L.circleMarker([lat, lon], { radius: 6, className: 'marker-suave', color: '#fff', weight: 1.5, fillColor: color, fillOpacity: 0.9 })
