@@ -167,6 +167,13 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .badge-orange{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border)}
 .badge-gray{background:var(--gray-bg);color:var(--gray);border:1px solid var(--gray-border)}
 .map-container{height:calc(100vh - 230px);min-height:420px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
+.marker-pulso{animation:pulsoMapa 2.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center;filter:blur(2px)}
+.marker-suave{filter:blur(.6px)}
+@keyframes pulsoMapa{
+  0%   { opacity:.5; transform:scale(1); }
+  70%  { opacity:0; transform:scale(2.6); }
+  100% { opacity:0; transform:scale(2.6); }
+}
 .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--surface);color:var(--text);box-shadow:0 6px 20px rgba(0,0,0,.4)}
 .leaflet-popup-content a{color:var(--blue)}
 .leaflet-container{background:var(--bg)!important}
@@ -182,7 +189,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .fat-val{font-size:11px;font-family:var(--mono)}
 
 /* PANEL DERECHO / MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
 .modal-overlay.open{display:flex}
 .panel-side{background:linear-gradient(to top, transparent 0%, var(--grad-fill-panel) 100%) padding-box, linear-gradient(to top, transparent 0%, var(--border2) 100%) border-box;border:1px solid transparent;border-radius:6px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.8)}
 .panel-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;background:var(--surface);z-index:1}
@@ -431,7 +438,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 </div>
 
 <!-- VISOR DE DOCUMENTOS -->
-<div id="visor-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:200;flex-direction:column" onclick="cerrarVisor(event)">
+<div id="visor-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:1000;flex-direction:column" onclick="cerrarVisor(event)">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
     <span id="visor-titulo" style="font-size:14px;font-weight:600;color:var(--text)"></span>
     <div style="display:flex;gap:8px">
@@ -2419,7 +2426,9 @@ function actualizarMapa() {
       if (!p.latitud || !p.longitud) return;
       const estadoVis = estadoProyectoVisible(p);
       const color = coloresProyecto[estadoVis] || '#6b7280';
-      const m = L.circleMarker([p.latitud, p.longitud], { radius: 8, color: '#fff', weight: 1.5, fillColor: color, fillOpacity: 0.9 })
+      const anillo = L.circleMarker([p.latitud, p.longitud], { radius: 8, className: 'marker-pulso', color: 'transparent', weight: 0, fillColor: color, fillOpacity: .6, interactive: false }).addTo(MAPA_LEAFLET);
+      MAPA_MARKERS.push(anillo);
+      const m = L.circleMarker([p.latitud, p.longitud], { radius: 8, className: 'marker-suave', color: '#fff', weight: 1.5, fillColor: color, fillOpacity: 0.9 })
         .bindPopup(`<strong>${p.nombre}</strong><br>${p.cliente||'—'}<br>${p.ciudad||'—'}<br><a href="#" onclick="verProyecto('${p.id}');return false;">Ver detalle →</a>`)
         .addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(m); n++;
@@ -2435,7 +2444,9 @@ function actualizarMapa() {
       }
       if (!lat || !lon) return;
       const color = enSitio ? '#C1121F' : (e.disponibilidad === 'libre' ? '#22c55e' : '#3b82f6');
-      const m = L.circleMarker([lat, lon], { radius: 6, color: '#fff', weight: 1.5, fillColor: color, fillOpacity: 0.9 })
+      const anillo = L.circleMarker([lat, lon], { radius: 6, className: 'marker-pulso', color: 'transparent', weight: 0, fillColor: color, fillOpacity: .6, interactive: false }).addTo(MAPA_LEAFLET);
+      MAPA_MARKERS.push(anillo);
+      const m = L.circleMarker([lat, lon], { radius: 6, className: 'marker-suave', color: '#fff', weight: 1.5, fillColor: color, fillOpacity: 0.9 })
         .bindPopup(`<strong>${e.nombre} ${e.apellido}</strong><br>${enSitio?'En sitio: '+STATE.proyectos.find(x=>x.id===e.id_proyecto_actual)?.nombre:e.ciudad||'—'}<br><a href="#" onclick="verEmpleado('${e.id}');return false;">Ver perfil →</a>`)
         .addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(m); n++;
@@ -2449,7 +2460,10 @@ function actualizarMapa() {
         if (p && p.latitud && p.longitud) { lat = p.latitud; lon = p.longitud; enSitio = true; }
       }
       if (!lat || !lon) return;
-      const m = L.circleMarker([lat, lon], { radius: 5, color: '#fff', weight: 1.5, fillColor: enSitio?'#C1121F':'#a78bfa', fillOpacity: 0.9 })
+      const colorEq = enSitio?'#C1121F':'#a78bfa';
+      const anillo = L.circleMarker([lat, lon], { radius: 5, className: 'marker-pulso', color: 'transparent', weight: 0, fillColor: colorEq, fillOpacity: .6, interactive: false }).addTo(MAPA_LEAFLET);
+      MAPA_MARKERS.push(anillo);
+      const m = L.circleMarker([lat, lon], { radius: 5, className: 'marker-suave', color: '#fff', weight: 1.5, fillColor: colorEq, fillOpacity: 0.9 })
         .bindPopup(`<strong>${eq.nombre}</strong><br>${enSitio?'En sitio: '+eq.proyecto_actual_nombre:(eq.ciudad_actual||'Sin ubicación asignada')}`)
         .addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(m); n++;
