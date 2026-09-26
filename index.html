@@ -1033,6 +1033,7 @@ function verEmpleado(id, tab) {
         <div><span style="color:var(--text3);font-size:10px">ESTADO</span><div style="margin-top:4px">${badge(estadoVisible(e))}</div></div>
         <div><span style="color:var(--text3);font-size:10px">FATIGA</span><div style="margin-top:6px">${fatiga(e.indice_fatiga)}</div></div>
         <div><span style="color:var(--text3);font-size:10px">CIUDAD</span><div style="margin-top:2px;color:var(--text)">${e.ciudad||'—'}</div></div>
+        <div><span style="color:var(--text3);font-size:10px">COORDENADAS</span><div style="margin-top:2px;color:var(--text)" class="td-mono">${e.latitud&&e.longitud?`${e.latitud.toFixed(5)}, ${e.longitud.toFixed(5)}`:'sin definir'} <a href="#" onclick="event.preventDefault();abrirEditarCoordenadasEmpleado('${e.id}')" style="color:var(--blue);text-decoration:none;font-size:11px;font-family:var(--sans)">editar</a></div></div>
         <div><span style="color:var(--text3);font-size:10px">ESTADO</span><div style="margin-top:2px;color:var(--text)">${e.estado||'—'}</div></div>
         <div><span style="color:var(--text3);font-size:10px">TELÉFONO</span><div style="margin-top:2px;color:var(--text)">${e.telefono||'—'}</div></div>
         <div><span style="color:var(--text3);font-size:10px">CORREO</span><div style="margin-top:2px;color:var(--text);word-break:break-all">${e.email_contacto||'—'}</div></div>
@@ -1133,6 +1134,8 @@ function openNuevoTecnico() {
     <div class="panel-section">
       <div class="panel-section-title">UBICACIÓN</div>
       <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD</label><input class="field-input" id="nt-ciudad" placeholder="Ciudad"></div><div class="field-group"><label class="field-label">ESTADO</label><select class="field-select" id="nt-estado"><option value="">Selecciona...</option>${ESTADOS_MX.map(e=>`<option value="${e}">${e}</option>`).join('')}</select></div></div>
+      <div class="field-row" style="margin-top:8px"><div class="field-group"><label class="field-label">COORDENADAS (OPCIONAL)</label><input class="field-input" id="nt-coords" placeholder="ej. 21.91114227818028, -102.2973348126625"></div></div>
+      <p style="font-size:11px;color:var(--text3);margin-top:6px">Pega el par de números tal cual te lo da Google Maps. Si lo dejas vacío, se calcula automáticamente a partir de la ciudad.</p>
     </div>
     <div id="nt-err" style="color:var(--red-text);font-size:12px;margin-top:8px"></div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, guardarNuevoTecnico)"><i class="ti ti-check" aria-hidden="true"></i> Crear</button>`);
@@ -1146,6 +1149,7 @@ async function guardarNuevoTecnico() {
   const nivel    = document.getElementById('nt-nivel')?.value;
   const ciudad   = document.getElementById('nt-ciudad')?.value.trim();
   const estado   = document.getElementById('nt-estado')?.value.trim();
+  const coordsParseadas = parsearCoordenadas(document.getElementById('nt-coords')?.value.trim());
   const tel      = document.getElementById('nt-tel')?.value.trim();
   const rol      = document.getElementById('nt-rol')?.value || 'tecnico';
   const err      = document.getElementById('nt-err');
@@ -1164,7 +1168,7 @@ async function guardarNuevoTecnico() {
   const headers = { 'Authorization': `Bearer ${STATE.token}`, 'Content-Type': 'application/json' };
   const r2raw = await fetch(`${API}/empleados`, {
     method: 'POST', headers,
-    body: JSON.stringify({ id: id_emp, nombre, apellido, seniority: nivel, ciudad, estado: estado || '', pais: 'México', latitud: 0, longitud: 0, telefono: tel, email })
+    body: JSON.stringify({ id: id_emp, nombre, apellido, seniority: nivel, ciudad, estado: estado || '', pais: 'México', latitud: coordsParseadas?coordsParseadas.lat:0, longitud: coordsParseadas?coordsParseadas.lon:0, telefono: tel, email })
   });
   if (!r2raw.ok) {
     const d = await r2raw.json().catch(()=>({}));
@@ -2049,6 +2053,33 @@ async function guardarCoordenadas(id) {
   toast('Coordenadas actualizadas');
   await loadProyectos(true);
   verProyecto(id);
+}
+
+function abrirEditarCoordenadasEmpleado(id) {
+  const e = STATE.empleados.find(x=>x.id===id);
+  if (!e) return;
+  const actual = e.latitud && e.longitud ? `${e.latitud}, ${e.longitud}` : '';
+  openPanel('Editar coordenadas', `
+    <div class="panel-section">
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Pega el par de números tal cual te lo da Google Maps. Esto sobrescribe cualquier coordenada calculada automáticamente por ciudad.</p>
+      <div class="field-group"><label class="field-label">COORDENADAS</label><input class="field-input" id="edit-coords-emp" placeholder="ej. 21.91114227818028, -102.2973348126625" value="${actual}"></div>
+      <div id="edit-coords-emp-err" style="color:var(--red-text);font-size:12px;margin-top:8px"></div>
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="verEmpleado('${id}')">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarCoordenadasEmpleado('${id}'))"><i class="ti ti-check" aria-hidden="true"></i> Guardar</button>`);
+}
+
+async function guardarCoordenadasEmpleado(id) {
+  const texto = document.getElementById('edit-coords-emp')?.value.trim();
+  const parseadas = parsearCoordenadas(texto);
+  if (!parseadas) {
+    document.getElementById('edit-coords-emp-err').textContent = 'Formato inválido — debe ser "latitud, longitud", como lo copias de Google Maps.';
+    return;
+  }
+  const r = await api('PATCH', `/empleados/${id}/coordenadas`, { latitud: parseadas.lat, longitud: parseadas.lon });
+  if (!r) { toast('Error al guardar las coordenadas','error'); return; }
+  toast('Coordenadas actualizadas');
+  await loadEmpleados(true);
+  verEmpleado(id);
 }
 
 function toggleTodosDocs(master) {
