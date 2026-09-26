@@ -462,7 +462,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 
 <script>
 const API = 'https://asignador-inteligente.vercel.app';
-let STATE = { token: null, user: null, rol: null, empleados: [], proyectos: [], equipos: [], incidencias: [], sesionEmp: null, modoTecnico: false };
+let STATE = { token: null, user: null, rol: null, empleados: [], proyectos: [], equipos: [], incidencias: [], sesionEmp: null, modoTecnico: false, _panelDirty: false };
 let MAPA_LEAFLET = null;
 let MAPA_TILE_LAYER = null;
 let MAPA_MARKERS = [];
@@ -693,6 +693,7 @@ async function api(method, path, body) {
   if (body) opts.body = JSON.stringify(body);
   const r = await fetch(API + path, opts);
   if (r.status === 401) { doLogout(); return null; }
+  if (r.ok && method !== 'GET') STATE._panelDirty = false;
   return r.ok ? r.json() : null;
 }
 
@@ -904,16 +905,35 @@ function toast(msg, type='success') {
 }
 
 // ─── PANEL LATERAL ────────────────────────────────────────────────────────────
+function _confirmarSalidaPanel() {
+  if (!STATE._panelDirty) return true;
+  const continuar = confirm('Tienes cambios sin guardar en este formulario. ¿Deseas continuar de todos modos?');
+  if (continuar) STATE._panelDirty = false;
+  return continuar;
+}
 function openPanel(title, bodyHtml, footerHtml) {
+  if (!_confirmarSalidaPanel()) return;
   document.getElementById('panel-title').textContent = title;
   document.getElementById('panel-body').innerHTML = bodyHtml;
   document.getElementById('panel-footer').innerHTML = footerHtml || '';
   document.getElementById('panel-overlay').classList.add('open');
+  STATE._panelDirty = false;
 }
 function closePanel(e, force) {
-  if (force || e?.target === document.getElementById('panel-overlay'))
-    document.getElementById('panel-overlay').classList.remove('open');
+  const debeCerrar = force || e?.target === document.getElementById('panel-overlay');
+  if (!debeCerrar) return;
+  if (!_confirmarSalidaPanel()) return;
+  document.getElementById('panel-overlay').classList.remove('open');
+  STATE._panelDirty = false;
 }
+// Marca el panel como "con cambios" en cuanto se toca cualquier campo dentro
+// de él — un solo listener para todos los formularios, sin tocar cada uno.
+document.addEventListener('input', (e) => {
+  if (e.target.closest && e.target.closest('#panel-body')) STATE._panelDirty = true;
+});
+document.addEventListener('change', (e) => {
+  if (e.target.closest && e.target.closest('#panel-body')) STATE._panelDirty = true;
+});
 
 // ─── SECCIÓN: EMPLEADOS ───────────────────────────────────────────────────────
 async function renderEmpleados() {
