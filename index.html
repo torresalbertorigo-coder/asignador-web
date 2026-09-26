@@ -975,10 +975,21 @@ async function renderEmpleados() {
   const alertasCert = STATE._alertasCert || [];
   const vencidos = alertasCert.filter(a=>a.vencido).length;
   const porVencer = alertasCert.length - vencidos;
+  if (!STATE._faltantesCargadasEn || (ahoraCert - STATE._faltantesCargadasEn) > 8000) {
+    STATE._faltantesChecador = await api('GET', '/checador/dias-faltantes') || [];
+    STATE._faltantesCargadasEn = ahoraCert;
+  }
+  const faltantesChecador = STATE._faltantesChecador || [];
+  const empleadosConFaltantes = new Set(faltantesChecador.map(f=>f.empleado_id)).size;
   html(`
     ${alertasCert.length ? `<div style="background:${vencidos?'var(--red-bg)':'var(--amber-bg)'};border:1px solid ${vencidos?'var(--red-border)':'var(--amber-border)'};border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;font-size:12px;color:${vencidos?'var(--red-text)':'var(--amber)'};cursor:pointer;display:flex;align-items:center;gap:8px" onclick="verAlertasCertificados()">
       <i class="ti ti-alert-triangle" aria-hidden="true"></i>
       <strong>${vencidos ? `${vencidos} certificado(s) vencido(s)` : ''}${vencidos && porVencer ? ' y ' : ''}${porVencer ? `${porVencer} por vencer en los próximos 30 días` : ''}</strong>
+      <span style="margin-left:auto;color:var(--text3)">Ver detalle →</span>
+    </div>` : ''}
+    ${faltantesChecador.length ? `<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;font-size:12px;color:var(--amber);cursor:pointer;display:flex;align-items:center;gap:8px" onclick="verDiasFaltantesChecador()">
+      <i class="ti ti-clock-exclamation" aria-hidden="true"></i>
+      <strong>${faltantesChecador.length} día(s) sin checada de entrada</strong> — ${empleadosConFaltantes} técnico(s) con pendientes
       <span style="margin-left:auto;color:var(--text3)">Ver detalle →</span>
     </div>` : ''}
     <div class="stats-grid">
@@ -2027,6 +2038,22 @@ function toggleVerArchivadosEq() {
   renderEquipos();
 }
 
+async function verDiasFaltantesChecador() {
+  const faltantes = await api('GET', '/checador/dias-faltantes') || [];
+  openPanel('Días sin checada de entrada', `
+    <div class="panel-section">
+      ${faltantes.length ? faltantes.map(f=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;cursor:pointer" onclick="verEmpleado('${f.empleado_id}')">
+          <div>
+            <div style="color:var(--text);font-weight:600">${f.empleado_nombre}</div>
+            <div style="color:var(--text3);font-size:11px">${f.proyecto_nombre}</div>
+          </div>
+          <span style="color:var(--amber);font-weight:600">${f.fecha}</span>
+        </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Sin días pendientes.</div>'}
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
+}
+
 async function verAlertasCertificados() {
   const alertas = await api('GET', '/empleados/alertas/certificados-por-vencer') || [];
   openPanel('Certificados por vencer', `
@@ -2595,6 +2622,9 @@ async function generarMetricas() {
         <div><span style="color:var(--text3)">Duración real</span><div style="color:var(--text)">${p.duracion_real_dias??'—'} día(s)</div></div>
         <div><span style="color:var(--text3)">Personal asignado</span><div style="color:var(--text)">${p.personal_asignado}</div></div>
         <div><span style="color:var(--text3)">Incidencias</span><div style="color:var(--text)">${p.total_incidencias} (${p.incidencias_altas} alta(s))</div></div>
+        <div><span style="color:var(--text3)">Días trabajados (checador)</span><div style="color:var(--text)">${p.asistencia?.dias_trabajados ?? 0}</div></div>
+        <div><span style="color:var(--text3)">Horas aprox. trabajadas</span><div style="color:var(--text)">${p.asistencia?.horas_aprox ?? 0} h</div></div>
+        <div><span style="color:var(--text3)">Días sin checada</span><div style="color:${p.dias_faltantes?'var(--amber)':'var(--text)'}">${p.dias_faltantes ?? 0}</div></div>
       </div>
       ${p.incidencias.length ? `<div style="border-top:1px solid var(--border);padding-top:8px">
         <div style="font-size:11px;color:var(--text3);margin-bottom:6px">POSIBLES CAUSAS (INCIDENCIAS REGISTRADAS)</div>
@@ -2634,7 +2664,8 @@ function exportarMetricasPDF() {
     const retrasoTxt = p.retraso_dias>0 ? `+${p.retraso_dias} día(s) de retraso` : p.retraso_dias<0 ? `${Math.abs(p.retraso_dias)} día(s) antes de lo estimado` : (p.retraso_dias===0?'A tiempo':'—');
     doc.text(`Resultado: ${retrasoTxt}`, 14, y); y += 5;
     doc.text(`Duración estimada: ${p.duracion_estimada_dias??'—'} día(s)    Duración real: ${p.duracion_real_dias??'—'} día(s)`, 14, y); y += 5;
-    doc.text(`Personal asignado: ${p.personal_asignado}    Incidencias: ${p.total_incidencias} (${p.incidencias_altas} alta(s))`, 14, y); y += 6;
+    doc.text(`Personal asignado: ${p.personal_asignado}    Incidencias: ${p.total_incidencias} (${p.incidencias_altas} alta(s))`, 14, y); y += 5;
+    doc.text(`Días trabajados (checador): ${p.asistencia?.dias_trabajados ?? 0}    Horas aprox.: ${p.asistencia?.horas_aprox ?? 0} h    Días sin checada: ${p.dias_faltantes ?? 0}`, 14, y); y += 6;
 
     if (p.incidencias.length) {
       doc.setFont(undefined, 'italic');
@@ -2700,22 +2731,40 @@ function verProyectoTecnico(id) {
 
 // ─── SECCIÓN: CHECADOR ────────────────────────────────────────────────────────
 let clockInterval;
-function renderChecador() {
+async function renderChecador() {
   if (clockInterval) clearInterval(clockInterval);
-  const entrada = localStorage.getItem('entrada_hoy');
+  const [historial, faltantes] = await Promise.all([
+    api('GET', '/checador/mis-checadas') || [],
+    api('GET', '/checador/dias-faltantes') || []
+  ]);
+  const ultima = historial[0];
+  const puedeEntrada = !ultima || ultima.tipo === 'salida';
+  const ahoraLocal = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+
   html(`
+    ${faltantes.length ? `<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;font-size:12px;color:var(--amber)">
+      <i class="ti ti-alert-triangle" aria-hidden="true"></i> <strong>Tienes ${faltantes.length} día(s) sin marcar entrada</strong> en proyectos ya iniciados: ${faltantes.slice(0,5).map(f=>f.fecha).join(', ')}${faltantes.length>5?'...':''}
+    </div>` : ''}
     <div class="check-card">
       <div id="check-time" class="check-time">--:--:--</div>
       <div class="check-date" id="check-date">${new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
-      <div class="check-btns">
-        <button class="btn btn-primary" onclick="marcarEntrada()" ${entrada?'disabled':''} style="${entrada?'opacity:.4':''}" id="btn-entrada"><i class="ti ti-login" aria-hidden="true"></i> Entrada</button>
-        <button class="btn btn-ghost" onclick="marcarSalida()" ${!entrada?'disabled':''} style="${!entrada?'opacity:.4':''}" id="btn-salida"><i class="ti ti-logout" aria-hidden="true"></i> Salida</button>
+      <div class="field-group" style="max-width:260px;margin:14px auto 0">
+        <label class="field-label">FECHA Y HORA A REGISTRAR</label>
+        <input type="datetime-local" class="field-input" id="chk-fecha-hora" value="${ahoraLocal}">
       </div>
-      <div class="check-status" id="check-status">${entrada?`<span style="color:var(--green)">✓ Entrada registrada: ${entrada}</span>`:'Sin registro del día'}</div>
+      <div class="check-btns" style="margin-top:14px">
+        <button class="btn btn-primary" onclick="ejecutarConCarga(this, marcarEntrada)" ${puedeEntrada?'':'disabled'} style="${puedeEntrada?'':'opacity:.4'}" id="btn-entrada"><i class="ti ti-login" aria-hidden="true"></i> Entrada</button>
+        <button class="btn btn-ghost" onclick="ejecutarConCarga(this, marcarSalida)" ${puedeEntrada?'disabled':''} style="${puedeEntrada?'opacity:.4':''}" id="btn-salida"><i class="ti ti-logout" aria-hidden="true"></i> Salida</button>
+      </div>
+      <div class="check-status" id="check-status">${ultima ? `<span style="color:${ultima.tipo==='entrada'?'var(--green)':'var(--text2)'}">Última checada: ${ultima.tipo} — ${new Date(ultima.fecha_hora).toLocaleString('es-MX')}</span>` : 'Sin registros todavía'}</div>
     </div>
     <div class="table-section">
       <div class="table-header"><span class="table-title">HISTORIAL RECIENTE</span></div>
-      <div class="empty-state" style="padding:20px"><i class="ti ti-clock" aria-hidden="true"></i><p style="font-size:12px">Registros del día aparecerán aquí</p></div>
+      ${historial.length ? historial.slice(0,30).map(h=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;border-bottom:1px solid var(--border);font-size:12px">
+          <span style="color:var(--text)">${h.tipo==='entrada'?'<i class="ti ti-login" aria-hidden="true"></i>':'<i class="ti ti-logout" aria-hidden="true"></i>'} ${h.tipo.charAt(0).toUpperCase()+h.tipo.slice(1)}</span>
+          <span class="td-mono" style="color:var(--text2)">${new Date(h.fecha_hora).toLocaleString('es-MX')}</span>
+        </div>`).join('') : '<div class="empty-state" style="padding:20px"><i class="ti ti-clock" aria-hidden="true"></i><p style="font-size:12px">Sin registros todavía</p></div>'}
     </div>`);
   clockInterval = setInterval(() => {
     const t = document.getElementById('check-time');
@@ -2724,24 +2773,21 @@ function renderChecador() {
   document.getElementById('check-time').textContent = new Date().toLocaleTimeString('es-MX');
 }
 
-function marcarEntrada() {
-  const hora = new Date().toLocaleTimeString('es-MX');
-  localStorage.setItem('entrada_hoy', hora);
-  document.getElementById('check-status').innerHTML = `<span style="color:var(--green)">✓ Entrada registrada: ${hora}</span>`;
-  document.getElementById('btn-entrada').disabled = true;
-  document.getElementById('btn-entrada').style.opacity = '.4';
-  document.getElementById('btn-salida').disabled = false;
-  document.getElementById('btn-salida').style.opacity = '1';
-  toast('Entrada registrada — ' + hora);
+async function marcarEntrada() {
+  const fechaHora = document.getElementById('chk-fecha-hora')?.value;
+  if (!fechaHora) { toast('Elige la fecha y hora','error'); return; }
+  const r = await api('POST', '/checador', { tipo: 'entrada', fecha_hora: fechaHora });
+  if (!r) { toast('Error al registrar la entrada','error'); return; }
+  toast('Entrada registrada');
+  renderChecador();
 }
-function marcarSalida() {
-  const hora = new Date().toLocaleTimeString('es-MX');
-  const entrada = localStorage.getItem('entrada_hoy');
-  localStorage.removeItem('entrada_hoy');
-  document.getElementById('check-status').innerHTML = `<span style="color:var(--text2)">Jornada completa: ${entrada} — ${hora}</span>`;
-  document.getElementById('btn-salida').disabled = true;
-  document.getElementById('btn-salida').style.opacity = '.4';
-  toast('Salida registrada — ' + hora);
+async function marcarSalida() {
+  const fechaHora = document.getElementById('chk-fecha-hora')?.value;
+  if (!fechaHora) { toast('Elige la fecha y hora','error'); return; }
+  const r = await api('POST', '/checador', { tipo: 'salida', fecha_hora: fechaHora });
+  if (!r) { toast('Error al registrar la salida','error'); return; }
+  toast('Salida registrada');
+  renderChecador();
 }
 
 // ─── SECCIÓN: REPORTAR ────────────────────────────────────────────────────────
