@@ -2257,6 +2257,7 @@ function verEquipo(id) {
       <div class="field-row"><div class="field-group"><label class="field-label">TIPO</label><select class="field-select" id="ve-tipo"><option value="drone" ${eq.tipo==='drone'?'selected':''}>Drone / RPAS</option><option value="camara" ${eq.tipo==='camara'?'selected':''}>Cámara</option><option value="termografo" ${eq.tipo==='termografo'?'selected':''}>Termógrafo</option><option value="escalada" ${eq.tipo==='escalada'?'selected':''}>Equipo de escalada</option><option value="medicion" ${eq.tipo==='medicion'?'selected':''}>Medición</option><option value="otro" ${eq.tipo==='otro'?'selected':''}>Otro</option></select></div>
       <div class="field-group"><label class="field-label">ESTADO</label><select class="field-select" id="ve-estado"><option value="disponible" ${eq.estado==='disponible'?'selected':''}>Disponible</option><option value="en_uso" ${eq.estado==='en_uso'?'selected':''}>En uso</option><option value="mantenimiento" ${eq.estado==='mantenimiento'?'selected':''}>Mantenimiento</option><option value="baja" ${eq.estado==='baja'?'selected':''}>Dado de baja</option></select></div></div>
       <div class="field-row"><div class="field-group"><label class="field-label">N° SERIE</label><input class="field-input" id="ve-serie" value="${eq.numero_serie||''}"></div><div class="field-group"><label class="field-label">CIUDAD ACTUAL</label><input class="field-input" id="ve-ciudad" value="${eq.ciudad_actual||''}"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">COORDENADAS (OPCIONAL)</label><input class="field-input" id="ve-coords" placeholder="ej. 21.91114227818028, -102.2973348126625" value="${eq.latitud&&eq.longitud?`${eq.latitud}, ${eq.longitud}`:''}"></div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">PRÓX. CALIBRACIÓN</label><input class="field-input" id="ve-cal" type="date" value="${eq.proxima_calibracion||''}"></div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">NOTAS</label><textarea class="field-input" id="ve-notas" rows="3">${eq.notas||''}</textarea></div></div>
     </div>`,
@@ -2267,6 +2268,7 @@ function verEquipo(id) {
 }
 
 async function guardarEdicionEquipo(id) {
+  const coordsParseadas = parsearCoordenadas(document.getElementById('ve-coords')?.value.trim());
   const datos = {
     tipo: document.getElementById('ve-tipo')?.value,
     estado: document.getElementById('ve-estado')?.value,
@@ -2275,6 +2277,7 @@ async function guardarEdicionEquipo(id) {
     proxima_calibracion: document.getElementById('ve-cal')?.value || null,
     notas: document.getElementById('ve-notas')?.value.trim()
   };
+  if (coordsParseadas) { datos.latitud = coordsParseadas.lat; datos.longitud = coordsParseadas.lon; }
   const r = await api('PUT', `/equipos/${id}`, datos);
   if (!r) { toast('Error al guardar los cambios','error'); return; }
   closePanel(null, true);
@@ -2296,6 +2299,8 @@ function openNuevoEquipo() {
         <div class="field-group"><label class="field-label">CIUDAD ACTUAL</label><input class="field-input" id="ne-ciudad" placeholder="Ciudad"></div>
         <div class="field-group"><label class="field-label">PRÓX. CALIBRACIÓN</label><input class="field-input" id="ne-cal" type="date"></div>
       </div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">COORDENADAS (OPCIONAL)</label><input class="field-input" id="ne-coords" placeholder="ej. 21.91114227818028, -102.2973348126625"></div></div>
+      <p style="font-size:11px;color:var(--text3);margin-top:-6px;margin-bottom:10px">Ubicación base, para cuando el equipo no esté asignado a ningún proyecto. Pega el par de números de Google Maps, o déjalo vacío para calcularlo por ciudad.</p>
       <div class="field-row full"><div class="field-group"><label class="field-label">NOTAS</label><textarea class="field-input" id="ne-notas" rows="3" placeholder="Observaciones del equipo..."></textarea></div></div>
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, guardarNuevoEquipo)"><i class="ti ti-check" aria-hidden="true"></i> Guardar</button>`);
@@ -2306,6 +2311,7 @@ async function guardarNuevoEquipo() {
   const tipo   = document.getElementById('ne-tipo')?.value;
   const serie  = document.getElementById('ne-serie')?.value.trim();
   const ciudad = document.getElementById('ne-ciudad')?.value.trim();
+  const coordsParseadas = parsearCoordenadas(document.getElementById('ne-coords')?.value.trim());
   const cal    = document.getElementById('ne-cal')?.value || null;
   const notas  = document.getElementById('ne-notas')?.value.trim();
   if (!nombre) { toast('El nombre del equipo es obligatorio','error'); return; }
@@ -2313,6 +2319,7 @@ async function guardarNuevoEquipo() {
   const r = await api('POST', '/equipos', {
     id: id_eq, nombre, tipo, numero_serie: serie || null,
     estado: 'disponible', ciudad_actual: ciudad || null,
+    latitud: coordsParseadas?coordsParseadas.lat:null, longitud: coordsParseadas?coordsParseadas.lon:null,
     proxima_calibracion: cal, notas
   });
   if (!r) { toast('Error al registrar el equipo','error'); return; }
@@ -2420,21 +2427,30 @@ function actualizarMapa() {
   }
   if (verPers) {
     STATE.empleados.forEach(e => {
-      if (!e.latitud || !e.longitud || e.estado_perfil !== 'activo') return;
-      const color = e.disponibilidad === 'libre' ? '#22c55e' : '#3b82f6';
-      const m = L.circleMarker([e.latitud, e.longitud], { radius: 6, color: '#fff', weight: 1.5, fillColor: color, fillOpacity: 0.9 })
-        .bindPopup(`<strong>${e.nombre} ${e.apellido}</strong><br>${e.ciudad||'—'}<br><a href="#" onclick="verEmpleado('${e.id}');return false;">Ver perfil →</a>`)
+      if (e.estado_perfil !== 'activo') return;
+      let lat = e.latitud, lon = e.longitud, enSitio = false;
+      if (e.id_proyecto_actual) {
+        const p = STATE.proyectos.find(x=>x.id===e.id_proyecto_actual);
+        if (p && p.latitud && p.longitud) { lat = p.latitud; lon = p.longitud; enSitio = true; }
+      }
+      if (!lat || !lon) return;
+      const color = enSitio ? '#C1121F' : (e.disponibilidad === 'libre' ? '#22c55e' : '#3b82f6');
+      const m = L.circleMarker([lat, lon], { radius: 6, color: '#fff', weight: 1.5, fillColor: color, fillOpacity: 0.9 })
+        .bindPopup(`<strong>${e.nombre} ${e.apellido}</strong><br>${enSitio?'En sitio: '+STATE.proyectos.find(x=>x.id===e.id_proyecto_actual)?.nombre:e.ciudad||'—'}<br><a href="#" onclick="verEmpleado('${e.id}');return false;">Ver perfil →</a>`)
         .addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(m); n++;
     });
   }
   if (verEq) {
     STATE.equipos.forEach(eq => {
-      if (!eq.proyecto_actual_id) return;
-      const p = STATE.proyectos.find(x=>x.id===eq.proyecto_actual_id);
-      if (!p || !p.latitud || !p.longitud) return;
-      const m = L.circleMarker([p.latitud, p.longitud], { radius: 5, color: '#fff', weight: 1.5, fillColor: '#a78bfa', fillOpacity: 0.9 })
-        .bindPopup(`<strong>${eq.nombre}</strong><br>En: ${p.nombre}`)
+      let lat = eq.latitud, lon = eq.longitud, enSitio = false;
+      if (eq.proyecto_actual_id) {
+        const p = STATE.proyectos.find(x=>x.id===eq.proyecto_actual_id);
+        if (p && p.latitud && p.longitud) { lat = p.latitud; lon = p.longitud; enSitio = true; }
+      }
+      if (!lat || !lon) return;
+      const m = L.circleMarker([lat, lon], { radius: 5, color: '#fff', weight: 1.5, fillColor: enSitio?'#C1121F':'#a78bfa', fillOpacity: 0.9 })
+        .bindPopup(`<strong>${eq.nombre}</strong><br>${enSitio?'En sitio: '+eq.proyecto_actual_nombre:(eq.ciudad_actual||'Sin ubicación asignada')}`)
         .addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(m); n++;
     });
