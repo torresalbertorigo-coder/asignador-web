@@ -2777,6 +2777,7 @@ async function renderReportar() {
             <option value="alta">Alta — Atención inmediata</option>
           </select>
         </div>
+        <div class="field-group"><label class="field-label">FECHA</label><input type="date" class="field-input" id="rep-fecha" value="${new Date().toISOString().split('T')[0]}"></div>
       </div>
       <div class="field-row full" style="margin-top:10px">
         <div class="field-group"><label class="field-label">DESCRIPCIÓN</label>
@@ -2796,7 +2797,8 @@ async function enviarReporte() {
   if (!desc) { toast('Escribe una descripción antes de enviar','error'); return; }
   const tipo = document.getElementById('rep-tipo')?.value;
   const sev  = document.getElementById('rep-sev')?.value;
-  const r = await api('POST', '/incidencias', { proyecto_id, tipo, severidad: sev, descripcion: desc });
+  const fecha = document.getElementById('rep-fecha')?.value || null;
+  const r = await api('POST', '/incidencias', { proyecto_id, tipo, severidad: sev, descripcion: desc, fecha });
   if (!r) { toast('Error al enviar el reporte','error'); return; }
   toast('Reporte enviado correctamente');
   renderReportar();
