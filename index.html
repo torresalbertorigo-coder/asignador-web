@@ -2237,7 +2237,10 @@ async function renderEquipos() {
           ${badge(estadoMostrar)}
         </div>
         <div class="eq-name">${eq.nombre}</div>
-        <div class="eq-type">${(eq.tipo||'').toUpperCase()}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="eq-type">${(eq.tipo||'').toUpperCase()}</div>
+          ${eq.apodo ? `<div style="font-size:12px;font-weight:600;color:var(--text2);font-style:italic">${eq.apodo}</div>` : ''}
+        </div>
         <div class="eq-row"><span>Serie</span><strong>${eq.numero_serie||'—'}</strong></div>
         <div class="eq-row"><span>Ubicación</span><strong>${eq.proyecto_actual_ciudad || eq.ciudad_actual || '—'}</strong></div>
         ${eq.proyecto_actual_nombre ? `<div class="eq-row"><span>En proyecto</span><strong>${eq.proyecto_actual_nombre}</strong></div>` : ''}
@@ -2287,7 +2290,8 @@ function verEquipo(id) {
       <div class="panel-section-title">DATOS DEL EQUIPO</div>
       <div class="field-row"><div class="field-group"><label class="field-label">TIPO</label><select class="field-select" id="ve-tipo"><option value="drone" ${eq.tipo==='drone'?'selected':''}>Drone / RPAS</option><option value="camara" ${eq.tipo==='camara'?'selected':''}>Cámara</option><option value="termografo" ${eq.tipo==='termografo'?'selected':''}>Termógrafo</option><option value="escalada" ${eq.tipo==='escalada'?'selected':''}>Equipo de escalada</option><option value="medicion" ${eq.tipo==='medicion'?'selected':''}>Medición</option><option value="otro" ${eq.tipo==='otro'?'selected':''}>Otro</option></select></div>
       <div class="field-group"><label class="field-label">ESTADO</label><select class="field-select" id="ve-estado"><option value="disponible" ${eq.estado==='disponible'?'selected':''}>Disponible</option><option value="en_uso" ${eq.estado==='en_uso'?'selected':''}>En uso</option><option value="mantenimiento" ${eq.estado==='mantenimiento'?'selected':''}>Mantenimiento</option><option value="baja" ${eq.estado==='baja'?'selected':''}>Dado de baja</option></select></div></div>
-      <div class="field-row"><div class="field-group"><label class="field-label">N° SERIE</label><input class="field-input" id="ve-serie" value="${eq.numero_serie||''}"></div><div class="field-group"><label class="field-label">CIUDAD ACTUAL</label><input class="field-input" id="ve-ciudad" value="${eq.ciudad_actual||''}"></div></div>
+      <div class="field-row"><div class="field-group"><label class="field-label">N° SERIE</label><input class="field-input" id="ve-serie" value="${eq.numero_serie||''}"></div><div class="field-group"><label class="field-label">APODO (OPCIONAL)</label><input class="field-input" id="ve-apodo" value="${eq.apodo||''}"></div></div>
+      <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD ACTUAL</label><input class="field-input" id="ve-ciudad" value="${eq.ciudad_actual||''}"></div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">COORDENADAS (OPCIONAL)</label><input class="field-input" id="ve-coords" placeholder="ej. 21.91114227818028, -102.2973348126625" value="${eq.latitud&&eq.longitud?`${eq.latitud}, ${eq.longitud}`:''}"></div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">PRÓX. CALIBRACIÓN</label><input class="field-input" id="ve-cal" type="date" value="${eq.proxima_calibracion||''}"></div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">NOTAS</label><textarea class="field-input" id="ve-notas" rows="3">${eq.notas||''}</textarea></div></div>
@@ -2304,6 +2308,7 @@ async function guardarEdicionEquipo(id) {
     tipo: document.getElementById('ve-tipo')?.value,
     estado: document.getElementById('ve-estado')?.value,
     numero_serie: document.getElementById('ve-serie')?.value.trim(),
+    apodo: document.getElementById('ve-apodo')?.value.trim(),
     ciudad_actual: document.getElementById('ve-ciudad')?.value.trim(),
     proxima_calibracion: document.getElementById('ve-cal')?.value || null,
     notas: document.getElementById('ve-notas')?.value.trim()
@@ -2326,6 +2331,7 @@ function openNuevoEquipo() {
         <div class="field-group"><label class="field-label">TIPO</label><select class="field-select" id="ne-tipo"><option value="drone">Drone / RPAS</option><option value="camara">Cámara</option><option value="termografo">Termógrafo</option><option value="escalada">Equipo de escalada</option><option value="medicion">Medición</option><option value="otro">Otro</option></select></div>
         <div class="field-group"><label class="field-label">N° SERIE</label><input class="field-input" id="ne-serie" placeholder="Número de serie"></div>
       </div>
+      <div class="field-row"><div class="field-group"><label class="field-label">APODO (OPCIONAL)</label><input class="field-input" id="ne-apodo" placeholder="ej: El Rayo"></div></div>
       <div class="field-row">
         <div class="field-group"><label class="field-label">CIUDAD ACTUAL</label><input class="field-input" id="ne-ciudad" placeholder="Ciudad"></div>
         <div class="field-group"><label class="field-label">PRÓX. CALIBRACIÓN</label><input class="field-input" id="ne-cal" type="date"></div>
@@ -2341,6 +2347,7 @@ async function guardarNuevoEquipo() {
   const nombre = document.getElementById('ne-nombre')?.value.trim();
   const tipo   = document.getElementById('ne-tipo')?.value;
   const serie  = document.getElementById('ne-serie')?.value.trim();
+  const apodo  = document.getElementById('ne-apodo')?.value.trim();
   const ciudad = document.getElementById('ne-ciudad')?.value.trim();
   const coordsParseadas = parsearCoordenadas(document.getElementById('ne-coords')?.value.trim());
   const cal    = document.getElementById('ne-cal')?.value || null;
@@ -2348,7 +2355,7 @@ async function guardarNuevoEquipo() {
   if (!nombre) { toast('El nombre del equipo es obligatorio','error'); return; }
   const id_eq = `EQP-${Date.now().toString(36).toUpperCase()}`;
   const r = await api('POST', '/equipos', {
-    id: id_eq, nombre, tipo, numero_serie: serie || null,
+    id: id_eq, nombre, tipo, numero_serie: serie || null, apodo: apodo || null,
     estado: 'disponible', ciudad_actual: ciudad || null,
     latitud: coordsParseadas?coordsParseadas.lat:null, longitud: coordsParseadas?coordsParseadas.lon:null,
     proxima_calibracion: cal, notas
