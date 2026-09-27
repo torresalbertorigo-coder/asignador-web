@@ -377,7 +377,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 
     <!-- SIDEBAR -->
     <div class="sidebar" id="sidebar">
-      <div class="sidebar-brand" data-sec="mapa" onclick="showSection('mapa')" title="Ir a Inicio">
+      <div class="sidebar-brand" data-sec="mapa" onclick="showSection(STATE.rol==='tecnico'?'mis-asignaciones':'mapa')" title="Ir a Inicio">
         <div class="b1">WALROSS</div>
         <div class="b2">ASIGNADOR INTELIGENTE</div>
       </div>
@@ -2246,8 +2246,16 @@ async function ejecutarEvaluacion() {
   const rojos = descartados.filter(d=>d.nivel!=='amarillo');
 
   let html_out = '';
-  if (dispEquipo && !dispEquipo.no_requiere_equipo && !dispEquipo.todo_disponible) {
-    const eqLabels = { drone:'Drone / RPAS', camara:'Cámara', termografo:'Termógrafo', escalada:'Equipo de escalada', medicion:'Medición', otro:'Otro' };
+  const eqLabels = { drone:'Drone / RPAS', camara:'Cámara', termografo:'Termógrafo', escalada:'Equipo de escalada', medicion:'Medición', otro:'Otro' };
+  if (dispEquipo && dispEquipo.no_requiere_equipo) {
+    html_out += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--text3)">
+      <i class="ti ti-tool" aria-hidden="true"></i> Este proyecto no requiere equipo.
+    </div>`;
+  } else if (dispEquipo && dispEquipo.todo_disponible) {
+    html_out += `<div style="background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--green)">
+      <i class="ti ti-circle-check" aria-hidden="true"></i> <strong>Equipo disponible</strong> para las fechas de este proyecto.
+    </div>`;
+  } else if (dispEquipo && !dispEquipo.todo_disponible) {
     const faltantes = dispEquipo.items.filter(it=>!it.suficiente).map(it=>`${eqLabels[it.tipo]||it.tipo} (${it.disponibles}/${it.cantidad_requerida})`).join(', ');
     html_out += `<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--amber)">
       <i class="ti ti-alert-triangle" aria-hidden="true"></i> <strong>Aunque el personal califique, falta equipo disponible para estas fechas:</strong> ${faltantes}. No bloquea la asignación, pero revísalo antes de confirmar.
@@ -2759,6 +2767,7 @@ async function renderMapa() {
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="mapa-f-proyectos" checked onchange="actualizarMapa()"> Proyectos</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="mapa-f-personal" checked onchange="actualizarMapa()"> Personal</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="mapa-f-equipo" onchange="actualizarMapa()"> Equipo</label>
+        <input type="text" id="mapa-buscar" class="field-input" placeholder="Buscar..." style="max-width:220px;height:32px;font-size:12px" oninput="actualizarMapa()">
         <span id="mapa-conteo" style="font-size:11px;color:var(--text3);margin-left:auto"></span>
       </div>
     </div>
@@ -2796,13 +2805,23 @@ function actualizarMapa() {
   const verProy = document.getElementById('mapa-f-proyectos')?.checked;
   const verPers = document.getElementById('mapa-f-personal')?.checked;
   const verEq   = document.getElementById('mapa-f-equipo')?.checked;
+  const busqueda = (document.getElementById('mapa-buscar')?.value || '').toLowerCase().trim();
   let n = 0;
+
+  const inputBuscar = document.getElementById('mapa-buscar');
+  if (inputBuscar) {
+    const activos = [verProy&&'proyectos', verPers&&'personal', verEq&&'equipo'].filter(Boolean);
+    inputBuscar.placeholder = activos.length === 1
+      ? `Buscar en ${activos[0]}...`
+      : 'Buscar...';
+  }
 
   const coloresProyecto = { en_progreso:'#C1121F', asignado:'#22c55e', en_preparacion:'#f59e0b', pausado:'#f97316', cancelado:'#9ca3af', completado:'#3b82f6', pendiente_asignacion:'#6b7280' };
 
   if (verProy) {
     STATE.proyectos.forEach(p => {
       if (!p.latitud || !p.longitud) return;
+      if (busqueda && !p.nombre.toLowerCase().includes(busqueda)) return;
       const estadoVis = estadoProyectoVisible(p);
       const color = coloresProyecto[estadoVis] || '#6b7280';
       const anillo = L.circleMarker([p.latitud, p.longitud], { radius: 8, className: 'marker-pulso', color: 'transparent', weight: 0, fillColor: color, fillOpacity: .6, interactive: false }).addTo(MAPA_LEAFLET);
@@ -2817,6 +2836,7 @@ function actualizarMapa() {
   if (verPers) {
     STATE.empleados.forEach(e => {
       if (e.estado_perfil !== 'activo') return;
+      if (busqueda && !`${e.nombre} ${e.apellido}`.toLowerCase().includes(busqueda)) return;
       let lat = e.latitud, lon = e.longitud, enSitio = false;
       if (e.id_proyecto_actual) {
         const p = STATE.proyectos.find(x=>x.id===e.id_proyecto_actual);
@@ -2836,6 +2856,7 @@ function actualizarMapa() {
   }
   if (verEq) {
     STATE.equipos.forEach(eq => {
+      if (busqueda && !`${eq.nombre} ${eq.apodo||''}`.toLowerCase().includes(busqueda)) return;
       let lat = eq.latitud, lon = eq.longitud, enSitio = false;
       if (eq.proyecto_actual_id) {
         const p = STATE.proyectos.find(x=>x.id===eq.proyecto_actual_id);
@@ -3187,15 +3208,18 @@ async function enviarReporte() {
 // ─── SECCIÓN: MI PERFIL ───────────────────────────────────────────────────────
 async function renderMiPerfil() {
   await cargarPerfil();
+  await loadEmpleados();
   const nombre = STATE.user?.nombre || 'Usuario';
   const av = nombre.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const miEmpleado = STATE.empleados.find(e=>e.id===STATE.user?.empleado_id);
+  const fotoUrl = miEmpleado?.foto_perfil_url;
   const docs = STATE.perfil_docs || [];
   const habs = STATE.perfil_habs || [];
   html(`
     <div style="max-width:720px">
     <div class="perfil-header">
-      <div class="perfil-av" onclick="elegirFotoPerfil()" title="Cambiar foto">
-        <span id="perfil-av-texto">${av}</span>
+      <div class="perfil-av" onclick="elegirFotoPerfil()" title="Cambiar foto" style="${fotoUrl?`background-image:url(${fotoUrl});background-size:cover;background-position:center`:''}">
+        <span id="perfil-av-texto" style="${fotoUrl?'display:none':''}">${av}</span>
         <div class="perfil-av-edit"><i class="ti ti-camera" aria-hidden="true"></i></div>
       </div>
       <div class="perfil-info">
@@ -3274,8 +3298,11 @@ async function subirFotoPerfil(input) {
   const file = input.files[0]; if (!file) return;
   const url = await subirArchivoAPI(file, 'foto-perfil');
   if (url) {
+    const empId = STATE.user?.empleado_id;
+    if (empId) await api('PATCH', `/empleados/${empId}/perfil`, { foto_perfil_url: url });
     const av = document.getElementById('perfil-av-texto');
     if (av) av.parentElement.style.backgroundImage = `url(${url})`;
+    if (av) av.style.display = 'none';
     toast('Foto actualizada');
   }
 }
