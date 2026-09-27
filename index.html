@@ -1486,6 +1486,7 @@ async function agregarRequisitoProyecto(proyectoId) {
   if (!r.ok) { toast('Error al agregar la habilidad','error'); return; }
   toast('Habilidad agregada al proyecto');
   await loadProyectos(true);
+  cargarCatalogos();
   verProyecto(proyectoId);
 }
 
@@ -1499,6 +1500,7 @@ async function agregarCertRequeridoProyecto(proyectoId) {
   if (!r.ok) { toast('Error al agregar el certificado','error'); return; }
   toast('Certificado agregado al proyecto');
   await loadProyectos(true);
+  cargarCatalogos();
   verProyecto(proyectoId);
 }
 
@@ -1849,6 +1851,7 @@ async function guardarNuevoProyecto() {
     closePanel(null, true);
     toast(`Proyecto "${nombre}" creado`);
     renderProyectos();
+    cargarCatalogos();
   } else { err.textContent = 'Error al crear el proyecto.'; }
 }
 
@@ -3375,6 +3378,7 @@ async function guardarHabilidad() {
   if (!ok) { err.textContent = 'Error al guardar. Intenta de nuevo.'; return; }
   closePanel(null, true);
   toast(`Habilidad "${nombre}" agregada`);
+  cargarCatalogos();
   renderMiPerfil();
 }
 
