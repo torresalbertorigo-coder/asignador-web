@@ -377,7 +377,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 
     <!-- SIDEBAR -->
     <div class="sidebar" id="sidebar">
-      <div class="sidebar-brand" data-sec="mapa" onclick="showSection(STATE.rol==='tecnico'?'mis-asignaciones':'mapa')" title="Ir a Inicio">
+      <div class="sidebar-brand" data-sec="mapa" onclick="showSection((STATE.rol==='tecnico'||STATE.modoTecnico)?'mis-asignaciones':'mapa')" title="Ir a Inicio">
         <div class="b1">WALROSS</div>
         <div class="b2">ASIGNADOR INTELIGENTE</div>
       </div>
