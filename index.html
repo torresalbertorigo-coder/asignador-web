@@ -540,6 +540,17 @@ async function initApp() {
   document.getElementById('sb-avatar').textContent = av;
   document.getElementById('sb-name').textContent = STATE.user.nombre;
   document.getElementById('sb-rol').textContent = STATE.rol === 'administrador' ? 'Administrador' : STATE.rol === 'director_proyecto' ? 'Director de Proyecto' : 'Técnico de campo';
+  if (STATE.user.empleado_id) {
+    api('GET', `/empleados/${STATE.user.empleado_id}`).then(emp => {
+      if (emp?.foto_perfil_url) {
+        const sbAv = document.getElementById('sb-avatar');
+        sbAv.style.backgroundImage = `url(${emp.foto_perfil_url})`;
+        sbAv.style.backgroundSize = 'cover';
+        sbAv.style.backgroundPosition = 'center';
+        sbAv.textContent = '';
+      }
+    });
+  }
   buildNav();
   cargarCatalogos();
   if (STATE.rol === 'administrador' || STATE.rol === 'director_proyecto') {
@@ -3306,6 +3317,13 @@ async function subirFotoPerfil(input) {
     const av = document.getElementById('perfil-av-texto');
     if (av) av.parentElement.style.backgroundImage = `url(${url})`;
     if (av) av.style.display = 'none';
+    const sbAv = document.getElementById('sb-avatar');
+    if (sbAv) {
+      sbAv.style.backgroundImage = `url(${url})`;
+      sbAv.style.backgroundSize = 'cover';
+      sbAv.style.backgroundPosition = 'center';
+      sbAv.textContent = '';
+    }
     toast('Foto actualizada');
   }
 }
