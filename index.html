@@ -985,6 +985,10 @@ async function renderEmpleados() {
   if (filtroEstadoEmp) {
     filtrados = filtrados.filter(e => estadoVisible(e) === filtroEstadoEmp);
   }
+  const filtroTipoEmp = STATE._empFiltroTipo || '';
+  if (filtroTipoEmp) {
+    filtrados = filtrados.filter(e => (e.tipo_contrato||'permanente') === filtroTipoEmp);
+  }
   const ahoraCert = Date.now();
   if (!STATE._alertasCertCargadasEn || (ahoraCert - STATE._alertasCertCargadasEn) > 8000) {
     STATE._alertasCert = await api('GET', '/empleados/alertas/certificados-por-vencer') || [];
@@ -999,6 +1003,12 @@ async function renderEmpleados() {
   }
   const faltantesChecador = STATE._faltantesChecador || [];
   const empleadosConFaltantes = new Set(faltantesChecador.map(f=>f.empleado_id)).size;
+  if (!STATE._contratosCargadosEn || (ahoraCert - STATE._contratosCargadosEn) > 8000) {
+    STATE._contratosPorVencer = await api('GET', '/empleados/alertas/contratos-temporales-por-vencer') || [];
+    STATE._contratosCargadosEn = ahoraCert;
+  }
+  const contratosPorVencer = STATE._contratosPorVencer || [];
+  const contratosVencidos = contratosPorVencer.filter(c=>c.vencido).length;
   html(`
     ${alertasCert.length ? `<div style="background:${vencidos?'var(--red-bg)':'var(--amber-bg)'};border:1px solid ${vencidos?'var(--red-border)':'var(--amber-border)'};border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;font-size:12px;color:${vencidos?'var(--red-text)':'var(--amber)'};cursor:pointer;display:flex;align-items:center;gap:8px" onclick="verAlertasCertificados()">
       <i class="ti ti-alert-triangle" aria-hidden="true"></i>
@@ -1008,6 +1018,11 @@ async function renderEmpleados() {
     ${faltantesChecador.length ? `<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;font-size:12px;color:var(--amber);cursor:pointer;display:flex;align-items:center;gap:8px" onclick="verDiasFaltantesChecador()">
       <i class="ti ti-clock-exclamation" aria-hidden="true"></i>
       <strong>${faltantesChecador.length} día(s) sin checada de entrada</strong> — ${empleadosConFaltantes} técnico(s) con pendientes
+      <span style="margin-left:auto;color:var(--text3)">Ver detalle →</span>
+    </div>` : ''}
+    ${contratosPorVencer.length ? `<div style="background:${contratosVencidos?'var(--red-bg)':'var(--amber-bg)'};border:1px solid ${contratosVencidos?'var(--red-border)':'var(--amber-border)'};border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;font-size:12px;color:${contratosVencidos?'var(--red-text)':'var(--amber)'};cursor:pointer;display:flex;align-items:center;gap:8px" onclick="verContratosPorVencer()">
+      <i class="ti ti-calendar-x" aria-hidden="true"></i>
+      <strong>${contratosVencidos ? `${contratosVencidos} contrato(s) temporal(es) vencido(s)` : ''}${contratosVencidos && (contratosPorVencer.length-contratosVencidos) ? ' y ' : ''}${(contratosPorVencer.length-contratosVencidos) ? `${contratosPorVencer.length-contratosVencidos} por vencer en los próximos 30 días` : ''}</strong>
       <span style="margin-left:auto;color:var(--text3)">Ver detalle →</span>
     </div>` : ''}
     <div class="stats-grid">
@@ -1030,6 +1045,11 @@ async function renderEmpleados() {
             <option value="vacaciones" ${filtroEstadoEmp==='vacaciones'?'selected':''}>Vacaciones</option>
             <option value="baja_medica" ${filtroEstadoEmp==='baja_medica'?'selected':''}>Baja médica</option>
           </select>
+          <select class="field-select" onchange="STATE._empFiltroTipo=this.value;renderEmpleados();" onclick="event.stopPropagation()">
+            <option value="">Permanentes y temporales</option>
+            <option value="permanente" ${STATE._empFiltroTipo==='permanente'?'selected':''}>Solo permanentes</option>
+            <option value="temporal" ${STATE._empFiltroTipo==='temporal'?'selected':''}>Solo temporales</option>
+          </select>
         </div></div>
         <span class="table-meta">${filtrados.length} de ${total} registros · nube</span>
       </div>
@@ -1039,7 +1059,7 @@ async function renderEmpleados() {
         <tbody>
           ${filtrados.map(e=>`<tr onclick="verEmpleado('${e.id}')" style="cursor:pointer">
             <td class="td-mono">${e.id}</td>
-            <td class="td-name">${e.nombre} ${e.apellido}</td>
+            <td class="td-name">${e.nombre} ${e.apellido}${e.tipo_contrato==='temporal'?' <span style="font-size:9px;font-weight:700;color:var(--amber);border:1px solid var(--amber-border);background:var(--amber-bg);padding:1px 5px;border-radius:2px;margin-left:4px">TEMPORAL</span>':''}</td>
             <td>${(e.seniority||'').replace('_',' ')}</td>
             <td>${e.estado_perfil && e.estado_perfil!=='activo' ? badge(e.estado_perfil) : badge(estadoVisible(e))}</td>
             <td>${fatiga(e.indice_fatiga)}</td>
@@ -1099,6 +1119,7 @@ function verEmpleado(id, tab) {
         <div><span style="color:var(--text3);font-size:10px">FATIGA</span><div style="margin-top:6px">${fatiga(e.indice_fatiga)}</div></div>
         <div><span style="color:var(--text3);font-size:10px">CIUDAD</span><div style="margin-top:2px;color:var(--text)">${e.ciudad||'—'}</div></div>
         <div><span style="color:var(--text3);font-size:10px">COORDENADAS</span><div style="margin-top:2px;color:var(--text)" class="td-mono">${e.latitud&&e.longitud?`${e.latitud.toFixed(5)}, ${e.longitud.toFixed(5)}`:'sin definir'} <a href="#" onclick="event.preventDefault();abrirEditarCoordenadasEmpleado('${e.id}')" style="color:var(--blue);text-decoration:none;font-size:11px;font-family:var(--sans)">editar</a></div></div>
+        <div><span style="color:var(--text3);font-size:10px">TIPO DE CONTRATO</span><div style="margin-top:2px;color:var(--text)">${e.tipo_contrato==='temporal'?`Temporal${e.fecha_fin_contrato?' — vence '+e.fecha_fin_contrato:' — sin fecha límite'}`:'Permanente'} <a href="#" onclick="event.preventDefault();abrirEditarTipoContrato('${e.id}')" style="color:var(--blue);text-decoration:none;font-size:11px;font-family:var(--sans)">editar</a></div></div>
         <div><span style="color:var(--text3);font-size:10px">ESTADO</span><div style="margin-top:2px;color:var(--text)">${e.estado||'—'}</div></div>
         <div><span style="color:var(--text3);font-size:10px">TELÉFONO</span><div style="margin-top:2px;color:var(--text)">${e.telefono||'—'}</div></div>
         <div><span style="color:var(--text3);font-size:10px">CORREO</span><div style="margin-top:2px;color:var(--text);word-break:break-all">${e.email_contacto||'—'}</div></div>
@@ -1195,6 +1216,10 @@ function openNuevoTecnico() {
     <div class="panel-section">
       <div class="panel-section-title">PERFIL PROFESIONAL</div>
       <div class="field-row"><div class="field-group"><label class="field-label">NIVEL</label><select class="field-select" id="nt-nivel"><option value="junior">Junior</option><option value="semi_senior">Semi Senior</option><option value="senior" selected>Senior</option><option value="especialista">Especialista</option></select></div><div class="field-group"><label class="field-label">TELÉFONO</label><input class="field-input" id="nt-tel" placeholder="+52-..."></div></div>
+      <div class="field-row" style="margin-top:8px">
+        <div class="field-group"><label class="field-label">TIPO DE CONTRATO</label><select class="field-select" id="nt-tipo-contrato" onchange="document.getElementById('nt-fin-contrato-wrap').style.display=this.value==='temporal'?'block':'none'"><option value="permanente" selected>Permanente</option><option value="temporal">Temporal</option></select></div>
+        <div class="field-group" id="nt-fin-contrato-wrap" style="display:none"><label class="field-label">FIN DE CONTRATO (OPCIONAL)</label><input class="field-input" id="nt-fin-contrato" type="date"></div>
+      </div>
     </div>
     <div class="panel-section">
       <div class="panel-section-title">UBICACIÓN</div>
@@ -1216,6 +1241,8 @@ async function guardarNuevoTecnico() {
   const estado   = document.getElementById('nt-estado')?.value.trim();
   const coordsParseadas = parsearCoordenadas(document.getElementById('nt-coords')?.value.trim());
   const tel      = document.getElementById('nt-tel')?.value.trim();
+  const tipoContrato = document.getElementById('nt-tipo-contrato')?.value || 'permanente';
+  const finContrato  = document.getElementById('nt-fin-contrato')?.value || null;
   const rol      = document.getElementById('nt-rol')?.value || 'tecnico';
   const err      = document.getElementById('nt-err');
   if (!nombre || !apellido || !email || !pass || !nivel || !ciudad) {
@@ -1233,7 +1260,7 @@ async function guardarNuevoTecnico() {
   const headers = { 'Authorization': `Bearer ${STATE.token}`, 'Content-Type': 'application/json' };
   const r2raw = await fetch(`${API}/empleados`, {
     method: 'POST', headers,
-    body: JSON.stringify({ id: id_emp, nombre, apellido, seniority: nivel, ciudad, estado: estado || '', pais: 'México', latitud: coordsParseadas?coordsParseadas.lat:0, longitud: coordsParseadas?coordsParseadas.lon:0, telefono: tel, email })
+    body: JSON.stringify({ id: id_emp, nombre, apellido, seniority: nivel, ciudad, estado: estado || '', pais: 'México', latitud: coordsParseadas?coordsParseadas.lat:0, longitud: coordsParseadas?coordsParseadas.lon:0, telefono: tel, email, tipo_contrato: tipoContrato, fecha_fin_contrato: finContrato })
   });
   if (!r2raw.ok) {
     const d = await r2raw.json().catch(()=>({}));
@@ -1647,6 +1674,9 @@ async function iniciarProyecto(id, volverA, fecha) {
 
 async function finalizarProyecto(id, volverA, fechaFin, fechaInicio) {
   if (!fechaFin && !confirm('¿Finalizar este proyecto? Se marcará como completado con la fecha de hoy como fecha real de término. Esto no se puede deshacer.')) return;
+  await loadEmpleados();
+  const pAntes = STATE.proyectos.find(x=>x.id===id);
+  const idsAsignadosAntes = pAntes ? (pAntes.tecnicos_asignados||[]) : [];
   const cuerpo = {};
   if (fechaFin) cuerpo.fecha_fin_real = fechaFin;
   if (fechaInicio) cuerpo.fecha_inicio_real = fechaInicio;
@@ -1654,7 +1684,26 @@ async function finalizarProyecto(id, volverA, fechaFin, fechaInicio) {
   if (!r) { toast('Error al finalizar el proyecto','error'); return; }
   toast(r.mensaje || 'Proyecto finalizado');
   await loadProyectos(true);
-  if (volverA === 'tecnico') { renderMisAsignaciones(); } else { verProyecto(id); }
+  const temporales = idsAsignadosAntes.map(eid=>STATE.empleados.find(e=>e.id===eid)).filter(e=>e && e.tipo_contrato==='temporal');
+  if (temporales.length && volverA !== 'tecnico') {
+    preguntarTemporalesAlFinalizar(temporales);
+  } else if (volverA === 'tecnico') { renderMisAsignaciones(); } else { verProyecto(id); }
+}
+
+function preguntarTemporalesAlFinalizar(temporales) {
+  openPanel('Personal temporal en este proyecto', `
+    <div class="panel-section">
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Este proyecto ya terminó y tenía personal temporal asignado. ¿Qué quieres hacer con cada uno?</p>
+      ${temporales.map(e=>`
+        <div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+          <span style="color:var(--text);font-weight:600;font-size:13px">${e.nombre} ${e.apellido}</span>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => archivarEmpleado('${e.id}'))">Archivar</button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="confirmarEliminarEmpleadoTemporal('${e.id}','${e.nombre.replace(/'/g,"\\'")} ${e.apellido.replace(/'/g,"\\'")}')">Eliminar</button>
+          </div>
+        </div>`).join('')}
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Dejarlos como están</button>`);
 }
 
 function abrirIniciarProyectoManual(id) {
@@ -2384,6 +2433,37 @@ async function verDiasFaltantesChecador() {
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
 }
 
+async function verContratosPorVencer() {
+  const contratos = await api('GET', '/empleados/alertas/contratos-temporales-por-vencer') || [];
+  openPanel('Contratos temporales por vencer', `
+    <div class="panel-section">
+      ${contratos.length ? contratos.map(c=>`
+        <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="color:var(--text);font-weight:600;font-size:13px">${c.empleado_nombre}</div>
+              <div style="color:${c.vencido?'var(--red-text)':'var(--amber)'};font-size:11px">${c.vencido?'Venció el':'Vence el'} ${c.fecha_fin_contrato}</div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => archivarEmpleado('${c.empleado_id}'))">Archivar</button>
+              <button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="confirmarEliminarEmpleadoTemporal('${c.empleado_id}','${c.empleado_nombre.replace(/'/g,"\\'")}')">Eliminar</button>
+            </div>
+          </div>
+        </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Sin contratos pendientes.</div>'}
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
+}
+
+async function confirmarEliminarEmpleadoTemporal(id, nombre) {
+  if (!confirm(`¿Eliminar a ${nombre}? No se puede deshacer.`)) return;
+  const r = await fetch(`${API}/empleados/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${STATE.token}` } });
+  if (!r.ok) { toast('Error al eliminar','error'); return; }
+  toast('Empleado eliminado');
+  await loadEmpleados(true);
+  verContratosPorVencer();
+}
+
+
 async function verAlertasCertificados() {
   const alertas = await api('GET', '/empleados/alertas/certificados-por-vencer') || [];
   openPanel('Certificados por vencer', `
@@ -2446,6 +2526,35 @@ async function guardarCoordenadas(id) {
   toast('Coordenadas actualizadas');
   await loadProyectos(true);
   verProyecto(id);
+}
+
+function abrirEditarTipoContrato(id) {
+  const e = STATE.empleados.find(x=>x.id===id);
+  if (!e) return;
+  openPanel('Tipo de contrato', `
+    <div class="panel-section">
+      <div class="field-group"><label class="field-label">TIPO</label>
+        <select class="field-select" id="edit-tipo-contrato" onchange="document.getElementById('edit-fin-contrato-wrap').style.display=this.value==='temporal'?'block':'none'">
+          <option value="permanente" ${e.tipo_contrato!=='temporal'?'selected':''}>Permanente</option>
+          <option value="temporal" ${e.tipo_contrato==='temporal'?'selected':''}>Temporal</option>
+        </select>
+      </div>
+      <div class="field-group" id="edit-fin-contrato-wrap" style="margin-top:10px;display:${e.tipo_contrato==='temporal'?'block':'none'}">
+        <label class="field-label">FIN DE CONTRATO (OPCIONAL)</label>
+        <input type="date" class="field-input" id="edit-fin-contrato" value="${e.fecha_fin_contrato||''}">
+      </div>
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="verEmpleado('${id}')">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarTipoContrato('${id}'))"><i class="ti ti-check" aria-hidden="true"></i> Guardar</button>`);
+}
+
+async function guardarTipoContrato(id) {
+  const tipo = document.getElementById('edit-tipo-contrato')?.value;
+  const fin  = tipo === 'temporal' ? (document.getElementById('edit-fin-contrato')?.value || null) : null;
+  const r = await api('PATCH', `/empleados/${id}/perfil`, { tipo_contrato: tipo, fecha_fin_contrato: fin });
+  if (!r) { toast('Error al guardar','error'); return; }
+  toast('Tipo de contrato actualizado');
+  await loadEmpleados(true);
+  verEmpleado(id);
 }
 
 function abrirEditarCoordenadasEmpleado(id) {
