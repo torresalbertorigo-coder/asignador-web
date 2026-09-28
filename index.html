@@ -821,18 +821,26 @@ function estadoVisible(e) {
   // El estado guardado en BD siempre es 'en_proyecto' desde el momento de
   // la asignación (lo necesita el motor para otros cálculos). Aquí solo
   // se calcula qué ETIQUETA mostrar, sin tocar el dato real:
-  //   > 2 días antes de iniciar  → "Asignado"
-  //   2 días antes hasta iniciar → "En preparación"
-  //   ya dentro de las fechas    → "En proyecto"
+  //   > 2 días antes de iniciar        → "Asignado"
+  //   2 días antes, o ya llegó la fecha
+  //   pero nadie ha dado "Iniciar"      → "En preparación"
+  //   el proyecto ya se inició de verdad → "En proyecto"
   if (e.disponibilidad !== 'en_proyecto' || !e.id_proyecto_actual) return e.disponibilidad;
   const pry = (STATE.proyectos||[]).find(p => p.id === e.id_proyecto_actual);
   if (!pry || !pry.fecha_inicio) return e.disponibilidad;
   const hoy = new Date(); hoy.setHours(0,0,0,0);
+  if (proyectoIniciado(pry)) return 'en_proyecto';
   const inicio = fechaLocal(pry.fecha_inicio);
   const diasHastaInicio = Math.ceil((inicio - hoy) / 86400000);
   if (diasHastaInicio > 2) return 'asignado';
-  if (diasHastaInicio > 0) return 'en_preparacion';
-  return 'en_proyecto';
+  return 'en_preparacion';
+}
+
+// Un proyecto "inició de verdad" cuando alguien dio "Iniciar proyecto"
+// (fecha_inicio_real) y todavía no se finaliza — no basta con que llegue
+// la fecha programada.
+function proyectoIniciado(p) {
+  return !!p && !!p.fecha_inicio_real && !p.fecha_fin_real;
 }
 
 function estadoProyectoVisible(p) {
@@ -840,15 +848,26 @@ function estadoProyectoVisible(p) {
   // personal requerido (ver registrar_asignacion en el backend). Aquí solo
   // se calcula qué ETIQUETA mostrar según la fecha real de inicio:
   //   > 2 días antes de iniciar  → "Asignado"
-  //   2 días antes hasta iniciar → "En preparativos"
-  //   ya llegó la fecha de inicio → "En progreso"
+  //   2 días antes, o ya llegó la fecha pero nadie ha dado "Iniciar"
+  //                              → "En preparativos"
+  //   alguien dio "Iniciar proyecto" → "En progreso"
   if (p.estado !== 'asignado' || !p.fecha_inicio) return p.estado || 'pendiente_asignacion';
+  if (p.fecha_inicio_real) return 'en_progreso';
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const inicio = fechaLocal(p.fecha_inicio);
   const diasHastaInicio = Math.ceil((inicio - hoy) / 86400000);
   if (diasHastaInicio > 2) return 'asignado';
-  if (diasHastaInicio > 0) return 'en_preparacion';
-  return 'en_progreso';
+  return 'en_preparacion';
+}
+
+// Nota para proyectos cuya fecha programada ya llegó y nadie los ha iniciado.
+// Regresa '' si no aplica.
+function textoRetrasoInicio(p) {
+  if (p.estado !== 'asignado' || p.fecha_inicio_real || !p.fecha_inicio) return '';
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const d = Math.round((hoy - fechaLocal(p.fecha_inicio)) / 86400000);
+  if (d < 0) return '';
+  return d === 0 ? 'Programado para hoy · aún sin iniciar' : `Debió iniciar hace ${d} día${d>1?'s':''}`;
 }
 
 function badge(val) {
@@ -1350,7 +1369,7 @@ async function renderProyectos() {
             <td class="td-mono">${p.id}</td>
             <td class="td-name">${p.nombre}</td>
             <td>${p.cliente||'—'}</td>
-            <td>${badge(estadoProyectoVisible(p))}</td>
+            <td>${badge(estadoProyectoVisible(p))}${textoRetrasoInicio(p)?`<div style="font-size:10px;color:var(--amber);margin-top:3px">${textoRetrasoInicio(p)}</div>`:''}</td>
             <td class="td-mono">${p.fecha_inicio||'—'}</td>
             <td class="td-mono">${p.fecha_fin_estimada||'—'}</td>
             <td>${p.ciudad||'—'}</td>
@@ -1423,7 +1442,7 @@ async function verProyecto(id) {
       <div class="panel-section-title">DETALLES DEL PROYECTO</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
         <div><span style="color:var(--text3);font-size:10px">ID</span><div class="td-mono" style="margin-top:2px">${p.id}</div></div>
-        <div><span style="color:var(--text3);font-size:10px">ESTADO</span><div style="margin-top:4px">${badge(estadoProyectoVisible(p))}</div></div>
+        <div><span style="color:var(--text3);font-size:10px">ESTADO</span><div style="margin-top:4px">${badge(estadoProyectoVisible(p))}${textoRetrasoInicio(p)?`<div style="font-size:11px;color:var(--amber);margin-top:4px">${textoRetrasoInicio(p)}</div>`:''}</div></div>
         <div><span style="color:var(--text3);font-size:10px">CLIENTE</span><div style="margin-top:2px;color:var(--text)">${p.cliente||'—'}</div></div>
         <div><span style="color:var(--text3);font-size:10px">CRITICIDAD</span><div style="margin-top:2px;color:var(--text)">${(p.criticidad||'—').replace('_',' ').toUpperCase()}</div></div>
         <div><span style="color:var(--text3);font-size:10px">INICIO</span><div class="td-mono" style="margin-top:2px">${p.fecha_inicio||'—'}</div></div>
@@ -2891,6 +2910,26 @@ async function renderMapa() {
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="mapa-f-personal" checked onchange="actualizarMapa()"> Personal</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="mapa-f-equipo" onchange="actualizarMapa()"> Equipo</label>
         <input type="text" id="mapa-buscar" class="field-input" placeholder="Buscar..." style="max-width:220px;height:32px;font-size:12px" oninput="actualizarMapa()">
+        <div id="mapa-filtros-proy" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <select id="mapa-vista-proy" class="field-select" style="width:auto;height:32px;font-size:12px" onchange="actualizarMapa()">
+            <option value="activos">En curso + programados</option>
+            <option value="en_curso">Solo en curso</option>
+            <option value="programados">Solo programados</option>
+            <option value="finalizados">Finalizados</option>
+            <option value="todos">Todos</option>
+          </select>
+          <select id="mapa-periodo-proy" class="field-select" style="width:auto;height:32px;font-size:12px" onchange="actualizarMapa()">
+            <option value="">Cualquier fecha</option>
+            <option value="semana">Esta semana</option>
+            <option value="mes">Este mes</option>
+            <option value="30d">Próximos 30 días</option>
+            <option value="rango">Por fechas…</option>
+          </select>
+          <span id="mapa-rango-proy" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3)">
+            <input type="date" id="mapa-desde" class="field-input" style="width:auto;height:32px;font-size:12px" onchange="actualizarMapa()"> a
+            <input type="date" id="mapa-hasta" class="field-input" style="width:auto;height:32px;font-size:12px" onchange="actualizarMapa()">
+          </span>
+        </div>
         <span id="mapa-conteo" style="font-size:11px;color:var(--text3);margin-left:auto"></span>
       </div>
     </div>
@@ -2920,6 +2959,47 @@ function aplicarTileMapa() {
   }).addTo(MAPA_LEAFLET);
 }
 
+// Rango de fechas del filtro del mapa según el periodo elegido. null = sin filtro de fecha.
+function rangoMapaSeleccionado(periodo) {
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  if (periodo === 'semana') {
+    const desde = new Date(hoy); desde.setDate(hoy.getDate() - ((hoy.getDay()+6)%7));   // lunes
+    const hasta = new Date(desde); hasta.setDate(desde.getDate()+6);
+    return { desde, hasta };
+  }
+  if (periodo === 'mes') {
+    return { desde: new Date(hoy.getFullYear(), hoy.getMonth(), 1), hasta: new Date(hoy.getFullYear(), hoy.getMonth()+1, 0) };
+  }
+  if (periodo === '30d') {
+    const hasta = new Date(hoy); hasta.setDate(hoy.getDate()+30);
+    return { desde: hoy, hasta };
+  }
+  if (periodo === 'rango') {
+    const d = document.getElementById('mapa-desde')?.value;
+    const h = document.getElementById('mapa-hasta')?.value;
+    return { desde: d ? fechaLocal(d) : null, hasta: h ? fechaLocal(h) : null };
+  }
+  return null;
+}
+
+// Vista: activos (en curso + programados) | en_curso | programados | finalizados | todos
+function proyectoPasaFiltroMapa(p, vista, rango) {
+  const terminado = p.estado === 'completado' || p.estado === 'cancelado';
+  const iniciado = proyectoIniciado(p);
+  const clase = terminado ? 'finalizados' : (iniciado ? 'en_curso' : 'programados');
+  if (vista === 'activos' && clase === 'finalizados') return false;
+  if (['en_curso','programados','finalizados'].includes(vista) && vista !== clase) return false;
+  if (rango && (rango.desde || rango.hasta)) {
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    const ini = fechaLocal(p.fecha_inicio_real || p.fecha_inicio);
+    let fin = fechaLocal(p.fecha_fin_real || p.fecha_fin_estimada || p.fecha_inicio);
+    if (iniciado && hoy > fin) fin = hoy;   // sigue en campo aunque ya pasó su fecha estimada de fin
+    if (rango.desde && fin < rango.desde) return false;
+    if (rango.hasta && ini > rango.hasta) return false;
+  }
+  return true;
+}
+
 function actualizarMapa() {
   if (!MAPA_LEAFLET) return;
   MAPA_MARKERS.forEach(m => MAPA_LEAFLET.removeLayer(m));
@@ -2940,17 +3020,29 @@ function actualizarMapa() {
   }
 
   const coloresProyecto = { en_progreso:'#C1121F', asignado:'#22c55e', en_preparacion:'#f59e0b', pausado:'#f97316', cancelado:'#9ca3af', completado:'#3b82f6', pendiente_asignacion:'#6b7280' };
+  const etiquetasEstadoPry = { en_progreso:'En progreso', asignado:'Asignado', en_preparacion:'En preparativos', pausado:'Pausado', cancelado:'Cancelado', completado:'Completado', pendiente_asignacion:'Pendiente de asignación' };
+
+  // Los controles de vista/periodo solo se ven cuando "Proyectos" está activo;
+  // las fechas (desde/hasta) solo cuando el periodo es "Por fechas…"
+  const vistaPry = document.getElementById('mapa-vista-proy')?.value || 'activos';
+  const periodoPry = document.getElementById('mapa-periodo-proy')?.value || '';
+  const filtrosProyEl = document.getElementById('mapa-filtros-proy');
+  if (filtrosProyEl) filtrosProyEl.style.display = verProy ? 'flex' : 'none';
+  const rangoWrapEl = document.getElementById('mapa-rango-proy');
+  if (rangoWrapEl) rangoWrapEl.style.display = (verProy && periodoPry === 'rango') ? 'flex' : 'none';
+  const rangoPry = rangoMapaSeleccionado(periodoPry);
 
   if (verProy) {
     STATE.proyectos.forEach(p => {
       if (!p.latitud || !p.longitud) return;
+      if (!proyectoPasaFiltroMapa(p, vistaPry, rangoPry)) return;
       if (busqueda && !p.nombre.toLowerCase().includes(busqueda)) return;
       const estadoVis = estadoProyectoVisible(p);
       const color = coloresProyecto[estadoVis] || '#6b7280';
       const anillo = L.circleMarker([p.latitud, p.longitud], { radius: 8, className: 'marker-pulso', color: 'transparent', weight: 0, fillColor: color, fillOpacity: .6, interactive: false }).addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(anillo);
       const m = L.circleMarker([p.latitud, p.longitud], { radius: 8, className: 'marker-suave', color: '#fff', weight: 1.5, fillColor: color, fillOpacity: 0.9 })
-        .bindPopup(`<strong>${p.nombre}</strong><br>${p.cliente||'—'}<br>${p.ciudad||'—'}<br><a href="#" onclick="verProyecto('${p.id}');return false;">Ver detalle →</a>`)
+        .bindPopup(`<strong>${p.nombre}</strong><br>${p.cliente||'—'}<br>${p.ciudad||'—'}<br><span style="color:${color}">●</span> ${etiquetasEstadoPry[estadoVis]||estadoVis}${textoRetrasoInicio(p)?`<br><span style="color:#f59e0b">${textoRetrasoInicio(p)}</span>`:''}<br>${p.fecha_inicio} al ${p.fecha_fin_estimada}<br><a href="#" onclick="verProyecto('${p.id}');return false;">Ver detalle →</a>`)
         .bindTooltip(p.nombre, { direction: 'top', className: 'mapa-tooltip', offset: [0,-6] })
         .addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(m); n++;
@@ -2960,19 +3052,21 @@ function actualizarMapa() {
     STATE.empleados.forEach(e => {
       if (e.estado_perfil !== 'activo') return;
       if (busqueda && !`${e.nombre} ${e.apellido}`.toLowerCase().includes(busqueda)) return;
-      let lat = e.latitud, lon = e.longitud, enSitio = false;
+      let lat = e.latitud, lon = e.longitud, enSitio = false, pryAsignado = null;
       if (e.id_proyecto_actual) {
-        const p = STATE.proyectos.find(x=>x.id===e.id_proyecto_actual);
-        if (p && p.latitud && p.longitud) { lat = p.latitud; lon = p.longitud; enSitio = true; }
+        pryAsignado = STATE.proyectos.find(x=>x.id===e.id_proyecto_actual) || null;
+        // Solo aparece en el sitio cuando el proyecto ya se inició de verdad; antes se queda en su base
+        if (pryAsignado && proyectoIniciado(pryAsignado) && pryAsignado.latitud && pryAsignado.longitud) { lat = pryAsignado.latitud; lon = pryAsignado.longitud; enSitio = true; }
       }
+      const textoBase = (pryAsignado && !proyectoIniciado(pryAsignado)) ? `En base · asignado a ${pryAsignado.nombre} (inicia ${pryAsignado.fecha_inicio})` : 'En base';
       if (!lat || !lon) return;
       const coloresPersonal = { libre:'#22c55e', asignado:'#22c55e', en_preparacion:'#f59e0b', en_proyecto:'#C1121F' };
       const color = enSitio ? '#C1121F' : (coloresPersonal[estadoVisible(e)] || '#6b7280');
       const anillo = L.circleMarker([lat, lon], { radius: 6, className: 'marker-pulso', color: 'transparent', weight: 0, fillColor: color, fillOpacity: .6, interactive: false }).addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(anillo);
       const m = L.circleMarker([lat, lon], { radius: 6, className: 'marker-suave', color: '#fff', weight: 1.5, fillColor: color, fillOpacity: 0.9 })
-        .bindPopup(`<strong>${e.nombre} ${e.apellido}</strong><br>${enSitio?'En sitio: '+STATE.proyectos.find(x=>x.id===e.id_proyecto_actual)?.nombre:e.ciudad||'—'}<br><a href="#" onclick="verEmpleado('${e.id}');return false;">Ver perfil →</a>`)
-        .bindTooltip(`${e.nombre} — ${enSitio?'En proyecto: '+(STATE.proyectos.find(x=>x.id===e.id_proyecto_actual)?.nombre||''):'En base'}`, { direction: 'top', className: 'mapa-tooltip', offset: [0,-5] })
+        .bindPopup(`<strong>${e.nombre} ${e.apellido}</strong><br>${enSitio?'En sitio: '+pryAsignado.nombre:textoBase+'<br>'+(e.ciudad||'—')}<br><a href="#" onclick="verEmpleado('${e.id}');return false;">Ver perfil →</a>`)
+        .bindTooltip(`${e.nombre} — ${enSitio?'En proyecto: '+pryAsignado.nombre:textoBase}`, { direction: 'top', className: 'mapa-tooltip', offset: [0,-5] })
         .addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(m); n++;
     });
@@ -2983,7 +3077,7 @@ function actualizarMapa() {
       let lat = eq.latitud, lon = eq.longitud, enSitio = false;
       if (eq.proyecto_actual_id) {
         const p = STATE.proyectos.find(x=>x.id===eq.proyecto_actual_id);
-        if (p && p.latitud && p.longitud) { lat = p.latitud; lon = p.longitud; enSitio = true; }
+        if (p && proyectoIniciado(p) && p.latitud && p.longitud) { lat = p.latitud; lon = p.longitud; enSitio = true; }
       }
       if (!lat || !lon) return;
       const colorEq = enSitio?'#C1121F':'#a78bfa';
