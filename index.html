@@ -571,6 +571,7 @@ function buildNav() {
       <div class="nav-section">OPERACIONES</div>
       <div class="nav-item" onclick="showSection('evaluar')" data-sec="evaluar"><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i> Evaluar</div>
       <div class="nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-tool" aria-hidden="true"></i> Equipos</div>
+      <div class="nav-item" onclick="showSection('vehiculos')" data-sec="vehiculos"><i class="ti ti-truck" aria-hidden="true"></i> Vehículos</div>
       <div class="nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Incidencias</div>
       <div class="nav-item" onclick="showSection('metricas')" data-sec="metricas"><i class="ti ti-chart-bar" aria-hidden="true"></i> Métricas</div>
       <div class="nav-section">MI CUENTA</div>
@@ -582,6 +583,7 @@ function buildNav() {
         <div class="mobile-nav-item" onclick="showSection('proyectos')" data-sec="proyectos"><i class="ti ti-folder" aria-hidden="true"></i>Proyectos</div>
         <div class="mobile-nav-item" onclick="showSection('evaluar')" data-sec="evaluar"><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i>Evaluar</div>
         <div class="mobile-nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-tool" aria-hidden="true"></i>Equipos</div>
+        <div class="mobile-nav-item" onclick="showSection('vehiculos')" data-sec="vehiculos"><i class="ti ti-truck" aria-hidden="true"></i>Vehículos</div>
         <div class="mobile-nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Incidencias</div>
         <div class="mobile-nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i>Perfil</div>
       </div>`;
@@ -646,6 +648,7 @@ function buildMobileNavAdmin() {
       <div class="mobile-nav-item" onclick="showSection('proyectos')" data-sec="proyectos"><i class="ti ti-folder" aria-hidden="true"></i>Proyectos</div>
       <div class="mobile-nav-item" onclick="showSection('evaluar')" data-sec="evaluar"><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i>Evaluar</div>
       <div class="mobile-nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-tool" aria-hidden="true"></i>Equipos</div>
+      <div class="mobile-nav-item" onclick="showSection('vehiculos')" data-sec="vehiculos"><i class="ti ti-truck" aria-hidden="true"></i>Vehículos</div>
       <div class="mobile-nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Incidencias</div>
     </div>`;
 }
@@ -657,6 +660,7 @@ const TITLES = {
   'gantt':            ['ti-calendar-stats',     'Gantt — Disponibilidad'],
   'evaluar':          ['ti-adjustments-horizontal','Evaluar Candidatos'],
   'equipos':          ['ti-tool',               'Equipos e Instrumentos'],
+  'vehiculos':        ['ti-truck',              'Vehículos'],
   'incidencias':      ['ti-alert-triangle',     'Incidencias de Campo'],
   'mapa':             ['ti-home',               'Inicio'],
   'metricas':         ['ti-chart-bar',          'Métricas de Proyectos'],
@@ -674,6 +678,7 @@ const RENDERERS = {
   gantt:            renderGantt,
   evaluar:          renderEvaluar,
   equipos:          renderEquipos,
+  vehiculos:        renderVehiculos,
   incidencias:      renderIncidencias,
   mapa:             renderMapa,
   metricas:         renderMetricas,
@@ -1413,6 +1418,10 @@ async function verProyecto(id) {
   await loadEquipos();
   const equiposAsignados = (p.equipo_asignado_ids||[]).map(eid => STATE.equipos.find(e=>e.id===eid)).filter(Boolean);
   const dispEquipo = p.no_requiere_equipo ? null : await api('GET', `/proyectos/proyectos/${id}/disponibilidad-equipo`);
+  await loadVehiculos();
+  const vehiculosAsignados = (p.vehiculo_asignado_ids||[]).map(vid => (STATE.vehiculos||[]).find(v=>v.id===vid)).filter(Boolean);
+  const usaVehiculo = !p.no_requiere_vehiculo || (p.vehiculo_requerido_items||[]).length || (p.vehiculo_asignado_ids||[]).length;
+  const dispVehiculo = usaVehiculo ? await api('GET', `/proyectos/proyectos/${id}/disponibilidad-vehiculo`) : null;
   let footerBtns = '';
   if (p.estado !== 'cancelado' && p.estado !== 'completado') {
     if (p.estado === 'pausado') {
@@ -1450,6 +1459,7 @@ async function verProyecto(id) {
         <div style="font-size:10px;color:${p.no_requiere_equipo?'var(--text3)':equipoOk?'var(--green)':'var(--amber)'};font-weight:700">${p.no_requiere_equipo?'EQUIPO: NO REQUIERE':equipoOk?'EQUIPO ✓ COMPLETO':'EQUIPO ⚠ INCOMPLETO'}</div>
         <div style="font-size:12px;color:var(--text2);margin-top:2px">${p.no_requiere_equipo?'—':totalEquipoRequerido===0?'sin requisitos':`${equiposAsignados.length}/${totalEquipoRequerido} unidad(es) apartada(s)`}</div>
       </div>
+      ${tarjetaVehiculoProyecto(p, vehiculosAsignados)}
     </div>
     <div class="panel-section">
       <div class="panel-section-title">DETALLES DEL PROYECTO</div>
@@ -1535,7 +1545,8 @@ async function verProyecto(id) {
         <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="abrirAsignacionEquipo('${p.id}')"><i class="ti ti-tool" aria-hidden="true"></i> Asignar equipo específico</button>
         <button class="btn btn-ghost btn-sm" style="margin-top:10px;margin-left:8px" onclick="toggleEditarRequisitos('${p.id}')"><i class="ti ${editando?'ti-eye-off':'ti-pencil'}" aria-hidden="true"></i> ${editando?'Ocultar edición':'Editar requisitos'}</button>
       `}
-    </div>`,
+    </div>
+    ${seccionVehiculosProyecto(p, vehiculosAsignados, dispVehiculo, editando)}`,
     footerBtns,
     STATE.rol !== 'tecnico' ? `<button class="btn btn-ghost btn-sm" onclick="exportarGanttProyectoPDF('${p.id}')" title="Generar Gantt en PDF"><i class="ti ti-file-download" aria-hidden="true"></i> PDF</button>` : '');
 }
@@ -1781,6 +1792,7 @@ function openNuevoProyecto() {
   STATE._np_habilidades = [];
   STATE._np_certificados = [];
   STATE._np_equipo = [];
+  STATE._np_vehiculo = [];
   openPanel('Nuevo proyecto', `
     <div class="panel-section">
       <div class="panel-section-title">INFORMACIÓN GENERAL</div>
@@ -1827,6 +1839,21 @@ function openNuevoProyecto() {
         </div>
         <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="agregarEquipoProyecto()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar equipo</button>
         <div id="np-equipo-list" style="margin-top:10px">${renderListaEquipoProyecto()}</div>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">VEHÍCULOS REQUERIDOS</div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);margin-bottom:12px;cursor:pointer">
+        <input type="checkbox" id="np-sin-vehiculo" checked onchange="document.getElementById('np-vehiculo-section').style.display=this.checked?'none':'block'">
+        Este proyecto no requiere vehículo
+      </label>
+      <div id="np-vehiculo-section" style="display:none">
+        <div class="field-row">
+          <div class="field-group" style="flex:2"><label class="field-label">TIPO DE VEHÍCULO</label><select class="field-select" id="np-veh-tipo">${opcionesTipoVehiculo('camioneta')}</select></div>
+          <div class="field-group"><label class="field-label">CANTIDAD</label><input class="field-input" id="np-veh-cantidad" type="number" min="1" value="1"></div>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="agregarVehiculoProyecto()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar vehículo</button>
+        <div id="np-vehiculo-list" style="margin-top:10px">${renderListaVehiculoProyecto()}</div>
       </div>
     </div>
     <div class="panel-section">
@@ -1928,6 +1955,8 @@ async function guardarNuevoProyecto() {
   const certificados_requeridos = (STATE._np_certificados||[]).slice();
   const no_requiere_equipo = document.getElementById('np-sin-equipo')?.checked || false;
   const equipo_requerido = no_requiere_equipo ? [] : (STATE._np_equipo||[]).slice();
+  const no_requiere_vehiculo = document.getElementById('np-sin-vehiculo')?.checked ?? true;
+  const vehiculo_requerido = no_requiere_vehiculo ? [] : (STATE._np_vehiculo||[]).slice();
   const r = await api('POST', '/proyectos/proyectos', {
     id: id_pry, nombre, cliente, criticidad: crit, intensidad: intens,
     fecha_inicio: inicio, fecha_fin_estimada: fin,
@@ -1936,7 +1965,8 @@ async function guardarNuevoProyecto() {
     ciudad, estado_ub: estadoUb, pais: 'México',
     latitud: coordsParseadas ? coordsParseadas.lat : 0,
     longitud: coordsParseadas ? coordsParseadas.lon : 0,
-    habilidades_requeridas, certificados_requeridos, equipo_requerido, no_requiere_equipo
+    habilidades_requeridas, certificados_requeridos, equipo_requerido, no_requiere_equipo,
+    vehiculo_requerido, no_requiere_vehiculo
   });
   if (r) {
     await loadProyectos(true);
@@ -2334,6 +2364,7 @@ async function ejecutarEvaluacion() {
   const r = await api('GET', `/proyectos/proyectos/${pid}/evaluar`);
   if (!r) { resultsEl.innerHTML = '<div class="empty-state"><i class="ti ti-alert-triangle" aria-hidden="true"></i><p>Error al ejecutar la evaluación.</p></div>'; return; }
   const dispEquipo = await api('GET', `/proyectos/proyectos/${pid}/disponibilidad-equipo`);
+  const dispVeh = await api('GET', `/proyectos/proyectos/${pid}/disponibilidad-vehiculo`);
 
   const { proyecto_nombre, aprobados, descartados, mensaje_si_vacio } = r;
   const labels = { habilidades:'Habilidades', fatiga:'Fatiga', recencia:'Recencia', seniority:'Seniority', cercania:'Cercanía' };
@@ -2355,6 +2386,19 @@ async function ejecutarEvaluacion() {
     html_out += `<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--amber)">
       <i class="ti ti-alert-triangle" aria-hidden="true"></i> <strong>Aunque el personal califique, falta equipo disponible para estas fechas:</strong> ${faltantes}. No bloquea la asignación, pero revísalo antes de confirmar.
     </div>`;
+  }
+  // Vehículo: solo se muestra si el proyecto realmente requiere uno (la mayoría no)
+  if (dispVeh && !dispVeh.no_requiere_vehiculo) {
+    if (dispVeh.todo_disponible) {
+      html_out += `<div style="background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--green)">
+        <i class="ti ti-circle-check" aria-hidden="true"></i> <strong>Vehículo disponible</strong> para las fechas de este proyecto.
+      </div>`;
+    } else {
+      const faltantesVeh = dispVeh.items.filter(it=>!it.suficiente).map(it=>`${VEH_TIPOS[it.tipo]||it.tipo} (${it.disponibles}/${it.cantidad_requerida})`).join(', ');
+      html_out += `<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--amber)">
+        <i class="ti ti-alert-triangle" aria-hidden="true"></i> <strong>Falta vehículo disponible para estas fechas:</strong> ${faltantesVeh}. No bloquea la asignación, pero revísalo antes de confirmar.
+      </div>`;
+    }
   }
 
   html_out += `<div style="background:var(--surface);border:1px solid var(--border);padding:10px 14px;border-radius:var(--radius);margin-bottom:14px;font-size:12px">
@@ -2870,6 +2914,494 @@ async function guardarNuevoEquipo() {
   renderEquipos();
 }
 
+// ─── SECCIÓN: VEHÍCULOS ───────────────────────────────────────────────────────
+// Misma mecánica que Equipos: unidades físicas (con placas), ubicación, se apartan
+// para proyectos, y cada una lleva sus documentos (seguro, tarjeta de circulación...).
+const VEH_TIPOS  = { camioneta:'Camioneta', auto:'Auto', van:'Van', camion:'Camión', moto:'Moto', otro:'Otro' };
+const VEH_ICONOS = { camioneta:'ti-truck', auto:'ti-car', van:'ti-bus', camion:'ti-truck-delivery', moto:'ti-motorbike', otro:'ti-car' };
+const VEH_DOC_TIPOS = { tarjeta_circulacion:'Tarjeta de circulación', seguro:'Seguro', verificacion:'Verificación', tenencia:'Tenencia / refrendo', factura:'Factura', otro:'Otro' };
+
+// Escapa texto tecleado por el usuario antes de meterlo en HTML
+function escHtml(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function opcionesTipoVehiculo(seleccionado) {
+  return Object.entries(VEH_TIPOS).map(([k,v]) => `<option value="${k}" ${k===seleccionado?'selected':''}>${v}</option>`).join('');
+}
+
+async function loadVehiculos(forzar) {
+  const ahora = Date.now();
+  if (!forzar && STATE._vehCargadosEn && (ahora - STATE._vehCargadosEn) < 8000) return;
+  const d = await api('GET', '/vehiculos');
+  if (d) { STATE.vehiculos = d; STATE._vehCargadosEn = ahora; }
+}
+
+// Vuelve a pedir UN vehículo (con sus documentos) y lo deja al día en STATE — sirve también para archivados
+async function refrescarVehiculo(id) {
+  const v = await api('GET', `/vehiculos/${id}`);
+  if (!v) return null;
+  STATE.vehiculos = STATE.vehiculos || [];
+  const i = STATE.vehiculos.findIndex(x => x.id === id);
+  if (i >= 0) STATE.vehiculos[i] = v; else STATE.vehiculos.push(v);
+  STATE._alertasVehCargadasEn = 0;   // los documentos cambiaron: recalcular alertas
+  return v;
+}
+
+// Vigencia de un documento: color y texto según su fecha de vencimiento
+function estadoVigencia(fecha) {
+  if (!fecha) return { clave:'sin', color:'var(--text3)', texto:'Sin vigencia' };
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const dias = Math.round((fechaLocal(fecha) - hoy) / 86400000);
+  if (dias < 0)   return { clave:'vencido',   color:'var(--red-text)', texto:`${fecha} (vencido hace ${-dias} día${dias===-1?'':'s'})` };
+  if (dias <= 30) return { clave:'porvencer', color:'var(--amber)',    texto:`${fecha} (${dias===0?'vence hoy':'vence en '+dias+' día'+(dias===1?'':'s')})` };
+  return { clave:'ok', color:'var(--text)', texto: fecha };
+}
+
+// Resumen de documentos para la tarjeta del vehículo
+function resumenDocsVehiculo(v) {
+  const docs = v.documentos || [];
+  if (!docs.length) return { texto:'Sin documentos', color:'var(--text3)' };
+  const est = docs.map(d => estadoVigencia(d.fecha_vencimiento).clave);
+  const venc = est.filter(x => x === 'vencido').length;
+  const por  = est.filter(x => x === 'porvencer').length;
+  if (venc) return { texto: `${venc} vencido${venc>1?'s':''}${por?` · ${por} por vencer`:''}`, color:'var(--red-text)' };
+  if (por)  return { texto: `${por} por vencer`, color:'var(--amber)' };
+  return { texto: `${docs.length} al corriente`, color:'var(--green)' };
+}
+
+async function renderVehiculos() {
+  const verArch = STATE._verArchivadosVeh || false;
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-ghost btn-sm" onclick="toggleVerArchivadosVeh()">${verArch?'<i class="ti ti-eye-off" aria-hidden="true"></i> Ocultar archivados':'<i class="ti ti-archive" aria-hidden="true"></i> Ver archivados'}</button><button class="btn btn-ghost btn-sm" onclick="loadVehiculos(true).then(renderVehiculos)"><i class="ti ti-refresh" aria-hidden="true"></i></button><button class="btn btn-primary btn-sm" onclick="openNuevoVehiculo()"><i class="ti ti-plus" aria-hidden="true"></i> Nuevo vehículo</button>`;
+  if (verArch) {
+    const d = await api('GET', '/vehiculos?solo_activos=false');
+    if (d) STATE.vehiculos = d;
+  } else {
+    await loadVehiculos();
+  }
+  const vehiculos = STATE.vehiculos || [];
+  const disp = vehiculos.filter(v => v.estado === 'disponible').length;
+  const mant = vehiculos.filter(v => v.estado === 'mantenimiento').length;
+  const ahora = Date.now();
+  if (!STATE._alertasVehCargadasEn || (ahora - STATE._alertasVehCargadasEn) > 8000) {
+    STATE._alertasVeh = await api('GET', '/vehiculos/alertas/documentos-por-vencer') || [];
+    STATE._alertasVehCargadasEn = ahora;
+  }
+  const alertas = STATE._alertasVeh || [];
+  const vencidos = alertas.filter(a => a.vencido).length;
+  const porVencer = alertas.length - vencidos;
+  html(`
+    ${alertas.length ? `<div style="background:${vencidos?'var(--red-bg)':'var(--amber-bg)'};border:1px solid ${vencidos?'var(--red-border)':'var(--amber-border)'};border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;font-size:12px;color:${vencidos?'var(--red-text)':'var(--amber)'};cursor:pointer;display:flex;align-items:center;gap:8px" onclick="verAlertasVehiculos()">
+      <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+      <strong>${vencidos ? `${vencidos} documento(s) vencido(s)` : ''}${vencidos && porVencer ? ' y ' : ''}${porVencer ? `${porVencer} por vencer en los próximos 30 días` : ''}</strong>
+      <span style="margin-left:auto;color:var(--text3)">Ver detalle →</span>
+    </div>` : ''}
+    <div class="stats-grid">
+      <div class="stat-card c-red"><div class="stat-lbl">TOTAL VEHÍCULOS</div><div class="stat-val">${vehiculos.length}</div><div class="stat-sub">en la flota</div></div>
+      <div class="stat-card c-green"><div class="stat-lbl">DISPONIBLES</div><div class="stat-val">${disp}</div><div class="stat-sub">listos para uso</div></div>
+      <div class="stat-card c-amber"><div class="stat-lbl">EN MANTENIMIENTO</div><div class="stat-val">${mant}</div><div class="stat-sub">fuera de servicio</div></div>
+      <div class="stat-card"><div class="stat-lbl">EN USO</div><div class="stat-val">${vehiculos.filter(v => v.proyecto_actual_nombre).length}</div><div class="stat-sub">en un proyecto</div></div>
+    </div>
+    <div class="equipo-grid">
+      ${vehiculos.length ? vehiculos.map(v => {
+        const estadoMostrar = v.proyecto_actual_nombre ? 'en_proyecto' : (v.estado==='mantenimiento' ? 'mantenimiento' : v.estado==='baja' ? 'baja' : 'oficina');
+        const docs = resumenDocsVehiculo(v);
+        return `<div class="equipo-card" onclick="verVehiculo('${v.id}')">
+        <div class="eq-head">
+          <div class="eq-icon"><i class="ti ${VEH_ICONOS[v.tipo]||'ti-car'}" aria-hidden="true"></i></div>
+          ${badge(estadoMostrar)}
+        </div>
+        <div class="eq-name">${escHtml(v.nombre)}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="eq-type">${escHtml((VEH_TIPOS[v.tipo]||v.tipo||'').toUpperCase())}</div>
+          ${v.apodo ? `<div style="font-size:12px;font-weight:600;color:var(--text2);font-style:italic">${escHtml(v.apodo)}</div>` : ''}
+        </div>
+        <div class="eq-row"><span>Placas</span><strong>${escHtml(v.placas||'—')}</strong></div>
+        <div class="eq-row"><span>Ubicación</span><strong>${escHtml(v.proyecto_actual_ciudad || v.ciudad_actual || '—')}</strong></div>
+        ${v.proyecto_actual_nombre ? `<div class="eq-row"><span>En proyecto</span><strong>${escHtml(v.proyecto_actual_nombre)}</strong></div>` : ''}
+        <div class="eq-row"><span>Documentos</span><strong style="color:${docs.color}">${docs.texto}</strong></div>
+      </div>`;
+      }).join('') : '<div class="empty-state" style="grid-column:1/-1"><i class="ti ti-truck" aria-hidden="true"></i><p>Aún no hay vehículos registrados</p></div>'}
+    </div>`);
+}
+
+function toggleVerArchivadosVeh() {
+  STATE._verArchivadosVeh = !STATE._verArchivadosVeh;
+  renderVehiculos();
+}
+
+async function verAlertasVehiculos() {
+  const alertas = await api('GET', '/vehiculos/alertas/documentos-por-vencer') || [];
+  openPanel('Documentos de vehículos por vencer', `
+    <div class="panel-section">
+      ${alertas.length ? alertas.map(a => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;cursor:pointer" onclick="verVehiculo('${a.vehiculo_id}')">
+          <div>
+            <div style="color:var(--text);font-weight:600">${escHtml(a.vehiculo_nombre)}${a.placas ? ` <span style="color:var(--text3);font-weight:400">(${escHtml(a.placas)})</span>` : ''}</div>
+            <div style="color:var(--text3);font-size:11px">${escHtml(a.documento_nombre)} · ${VEH_DOC_TIPOS[a.tipo]||escHtml(a.tipo)}</div>
+          </div>
+          <span style="color:${a.vencido?'var(--red-text)':'var(--amber)'};font-weight:600">${a.vencido ? `Venció hace ${Math.abs(a.dias_restantes)} día(s)` : `Vence en ${a.dias_restantes} día(s)`}</span>
+        </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Sin documentos por vencer.</div>'}
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
+}
+
+function openNuevoVehiculo() {
+  openPanel('Nuevo vehículo', `
+    <div class="panel-section">
+      <div class="panel-section-title">DATOS DEL VEHÍCULO</div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE</label><input class="field-input" id="nv-nombre" placeholder="Ej: Nissan NP300 blanca"></div></div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">TIPO</label><select class="field-select" id="nv-tipo">${opcionesTipoVehiculo('camioneta')}</select></div>
+        <div class="field-group"><label class="field-label">PLACAS</label><input class="field-input" id="nv-placas" placeholder="ABC-123-D"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">MARCA</label><input class="field-input" id="nv-marca" placeholder="Nissan"></div>
+        <div class="field-group"><label class="field-label">MODELO</label><input class="field-input" id="nv-modelo" placeholder="NP300"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">AÑO</label><input class="field-input" id="nv-anio" type="number" min="1950" max="2100" placeholder="2022"></div>
+        <div class="field-group"><label class="field-label">N° DE SERIE (NIV)</label><input class="field-input" id="nv-serie" placeholder="Opcional"></div>
+      </div>
+      <div class="field-row"><div class="field-group"><label class="field-label">APODO (OPCIONAL)</label><input class="field-input" id="nv-apodo" placeholder="ej: La Blanca"></div></div>
+      <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD ACTUAL</label><input class="field-input" id="nv-ciudad" placeholder="Ciudad"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">COORDENADAS (OPCIONAL)</label><input class="field-input" id="nv-coords" placeholder="ej. 21.91114227818028, -102.2973348126625"></div></div>
+      <p style="font-size:11px;color:var(--text3);margin-top:-6px;margin-bottom:10px">Ubicación base, para cuando el vehículo no esté asignado a ningún proyecto. Pega el par de números de Google Maps, o déjalo vacío para calcularlo por ciudad.</p>
+      <div class="field-row full"><div class="field-group"><label class="field-label">NOTAS</label><textarea class="field-input" id="nv-notas" rows="3" placeholder="Observaciones del vehículo..."></textarea></div></div>
+      <p style="font-size:11px;color:var(--text3)">Los documentos (seguro, tarjeta de circulación, verificación...) los agregas al abrir el vehículo, justo después de guardarlo.</p>
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, guardarNuevoVehiculo)"><i class="ti ti-check" aria-hidden="true"></i> Guardar</button>`);
+}
+
+async function guardarNuevoVehiculo() {
+  const val = id => document.getElementById(id)?.value.trim();
+  const nombre = val('nv-nombre');
+  if (!nombre) { toast('El nombre del vehículo es obligatorio','error'); return; }
+  const anioTxt = val('nv-anio');
+  const anio = anioTxt ? Number(anioTxt) : null;
+  if (anioTxt && (!Number.isInteger(anio) || anio < 1900 || anio > 2100)) { toast('El año debe ser un número entero entre 1900 y 2100','error'); return; }
+  const coordsParseadas = parsearCoordenadas(val('nv-coords'));
+  const id_veh = `VEH-${Date.now().toString(36).toUpperCase()}`;
+  const r = await api('POST', '/vehiculos', {
+    id: id_veh, nombre, tipo: document.getElementById('nv-tipo')?.value,
+    placas: val('nv-placas') || null, marca: val('nv-marca') || null, modelo: val('nv-modelo') || null,
+    anio, numero_serie: val('nv-serie') || null, apodo: val('nv-apodo') || null,
+    estado: 'disponible', ciudad_actual: val('nv-ciudad') || null,
+    latitud: coordsParseadas ? coordsParseadas.lat : null, longitud: coordsParseadas ? coordsParseadas.lon : null,
+    notas: val('nv-notas') || ''
+  });
+  if (!r) { toast('Error al registrar el vehículo','error'); return; }
+  closePanel(null, true);
+  toast(`Vehículo "${nombre}" registrado`);
+  await loadVehiculos(true);
+  renderVehiculos();
+  verVehiculo(id_veh);    // se abre de una vez para poder cargarle sus documentos
+}
+
+// Lista de documentos de un vehículo (se re-dibuja sola al agregar/quitar, sin perder lo que estés editando)
+function renderDocsVehiculo(v) {
+  const docs = v.documentos || [];
+  if (!docs.length) return '<div style="font-size:12px;color:var(--text3);margin-bottom:8px">Sin documentos todavía.</div>';
+  return docs.map(d => {
+    const vg = estadoVigencia(d.fecha_vencimiento);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="min-width:0">
+        <div style="color:var(--text);font-weight:600;font-size:12px;overflow:hidden;text-overflow:ellipsis">${escHtml(d.nombre)}</div>
+        <div style="font-size:11px;color:var(--text3)">${VEH_DOC_TIPOS[d.tipo]||escHtml(d.tipo)} · <span style="color:${vg.color}">${d.fecha_vencimiento ? 'Vence: '+vg.texto : 'Sin vigencia'}</span></div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        ${d.ruta_archivo ? `<button class="btn btn-ghost btn-sm" onclick="verDocumentoVehiculo('${v.id}',${d.id})"><i class="ti ti-eye" aria-hidden="true"></i> Ver</button>` : '<span style="font-size:11px;color:var(--text3);align-self:center">sin archivo</span>'}
+        <button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="eliminarDocumentoVehiculo('${v.id}',${d.id})" title="Quitar documento"><i class="ti ti-trash" aria-hidden="true"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function verVehiculo(id) {
+  const v = (STATE.vehiculos||[]).find(x => x.id === id);
+  if (!v) return;
+  const e = escHtml;
+  openPanel(v.nombre, `
+    <div class="panel-section">
+      <div class="panel-section-title">DATOS DEL VEHÍCULO</div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE</label><input class="field-input" id="vv-nombre" value="${e(v.nombre)}"></div></div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">TIPO</label><select class="field-select" id="vv-tipo">${opcionesTipoVehiculo(v.tipo)}</select></div>
+        <div class="field-group"><label class="field-label">ESTADO</label><select class="field-select" id="vv-estado"><option value="disponible" ${v.estado==='disponible'?'selected':''}>Disponible</option><option value="en_uso" ${v.estado==='en_uso'?'selected':''}>En uso</option><option value="mantenimiento" ${v.estado==='mantenimiento'?'selected':''}>Mantenimiento</option><option value="baja" ${v.estado==='baja'?'selected':''}>Dado de baja</option></select></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">PLACAS</label><input class="field-input" id="vv-placas" value="${e(v.placas||'')}"></div>
+        <div class="field-group"><label class="field-label">APODO (OPCIONAL)</label><input class="field-input" id="vv-apodo" value="${e(v.apodo||'')}"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">MARCA</label><input class="field-input" id="vv-marca" value="${e(v.marca||'')}"></div>
+        <div class="field-group"><label class="field-label">MODELO</label><input class="field-input" id="vv-modelo" value="${e(v.modelo||'')}"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">AÑO</label><input class="field-input" id="vv-anio" type="number" min="1950" max="2100" value="${v.anio||''}"></div>
+        <div class="field-group"><label class="field-label">N° DE SERIE (NIV)</label><input class="field-input" id="vv-serie" value="${e(v.numero_serie||'')}"></div>
+      </div>
+      <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD ACTUAL</label><input class="field-input" id="vv-ciudad" value="${e(v.ciudad_actual||'')}"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">COORDENADAS (OPCIONAL)</label><input class="field-input" id="vv-coords" placeholder="ej. 21.91114227818028, -102.2973348126625" value="${v.latitud&&v.longitud?`${v.latitud}, ${v.longitud}`:''}"></div></div>
+      ${v.proyecto_actual_nombre ? `<div style="font-size:12px;color:var(--text2);margin:-4px 0 10px"><i class="ti ti-map-pin" aria-hidden="true"></i> En proyecto ahora: <strong>${e(v.proyecto_actual_nombre)}</strong> (${e(v.proyecto_actual_ciudad||'—')})</div>` : ''}
+      <div class="field-row full"><div class="field-group"><label class="field-label">NOTAS</label><textarea class="field-input" id="vv-notas" rows="3">${e(v.notas||'')}</textarea></div></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">DOCUMENTOS</div>
+      <div id="vv-docs-list">${renderDocsVehiculo(v)}</div>
+      <div style="margin-top:14px;padding:12px;border:1px dashed var(--border2);border-radius:var(--radius)">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:700;letter-spacing:.05em">AGREGAR DOCUMENTO</div>
+        <div class="field-row">
+          <div class="field-group"><label class="field-label">TIPO</label><select class="field-select" id="vd-tipo">${Object.entries(VEH_DOC_TIPOS).map(([k,n])=>`<option value="${k}">${n}</option>`).join('')}</select></div>
+          <div class="field-group"><label class="field-label">VENCE (OPCIONAL)</label><input class="field-input" id="vd-vence" type="date"></div>
+        </div>
+        <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE (OPCIONAL)</label><input class="field-input" id="vd-nombre" placeholder="Ej: Póliza Qualitas 2026"></div></div>
+        <div class="field-row full"><div class="field-group"><label class="field-label">ARCHIVO (PDF O IMAGEN)</label><input class="field-input" id="vd-archivo" type="file" accept=".pdf,.jpg,.jpeg,.png"></div></div>
+        <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => agregarDocumentoVehiculo('${v.id}'))"><i class="ti ti-plus" aria-hidden="true"></i> Agregar documento</button>
+      </div>
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>
+     <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarEdicionVehiculo('${v.id}'))"><i class="ti ti-check" aria-hidden="true"></i> Guardar cambios</button>
+     ${v.estado !== 'baja' ? `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => archivarVehiculo('${v.id}'))"><i class="ti ti-archive" aria-hidden="true"></i> Archivar</button>` : `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => reactivarVehiculo('${v.id}'))"><i class="ti ti-archive-off" aria-hidden="true"></i> Reactivar</button>`}
+     ${STATE.rol==='administrador' ? `<button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="eliminarVehiculoConfirm('${v.id}')"><i class="ti ti-trash" aria-hidden="true"></i> Eliminar</button>` : ''}`);
+}
+
+async function guardarEdicionVehiculo(id) {
+  const val = i => document.getElementById(i)?.value.trim();
+  const nombre = val('vv-nombre');
+  if (!nombre) { toast('El nombre del vehículo es obligatorio','error'); return; }
+  const anioTxt = val('vv-anio');
+  const anio = anioTxt ? Number(anioTxt) : null;
+  if (anioTxt && (!Number.isInteger(anio) || anio < 1900 || anio > 2100)) { toast('El año debe ser un número entero entre 1900 y 2100','error'); return; }
+  const coordsParseadas = parsearCoordenadas(val('vv-coords'));
+  const datos = {
+    nombre, tipo: document.getElementById('vv-tipo')?.value, estado: document.getElementById('vv-estado')?.value,
+    placas: val('vv-placas') || null, apodo: val('vv-apodo') || null, marca: val('vv-marca') || null,
+    modelo: val('vv-modelo') || null, anio, numero_serie: val('vv-serie') || null,
+    ciudad_actual: val('vv-ciudad') || null, notas: val('vv-notas') || ''
+  };
+  if (coordsParseadas) { datos.latitud = coordsParseadas.lat; datos.longitud = coordsParseadas.lon; }
+  const r = await api('PUT', `/vehiculos/${id}`, datos);
+  if (!r) { toast('Error al guardar los cambios','error'); return; }
+  closePanel(null, true);
+  toast('Vehículo actualizado');
+  await loadVehiculos(true);
+  renderVehiculos();
+}
+
+async function archivarVehiculo(id) {
+  const r = await api('PUT', `/vehiculos/${id}`, { estado: 'baja' });
+  if (!r) { toast('Error al archivar','error'); return; }
+  toast('Vehículo archivado (dado de baja) — ya no aparece en la lista activa');
+  await loadVehiculos(true);
+  closePanel(null, true);
+  renderVehiculos();
+}
+
+async function reactivarVehiculo(id) {
+  const r = await api('PUT', `/vehiculos/${id}`, { estado: 'disponible' });
+  if (!r) { toast('Error al reactivar','error'); return; }
+  toast('Vehículo reactivado');
+  await loadVehiculos(true);
+  closePanel(null, true);
+  renderVehiculos();
+}
+
+async function eliminarVehiculoConfirm(id) {
+  const v = (STATE.vehiculos||[]).find(x => x.id === id);
+  if (!v) return;
+  if (!confirm(`¿Eliminar "${v.nombre}" definitivamente? Se borrarán también sus documentos y no se puede deshacer.\n\nSi solo quieres ocultarlo, usa "Archivar" en vez de esto.`)) return;
+  const r = await api('DELETE', `/vehiculos/${id}`);
+  if (!r) { toast('Error al eliminar','error'); return; }
+  toast('Vehículo eliminado');
+  await loadVehiculos(true);
+  closePanel(null, true);
+  renderVehiculos();
+}
+
+// Subida de documentos del vehículo. A diferencia de los documentos personales, aquí NO se guarda una copia local
+// como respaldo si falla: preferimos avisar del error antes que dejar un documento sin archivo real.
+async function subirArchivoVehiculo(file, nombre, carpeta) {
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const url = `${API}/storage/upload?empleado_id=${encodeURIComponent(carpeta)}&nombre_doc=${encodeURIComponent(nombre)}`;
+    const r = await fetch(url, { method: 'POST', headers: { 'Authorization': `Bearer ${STATE.token}` }, body: fd });
+    if (!r.ok) { console.error('Upload error:', r.status, await r.text()); return null; }
+    const d = await r.json();
+    return d.url || null;
+  } catch (e) {
+    console.error('Upload exception:', e);
+    return null;
+  }
+}
+
+async function agregarDocumentoVehiculo(vehId) {
+  const tipo   = document.getElementById('vd-tipo')?.value || 'otro';
+  const nombreIn = document.getElementById('vd-nombre')?.value.trim();
+  const vence  = document.getElementById('vd-vence')?.value || null;
+  const file   = document.getElementById('vd-archivo')?.files?.[0];
+  if (!file && !vence) { toast('Adjunta el archivo o captura una fecha de vencimiento','error'); return; }
+  const nombre = nombreIn || VEH_DOC_TIPOS[tipo] || 'Documento';
+  let ruta = null;
+  if (file) {
+    ruta = await subirArchivoVehiculo(file, `${tipo}-${Date.now()}`, `vehiculos/${vehId}`);
+    if (!ruta) { toast('No se pudo subir el archivo. Revisa tu conexión e intenta de nuevo.','error'); return; }
+  }
+  const r = await api('POST', `/vehiculos/${vehId}/documentos`, { tipo, nombre, fecha_vencimiento: vence, ruta_archivo: ruta });
+  if (!r) { toast('Error al guardar el documento','error'); return; }
+  const v = await refrescarVehiculo(vehId);
+  const lista = document.getElementById('vv-docs-list');
+  if (v && lista) lista.innerHTML = renderDocsVehiculo(v);
+  ['vd-nombre','vd-vence','vd-archivo'].forEach(i => { const el = document.getElementById(i); if (el) el.value = ''; });
+  toast('Documento agregado');
+}
+
+async function eliminarDocumentoVehiculo(vehId, docId) {
+  if (!confirm('¿Quitar este documento? Se borra del vehículo (el archivo subido no se elimina del almacenamiento).')) return;
+  const r = await api('DELETE', `/vehiculos/${vehId}/documentos/${docId}`);
+  if (!r) { toast('Error al quitar el documento','error'); return; }
+  const v = await refrescarVehiculo(vehId);
+  const lista = document.getElementById('vv-docs-list');
+  if (v && lista) lista.innerHTML = renderDocsVehiculo(v);
+  toast('Documento eliminado');
+}
+
+function verDocumentoVehiculo(vehId, docId) {
+  const v = (STATE.vehiculos||[]).find(x => x.id === vehId);
+  const d = v && (v.documentos||[]).find(x => x.id === docId);
+  if (d && d.ruta_archivo) abrirVisor(d.ruta_archivo, d.nombre);
+}
+
+// ─── Vehículos dentro de un proyecto (misma mecánica que equipo) ──────────────
+function tarjetaVehiculoProyecto(p, asignados) {
+  const idsAsignados = (p.vehiculo_asignado_ids || []).length;
+  const totalRequerido = (p.vehiculo_requerido_resumen || []).reduce((s, v) => s + v.cantidad, 0);
+  // Si el proyecto no usa vehículos no se muestra la tarjeta (evita ruido en los proyectos que nunca los necesitan)
+  if (p.no_requiere_vehiculo && !totalRequerido && !idsAsignados) return '';
+  const ok = totalRequerido === 0 || idsAsignados >= totalRequerido;
+  const detalle = totalRequerido === 0 ? `${idsAsignados} unidad(es) apartada(s)` : `${idsAsignados}/${totalRequerido} unidad(es) apartada(s)`;
+  return `<div style="flex:1;min-width:140px;background:${ok?'var(--green-bg)':'var(--amber-bg)'};border:1px solid ${ok?'var(--green-border)':'var(--amber-border)'};border-radius:var(--radius);padding:10px 14px">
+        <div style="font-size:10px;color:${ok?'var(--green)':'var(--amber)'};font-weight:700">VEHÍCULO ${ok?'✓ COMPLETO':'⚠ INCOMPLETO'}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px">${detalle}</div>
+      </div>`;
+}
+
+function seccionVehiculosProyecto(p, asignados, disp, editando) {
+  const puedeEditar = STATE.rol !== 'tecnico';
+  const items = p.vehiculo_requerido_items || [];
+  const sinNada = p.no_requiere_vehiculo && !items.length && !asignados.length;
+  let cuerpo;
+  if (sinNada && !editando) {
+    cuerpo = '<div style="font-size:12px;color:var(--text3)">Este proyecto no requiere vehículo.</div>';
+  } else {
+    cuerpo = `
+      ${items.length ? items.map(it => {
+        const info = disp ? (disp.items||[]).find(d => d.tipo === it.tipo) : null;
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+          <span>${VEH_TIPOS[it.tipo]||escHtml(it.tipo)} — necesita ${it.cantidad}</span>
+          <span style="display:flex;align-items:center;gap:10px">
+            ${info ? `<span style="color:${info.suficiente?'var(--green)':'var(--amber)'}">${info.disponibles} disponible(s)</span>` : ''}
+            ${editando && puedeEditar ? `<button class="btn btn-ghost btn-sm" style="padding:2px 6px" onclick="ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','vehiculo-requerido',${it.id}))"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}
+          </span>
+        </div>`;
+      }).join('') : '<div style="font-size:12px;color:var(--text3);margin-bottom:10px">Sin vehículo requerido configurado.</div>'}
+      ${editando && puedeEditar ? `<div style="display:flex;gap:8px;margin:8px 0 14px">
+        <select class="field-select" id="pd-veh-tipo" style="flex:2">${opcionesTipoVehiculo('camioneta')}</select>
+        <input class="field-input" id="pd-veh-cantidad" type="number" min="1" value="1" style="width:70px">
+        <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => agregarVehiculoRequeridoProyecto('${p.id}'))"><i class="ti ti-plus" aria-hidden="true"></i></button>
+      </div>` : ''}
+      ${disp && !disp.todo_disponible ? `
+        <div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);padding:10px 14px;margin:12px 0;font-size:12px;color:var(--amber)">
+          <i class="ti ti-alert-triangle" aria-hidden="true"></i> <strong>Falta vehículo disponible para estas fechas</strong> — revisa si rentar o conseguir otro. Esto no bloquea el proyecto.
+        </div>` : ''}
+      <div style="font-size:11px;color:var(--text3);margin:14px 0 6px">UNIDADES YA APARTADAS PARA ESTE PROYECTO</div>
+      ${asignados.length ? asignados.map(v => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+          <span>${escHtml(v.nombre)} <span style="color:var(--text3)">(${escHtml(v.placas||'sin placas')})</span></span>
+          ${editando && puedeEditar ? `<button class="btn btn-ghost btn-sm" style="padding:2px 8px;color:var(--red-text)" onclick="ejecutarConCarga(this, () => liberarVehiculoDeProyecto('${p.id}','${v.id}'))"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}
+        </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Ninguna todavía.</div>'}`;
+  }
+  const botones = puedeEditar ? `
+      <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="abrirAsignacionVehiculo('${p.id}')"><i class="ti ti-truck" aria-hidden="true"></i> Asignar vehículo específico</button>
+      <button class="btn btn-ghost btn-sm" style="margin-top:10px;margin-left:8px" onclick="toggleEditarRequisitos('${p.id}')"><i class="ti ${editando?'ti-eye-off':'ti-pencil'}" aria-hidden="true"></i> ${editando?'Ocultar edición':'Editar requisitos'}</button>` : '';
+  return `<div class="panel-section">
+      <div class="panel-section-title">VEHÍCULOS</div>
+      ${cuerpo}${botones}
+    </div>`;
+}
+
+async function agregarVehiculoRequeridoProyecto(proyectoId) {
+  const tipo = document.getElementById('pd-veh-tipo')?.value;
+  const cantidad = document.getElementById('pd-veh-cantidad')?.value || 1;
+  const params = new URLSearchParams({ tipo, cantidad });
+  const r = await api('POST', `/proyectos/proyectos/${proyectoId}/vehiculo-requerido?${params}`);
+  if (!r) { toast('Error al agregar el requisito de vehículo','error'); return; }
+  toast('Requisito de vehículo agregado');
+  await loadProyectos(true);
+  verProyecto(proyectoId);
+}
+
+async function abrirAsignacionVehiculo(proyectoId) {
+  const lista = await api('GET', `/proyectos/proyectos/${proyectoId}/vehiculos-para-asignar`);
+  const candidatos = (lista||[]).filter(v => !v.ya_asignado_aqui);
+  openPanel('Asignar vehículo específico', `
+    <div class="panel-section">
+      <div class="field-row full"><div class="field-group"><label class="field-label">VEHÍCULO</label>
+        <select class="field-select" id="asig-veh-select">
+          ${candidatos.map(v => `<option value="${v.id}" data-disponible="${v.disponible}" data-conflicto="${escHtml(v.conflicto_con||'')}">${escHtml(v.nombre)} — ${escHtml(v.placas||'sin placas')} (${v.disponible ? 'disponible' : 'no disponible — en uso en "'+escHtml(v.conflicto_con)+'"'})</option>`).join('')}
+        </select>
+      </div></div>
+      ${candidatos.length===0 ? '<div style="font-size:12px;color:var(--text3)">No hay más vehículos registrados para asignar.</div>' : ''}
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="verProyecto('${proyectoId}')">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => confirmarAsignacionVehiculo('${proyectoId}'))"><i class="ti ti-check" aria-hidden="true"></i> Asignar</button>`);
+}
+
+async function confirmarAsignacionVehiculo(proyectoId) {
+  const sel = document.getElementById('asig-veh-select');
+  const vehId = sel?.value;
+  if (!vehId) return;
+  const opt = sel.selectedOptions[0];
+  if (opt && opt.dataset.disponible === 'false') {
+    if (!confirm(`Este vehículo ya está en uso en "${opt.dataset.conflicto}" durante fechas que se encimarían con este proyecto. ¿Asignarlo de todas formas?`)) return;
+  }
+  const r = await api('POST', `/proyectos/proyectos/${proyectoId}/asignar-vehiculo/${vehId}`);
+  if (!r) { toast('Error al asignar el vehículo','error'); return; }
+  toast(r.mensaje || 'Vehículo asignado');
+  await loadProyectos(true);
+  verProyecto(proyectoId);
+}
+
+async function liberarVehiculoDeProyecto(proyectoId, vehiculoId) {
+  const r = await api('DELETE', `/proyectos/proyectos/${proyectoId}/vehiculo/${vehiculoId}`);
+  if (!r) { toast('Error al liberar el vehículo','error'); return; }
+  toast('Vehículo liberado');
+  await loadProyectos(true);
+  verProyecto(proyectoId);
+}
+
+// Formulario "Nuevo proyecto": lista de vehículos requeridos
+function renderListaVehiculoProyecto() {
+  const list = STATE._np_vehiculo || [];
+  if (!list.length) return '<div style="font-size:12px;color:var(--text3)">Ninguno agregado.</div>';
+  return list.map((v, i) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+    <span>${VEH_TIPOS[v.tipo]||escHtml(v.tipo)} — cantidad: ${v.cantidad}</span>
+    <button class="btn btn-ghost btn-sm" onclick="quitarVehiculoProyecto(${i})" style="padding:2px 6px"><i class="ti ti-x" aria-hidden="true"></i></button>
+  </div>`).join('');
+}
+function agregarVehiculoProyecto() {
+  const tipo = document.getElementById('np-veh-tipo')?.value;
+  const cantidad = parseInt(document.getElementById('np-veh-cantidad')?.value || '1', 10) || 1;
+  if (!STATE._np_vehiculo) STATE._np_vehiculo = [];
+  STATE._np_vehiculo = STATE._np_vehiculo.filter(v => v.tipo !== tipo);
+  STATE._np_vehiculo.push({ tipo, cantidad });
+  document.getElementById('np-vehiculo-list').innerHTML = renderListaVehiculoProyecto();
+}
+function quitarVehiculoProyecto(i) {
+  STATE._np_vehiculo.splice(i, 1);
+  document.getElementById('np-vehiculo-list').innerHTML = renderListaVehiculoProyecto();
+}
+
 // ─── SECCIÓN: INCIDENCIAS ─────────────────────────────────────────────────────
 async function renderIncidencias() {
   await loadProyectos(); await loadEmpleados();
@@ -2915,13 +3447,14 @@ async function eliminarIncidenciaConfirm(id) {
 
 // ─── SECCIÓN: MAPA DE OPERACIONES ─────────────────────────────────────────────
 async function renderMapa() {
-  await loadEmpleados(); await loadProyectos(); await loadEquipos();
+  await loadEmpleados(); await loadProyectos(); await loadEquipos(); await loadVehiculos();
   html(`
     <div class="table-section" style="padding:14px 18px;margin-bottom:12px">
       <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center">
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="mapa-f-proyectos" checked onchange="actualizarMapa()"> Proyectos</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="mapa-f-personal" checked onchange="actualizarMapa()"> Personal</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="mapa-f-equipo" onchange="actualizarMapa()"> Equipo</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="mapa-f-vehiculos" onchange="actualizarMapa()"> Vehículos</label>
         <input type="text" id="mapa-buscar" class="field-input" placeholder="Buscar..." style="max-width:220px;height:32px;font-size:12px" oninput="actualizarMapa()">
         <div id="mapa-filtros-proy" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
           <select id="mapa-vista-proy" class="field-select" style="width:auto;height:32px;font-size:12px" onchange="actualizarMapa()">
@@ -3022,12 +3555,13 @@ function actualizarMapa() {
   const verProy = document.getElementById('mapa-f-proyectos')?.checked;
   const verPers = document.getElementById('mapa-f-personal')?.checked;
   const verEq   = document.getElementById('mapa-f-equipo')?.checked;
+  const verVeh  = document.getElementById('mapa-f-vehiculos')?.checked;
   const busqueda = (document.getElementById('mapa-buscar')?.value || '').toLowerCase().trim();
   let n = 0;
 
   const inputBuscar = document.getElementById('mapa-buscar');
   if (inputBuscar) {
-    const activos = [verProy&&'proyectos', verPers&&'personal', verEq&&'equipo'].filter(Boolean);
+    const activos = [verProy&&'proyectos', verPers&&'personal', verEq&&'equipo', verVeh&&'vehículos'].filter(Boolean);
     inputBuscar.placeholder = activos.length === 1
       ? `Buscar en ${activos[0]}...`
       : 'Buscar...';
@@ -3103,6 +3637,26 @@ function actualizarMapa() {
       const m = L.circleMarker([lat, lon], { radius: 5, className: 'marker-suave', color: '#fff', weight: 1.5, fillColor: colorEq, fillOpacity: 0.9 })
         .bindPopup(`<strong>${eq.nombre}</strong>${eq.apodo?`<br><em>${eq.apodo}</em>`:''}<br>${enSitio?'En sitio: '+eq.proyecto_actual_nombre:(eq.ciudad_actual||'Sin ubicación asignada')}`)
         .bindTooltip(`${eq.nombre}${eq.apodo?' ('+eq.apodo+')':''} — ${enSitio?'En proyecto: '+eq.proyecto_actual_nombre:'En oficina'}`, { direction: 'top', className: 'mapa-tooltip', offset: [0,-4] })
+        .addTo(MAPA_LEAFLET);
+      MAPA_MARKERS.push(m); n++;
+    });
+  }
+  if (verVeh) {
+    (STATE.vehiculos||[]).forEach(v => {
+      if (busqueda && !`${v.nombre} ${v.apodo||''} ${v.placas||''}`.toLowerCase().includes(busqueda)) return;
+      let lat = v.latitud, lon = v.longitud, enSitio = false;
+      if (v.proyecto_actual_id) {
+        const p = STATE.proyectos.find(x=>x.id===v.proyecto_actual_id);
+        // Solo aparece en el sitio cuando el proyecto ya se inició de verdad; antes se queda en su base
+        if (p && proyectoIniciado(p) && p.latitud && p.longitud) { lat = p.latitud; lon = p.longitud; enSitio = true; }
+      }
+      if (!lat || !lon) return;
+      const colorVeh = enSitio ? '#C1121F' : '#14b8a6';
+      const anillo = L.circleMarker([lat, lon], { radius: 5, className: 'marker-pulso', color: 'transparent', weight: 0, fillColor: colorVeh, fillOpacity: .6, interactive: false }).addTo(MAPA_LEAFLET);
+      MAPA_MARKERS.push(anillo);
+      const m = L.circleMarker([lat, lon], { radius: 5, className: 'marker-suave', color: '#fff', weight: 1.5, fillColor: colorVeh, fillOpacity: 0.9 })
+        .bindPopup(`<strong>${escHtml(v.nombre)}</strong>${v.apodo?`<br><em>${escHtml(v.apodo)}</em>`:''}${v.placas?`<br>${escHtml(v.placas)}`:''}<br>${enSitio?'En sitio: '+escHtml(v.proyecto_actual_nombre):escHtml(v.ciudad_actual||'Sin ubicación asignada')}<br><a href="#" onclick="verVehiculo('${v.id}');return false;">Ver vehículo →</a>`)
+        .bindTooltip(`${v.nombre}${v.apodo?' ('+v.apodo+')':''} — ${enSitio?'En proyecto: '+v.proyecto_actual_nombre:'En oficina'}`, { direction: 'top', className: 'mapa-tooltip', offset: [0,-4] })
         .addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(m); n++;
     });
