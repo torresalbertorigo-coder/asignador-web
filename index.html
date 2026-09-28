@@ -825,8 +825,8 @@ function estadoVisible(e) {
   //   2 días antes, o ya llegó la fecha
   //   pero nadie ha dado "Iniciar"      → "En preparación"
   //   el proyecto ya se inició de verdad → "En proyecto"
-  if (e.disponibilidad !== 'en_proyecto' || !e.id_proyecto_actual) return e.disponibilidad;
-  const pry = (STATE.proyectos||[]).find(p => p.id === e.id_proyecto_actual);
+  if (e.disponibilidad !== 'en_proyecto') return e.disponibilidad;
+  const pry = proyectoVigenteDe(e.id);
   if (!pry || !pry.fecha_inicio) return e.disponibilidad;
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   if (proyectoIniciado(pry)) return 'en_proyecto';
@@ -834,6 +834,19 @@ function estadoVisible(e) {
   const diasHastaInicio = Math.ceil((inicio - hoy) / 86400000);
   if (diasHastaInicio > 2) return 'asignado';
   return 'en_preparacion';
+}
+
+// Proyecto que "le toca" a una persona ahora, calculado de sus asignaciones
+// reales (no de id_proyecto_actual, que se sobrescribe con la última
+// asignación): el que ya está en campo; si no, el más próximo por fecha de
+// inicio. Ignora completados, cancelados y pausados.
+function proyectoVigenteDe(empId) {
+  const vigentes = (STATE.proyectos||[]).filter(p =>
+    (p.tecnicos_asignados||[]).includes(empId) && !['completado','cancelado','pausado'].includes(p.estado));
+  const enCampo = vigentes.filter(proyectoIniciado)
+    .sort((a,b) => (b.fecha_inicio_real||'').localeCompare(a.fecha_inicio_real||''));
+  if (enCampo.length) return enCampo[0];
+  return vigentes.slice().sort((a,b) => (a.fecha_inicio||'9999').localeCompare(b.fecha_inicio||'9999'))[0] || null;
 }
 
 // Un proyecto "inició de verdad" cuando alguien dio "Iniciar proyecto"
@@ -3053,11 +3066,10 @@ function actualizarMapa() {
       if (e.estado_perfil !== 'activo') return;
       if (busqueda && !`${e.nombre} ${e.apellido}`.toLowerCase().includes(busqueda)) return;
       let lat = e.latitud, lon = e.longitud, enSitio = false, pryAsignado = null;
-      if (e.id_proyecto_actual) {
-        pryAsignado = STATE.proyectos.find(x=>x.id===e.id_proyecto_actual) || null;
-        // Solo aparece en el sitio cuando el proyecto ya se inició de verdad; antes se queda en su base
-        if (pryAsignado && proyectoIniciado(pryAsignado) && pryAsignado.latitud && pryAsignado.longitud) { lat = pryAsignado.latitud; lon = pryAsignado.longitud; enSitio = true; }
-      }
+      // Su proyecto = el que ya está en campo o, si no, el más próximo (no el último que se le asignó)
+      pryAsignado = proyectoVigenteDe(e.id);
+      // Solo aparece en el sitio cuando ese proyecto ya se inició de verdad; antes se queda en su base
+      if (pryAsignado && e.disponibilidad === 'en_proyecto' && proyectoIniciado(pryAsignado) && pryAsignado.latitud && pryAsignado.longitud) { lat = pryAsignado.latitud; lon = pryAsignado.longitud; enSitio = true; }
       const textoBase = (pryAsignado && !proyectoIniciado(pryAsignado)) ? `En base · asignado a ${pryAsignado.nombre} (inicia ${pryAsignado.fecha_inicio})` : 'En base';
       if (!lat || !lon) return;
       const coloresPersonal = { libre:'#22c55e', asignado:'#22c55e', en_preparacion:'#f59e0b', en_proyecto:'#C1121F' };
@@ -3295,7 +3307,7 @@ async function renderChecador() {
   const empId = STATE.user?.empleado_id;
   const misProyectos = STATE.proyectos.filter(p => (p.tecnicos_asignados||[]).includes(empId));
   const miEmpleado = STATE.empleados.find(e=>e.id===empId);
-  const proyectoActual = miEmpleado?.id_proyecto_actual;
+  const proyectoActual = proyectoVigenteDe(empId)?.id;
   const [historial, faltantes] = await Promise.all([
     api('GET', '/checador/mis-checadas') || [],
     api('GET', '/checador/dias-faltantes') || []
