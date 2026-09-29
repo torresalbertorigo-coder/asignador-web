@@ -30,7 +30,7 @@
   --red-text:#ef4444;--red-text-light:#f87171;
   --input-bg:#151517;
   --grad-fill-top:#3a3a3a;--grad-fill-card:#2a2a2a;--grad-fill-panel:#262626;
-  --sidebar-grad-top:#232323;--btn-ghost-grad:#2c2c2c;--btn-primary-grad-bottom:#A1131A;
+  --sidebar-grad-top:#0F1010;--btn-ghost-grad:#2c2c2c;--btn-primary-grad-bottom:#A1131A;
   --gantt-occupied:var(--red);--gantt-past:var(--red2);
   --orange:#f97316;--orange-bg:#2d1505;--orange-border:#4a2508;
   --gray:#8A8A8A;--gray-bg:#202020;--gray-border:#3A3A3A;
@@ -51,7 +51,7 @@
   --red-text:#DC2626;--red-text-light:#EF4444;
   --input-bg:#FFFFFF;
   --grad-fill-top:#EDEDED;--grad-fill-card:#F3F3F3;--grad-fill-panel:#FBFBFB;
-  --sidebar-grad-top:#FFFFFF;--btn-ghost-grad:#EDEDED;--btn-primary-grad-bottom:#E31C22;
+  --sidebar-grad-top:#ECEBE6;--btn-ghost-grad:#EDEDED;--btn-primary-grad-bottom:#E31C22;
   --gantt-occupied:#E3959D;--gantt-past:#F0C7CC;
   --orange:#C2410C;--orange-bg:#FDECD8;--orange-border:#F5CBA0;
   --gray:#6B6B6B;--gray-bg:#F1F1F1;--gray-border:#D8D8D8;
@@ -124,8 +124,9 @@ a{text-decoration:none;color:inherit}
 .page-title i{color:var(--red);font-size:17px}
 .topbar-right{display:flex;gap:8px;align-items:center}
 .user-menu{position:relative}
-.user-menu-trigger{cursor:pointer;border-radius:3px}
-.user-menu-dropdown{display:none;position:absolute;top:calc(100% + 8px);right:0;min-width:200px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:200;overflow:hidden}
+.user-menu-trigger{cursor:pointer;border-radius:50%}
+.user-menu-trigger .user-av{width:34px;height:34px;border-radius:50%;font-size:13px}
+.user-menu-dropdown{display:none;position:absolute;top:calc(100% + 8px);right:0;min-width:200px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:1000;overflow:hidden}
 .user-menu-dropdown.open{display:block}
 .user-menu-header{padding:10px 12px;border-bottom:1px solid var(--border)}
 .user-menu-item{display:flex;align-items:center;gap:8px;padding:9px 12px;font-size:12px;color:var(--text2);cursor:pointer;transition:all .12s}
