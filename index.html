@@ -1948,7 +1948,7 @@ function openNuevoProyecto() {
     <div class="panel-section">
       <div class="panel-section-title">INFORMACIÓN GENERAL</div>
       <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE DEL PROYECTO</label><input class="field-input" id="np-nombre" placeholder="Ej: Inspección Palas — PE Ingenio"></div></div>
-      <div class="field-row full"><div class="field-group"><label class="field-label">CLIENTE</label><input class="field-input" id="np-cliente" list="dl-clientes" placeholder="Nombre del cliente"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">CLIENTE</label><input class="field-input" id="np-cliente" list="dl-clientes" placeholder="Nombre del cliente" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div></div>
       <div class="field-row">
         <div class="field-group"><label class="field-label">CRITICIDAD</label><select class="field-select" id="np-crit"><option value="tipo_a">Tipo A — Crítico</option><option value="tipo_b" selected>Tipo B — Moderado</option><option value="tipo_c">Tipo C — Estándar</option></select></div>
         <div class="field-group"><label class="field-label">INTENSIDAD</label><select class="field-select" id="np-intens"><option value="alta">Alta</option><option value="media" selected>Media</option><option value="baja">Baja</option></select></div>
@@ -3629,7 +3629,7 @@ async function renderClientes() {
 
 function formularioCliente(c) {
   return `
-    <div class="field-group"><label class="field-label">NOMBRE DEL CLIENTE *</label><input class="field-input" id="cli-nombre" value="${c ? escHtml(c.nombre) : ''}" placeholder="Ej: ACME Corp"></div>
+    <div class="field-group"><label class="field-label">NOMBRE DEL CLIENTE *</label><input class="field-input" id="cli-nombre" value="${c ? escHtml(c.nombre) : ''}" placeholder="Ej: ACME Corp" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
     <div class="field-group"><label class="field-label">CONTACTO</label><input class="field-input" id="cli-contacto-nombre" value="${c?.contacto_nombre ? escHtml(c.contacto_nombre) : ''}" placeholder="Nombre del contacto"></div>
     <div class="field-row">
       <div class="field-group"><label class="field-label">TELÉFONO</label><input class="field-input" id="cli-contacto-telefono" value="${c?.contacto_telefono ? escHtml(c.contacto_telefono) : ''}"></div>
