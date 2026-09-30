@@ -4627,9 +4627,17 @@ async function renderChecador() {
   const misProyectos = STATE.proyectos.filter(p => (p.tecnicos_asignados||[]).includes(empId));
   const miEmpleado = STATE.empleados.find(e=>e.id===empId);
   const proyectoActual = proyectoVigenteDe(empId)?.id;
+  // Siempre las checadas de ESTA cuenta: sin empleado_id, el backend le
+  // regresa a admin/director las de todos (vista "comunitaria" en Vista Técnico).
+  if (!empId) {
+    html(`<div class="empty-state" style="padding:40px 20px"><i class="ti ti-user-off" aria-hidden="true"></i>
+      <p style="font-size:13px">Tu cuenta no tiene un perfil de empleado vinculado, así que no puede registrar checadas.</p></div>`);
+    return;
+  }
+  const qEmp = `?empleado_id=${encodeURIComponent(empId)}`;
   const [historial, faltantes] = await Promise.all([
-    api('GET', '/checador/mis-checadas') || [],
-    api('GET', '/checador/dias-faltantes') || []
+    api('GET', `/checador/mis-checadas${qEmp}`).then(r => r || []),
+    api('GET', `/checador/dias-faltantes${qEmp}`).then(r => r || [])
   ]);
   const ultima = historial[0];
   const puedeEntrada = !ultima || ultima.tipo === 'salida';
