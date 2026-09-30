@@ -2375,7 +2375,7 @@ async function exportarGanttPDF() {
 }
 
 async function exportarCalendarioEmpleadoPDF(empId, nombre, year, month) {
-  await loadEmpleados();
+  await loadEmpleados(); await loadProyectos(); await loadEquipos(); await loadVehiculos();
   const emp = STATE.empleados.find(e => e.id === empId);
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
@@ -2420,27 +2420,90 @@ async function exportarCalendarioEmpleadoPDF(empId, nombre, year, month) {
   y = dibujarMesCalendarioPDF(doc, year, month, diasResaltadosSet, y);
   y += 10;
 
+  // ── Proyectos del mes: fechas, compañeros, equipo y vehículo ──
+  const lista = Array.from(proyectosDelMes.values())
+    .sort((a,b) => String(a.fecha_inicio).localeCompare(String(b.fecha_inicio)));
+  const etiquetasEstado = {
+    asignado: 'Asignado', en_preparacion: 'En preparativos', en_espera_inicio: 'En espera de inicio',
+    en_progreso: 'En progreso', pausado: 'Pausado', cancelado: 'Cancelado', completado: 'Completado', pendiente_asignacion: 'Pendiente',
+  };
+  const fmtFecha = f => { if (!f) return '—'; const d = fechaLocal(f); return d.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}); };
+  const nombreEquipo = eq => eq.apodo ? `${eq.nombre} (${eq.apodo})` : eq.nombre;
+  const nombreVehiculo = v => [v.apodo || v.nombre, v.placas ? `placas ${v.placas}` : null].filter(Boolean).join(' · ');
+
+  if (y > 235) { doc.addPage(); y = 18; }
   doc.setFontSize(9);
   doc.setFont(undefined, 'bold');
   doc.setTextColor(0);
-  const lista = Array.from(proyectosDelMes.values());
   doc.text(`PROYECTOS ASIGNADOS ESTE MES (${lista.length})`, 14, y);
   y += 7;
-  doc.setFont(undefined, 'normal');
-  doc.setFontSize(9);
+
   if (lista.length === 0) {
+    doc.setFont(undefined, 'normal');
     doc.setTextColor(120);
     doc.text('Sin proyectos asignados en este mes.', 14, y);
   } else {
+    const anchoTexto = 150;   // columna de valores
+    const xEtiqueta = 19, xValor = 46;
     lista.forEach(p => {
-      if (y > 260) { doc.addPage(); y = 18; }
-      doc.setTextColor(0);
+      const companeros = (p.tecnicos_asignados||[]).filter(id => id !== empId)
+        .map(id => STATE.empleados.find(e => e.id === id)).filter(Boolean)
+        .map(e => `${e.nombre} ${e.apellido}`);
+      const equipos = (p.equipo_asignado_ids||[]).map(id => (STATE.equipos||[]).find(x => x.id === id)).filter(Boolean).map(nombreEquipo);
+      const vehiculos = (p.vehiculo_asignado_ids||[]).map(id => (STATE.vehiculos||[]).find(x => x.id === id)).filter(Boolean).map(nombreVehiculo);
+
+      let fechas = `${fmtFecha(p.fecha_inicio)} al ${fmtFecha(p.fecha_fin_estimada)}`;
+      if (p.fecha_inicio_real) fechas += p.fecha_fin_real
+        ? `   (real: ${fmtFecha(p.fecha_inicio_real)} al ${fmtFecha(p.fecha_fin_real)})`
+        : `   (real: desde ${fmtFecha(p.fecha_inicio_real)}, en curso)`;
+
+      const filas = [
+        ['Fechas', fechas],
+        ['Compañeros', companeros.length ? companeros.join(', ') : 'Va solo(a) en este proyecto'],
+        ['Equipo', equipos.length ? equipos.join(', ') : (p.no_requiere_equipo ? 'No requiere equipo' : 'Sin equipo asignado')],
+        ['Vehículo', vehiculos.length ? vehiculos.join(', ') : (p.no_requiere_vehiculo ? 'No requiere vehículo' : 'Sin vehículo asignado')],
+      ].map(([et, val]) => [et, doc.splitTextToSize(val, anchoTexto)]);
+
+      // Alto del bloque para no partirlo entre páginas
+      const altoBloque = 12 + filas.reduce((acc, [,l]) => acc + l.length * 4.3 + 1.2, 0) + 3;
+      if (y + altoBloque > 265) { doc.addPage(); y = 18; }
+      const yIni = y;
+
+      // Encabezado del proyecto
       doc.setFont(undefined, 'bold');
-      doc.text(p.nombre, 14, y);
+      doc.setFontSize(10);
+      doc.setTextColor(0);
+      let tituloPry = p.nombre;
+      const lineasTitulo = doc.splitTextToSize(tituloPry, 135);
+      if (lineasTitulo.length > 1) tituloPry = lineasTitulo[0].replace(/\s+\S*$/, '') + '…';
+      doc.text(tituloPry, xEtiqueta, y + 4);
+      const estado = etiquetasEstado[estadoProyectoVisible(p)] || p.estado || '';
+      if (estado) {
+        doc.setFontSize(7.5);
+        doc.setTextColor(227,28,34);
+        doc.text(estado.toUpperCase(), 196, y + 4, { align: 'right' });
+      }
       doc.setFont(undefined, 'normal');
+      doc.setFontSize(8.5);
       doc.setTextColor(110);
-      doc.text(`${p.cliente||'—'}  ·  ${p.fecha_inicio} al ${p.fecha_fin_estimada}`, 14, y+4.5);
-      y += 11;
+      doc.text(`${p.cliente||'—'}  ·  ${p.ciudad||'—'}`, xEtiqueta, y + 8.5);
+      y += 13;
+
+      // Detalle
+      doc.setFontSize(8.5);
+      filas.forEach(([et, lineas]) => {
+        doc.setTextColor(130); doc.text(et, xEtiqueta, y);
+        doc.setTextColor(20);  doc.text(lineas, xValor, y);
+        y += lineas.length * 4.3 + 1.2;
+      });
+
+      // Barra de acento a la izquierda y separador
+      doc.setFillColor(227,28,34);
+      doc.rect(14, yIni, 1.2, y - yIni - 1, 'F');
+      y += 3;
+      doc.setDrawColor(225);
+      doc.line(14, y - 1.5, 196, y - 1.5);
+      y += 3;
     });
   }
 
