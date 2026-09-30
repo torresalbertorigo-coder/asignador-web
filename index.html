@@ -1699,7 +1699,8 @@ async function verProyecto(id) {
     </div>
     ${seccionVehiculosProyecto(p, vehiculosAsignados, dispVehiculo, editando)}`,
     footerBtns,
-    STATE.rol !== 'tecnico' ? `<button class="btn btn-ghost btn-sm" onclick="exportarGanttProyectoPDF('${p.id}')" title="Generar Gantt en PDF"><i class="ti ti-file-download" aria-hidden="true"></i> PDF</button>` : '');
+    STATE.rol !== 'tecnico' ? `<button class="btn btn-ghost btn-sm" onclick="exportarGanttProyectoPDF('${p.id}')" title="Generar Gantt en PDF"><i class="ti ti-file-download" aria-hidden="true"></i> PDF</button>
+     <button class="btn btn-ghost btn-sm" onclick="descargarKitDocumentos('${p.id}','${escHtml(p.nombre)}')" title="Descargar documentación de personal, equipo y vehículos asignados"><i class="ti ti-folder-download" aria-hidden="true"></i> Kit de documentos</button>` : '');
 }
 
 function toggleEditarRequisitos(proyectoId) {
@@ -2358,6 +2359,31 @@ function dibujarMesCalendarioPDF(doc, year, month, diasResaltadosSet, startY) {
   return doc.lastAutoTable.finalY;
 }
 
+async function descargarKitDocumentos(proyectoId, nombreProyecto) {
+  toast('Armando el kit de documentos, puede tardar un momento...');
+  try {
+    const resp = await fetch(`${API}/proyectos/proyectos/${proyectoId}/kit-documentos`, {
+      headers: { 'Authorization': `Bearer ${STATE.token}` }
+    });
+    if (!resp.ok) {
+      let detalle = 'No se pudo generar el kit de documentos.';
+      try { detalle = (await resp.json()).detail || detalle; } catch (e) {}
+      toast(detalle, 'error');
+      return;
+    }
+    const blob = await resp.blob();
+    const enlace = document.createElement('a');
+    enlace.href = URL.createObjectURL(blob);
+    enlace.download = `Documentacion - ${nombreProyecto} - ${new Date().toISOString().split('T')[0]}.zip`;
+    document.body.appendChild(enlace);
+    enlace.click();
+    document.body.removeChild(enlace);
+    toast('Descarga lista');
+  } catch (e) {
+    toast('Error al descargar el kit de documentos', 'error');
+  }
+}
+
 async function exportarGanttProyectoPDF(proyectoId) {
   await loadEmpleados(); await loadEquipos();
   const p = STATE.proyectos.find(x=>x.id===proyectoId);
@@ -2998,6 +3024,20 @@ function verEquipo(id) {
       <div class="field-row full"><div class="field-group"><label class="field-label">COORDENADAS (OPCIONAL)</label><input class="field-input" id="ve-coords" placeholder="ej. 21.91114227818028, -102.2973348126625" value="${eq.latitud&&eq.longitud?`${eq.latitud}, ${eq.longitud}`:''}"></div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">PRÓX. CALIBRACIÓN</label><input class="field-input" id="ve-cal" type="date" value="${eq.proxima_calibracion||''}"></div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">NOTAS</label><textarea class="field-input" id="ve-notas" rows="3">${eq.notas||''}</textarea></div></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">DOCUMENTOS</div>
+      <div id="ve-docs-list">${renderDocsEquipo(eq)}</div>
+      <div style="margin-top:14px;padding:12px;border:1px dashed var(--border2);border-radius:var(--radius)">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:700;letter-spacing:.05em">AGREGAR DOCUMENTO</div>
+        <div class="field-row">
+          <div class="field-group"><label class="field-label">TIPO</label><select class="field-select" id="ed-tipo">${Object.entries(EQ_DOC_TIPOS).map(([k,n])=>`<option value="${k}">${n}</option>`).join('')}</select></div>
+          <div class="field-group"><label class="field-label">VENCE (OPCIONAL)</label><input class="field-input" id="ed-vence" type="date"></div>
+        </div>
+        <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE (OPCIONAL)</label><input class="field-input" id="ed-nombre" placeholder="Ej: Calibración anual FLIR"></div></div>
+        <div class="field-row full"><div class="field-group"><label class="field-label">ARCHIVO (PDF O IMAGEN)</label><input class="field-input" id="ed-archivo" type="file" accept=".pdf,.jpg,.jpeg,.png"></div></div>
+        <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => agregarDocumentoEquipo('${eq.id}'))"><i class="ti ti-plus" aria-hidden="true"></i> Agregar documento</button>
+      </div>
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>
      <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarEdicionEquipo('${eq.id}'))"><i class="ti ti-check" aria-hidden="true"></i> Guardar cambios</button>
@@ -3076,6 +3116,7 @@ async function guardarNuevoEquipo() {
 const VEH_TIPOS  = { camioneta:'Camioneta', auto:'Auto', van:'Van', camion:'Camión', moto:'Moto', otro:'Otro' };
 const VEH_ICONOS = { camioneta:'ti-truck', auto:'ti-car', van:'ti-bus', camion:'ti-truck-delivery', moto:'ti-motorbike', otro:'ti-car' };
 const VEH_DOC_TIPOS = { tarjeta_circulacion:'Tarjeta de circulación', seguro:'Seguro', verificacion:'Verificación', tenencia:'Tenencia / refrendo', factura:'Factura', otro:'Otro' };
+const EQ_DOC_TIPOS = { calibracion:'Calibración', manual:'Manual', garantia:'Garantía', factura:'Factura', otro:'Otro' };
 
 // Escapa texto tecleado por el usuario antes de meterlo en HTML
 function escHtml(s) {
@@ -3426,6 +3467,71 @@ async function eliminarDocumentoVehiculo(vehId, docId) {
 function verDocumentoVehiculo(vehId, docId) {
   const v = (STATE.vehiculos||[]).find(x => x.id === vehId);
   const d = v && (v.documentos||[]).find(x => x.id === docId);
+  if (d && d.ruta_archivo) abrirVisor(d.ruta_archivo, d.nombre);
+}
+
+// ─── Documentos de equipo (misma mecánica que vehículos) ──────────────────────
+function renderDocsEquipo(eq) {
+  const docs = eq.documentos || [];
+  if (!docs.length) return '<div style="font-size:12px;color:var(--text3);margin-bottom:8px">Sin documentos todavía.</div>';
+  return docs.map(d => {
+    const vg = estadoVigencia(d.fecha_vencimiento);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="min-width:0">
+        <div style="color:var(--text);font-weight:600;font-size:12px;overflow:hidden;text-overflow:ellipsis">${escHtml(d.nombre)}</div>
+        <div style="font-size:11px;color:var(--text3)">${EQ_DOC_TIPOS[d.tipo]||escHtml(d.tipo)} · <span style="color:${vg.color}">${d.fecha_vencimiento ? 'Vence: '+vg.texto : 'Sin vigencia'}</span></div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        ${d.ruta_archivo ? `<button class="btn btn-ghost btn-sm" onclick="verDocumentoEquipo('${eq.id}',${d.id})"><i class="ti ti-eye" aria-hidden="true"></i> Ver</button>` : '<span style="font-size:11px;color:var(--text3);align-self:center">sin archivo</span>'}
+        <button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="eliminarDocumentoEquipo('${eq.id}',${d.id})" title="Quitar documento"><i class="ti ti-trash" aria-hidden="true"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function refrescarEquipo(id) {
+  const eq = await api('GET', `/equipos/${id}`);
+  if (!eq) return null;
+  STATE.equipos = STATE.equipos || [];
+  const i = STATE.equipos.findIndex(x => x.id === id);
+  if (i >= 0) STATE.equipos[i] = eq; else STATE.equipos.push(eq);
+  return eq;
+}
+
+async function agregarDocumentoEquipo(eqId) {
+  const tipo   = document.getElementById('ed-tipo')?.value || 'otro';
+  const nombreIn = document.getElementById('ed-nombre')?.value.trim();
+  const vence  = document.getElementById('ed-vence')?.value || null;
+  const file   = document.getElementById('ed-archivo')?.files?.[0];
+  if (!file && !vence) { toast('Adjunta el archivo o captura una fecha de vencimiento','error'); return; }
+  const nombre = nombreIn || EQ_DOC_TIPOS[tipo] || 'Documento';
+  let ruta = null;
+  if (file) {
+    ruta = await subirArchivoVehiculo(file, `${tipo}-${Date.now()}`, `equipos/${eqId}`);
+    if (!ruta) { toast('No se pudo subir el archivo. Revisa tu conexión e intenta de nuevo.','error'); return; }
+  }
+  const r = await api('POST', `/equipos/${eqId}/documentos`, { tipo, nombre, fecha_vencimiento: vence, ruta_archivo: ruta });
+  if (!r) { toast('Error al guardar el documento','error'); return; }
+  const eq = await refrescarEquipo(eqId);
+  const lista = document.getElementById('ve-docs-list');
+  if (eq && lista) lista.innerHTML = renderDocsEquipo(eq);
+  ['ed-nombre','ed-vence','ed-archivo'].forEach(i => { const el = document.getElementById(i); if (el) el.value = ''; });
+  toast('Documento agregado');
+}
+
+async function eliminarDocumentoEquipo(eqId, docId) {
+  if (!confirm('¿Quitar este documento? Se borra del equipo (el archivo subido no se elimina del almacenamiento).')) return;
+  const r = await api('DELETE', `/equipos/${eqId}/documentos/${docId}`);
+  if (!r) { toast('Error al quitar el documento','error'); return; }
+  const eq = await refrescarEquipo(eqId);
+  const lista = document.getElementById('ve-docs-list');
+  if (eq && lista) lista.innerHTML = renderDocsEquipo(eq);
+  toast('Documento eliminado');
+}
+
+function verDocumentoEquipo(eqId, docId) {
+  const eq = (STATE.equipos||[]).find(x => x.id === eqId);
+  const d = eq && (eq.documentos||[]).find(x => x.id === docId);
   if (d && d.ruta_archivo) abrirVisor(d.ruta_archivo, d.nombre);
 }
 
