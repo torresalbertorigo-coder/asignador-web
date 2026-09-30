@@ -128,6 +128,10 @@ a{text-decoration:none;color:inherit}
 .user-menu-trigger .user-av{width:34px;height:34px;border-radius:50%;font-size:13px;transition:box-shadow .15s}
 .user-menu-trigger .user-av.has-unread{box-shadow:0 0 0 2px var(--red)}
 .notif-trigger{position:relative;cursor:pointer;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:19px;transition:background .15s}
+.notif-on-avatar{position:absolute;top:-4px;right:-6px;pointer-events:none}
+.notif-on-avatar .notif-trigger{pointer-events:auto;width:22px;height:22px;font-size:12px;background:var(--surface);border:2px solid var(--bg);color:var(--text2);box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.notif-on-avatar .notif-trigger:hover{color:var(--text)}
+.notif-on-avatar .notif-dropdown{top:calc(100% + 10px)}
 .notif-trigger:hover{background:var(--surface2);color:var(--text)}
 .notif-badge{position:absolute;top:1px;right:1px;background:var(--red);color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;line-height:15px;border-radius:8px;text-align:center;padding:0 3px;box-shadow:0 0 0 2px var(--bg)}
 .notif-dropdown{width:340px;max-height:420px;display:flex;flex-direction:column}
@@ -198,7 +202,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .panel-tab.active{color:var(--text);border-bottom-color:var(--red)}
 .badge-orange{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border)}
 .badge-gray{background:var(--gray-bg);color:var(--gray);border:1px solid var(--gray-border)}
-.map-container{height:calc(100vh - 230px);min-height:420px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
+.map-container{height:calc(100vh - 175px);min-height:420px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
 .marker-pulso{animation:pulsoMapa 2.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center;filter:blur(2.5px)}
 .marker-suave{animation:latidoMapa 2.2s ease-in-out infinite;filter:blur(1.2px)}
 @keyframes latidoMapa{
@@ -241,13 +245,13 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .field-label{font-size:11px;color:var(--text3);letter-spacing:.08em;font-weight:600}
 .field-input{background:linear-gradient(to top, transparent 0%, var(--grad-fill-top) 100%) padding-box, linear-gradient(to top, transparent 0%, var(--border2) 100%) border-box;border:1px solid transparent;color:var(--text);padding:8px 12px;border-radius:var(--radius);outline:none;font-size:13px;width:100%}
 .field-input:focus{border-color:var(--red)}
-.filter-bar{border-radius:var(--radius);padding:1px;flex:1;max-width:420px;background:linear-gradient(to top, transparent 0%, var(--border2) 100%)}
+.filter-bar{border-radius:var(--radius);padding:1px;flex:1;max-width:680px;background:linear-gradient(to top, transparent 0%, var(--border2) 100%)}
 .filter-bar-inner{display:flex;align-items:stretch;border-radius:calc(var(--radius) - 1px);overflow:hidden;background:linear-gradient(to top, transparent 0%, var(--grad-fill-top) 100%)}
 .filter-bar-inner .search-box{flex:1;max-width:none}
 .filter-bar-inner .search-box input,.filter-bar-inner select{background:transparent!important;border:none!important;border-radius:0!important}
 .filter-bar-inner .search-box input:focus,.filter-bar-inner select:focus{border:none!important;box-shadow:none!important}
 .filter-bar-inner select{width:auto;flex-shrink:0;border-left:1px solid var(--border)!important;color:var(--text2);padding-right:26px!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")!important;background-repeat:no-repeat!important;background-position:right 10px center!important}
-.search-box{position:relative;max-width:280px;flex:1}
+.search-box{position:relative;max-width:280px;min-width:160px;flex:1}
 .search-box input{padding-left:32px !important;background:var(--surface2);border-color:var(--border)}
 .search-box input:focus{border-color:var(--border2)!important}
 .search-box .ti-search{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
@@ -255,6 +259,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .th-sortable .ti{font-size:13px;vertical-align:-1px;margin-left:3px;color:var(--text3)}
 .th-sortable.activo .ti{color:var(--text)}
 .field-select{background:linear-gradient(to top, transparent 0%, var(--grad-fill-top) 100%) padding-box, linear-gradient(to top, transparent 0%, var(--border2) 100%) border-box, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center;border:1px solid transparent;color:var(--text);padding:8px 30px 8px 12px;border-radius:var(--radius);outline:none;font-size:13px;width:100%;appearance:none}
+.field-select option,select option{background:var(--surface);color:var(--text)}
 .panel-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;position:sticky;bottom:0;background:var(--surface)}
 
 /* EMPTY STATE */
@@ -437,33 +442,38 @@ tbody tr:hover .td-action i{color:var(--text2)}
             <span id="page-title-text">Inicio</span>
           </div>
         </div>
-        <div class="topbar-right" id="topbar-actions"></div>
-        <button class="topbar-menu-btn" onclick="toggleTema()" aria-label="Cambiar tema" style="margin-left:8px" id="btn-tema-topbar"><i class="ti ti-moon" aria-hidden="true"></i></button>
-        <div class="user-menu" id="notif-menu" style="margin-left:8px">
-          <div class="notif-trigger" onclick="toggleNotifMenu(event)" title="Notificaciones">
-            <i class="ti ti-bell" aria-hidden="true"></i>
-            <span class="notif-badge" id="notif-badge" style="display:none">0</span>
-          </div>
-          <div class="user-menu-dropdown notif-dropdown" id="notif-dropdown">
-            <div class="user-menu-header" style="display:flex;justify-content:space-between;align-items:center">
-              <span style="font-size:12px;font-weight:600;color:var(--text)">Notificaciones</span>
-              <span style="font-size:11px;color:var(--red);cursor:pointer" onclick="marcarTodasNotifLeidas()">Marcar todas leídas</span>
+        <div style="display:flex;align-items:center;gap:14px">
+          <div class="topbar-right" id="topbar-actions"></div>
+          <button class="topbar-menu-btn" onclick="toggleTema()" aria-label="Cambiar tema" id="btn-tema-topbar"><i class="ti ti-moon" aria-hidden="true"></i></button>
+          <div style="position:relative">
+            <div class="user-menu" id="user-menu">
+              <div class="user-menu-trigger" onclick="toggleUserMenu(event)" title="Mi cuenta">
+                <div class="user-av" id="sb-avatar">RT</div>
+              </div>
+              <div class="user-menu-dropdown" id="user-menu-dropdown">
+                <div class="user-menu-header">
+                  <div class="user-nm" id="sb-name">Usuario</div>
+                  <div class="user-rol" id="sb-rol">Cargando...</div>
+                </div>
+                <div class="user-menu-item" onclick="showSection('mi-perfil');toggleUserMenu()"><i class="ti ti-user-circle" aria-hidden="true"></i> Mi Perfil</div>
+                <div class="user-menu-item" onclick="switchModo();toggleUserMenu()" id="um-switch-modo" style="display:none"><i class="ti ti-arrows-exchange" aria-hidden="true"></i> <span id="um-switch-label">Vista Técnico</span></div>
+                <div class="user-menu-item" onclick="showSection('bitacora');toggleUserMenu()" id="um-bitacora" style="display:none"><i class="ti ti-history" aria-hidden="true"></i> Bitácora de cambios</div>
+                <div class="user-menu-item user-menu-item-danger" onclick="doLogout()"><i class="ti ti-logout" aria-hidden="true"></i> Cerrar sesión</div>
+              </div>
             </div>
-            <div id="notif-list"></div>
-          </div>
-        </div>
-        <div class="user-menu" id="user-menu" style="margin-left:8px">
-          <div class="user-menu-trigger" onclick="toggleUserMenu(event)" title="Mi cuenta">
-            <div class="user-av" id="sb-avatar">RT</div>
-          </div>
-          <div class="user-menu-dropdown" id="user-menu-dropdown">
-            <div class="user-menu-header">
-              <div class="user-nm" id="sb-name">Usuario</div>
-              <div class="user-rol" id="sb-rol">Cargando...</div>
+            <div class="user-menu notif-on-avatar" id="notif-menu">
+              <div class="notif-trigger" onclick="toggleNotifMenu(event)" title="Notificaciones">
+                <i class="ti ti-bell" aria-hidden="true"></i>
+                <span class="notif-badge" id="notif-badge" style="display:none">0</span>
+              </div>
+              <div class="user-menu-dropdown notif-dropdown" id="notif-dropdown">
+                <div class="user-menu-header" style="display:flex;justify-content:space-between;align-items:center">
+                  <span style="font-size:12px;font-weight:600;color:var(--text)">Notificaciones</span>
+                  <span style="font-size:11px;color:var(--red);cursor:pointer" onclick="marcarTodasNotifLeidas()">Marcar todas leídas</span>
+                </div>
+                <div id="notif-list"></div>
+              </div>
             </div>
-            <div class="user-menu-item" onclick="showSection('mi-perfil');toggleUserMenu()"><i class="ti ti-user-circle" aria-hidden="true"></i> Mi Perfil</div>
-            <div class="user-menu-item" onclick="switchModo();toggleUserMenu()" id="um-switch-modo" style="display:none"><i class="ti ti-arrows-exchange" aria-hidden="true"></i> <span id="um-switch-label">Vista Técnico</span></div>
-            <div class="user-menu-item user-menu-item-danger" onclick="doLogout()"><i class="ti ti-logout" aria-hidden="true"></i> Cerrar sesión</div>
           </div>
         </div>
       </div>
@@ -622,12 +632,9 @@ function buildNav() {
       <div class="nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-tool" aria-hidden="true"></i> Equipos</div>
       <div class="nav-item" onclick="showSection('vehiculos')" data-sec="vehiculos"><i class="ti ti-truck" aria-hidden="true"></i> Vehículos</div>
       <div class="nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Incidencias</div>
-      <div class="nav-item" onclick="showSection('metricas')" data-sec="metricas"><i class="ti ti-chart-bar" aria-hidden="true"></i> Métricas</div>
-      ${STATE.rol === 'administrador' ? `<div class="nav-section">AUDITORÍA</div>
-      <div class="nav-item" onclick="showSection('bitacora')" data-sec="bitacora"><i class="ti ti-history" aria-hidden="true"></i> Bitácora de cambios</div>` : ''}
-      <div class="nav-section">MI CUENTA</div>
-      <div class="nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i> Mi Perfil</div>`;
+      <div class="nav-item" onclick="showSection('metricas')" data-sec="metricas"><i class="ti ti-chart-bar" aria-hidden="true"></i> Métricas</div>`;
     document.getElementById('um-switch-modo').style.display = 'flex';
+    document.getElementById('um-bitacora').style.display = STATE.rol === 'administrador' ? 'flex' : 'none';
     document.getElementById('mobile-nav-bar').innerHTML = `
       <div class="mobile-nav-items">
         <div class="mobile-nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i>Empleados</div>
@@ -644,8 +651,7 @@ function buildNav() {
       <div class="nav-item" onclick="showSection('mis-asignaciones')" data-sec="mis-asignaciones"><i class="ti ti-briefcase" aria-hidden="true"></i> Mis Asignaciones</div>
       <div class="nav-item" onclick="showSection('mi-gantt')" data-sec="mi-gantt"><i class="ti ti-calendar-stats" aria-hidden="true"></i> Mi Calendario</div>
       <div class="nav-item" onclick="showSection('checador')" data-sec="checador"><i class="ti ti-clock" aria-hidden="true"></i> Reloj Checador</div>
-      <div class="nav-item" onclick="showSection('reportar')" data-sec="reportar"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Reportar</div>
-      <div class="nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i> Mi Perfil</div>`;
+      <div class="nav-item" onclick="showSection('reportar')" data-sec="reportar"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Reportar</div>`;
     document.getElementById('mobile-nav-bar').innerHTML = `
       <div class="mobile-nav-items">
         <div class="mobile-nav-item" onclick="showSection('mis-asignaciones')" data-sec="mis-asignaciones"><i class="ti ti-briefcase" aria-hidden="true"></i>Mis Proyectos</div>
@@ -670,8 +676,7 @@ function switchModo() {
       <div class="nav-item" onclick="showSection('mis-asignaciones')" data-sec="mis-asignaciones"><i class="ti ti-briefcase" aria-hidden="true"></i> Mis Asignaciones</div>
       <div class="nav-item" onclick="showSection('mi-gantt')" data-sec="mi-gantt"><i class="ti ti-calendar-stats" aria-hidden="true"></i> Mi Calendario</div>
       <div class="nav-item" onclick="showSection('checador')" data-sec="checador"><i class="ti ti-clock" aria-hidden="true"></i> Reloj Checador</div>
-      <div class="nav-item" onclick="showSection('reportar')" data-sec="reportar"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Reportar</div>
-      <div class="nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i> Mi Perfil</div>`;
+      <div class="nav-item" onclick="showSection('reportar')" data-sec="reportar"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Reportar</div>`;
     document.getElementById('mobile-nav-bar').innerHTML = `
       <div class="mobile-nav-items">
         <div class="mobile-nav-item" onclick="showSection('mis-asignaciones')" data-sec="mis-asignaciones"><i class="ti ti-briefcase" aria-hidden="true"></i>Proyectos</div>
@@ -987,7 +992,8 @@ function estadoVisible(e) {
   const inicio = fechaLocal(pry.fecha_inicio);
   const diasHastaInicio = Math.ceil((inicio - hoy) / 86400000);
   if (diasHastaInicio > 2) return 'asignado';
-  return 'en_preparacion';
+  if (diasHastaInicio >= 0) return 'en_preparacion';
+  return 'en_espera_inicio';
 }
 
 // Proyecto que "le toca" a una persona ahora, calculado de sus asignaciones
@@ -1024,7 +1030,8 @@ function estadoProyectoVisible(p) {
   const inicio = fechaLocal(p.fecha_inicio);
   const diasHastaInicio = Math.ceil((inicio - hoy) / 86400000);
   if (diasHastaInicio > 2) return 'asignado';
-  return 'en_preparacion';
+  if (diasHastaInicio >= 0) return 'en_preparacion';
+  return 'en_espera_inicio';
 }
 
 // Nota para proyectos cuya fecha programada ya llegó y nadie los ha iniciado.
@@ -1042,6 +1049,7 @@ function badge(val) {
     mantenimiento:'badge-mant CALIBRACIÓN', pendiente_asignacion:'badge-pend PENDIENTE', en_progreso:'badge-proy EN PROG.',
     pausado:'badge-orange PAUSADO', completado:'badge-libre COMPLETADO', cancelado:'badge-gray CANCELADO',
     en_preparacion:'badge-mant EN PREPARACIÓN', oficina:'badge-libre OFICINA', baja:'badge-proy BAJA',
+    en_espera_inicio:'badge-orange EN ESPERA DE INICIO',
     archivado:'badge-proy ARCHIVADO', rechazado:'badge-proy RECHAZADO', suspendido:'badge-proy SUSPENDIDO',
     incompleto:'badge-pend INCOMPLETO', pendiente_validacion:'badge-mant PENDIENTE VALID.',
     disponible:'badge-libre DISPONIBLE' };
@@ -1159,7 +1167,7 @@ async function renderEmpleados() {
   const total = emps.length;
   const libres = emps.filter(e=>estadoVisible(e)==='libre').length;
   const enProy = emps.filter(e=>estadoVisible(e)==='en_proyecto').length;
-  const asig   = emps.filter(e=>['asignado','en_preparacion'].includes(estadoVisible(e))).length;
+  const asig   = emps.filter(e=>['asignado','en_preparacion','en_espera_inicio'].includes(estadoVisible(e))).length;
   const filtroEmp = (STATE._empFiltro||'').toLowerCase().trim();
   let filtrados = filtroEmp ? emps.filter(e =>
     (e.nombre||'').toLowerCase().includes(filtroEmp) ||
@@ -1169,7 +1177,10 @@ async function renderEmpleados() {
   ) : emps;
   const filtroEstadoEmp = STATE._empFiltroEstado || '';
   if (filtroEstadoEmp) {
-    filtrados = filtrados.filter(e => estadoVisible(e) === filtroEstadoEmp);
+    filtrados = filtrados.filter(e => {
+      const est = estadoVisible(e);
+      return est === filtroEstadoEmp || (filtroEstadoEmp === 'en_preparacion' && est === 'en_espera_inicio');
+    });
   }
   const filtroTipoEmp = STATE._empFiltroTipo || '';
   if (filtroTipoEmp) {
@@ -1525,7 +1536,7 @@ async function renderProyectos() {
   await loadEmpleados();
   let proyectos = STATE.proyectos;
   const pend = proyectos.filter(p=>estadoProyectoVisible(p)==='pendiente_asignacion').length;
-  const prog = proyectos.filter(p=>['asignado','en_preparacion','en_progreso'].includes(estadoProyectoVisible(p))).length;
+  const prog = proyectos.filter(p=>['asignado','en_preparacion','en_espera_inicio','en_progreso'].includes(estadoProyectoVisible(p))).length;
 
   const filtro = (STATE._pryFiltro||'').toLowerCase().trim();
   if (filtro) {
@@ -1538,7 +1549,10 @@ async function renderProyectos() {
   }
   const filtroEstadoPry = STATE._pryFiltroEstado || '';
   if (filtroEstadoPry) {
-    proyectos = proyectos.filter(p => estadoProyectoVisible(p) === filtroEstadoPry);
+    proyectos = proyectos.filter(p => {
+      const est = estadoProyectoVisible(p);
+      return est === filtroEstadoPry || (filtroEstadoPry === 'en_preparacion' && est === 'en_espera_inicio');
+    });
   }
   const sortCampo = STATE._prySortCampo;
   const sortDir = STATE._prySortDir || 'asc';
@@ -1683,7 +1697,7 @@ async function verProyecto(id) {
         </div>`
       ).join('') : '<div style="font-size:12px;color:var(--text3)">Sin requisitos de habilidad configurados.</div>'}
       ${editando ? `<div style="display:flex;gap:8px;margin-top:8px">
-        <input class="field-input" id="pd-hab-nombre" list="dl-habilidades" placeholder="Nombre de habilidad" style="flex:2">
+        <input class="field-input" id="pd-hab-nombre" style="flex:2;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" list="dl-habilidades" placeholder="Nombre de habilidad">
         <input class="field-input" id="pd-hab-nivel" type="number" min="1" max="10" value="5" style="width:70px">
         <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => agregarRequisitoProyecto('${p.id}'))"><i class="ti ti-plus" aria-hidden="true"></i></button>
       </div>` : ''}
@@ -1695,7 +1709,7 @@ async function verProyecto(id) {
         </div>`
       ).join('') : '<div style="font-size:12px;color:var(--text3)">Sin certificados requeridos configurados.</div>'}
       ${editando ? `<div style="display:flex;gap:8px;margin-top:8px">
-        <input class="field-input" id="pd-cert-nombre" list="dl-certificados" placeholder="Nombre de certificado" style="flex:1">
+        <input class="field-input" id="pd-cert-nombre" style="flex:1;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" list="dl-certificados" placeholder="Nombre de certificado">
         <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => agregarCertRequeridoProyecto('${p.id}'))"><i class="ti ti-plus" aria-hidden="true"></i></button>
       </div>` : ''}
       <button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="toggleEditarRequisitos('${p.id}')"><i class="ti ${editando?'ti-eye-off':'ti-pencil'}" aria-hidden="true"></i> ${editando?'Ocultar edición':'Editar requisitos'}</button>
@@ -1724,7 +1738,7 @@ async function verProyecto(id) {
           </div>`;
         }).join('') : '<div style="font-size:12px;color:var(--text3);margin-bottom:10px">Sin equipo requerido configurado.</div>'}
         ${editando ? `<div style="display:flex;gap:8px;margin:8px 0 14px">
-          <select class="field-select" id="pd-eq-tipo" style="flex:2"><option value="drone">Drone / RPAS</option><option value="camara">Cámara</option><option value="termografo">Termógrafo</option><option value="escalada">Equipo de escalada</option><option value="medicion">Medición</option><option value="otro">Otro</option></select>
+          <select class="field-select" id="pd-eq-tipo" style="flex:2" onchange="manejarTipoEquipoOtro(this)"><option value="drone">Drone / RPAS</option><option value="camara">Cámara</option><option value="termografo">Cámara Termográfica</option><option value="escalada">Equipo de escalada</option><option value="medicion">Medición</option><option value="otro">Otro</option></select>
           <input class="field-input" id="pd-eq-cantidad" type="number" min="1" value="1" style="width:70px">
           <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => agregarEquipoRequeridoProyecto('${p.id}'))"><i class="ti ti-plus" aria-hidden="true"></i></button>
         </div>` : ''}
@@ -2011,7 +2025,7 @@ function openNuevoProyecto() {
     <div class="panel-section">
       <div class="panel-section-title">HABILIDADES OPERATIVAS REQUERIDAS</div>
       <div class="field-row">
-        <div class="field-group" style="flex:2"><label class="field-label">HABILIDAD</label><input class="field-input" id="np-hab-nombre" list="dl-habilidades" placeholder="Ej: Pilotaje RPAs, Termografía aérea"></div>
+        <div class="field-group" style="flex:2"><label class="field-label">HABILIDAD</label><input class="field-input" id="np-hab-nombre" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" list="dl-habilidades" placeholder="Ej: Pilotaje RPAs, Termografía aérea"></div>
         <div class="field-group"><label class="field-label">NIVEL MÍN. (1-10)</label><input class="field-input" id="np-hab-nivel" type="number" min="1" max="10" value="5"></div>
       </div>
       <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="agregarHabilidadProyecto()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar habilidad</button>
@@ -2019,7 +2033,7 @@ function openNuevoProyecto() {
     </div>
     <div class="panel-section">
       <div class="panel-section-title">CERTIFICADOS TÉCNICOS REQUERIDOS</div>
-      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE DEL CERTIFICADO</label><input class="field-input" id="np-cert-nombre" list="dl-certificados" placeholder="Ej: DC-3 Manejo a la defensiva, Licencia de conducir"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE DEL CERTIFICADO</label><input class="field-input" id="np-cert-nombre" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" list="dl-certificados" placeholder="Ej: DC-3 Manejo a la defensiva, Licencia de conducir"></div></div>
       <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="agregarCertificadoProyecto()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar certificado</button>
       <div id="np-certs-list" style="margin-top:10px">${renderListaCertificadosProyecto()}</div>
     </div>
@@ -2031,7 +2045,7 @@ function openNuevoProyecto() {
       </label>
       <div id="np-equipo-section">
         <div class="field-row">
-          <div class="field-group" style="flex:2"><label class="field-label">TIPO DE EQUIPO</label><select class="field-select" id="np-eq-tipo"><option value="drone">Drone / RPAS</option><option value="camara">Cámara</option><option value="termografo">Termógrafo</option><option value="escalada">Equipo de escalada</option><option value="medicion">Medición</option><option value="otro">Otro</option></select></div>
+          <div class="field-group" style="flex:2"><label class="field-label">TIPO DE EQUIPO</label><select class="field-select" id="np-eq-tipo" onchange="manejarTipoEquipoOtro(this)"><option value="drone">Drone / RPAS</option><option value="camara">Cámara</option><option value="termografo">Cámara Termográfica</option><option value="escalada">Equipo de escalada</option><option value="medicion">Medición</option><option value="otro">Otro</option></select></div>
           <div class="field-group"><label class="field-label">CANTIDAD</label><input class="field-input" id="np-eq-cantidad" type="number" min="1" value="1"></div>
         </div>
         <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="agregarEquipoProyecto()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar equipo</button>
@@ -2188,6 +2202,12 @@ async function renderGantt() {
   const hoy = today.toDateString();
   const hoy00 = new Date(today); hoy00.setHours(0,0,0,0);
   const horaHoyPct = ((today.getHours()*60+today.getMinutes())/1440*100).toFixed(1);
+  const empsGantt = [...STATE.empleados].sort((a,b) => {
+    const enCampoA = estadoVisible(a) === 'en_proyecto' ? 0 : 1;
+    const enCampoB = estadoVisible(b) === 'en_proyecto' ? 0 : 1;
+    if (enCampoA !== enCampoB) return enCampoA - enCampoB;
+    return `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`, 'es');
+  });
   html(`
     <div class="table-section" id="gantt-export-area">
       <div class="table-header"><span class="table-title">CALENDARIO DE DISPONIBILIDAD — 30 DÍAS</span><span class="table-meta">hoy: ${today.toLocaleDateString('es-MX')}</span><button class="btn btn-ghost btn-sm" onclick="exportarGanttPDF()" style="margin-left:10px"><i class="ti ti-file-download" aria-hidden="true"></i> Exportar PDF</button></div>
@@ -2198,7 +2218,7 @@ async function renderGantt() {
             ${cols.map(d=>`<th style="min-width:28px;text-align:center;${d.toDateString()===hoy?'color:var(--red)':''}">${d.getDate()}<br><span style="font-size:9px">${['D','L','M','X','J','V','S'][d.getDay()]}</span></th>`).join('')}
           </tr></thead>
           <tbody>
-            ${STATE.empleados.map(e=>`<tr>
+            ${empsGantt.map(e=>`<tr>
               <td class="gantt-name" style="cursor:pointer" onclick="abrirCalendarioMensual('${e.id}','${(e.nombre+' '+e.apellido).replace(/'/g,"\\'")}',0)">${e.nombre} ${e.apellido}</td>
               ${cols.map(d=>{
                 const isHoy = d.toDateString() === hoy;
@@ -2235,6 +2255,7 @@ async function exportarGanttPDF() {
   const secciones = [
     { key: 'asignado', label: 'ASIGNADO', color: [34,197,94] },
     { key: 'en_preparacion', label: 'EN PREPARATIVOS', color: [245,158,11] },
+    { key: 'en_espera_inicio', label: 'EN ESPERA DE INICIO', color: [249,115,22] },
     { key: 'pausado', label: 'PAUSADO', color: [249,115,22] },
     { key: 'cancelado', label: 'CANCELADO', color: [156,163,175] },
     { key: 'completado', label: 'COMPLETADO', color: [59,130,246] },
@@ -2252,7 +2273,13 @@ async function exportarGanttPDF() {
   const matrizColor = [];
   const asignacionesPorSeccion = Object.fromEntries(secciones.map(s=>[s.key, []]));
   const vistos = new Set();
-  STATE.empleados.forEach(e => {
+  const empsOrdenados = [...STATE.empleados].sort((a,b) => {
+    const enCampoA = estadoVisible(a) === 'en_proyecto' ? 0 : 1;
+    const enCampoB = estadoVisible(b) === 'en_proyecto' ? 0 : 1;
+    if (enCampoA !== enCampoB) return enCampoA - enCampoB;
+    return `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`, 'es');
+  });
+  empsOrdenados.forEach(e => {
     const filaColor = [];
     cols.forEach(d => {
       const isWknd = d.getDay()===0||d.getDay()===6;
@@ -2275,7 +2302,7 @@ async function exportarGanttPDF() {
   });
 
   const head = [['TÉCNICO', ...cols.map(d => `${d.getDate()}\n${diaLetra[d.getDay()]}`)]];
-  const body = STATE.empleados.map(e => [`${e.nombre} ${e.apellido}`, ...cols.map(()=>'')]);
+  const body = empsOrdenados.map(e => [`${e.nombre} ${e.apellido}`, ...cols.map(()=>'')]);
 
   doc.autoTable({
     startY: 22,
@@ -3062,7 +3089,7 @@ function verEquipo(id) {
   openPanel(eq.nombre, `
     <div class="panel-section">
       <div class="panel-section-title">DATOS DEL EQUIPO</div>
-      <div class="field-row"><div class="field-group"><label class="field-label">TIPO</label><select class="field-select" id="ve-tipo"><option value="drone" ${eq.tipo==='drone'?'selected':''}>Drone / RPAS</option><option value="camara" ${eq.tipo==='camara'?'selected':''}>Cámara</option><option value="termografo" ${eq.tipo==='termografo'?'selected':''}>Termógrafo</option><option value="escalada" ${eq.tipo==='escalada'?'selected':''}>Equipo de escalada</option><option value="medicion" ${eq.tipo==='medicion'?'selected':''}>Medición</option><option value="otro" ${eq.tipo==='otro'?'selected':''}>Otro</option></select></div>
+      <div class="field-row"><div class="field-group"><label class="field-label">TIPO</label><select class="field-select" id="ve-tipo" onchange="manejarTipoEquipoOtro(this)"><option value="drone" ${eq.tipo==='drone'?'selected':''}>Drone / RPAS</option><option value="camara" ${eq.tipo==='camara'?'selected':''}>Cámara</option><option value="termografo" ${eq.tipo==='termografo'?'selected':''}>Cámara Termográfica</option><option value="escalada" ${eq.tipo==='escalada'?'selected':''}>Equipo de escalada</option><option value="medicion" ${eq.tipo==='medicion'?'selected':''}>Medición</option><option value="otro" ${eq.tipo==='otro'?'selected':''}>Otro</option></select></div>
       <div class="field-group"><label class="field-label">ESTADO</label><select class="field-select" id="ve-estado"><option value="disponible" ${eq.estado==='disponible'?'selected':''}>Disponible</option><option value="en_uso" ${eq.estado==='en_uso'?'selected':''}>En uso</option><option value="mantenimiento" ${eq.estado==='mantenimiento'?'selected':''}>Mantenimiento</option><option value="baja" ${eq.estado==='baja'?'selected':''}>Dado de baja</option></select></div></div>
       <div class="field-row"><div class="field-group"><label class="field-label">N° SERIE</label><input class="field-input" id="ve-serie" value="${eq.numero_serie||''}"></div><div class="field-group"><label class="field-label">APODO (OPCIONAL)</label><input class="field-input" id="ve-apodo" value="${eq.apodo||''}"></div></div>
       <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD ACTUAL</label><input class="field-input" id="ve-ciudad" value="${eq.ciudad_actual||''}"></div></div>
@@ -3079,7 +3106,7 @@ function verEquipo(id) {
           <div class="field-group"><label class="field-label">TIPO</label><select class="field-select" id="ed-tipo">${Object.entries(EQ_DOC_TIPOS).map(([k,n])=>`<option value="${k}">${n}</option>`).join('')}</select></div>
           <div class="field-group"><label class="field-label">VENCE (OPCIONAL)</label><input class="field-input" id="ed-vence" type="date"></div>
         </div>
-        <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE (OPCIONAL)</label><input class="field-input" id="ed-nombre" placeholder="Ej: Calibración anual FLIR"></div></div>
+        <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE (OPCIONAL)</label><input class="field-input" id="ed-nombre" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" placeholder="Ej: Calibración anual FLIR"></div></div>
         <div class="field-row full"><div class="field-group"><label class="field-label">ARCHIVO (PDF O IMAGEN)</label><input class="field-input" id="ed-archivo" type="file" accept=".pdf,.jpg,.jpeg,.png"></div></div>
         <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => agregarDocumentoEquipo('${eq.id}'))"><i class="ti ti-plus" aria-hidden="true"></i> Agregar documento</button>
       </div>
@@ -3116,7 +3143,7 @@ function openNuevoEquipo() {
       <div class="panel-section-title">DATOS DEL EQUIPO</div>
       <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE</label><input class="field-input" id="ne-nombre" placeholder="Ej: Drone DJI Mavic 3 Enterprise"></div></div>
       <div class="field-row">
-        <div class="field-group"><label class="field-label">TIPO</label><select class="field-select" id="ne-tipo"><option value="drone">Drone / RPAS</option><option value="camara">Cámara</option><option value="termografo">Termógrafo</option><option value="escalada">Equipo de escalada</option><option value="medicion">Medición</option><option value="otro">Otro</option></select></div>
+        <div class="field-group"><label class="field-label">TIPO</label><select class="field-select" id="ne-tipo" onchange="manejarTipoEquipoOtro(this)"><option value="drone">Drone / RPAS</option><option value="camara">Cámara</option><option value="termografo">Cámara Termográfica</option><option value="escalada">Equipo de escalada</option><option value="medicion">Medición</option><option value="otro">Otro</option></select></div>
         <div class="field-group"><label class="field-label">N° SERIE</label><input class="field-input" id="ne-serie" placeholder="Número de serie"></div>
       </div>
       <div class="field-row"><div class="field-group"><label class="field-label">APODO (OPCIONAL)</label><input class="field-input" id="ne-apodo" placeholder="ej: El Rayo"></div></div>
@@ -3162,6 +3189,22 @@ const VEH_TIPOS  = { camioneta:'Camioneta', auto:'Auto', van:'Van', camion:'Cami
 const VEH_ICONOS = { camioneta:'ti-truck', auto:'ti-car', van:'ti-bus', camion:'ti-truck-delivery', moto:'ti-motorbike', otro:'ti-car' };
 const VEH_DOC_TIPOS = { tarjeta_circulacion:'Tarjeta de circulación', seguro:'Seguro', verificacion:'Verificación', tenencia:'Tenencia / refrendo', factura:'Factura', otro:'Otro' };
 const EQ_DOC_TIPOS = { calibracion:'Calibración', manual:'Manual', garantia:'Garantía', factura:'Factura', otro:'Otro' };
+
+function manejarTipoEquipoOtro(sel) {
+  if (sel.value !== 'otro') return;
+  const nombre = prompt('¿Qué tipo de equipo es? (ej: Crawler, Sensor LiDAR...)');
+  if (!nombre || !nombre.trim()) { sel.value = 'otro'; return; }
+  const texto = nombre.trim();
+  const valor = texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') || 'otro';
+  let opcion = Array.from(sel.options).find(o => o.value === valor);
+  if (!opcion) {
+    opcion = document.createElement('option');
+    opcion.value = valor;
+    opcion.textContent = texto;
+    sel.insertBefore(opcion, sel.querySelector('option[value="otro"]'));
+  }
+  sel.value = valor;
+}
 
 // Escapa texto tecleado por el usuario antes de meterlo en HTML
 function escHtml(s) {
@@ -4091,8 +4134,8 @@ function actualizarMapa() {
       : 'Buscar...';
   }
 
-  const coloresProyecto = { en_progreso:'#E31C22', asignado:'#22c55e', en_preparacion:'#f59e0b', pausado:'#f97316', cancelado:'#9ca3af', completado:'#3b82f6', pendiente_asignacion:'#6b7280' };
-  const etiquetasEstadoPry = { en_progreso:'En progreso', asignado:'Asignado', en_preparacion:'En preparativos', pausado:'Pausado', cancelado:'Cancelado', completado:'Completado', pendiente_asignacion:'Pendiente de asignación' };
+  const coloresProyecto = { en_progreso:'#E31C22', asignado:'#22c55e', en_preparacion:'#f59e0b', en_espera_inicio:'#f97316', pausado:'#f97316', cancelado:'#9ca3af', completado:'#3b82f6', pendiente_asignacion:'#6b7280' };
+  const etiquetasEstadoPry = { en_progreso:'En progreso', asignado:'Asignado', en_preparacion:'En preparativos', en_espera_inicio:'En espera de inicio', pausado:'Pausado', cancelado:'Cancelado', completado:'Completado', pendiente_asignacion:'Pendiente de asignación' };
 
   // Los controles de vista solo se ven cuando "Proyectos" está activo.
   // El desplegable de periodo solo aparece (y solo se aplica) cuando la vista es "Por fecha";
@@ -4135,7 +4178,7 @@ function actualizarMapa() {
       if (pryAsignado && e.disponibilidad === 'en_proyecto' && proyectoIniciado(pryAsignado) && pryAsignado.latitud && pryAsignado.longitud) { lat = pryAsignado.latitud; lon = pryAsignado.longitud; enSitio = true; }
       const textoBase = (pryAsignado && !proyectoIniciado(pryAsignado)) ? `En base · asignado a ${pryAsignado.nombre} (inicia ${pryAsignado.fecha_inicio})` : 'En base';
       if (!lat || !lon) return;
-      const coloresPersonal = { libre:'#22c55e', asignado:'#22c55e', en_preparacion:'#f59e0b', en_proyecto:'#E31C22' };
+      const coloresPersonal = { libre:'#22c55e', asignado:'#22c55e', en_preparacion:'#f59e0b', en_espera_inicio:'#f97316', en_proyecto:'#E31C22' };
       const color = enSitio ? '#E31C22' : (coloresPersonal[estadoVisible(e)] || '#6b7280');
       const anillo = L.circleMarker([lat, lon], { radius: 6, className: 'marker-pulso', color: 'transparent', weight: 0, fillColor: color, fillOpacity: .6, interactive: false }).addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(anillo);
@@ -4667,7 +4710,7 @@ function openAgregarHabilidad() {
   openPanel('Agregar habilidad operativa', `
     <div class="panel-section">
       <div class="panel-section-title">DATOS DE LA HABILIDAD</div>
-      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE DE LA HABILIDAD</label><input class="field-input" id="hab-nombre" list="dl-habilidades" placeholder="Ej: Pilotaje RPAs, Termografía aérea, Manejar, Inglés"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE DE LA HABILIDAD</label><input class="field-input" id="hab-nombre" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" list="dl-habilidades" placeholder="Ej: Pilotaje RPAs, Termografía aérea, Manejar, Inglés"></div></div>
       <div class="field-row full"><div class="field-group">
         <label class="field-label">NIVEL (1-10)</label>
         <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
@@ -4735,7 +4778,7 @@ function openAgregarDocumento(empIdObjetivo, nombreObjetivo) {
           ${TIPOS_DOC.map(t=>`<option value="${t}">${t}</option>`).join('')}
         </select>
       </div></div>
-      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE / NÚMERO</label><input class="field-input" id="doc-nombre" list="dl-certificados" placeholder="Ej: Licencia Federal Tipo E, CURP TOSR..."></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE / NÚMERO</label><input class="field-input" id="doc-nombre" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" list="dl-certificados" placeholder="Ej: Licencia Federal Tipo E, CURP TOSR..."></div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">INSTITUCIÓN EMISORA</label><input class="field-input" id="doc-inst" placeholder="Opcional"></div></div>
       <div id="vig-section" style="margin-top:10px">
         <div class="field-row" id="vig-fecha-row">
