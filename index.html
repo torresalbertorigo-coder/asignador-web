@@ -459,6 +459,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
                 <div class="user-menu-item" onclick="switchModo();toggleUserMenu()" id="um-switch-modo" style="display:none"><i class="ti ti-arrows-exchange" aria-hidden="true"></i> <span id="um-switch-label">Vista Técnico</span></div>
                 <div class="user-menu-item" onclick="showSection('bitacora');toggleUserMenu()" id="um-bitacora" style="display:none"><i class="ti ti-history" aria-hidden="true"></i> Bitácora de cambios</div>
                 <div class="user-menu-item" onclick="showSection('catalogo');toggleUserMenu()" id="um-catalogo" style="display:none"><i class="ti ti-tags" aria-hidden="true"></i> Catálogo de términos</div>
+                <div class="user-menu-item" onclick="showSection('permisos');toggleUserMenu()" id="um-permisos" style="display:none"><i class="ti ti-key" aria-hidden="true"></i> Permisos de exportación</div>
                 <div class="user-menu-item user-menu-item-danger" onclick="doLogout()"><i class="ti ti-logout" aria-hidden="true"></i> Cerrar sesión</div>
               </div>
             </div>
@@ -567,7 +568,8 @@ async function doLogin() {
     if (!r.ok) { err.textContent = d.detail || 'Credenciales incorrectas.'; return; }
     STATE.token = d.access_token;
     STATE.rol   = d.rol;
-    STATE.user  = { nombre: d.nombre, email, empleado_id: d.empleado_id };
+    STATE.user  = { nombre: d.nombre, email, empleado_id: d.empleado_id, puede_exportar: !!d.puede_exportar };
+    localStorage.setItem('w_exp', d.puede_exportar ? '1' : '0');
     localStorage.setItem('w_token', d.access_token);
     localStorage.setItem('w_rol', d.rol);
     localStorage.setItem('w_nombre', d.nombre);
@@ -596,6 +598,11 @@ async function initApp() {
   document.getElementById('sb-avatar').textContent = av;
   document.getElementById('sb-name').textContent = STATE.user.nombre;
   document.getElementById('sb-rol').textContent = STATE.rol === 'administrador' ? 'Administrador' : STATE.rol === 'director_proyecto' ? 'Director de Proyecto' : 'Técnico de campo';
+  api('GET', '/auth/auth/yo').then(yo => {
+    if (!yo) return;
+    STATE.user.puede_exportar = !!yo.puede_exportar;
+    localStorage.setItem('w_exp', yo.puede_exportar ? '1' : '0');
+  });
   if (STATE.user.empleado_id) {
     api('GET', `/empleados/${STATE.user.empleado_id}`).then(emp => {
       if (emp?.foto_perfil_url) {
@@ -637,6 +644,7 @@ function buildNav() {
     document.getElementById('um-switch-modo').style.display = 'flex';
     document.getElementById('um-bitacora').style.display = STATE.rol === 'administrador' ? 'flex' : 'none';
     document.getElementById('um-catalogo').style.display = STATE.rol === 'administrador' ? 'flex' : 'none';
+    document.getElementById('um-permisos').style.display = STATE.rol === 'administrador' ? 'flex' : 'none';
     document.getElementById('mobile-nav-bar').innerHTML = `
       <div class="mobile-nav-items">
         <div class="mobile-nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i>Empleados</div>
@@ -810,6 +818,7 @@ const TITLES = {
   'clientes':         ['ti-building',           'Clientes'],
   'bitacora':         ['ti-history',            'Bitácora de Cambios'],
   'catalogo':         ['ti-tags',               'Catálogo de Términos'],
+  'permisos':         ['ti-key',                'Permisos de Exportación'],
   'mis-asignaciones': ['ti-briefcase',          'Mis Asignaciones'],
   'mi-gantt':         ['ti-calendar-stats',     'Mi Calendario'],
   'checador':         ['ti-clock',              'Reloj Checador'],
@@ -831,6 +840,7 @@ const RENDERERS = {
   clientes:         renderClientes,
   bitacora:         renderBitacora,
   catalogo:         renderCatalogo,
+  permisos:         renderPermisos,
   'mis-asignaciones': renderMisAsignaciones,
   'mi-gantt':       renderMiGantt,
   checador:         renderChecador,
@@ -4115,11 +4125,12 @@ async function eliminarClienteConfirm(id) {
 // =============================================================================
 const ACCION_LABEL = {
   crear: 'Creó', editar: 'Editó', eliminar: 'Eliminó', asignar: 'Asignó',
-  cambiar_estado: 'Cambió estado', finalizar: 'Finalizó',
+  cambiar_estado: 'Cambió estado', finalizar: 'Finalizó', exportar: 'Exportó',
 };
 const ENTIDAD_ICONO = {
   proyecto: 'ti-folder', empleado: 'ti-users', equipo: 'ti-tool',
   vehiculo: 'ti-truck', cliente: 'ti-building', asignacion: 'ti-link',
+  datos: 'ti-file-spreadsheet', permiso: 'ti-key',
 };
 
 async function renderBitacora() {
@@ -4446,7 +4457,97 @@ async function renderMetricas() {
         <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, generarMetricas)"><i class="ti ti-chart-bar" aria-hidden="true"></i> Generar métricas</button>
       </div>
     </div>
+    ${puedeExportarDatos() ? tarjetaExportarDatos() : ''}
     <div id="metricas-resultado"></div>`);
+}
+
+function puedeExportarDatos() {
+  return STATE.rol === 'administrador' || !!STATE.user?.puede_exportar;
+}
+
+function tarjetaExportarDatos() {
+  const hoy = new Date();
+  const iso = d => new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().split('T')[0];
+  const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+  return `
+    <div class="table-section" style="padding:18px;margin-bottom:14px">
+      <div class="panel-section-title" style="margin-bottom:6px">EXPORTAR DATOS PARA AUDITORÍA</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Un solo Excel con hojas de Proyectos, Personal, Asignaciones, Checadas e Incidencias del rango elegido. Cada descarga queda registrada en la bitácora.</div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">DESDE</label><input type="date" class="field-input" id="exp-desde" value="${iso(inicioMes)}"></div>
+        <div class="field-group"><label class="field-label">HASTA</label><input type="date" class="field-input" id="exp-hasta" value="${iso(hoy)}"></div>
+      </div>
+      <div style="margin-top:14px;display:flex;justify-content:flex-end">
+        <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, exportarExcelDatos, 'Generando...')"><i class="ti ti-file-spreadsheet" aria-hidden="true"></i> Descargar Excel</button>
+      </div>
+    </div>`;
+}
+
+// 8. descarga del Excel (el backend lo arma con los mismos cálculos de la plataforma)
+async function exportarExcelDatos() {
+  const desde = document.getElementById('exp-desde')?.value;
+  const hasta = document.getElementById('exp-hasta')?.value;
+  if (!desde || !hasta) { toast('Elige el rango de fechas', 'error'); return; }
+  if (hasta < desde) { toast('La fecha final es anterior a la inicial', 'error'); return; }
+  try {
+    const resp = await fetch(`${API}/exportar/datos?desde=${desde}&hasta=${hasta}`, {
+      headers: { 'Authorization': `Bearer ${STATE.token}` }
+    });
+    if (!resp.ok) {
+      let detalle = 'No se pudo generar el Excel.';
+      try { detalle = (await resp.json()).detail || detalle; } catch (e) {}
+      toast(detalle, 'error');
+      return;
+    }
+    const blob = await resp.blob();
+    const enlace = document.createElement('a');
+    enlace.href = URL.createObjectURL(blob);
+    enlace.download = `WorkSync - Datos - ${desde} al ${hasta}.xlsx`;
+    document.body.appendChild(enlace);
+    enlace.click();
+    document.body.removeChild(enlace);
+    toast('Excel descargado');
+  } catch (e) {
+    toast('Error al descargar el Excel', 'error');
+  }
+}
+
+// ─── SECCIÓN: PERMISOS DE EXPORTACIÓN (solo administrador) ───────────────────
+async function renderPermisos() {
+  const usuarios = await api('GET', '/auth/auth/usuarios') || [];
+  const etiquetaRol = { administrador: 'Administrador', director_proyecto: 'Director de Proyecto', tecnico: 'Técnico de campo' };
+  const orden = { administrador: 0, director_proyecto: 1, tecnico: 2 };
+  const lista = usuarios.slice().sort((a,b) => (orden[a.rol]-orden[b.rol]) || a.nombre.localeCompare(b.nombre,'es'));
+  html(`
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px">
+      Quién puede descargar el Excel de auditoría desde Métricas. El administrador siempre puede. Los técnicos no tienen acceso a Métricas, así que el permiso solo aplica a directores.
+    </div>
+    <div class="table-section">
+      <div class="table-header"><span class="table-title">CUENTAS (${lista.length})</span></div>
+      ${lista.map(u => {
+        const esAdmin = u.rol === 'administrador';
+        const aplica = u.rol !== 'tecnico';
+        return `
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--border)">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;color:var(--text);font-weight:600">${escHtml(u.nombre)}</div>
+            <div style="font-size:11px;color:var(--text3)">${escHtml(u.email)} · ${etiquetaRol[u.rol] || u.rol}${u.activo ? '' : ' · desactivada'}</div>
+          </div>
+          ${esAdmin ? `<span class="badge badge-libre">SIEMPRE</span>`
+            : !aplica ? `<span style="font-size:11px;color:var(--text3)">No aplica</span>`
+            : u.puede_exportar
+              ? `<span class="badge badge-libre">CON PERMISO</span><button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => cambiarPermisoExportar('${u.id}', false))">Quitar</button>`
+              : `<button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => cambiarPermisoExportar('${u.id}', true))"><i class="ti ti-key" aria-hidden="true"></i> Activar</button>`}
+        </div>`;
+      }).join('')}
+    </div>`);
+}
+
+async function cambiarPermisoExportar(usuarioId, activar) {
+  const r = await api('PATCH', `/auth/auth/usuarios/${encodeURIComponent(usuarioId)}/permiso-exportar`, { puede_exportar: activar });
+  if (!r) { toast('No se pudo cambiar el permiso', 'error'); return; }
+  toast(activar ? 'Permiso activado' : 'Permiso retirado');
+  renderPermisos();
 }
 
 function aplicarRangoMetricas(dias) {
@@ -5180,7 +5281,7 @@ async function renderMiGantt() {
   const ei = localStorage.getItem('w_emp_id');
   if (t && r && n) {
     STATE.token = t; STATE.rol = r;
-    STATE.user = { nombre: n, email: e, empleado_id: ei };
+    STATE.user = { nombre: n, email: e, empleado_id: ei, puede_exportar: localStorage.getItem('w_exp') === '1' };
     initApp();
   }
 })();
