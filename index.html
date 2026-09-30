@@ -4528,7 +4528,7 @@ async function renderMiPerfil() {
   const docs = STATE.perfil_docs || [];
   const habs = STATE.perfil_habs || [];
   html(`
-    <div style="max-width:720px">
+    <div style="max-width:960px">
     <div class="perfil-header">
       <div class="perfil-av" onclick="elegirFotoPerfil()" title="Cambiar foto" style="${fotoUrl?`background-image:url(${fotoUrl});background-size:cover;background-position:center`:''}">
         <span id="perfil-av-texto" style="${fotoUrl?'display:none':''}">${av}</span>
