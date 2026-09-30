@@ -2256,13 +2256,16 @@ async function exportarGanttPDF() {
   const dias = 30;
   const cols = Array.from({length:dias}, (_,i) => { const d = new Date(today); d.setDate(d.getDate()-7+i); d.setHours(0,0,0,0); return d; });
   const diaLetra = ['D','L','M','X','J','V','S'];
+  // Mismos estados y colores que el Gantt en pantalla (coloresProyecto de renderGantt)
   const secciones = [
-    { key: 'asignado', label: 'ASIGNADO', color: [34,197,94] },
-    { key: 'en_preparacion', label: 'EN PREPARATIVOS', color: [245,158,11] },
-    { key: 'en_espera_inicio', label: 'EN ESPERA DE INICIO', color: [249,115,22] },
-    { key: 'pausado', label: 'PAUSADO', color: [249,115,22] },
-    { key: 'cancelado', label: 'CANCELADO', color: [156,163,175] },
-    { key: 'completado', label: 'COMPLETADO', color: [59,130,246] },
+    { key: 'en_progreso', label: 'EN PROGRESO', color: [227,28,34], nombreColor: 'Rojo' },
+    { key: 'en_espera_inicio', label: 'EN ESPERA DE INICIO', color: [249,115,22], nombreColor: 'Naranja' },
+    { key: 'en_preparacion', label: 'EN PREPARATIVOS', color: [245,158,11], nombreColor: 'Ámbar' },
+    { key: 'asignado', label: 'ASIGNADO', color: [34,197,94], nombreColor: 'Verde' },
+    { key: 'pendiente_asignacion', label: 'PENDIENTE DE ASIGNACIÓN', color: [107,114,128], nombreColor: 'Gris oscuro' },
+    { key: 'pausado', label: 'PAUSADO', color: [249,115,22], nombreColor: 'Naranja' },
+    { key: 'completado', label: 'COMPLETADO', color: [59,130,246], nombreColor: 'Azul' },
+    { key: 'cancelado', label: 'CANCELADO', color: [156,163,175], nombreColor: 'Gris' },
   ];
   const coloresProyecto = Object.fromEntries(secciones.map(s=>[s.key,s.color]));
 
@@ -2294,7 +2297,8 @@ async function exportarGanttPDF() {
         const clave = `${e.id}-${pry.id}`;
         if (!vistos.has(clave) && asignacionesPorSeccion[estadoVis]) {
           vistos.add(clave);
-          asignacionesPorSeccion[estadoVis].push(`${e.nombre} ${e.apellido} - ${pry.nombre} (${pry.fecha_inicio} al ${pry.fecha_fin_estimada})`);
+          const inicioReal = (estadoVis === 'en_progreso' && pry.fecha_inicio_real) ? ` · inició ${pry.fecha_inicio_real}` : '';
+          asignacionesPorSeccion[estadoVis].push(`${e.nombre} ${e.apellido} - ${pry.nombre} (${pry.fecha_inicio} al ${pry.fecha_fin_estimada}${inicioReal})`);
         }
       } else if (isWknd) {
         filaColor.push([243,244,246]);
@@ -2368,8 +2372,8 @@ async function exportarGanttPDF() {
 
   doc.setFontSize(7);
   doc.setTextColor(120);
-  const leyendaColores = seccionesConDatos.map(s => `${['Verde','Ámbar','Naranja','Gris','Azul'][secciones.indexOf(s)]} = ${s.label.toLowerCase()}`).join(' · ');
-  if (leyendaColores) doc.text(leyendaColores, 10, 285);
+  const leyendaColores = seccionesConDatos.map(s => `${s.nombreColor} = ${s.label.toLowerCase()}`).join(' · ');
+  if (leyendaColores) doc.text(leyendaColores, 10, doc.internal.pageSize.getHeight() - 7);
 
   doc.save(`Gantt General - ${today.toISOString().split('T')[0]}.pdf`);
 }
