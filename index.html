@@ -951,7 +951,7 @@ async function abrirCalendarioMensual(empId, nombre, offsetMeses) {
       </div>
       <div style="margin-top:10px;font-size:11px;color:var(--text3)"><span style="color:var(--red-text)">●</span> Días con proyecto asignado — toca un día para ver el detalle del proyecto.</div>
     </div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>${puedeExportar?`<button class="btn btn-primary btn-sm" onclick="exportarCalendarioEmpleadoPDF('cal-export-area','Calendario - ${nombre.replace(/[\\/:*?"<>|]/g,'-')} - ${mesLabel}')"><i class="ti ti-file-download" aria-hidden="true"></i> Exportar PDF</button>`:''}`);
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>${puedeExportar?`<button class="btn btn-primary btn-sm" onclick="exportarCalendarioEmpleadoPDF('${empId}','${nombre.replace(/'/g,"\\'")}',${year},${month})"><i class="ti ti-file-download" aria-hidden="true"></i> Exportar PDF</button>`:''}`);
 }
 
 async function loadEmpleados(forzar) {
@@ -2370,19 +2370,78 @@ async function exportarGanttPDF() {
   doc.save(`Gantt General - ${today.toISOString().split('T')[0]}.pdf`);
 }
 
-async function exportarCalendarioEmpleadoPDF(elementId, nombreArchivo) {
-  const elemento = document.getElementById(elementId);
-  if (!elemento || typeof html2canvas === 'undefined') { toast('No se pudo generar el PDF','error'); return; }
-  toast('Generando PDF, un momento...');
-  const fondo = getComputedStyle(document.body).backgroundColor || '#ffffff';
-  const canvas = await html2canvas(elemento, { backgroundColor: fondo, scale: 2 });
-  const imgData = canvas.toDataURL('image/png');
+async function exportarCalendarioEmpleadoPDF(empId, nombre, year, month) {
+  await loadEmpleados();
+  const emp = STATE.empleados.find(e => e.id === empId);
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
-  const anchoDisponible = 190;
-  const altoMM = anchoDisponible * canvas.height / canvas.width;
-  doc.addImage(imgData, 'PNG', 10, 15, anchoDisponible, altoMM);
-  doc.save(`${nombreArchivo}.pdf`);
+  let y = 18;
+
+  doc.setFontSize(9);
+  doc.setTextColor(150);
+  doc.text('WORKSYNC', 14, y);
+  y += 9;
+  doc.setTextColor(0);
+  doc.setFontSize(17);
+  doc.setFont(undefined, 'bold');
+  doc.text(nombre, 14, y);
+  y += 7;
+  doc.setFontSize(10);
+  doc.setFont(undefined, 'normal');
+  doc.setTextColor(90);
+  const datosEmp = emp ? [emp.id, (emp.seniority||'').replace(/^./, c=>c.toUpperCase()), emp.ciudad||'—'].filter(Boolean).join('  ·  ') : '';
+  if (datosEmp) doc.text(datosEmp, 14, y);
+  doc.setTextColor(0);
+  y += 12;
+
+  const eventos = eventosProyectosPorDia(empId);
+  const primerDia = new Date(year, month, 1);
+  const diasEnMes = new Date(year, month+1, 0).getDate();
+  const diasResaltadosSet = new Set();
+  const proyectosDelMes = new Map();
+  for (let d=1; d<=diasEnMes; d++) {
+    const fecha = new Date(year, month, d);
+    const key = fecha.toISOString().split('T')[0];
+    const evs = eventos[key] || [];
+    if (evs.length) {
+      diasResaltadosSet.add(fecha.toDateString());
+      evs.forEach(p => proyectosDelMes.set(p.id, p));
+    }
+  }
+
+  doc.setFontSize(9);
+  doc.setFont(undefined, 'bold');
+  doc.text('CALENDARIO', 14, y);
+  y += 6;
+  y = dibujarMesCalendarioPDF(doc, year, month, diasResaltadosSet, y);
+  y += 10;
+
+  doc.setFontSize(9);
+  doc.setFont(undefined, 'bold');
+  doc.setTextColor(0);
+  const lista = Array.from(proyectosDelMes.values());
+  doc.text(`PROYECTOS ASIGNADOS ESTE MES (${lista.length})`, 14, y);
+  y += 7;
+  doc.setFont(undefined, 'normal');
+  doc.setFontSize(9);
+  if (lista.length === 0) {
+    doc.setTextColor(120);
+    doc.text('Sin proyectos asignados en este mes.', 14, y);
+  } else {
+    lista.forEach(p => {
+      if (y > 260) { doc.addPage(); y = 18; }
+      doc.setTextColor(0);
+      doc.setFont(undefined, 'bold');
+      doc.text(p.nombre, 14, y);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(110);
+      doc.text(`${p.cliente||'—'}  ·  ${p.fecha_inicio} al ${p.fecha_fin_estimada}`, 14, y+4.5);
+      y += 11;
+    });
+  }
+
+  const mesLabel = primerDia.toLocaleDateString('es-MX',{month:'long',year:'numeric'});
+  doc.save(`Calendario - ${nombre.replace(/[\\/:*?"<>|]/g,'-')} - ${mesLabel}.pdf`);
 }
 
 function dibujarMesCalendarioPDF(doc, year, month, diasResaltadosSet, startY) {
@@ -4315,7 +4374,9 @@ async function generarMetricas() {
         <div><span style="color:var(--text3)">Fin real</span><div class="td-mono" style="color:var(--text)">${p.fecha_fin_real||'—'}</div></div>
         <div><span style="color:var(--text3)">Duración estimada</span><div style="color:var(--text)">${p.duracion_estimada_dias??'—'} día(s)</div></div>
         <div><span style="color:var(--text3)">Duración real</span><div style="color:var(--text)">${p.duracion_real_dias??'—'} día(s)</div></div>
-        <div><span style="color:var(--text3)">Personal asignado</span><div style="color:var(--text)">${p.personal_asignado}</div></div>
+        <div><span style="color:var(--text3)">Personal asignado (${p.personal_asignado})</span><div style="color:var(--text)">${(p.personal_asignado_nombres||[]).join(', ') || '—'}</div></div>
+        <div><span style="color:var(--text3)">Equipo usado</span><div style="color:var(--text)">${(p.equipo_usado||[]).join(', ') || '—'}</div></div>
+        <div><span style="color:var(--text3)">Vehículo usado</span><div style="color:var(--text)">${(p.vehiculo_usado||[]).join(', ') || '—'}</div></div>
         <div><span style="color:var(--text3)">Incidencias</span><div style="color:var(--text)">${p.total_incidencias} (${p.incidencias_altas} alta(s))</div></div>
         <div><span style="color:var(--text3)">Días trabajados (checador)</span><div style="color:var(--text)">${p.asistencia?.dias_trabajados ?? 0}</div></div>
         <div><span style="color:var(--text3)">Horas aprox. trabajadas</span><div style="color:var(--text)">${p.asistencia?.horas_aprox ?? 0} h</div></div>
@@ -4359,7 +4420,17 @@ function exportarMetricasPDF() {
     const retrasoTxt = p.retraso_dias>0 ? `+${p.retraso_dias} día(s) de retraso` : p.retraso_dias<0 ? `${Math.abs(p.retraso_dias)} día(s) antes de lo estimado` : (p.retraso_dias===0?'A tiempo':'—');
     doc.text(`Resultado: ${retrasoTxt}`, 14, y); y += 5;
     doc.text(`Duración estimada: ${p.duracion_estimada_dias??'—'} día(s)    Duración real: ${p.duracion_real_dias??'—'} día(s)`, 14, y); y += 5;
-    doc.text(`Personal asignado: ${p.personal_asignado}    Incidencias: ${p.total_incidencias} (${p.incidencias_altas} alta(s))`, 14, y); y += 5;
+    const lineaPersonal = doc.splitTextToSize(`Personal asignado (${p.personal_asignado}): ${(p.personal_asignado_nombres||[]).join(', ') || '—'}`, 178);
+    doc.text(lineaPersonal, 14, y); y += 5 * lineaPersonal.length;
+    if ((p.equipo_usado||[]).length) {
+      const lineaEq = doc.splitTextToSize(`Equipo usado: ${p.equipo_usado.join(', ')}`, 178);
+      doc.text(lineaEq, 14, y); y += 5 * lineaEq.length;
+    }
+    if ((p.vehiculo_usado||[]).length) {
+      const lineaVeh = doc.splitTextToSize(`Vehículo usado: ${p.vehiculo_usado.join(', ')}`, 178);
+      doc.text(lineaVeh, 14, y); y += 5 * lineaVeh.length;
+    }
+    doc.text(`Incidencias: ${p.total_incidencias} (${p.incidencias_altas} alta(s))`, 14, y); y += 5;
     doc.text(`Días trabajados (checador): ${p.asistencia?.dias_trabajados ?? 0}    Horas aprox.: ${p.asistencia?.horas_aprox ?? 0} h    Días sin checada: ${p.dias_faltantes ?? 0}`, 14, y); y += 6;
 
     if (p.incidencias.length) {
