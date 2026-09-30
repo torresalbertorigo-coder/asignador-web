@@ -4565,7 +4565,7 @@ async function renderMiPerfil() {
         <div><span class="table-title">DOCUMENTOS Y CERTIFICADOS TÉCNICOS</span><div class="table-meta" style="margin-top:2px">con constancia o vigencia</div></div>
         <button class="btn btn-ghost btn-sm" onclick="openAgregarDocumento()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar</button>
       </div>
-      <div id="docs-list">
+      <div id="docs-list" style="overflow-x:auto">
         ${docs.length===0
           ? '<div class="empty-state" style="padding:20px"><i class="ti ti-file-certificate" aria-hidden="true"></i><p style="font-size:12px">Agrega tus certificaciones, licencias y documentos</p></div>'
           : `<table><thead><tr><th>DOCUMENTO</th><th>TIPO</th><th>VIGENCIA</th><th>ARCHIVO</th><th></th></tr></thead><tbody>
