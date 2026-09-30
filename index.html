@@ -125,7 +125,21 @@ a{text-decoration:none;color:inherit}
 .topbar-right{display:flex;gap:8px;align-items:center}
 .user-menu{position:relative}
 .user-menu-trigger{cursor:pointer;border-radius:50%}
-.user-menu-trigger .user-av{width:34px;height:34px;border-radius:50%;font-size:13px}
+.user-menu-trigger .user-av{width:34px;height:34px;border-radius:50%;font-size:13px;transition:box-shadow .15s}
+.user-menu-trigger .user-av.has-unread{box-shadow:0 0 0 2px var(--red)}
+.notif-trigger{position:relative;cursor:pointer;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:19px;transition:background .15s}
+.notif-trigger:hover{background:var(--surface2);color:var(--text)}
+.notif-badge{position:absolute;top:1px;right:1px;background:var(--red);color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;line-height:15px;border-radius:8px;text-align:center;padding:0 3px;box-shadow:0 0 0 2px var(--bg)}
+.notif-dropdown{width:340px;max-height:420px;display:flex;flex-direction:column}
+.notif-dropdown .user-menu-header{padding:10px 12px;flex-shrink:0}
+#notif-list{overflow-y:auto}
+.notif-item{padding:10px 12px;border-top:1px solid var(--border);cursor:pointer;transition:background .12s}
+.notif-item:hover{background:var(--surface2)}
+.notif-item.unread{background:var(--red-bg)}
+.notif-item .notif-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px}
+.notif-item .notif-msg{font-size:11px;color:var(--text2);line-height:1.4}
+.notif-item .notif-time{font-size:10px;color:var(--text3);margin-top:4px}
+.notif-empty{padding:24px 12px;text-align:center;font-size:12px;color:var(--text3)}
 .user-menu-dropdown{display:none;position:absolute;top:calc(100% + 8px);right:0;min-width:200px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:1000;overflow:hidden}
 .user-menu-dropdown.open{display:block}
 .user-menu-header{padding:10px 12px;border-bottom:1px solid var(--border)}
@@ -386,6 +400,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 
 <!-- ── APP ───────────────────────────────────────────────────────────── -->
 <datalist id="dl-habilidades"></datalist>
+<datalist id="dl-clientes"></datalist>
 <datalist id="dl-certificados"></datalist>
 <div id="app">
   <div class="app-body">
@@ -424,6 +439,19 @@ tbody tr:hover .td-action i{color:var(--text2)}
         </div>
         <div class="topbar-right" id="topbar-actions"></div>
         <button class="topbar-menu-btn" onclick="toggleTema()" aria-label="Cambiar tema" style="margin-left:8px" id="btn-tema-topbar"><i class="ti ti-moon" aria-hidden="true"></i></button>
+        <div class="user-menu" id="notif-menu" style="margin-left:8px">
+          <div class="notif-trigger" onclick="toggleNotifMenu(event)" title="Notificaciones">
+            <i class="ti ti-bell" aria-hidden="true"></i>
+            <span class="notif-badge" id="notif-badge" style="display:none">0</span>
+          </div>
+          <div class="user-menu-dropdown notif-dropdown" id="notif-dropdown">
+            <div class="user-menu-header" style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:12px;font-weight:600;color:var(--text)">Notificaciones</span>
+              <span style="font-size:11px;color:var(--red);cursor:pointer" onclick="marcarTodasNotifLeidas()">Marcar todas leídas</span>
+            </div>
+            <div id="notif-list"></div>
+          </div>
+        </div>
         <div class="user-menu" id="user-menu" style="margin-left:8px">
           <div class="user-menu-trigger" onclick="toggleUserMenu(event)" title="Mi cuenta">
             <div class="user-av" id="sb-avatar">RT</div>
@@ -570,6 +598,9 @@ async function initApp() {
   }
   buildNav();
   cargarCatalogos();
+  cargarNotificaciones();
+  if (STATE._notifInterval) clearInterval(STATE._notifInterval);
+  STATE._notifInterval = setInterval(cargarNotificaciones, 60000);
   if (STATE.rol === 'administrador' || STATE.rol === 'director_proyecto') {
     await loadEmpleados();
     showSection('mapa');
@@ -584,6 +615,7 @@ function buildNav() {
       <div class="nav-section">GESTIÓN</div>
       <div class="nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i> Empleados</div>
       <div class="nav-item" onclick="showSection('proyectos')" data-sec="proyectos"><i class="ti ti-folder" aria-hidden="true"></i> Proyectos</div>
+      <div class="nav-item" onclick="showSection('clientes')" data-sec="clientes"><i class="ti ti-building" aria-hidden="true"></i> Clientes</div>
       <div class="nav-item" onclick="showSection('gantt')" data-sec="gantt"><i class="ti ti-calendar-stats" aria-hidden="true"></i> Gantt</div>
       <div class="nav-section">OPERACIONES</div>
       <div class="nav-item" onclick="showSection('evaluar')" data-sec="evaluar"><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i> Evaluar</div>
@@ -591,6 +623,8 @@ function buildNav() {
       <div class="nav-item" onclick="showSection('vehiculos')" data-sec="vehiculos"><i class="ti ti-truck" aria-hidden="true"></i> Vehículos</div>
       <div class="nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Incidencias</div>
       <div class="nav-item" onclick="showSection('metricas')" data-sec="metricas"><i class="ti ti-chart-bar" aria-hidden="true"></i> Métricas</div>
+      ${STATE.rol === 'administrador' ? `<div class="nav-section">AUDITORÍA</div>
+      <div class="nav-item" onclick="showSection('bitacora')" data-sec="bitacora"><i class="ti ti-history" aria-hidden="true"></i> Bitácora de cambios</div>` : ''}
       <div class="nav-section">MI CUENTA</div>
       <div class="nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i> Mi Perfil</div>`;
     document.getElementById('um-switch-modo').style.display = 'flex';
@@ -660,7 +694,16 @@ function switchModo() {
 
 function toggleUserMenu(ev) {
   if (ev) ev.stopPropagation();
+  document.getElementById('notif-dropdown').classList.remove('open');
   document.getElementById('user-menu-dropdown').classList.toggle('open');
+}
+function toggleNotifMenu(ev) {
+  if (ev) ev.stopPropagation();
+  document.getElementById('user-menu-dropdown').classList.remove('open');
+  const dd = document.getElementById('notif-dropdown');
+  const abrir = !dd.classList.contains('open');
+  dd.classList.toggle('open');
+  if (abrir) cargarNotificaciones();
 }
 document.addEventListener('click', (ev) => {
   const menu = document.getElementById('user-menu');
@@ -668,7 +711,71 @@ document.addEventListener('click', (ev) => {
   if (dd && dd.classList.contains('open') && menu && !menu.contains(ev.target)) {
     dd.classList.remove('open');
   }
+  const nmenu = document.getElementById('notif-menu');
+  const ndd = document.getElementById('notif-dropdown');
+  if (ndd && ndd.classList.contains('open') && nmenu && !nmenu.contains(ev.target)) {
+    ndd.classList.remove('open');
+  }
 });
+
+function tiempoRelativo(fechaIso) {
+  const seg = Math.floor((Date.now() - new Date(fechaIso + 'Z')) / 1000);
+  if (seg < 60) return 'hace un momento';
+  const min = Math.floor(seg / 60);
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `hace ${h} h`;
+  const d = Math.floor(h / 24);
+  return `hace ${d} d`;
+}
+
+async function cargarNotificaciones() {
+  try {
+    const [lista, conteo] = await Promise.all([
+      api('GET', '/notificaciones'),
+      api('GET', '/notificaciones/no-leidas'),
+    ]);
+    STATE.notificaciones = lista;
+    const badge = document.getElementById('notif-badge');
+    const avatar = document.getElementById('sb-avatar');
+    if (conteo.no_leidas > 0) {
+      badge.style.display = 'block';
+      badge.textContent = conteo.no_leidas > 9 ? '9+' : conteo.no_leidas;
+      avatar?.classList.add('has-unread');
+    } else {
+      badge.style.display = 'none';
+      avatar?.classList.remove('has-unread');
+    }
+    const cont = document.getElementById('notif-list');
+    if (!cont) return;
+    if (lista.length === 0) {
+      cont.innerHTML = `<div class="notif-empty"><i class="ti ti-bell-off" aria-hidden="true" style="font-size:22px;display:block;margin-bottom:6px"></i>Sin notificaciones</div>`;
+      return;
+    }
+    cont.innerHTML = lista.map(n => `
+      <div class="notif-item ${n.leida ? '' : 'unread'}" onclick="clicNotificacion(${n.id}, ${n.entidad_tipo === 'proyecto' ? `'${n.entidad_id}'` : 'null'})">
+        <div class="notif-title">${escHtml(n.titulo)}</div>
+        ${n.mensaje ? `<div class="notif-msg">${escHtml(n.mensaje)}</div>` : ''}
+        <div class="notif-time">${tiempoRelativo(n.fecha)}</div>
+      </div>
+    `).join('');
+  } catch (e) { /* silencioso — no interrumpir la app si falla */ }
+}
+
+async function clicNotificacion(id, proyectoId) {
+  try { await api('POST', `/notificaciones/${id}/marcar-leida`); } catch (e) {}
+  cargarNotificaciones();
+  if (proyectoId) {
+    document.getElementById('notif-dropdown').classList.remove('open');
+    if (STATE.rol === 'tecnico' || STATE.modoTecnico) verProyectoTecnico(proyectoId);
+    else verProyecto(proyectoId);
+  }
+}
+
+async function marcarTodasNotifLeidas() {
+  try { await api('POST', '/notificaciones/marcar-todas-leidas'); } catch (e) {}
+  cargarNotificaciones();
+}
 
 function buildMobileNavAdmin() {
   document.getElementById('mobile-nav-bar').innerHTML = `
@@ -693,6 +800,8 @@ const TITLES = {
   'incidencias':      ['ti-alert-triangle',     'Incidencias de Campo'],
   'mapa':             ['ti-home',               'Inicio'],
   'metricas':         ['ti-chart-bar',          'Métricas de Proyectos'],
+  'clientes':         ['ti-building',           'Clientes'],
+  'bitacora':         ['ti-history',            'Bitácora de Cambios'],
   'mis-asignaciones': ['ti-briefcase',          'Mis Asignaciones'],
   'mi-gantt':         ['ti-calendar-stats',     'Mi Calendario'],
   'checador':         ['ti-clock',              'Reloj Checador'],
@@ -711,6 +820,8 @@ const RENDERERS = {
   incidencias:      renderIncidencias,
   mapa:             renderMapa,
   metricas:         renderMetricas,
+  clientes:         renderClientes,
+  bitacora:         renderBitacora,
   'mis-asignaciones': renderMisAsignaciones,
   'mi-gantt':       renderMiGantt,
   checador:         renderChecador,
@@ -767,14 +878,17 @@ async function ejecutarConCarga(btnEl, fn, textoCargando) {
 }
 
 async function cargarCatalogos() {
-  const [habs, certs] = await Promise.all([
+  const [habs, certs, clientes] = await Promise.all([
     api('GET', '/empleados/catalogo/habilidades'),
-    api('GET', '/empleados/catalogo/certificados')
+    api('GET', '/empleados/catalogo/certificados'),
+    api('GET', '/clientes'),
   ]);
   const dlHabs = document.getElementById('dl-habilidades');
   const dlCerts = document.getElementById('dl-certificados');
+  const dlClientes = document.getElementById('dl-clientes');
   if (dlHabs && habs) dlHabs.innerHTML = habs.map(n=>`<option value="${n.replace(/"/g,'&quot;')}">`).join('');
   if (dlCerts && certs) dlCerts.innerHTML = certs.map(n=>`<option value="${n.replace(/"/g,'&quot;')}">`).join('');
+  if (dlClientes && clientes) { STATE.clientes = clientes; dlClientes.innerHTML = clientes.map(c=>`<option value="${escHtml(c.nombre)}">`).join(''); }
 }
 
 // ─── CALENDARIO MENSUAL (popup reutilizable: admin y técnico) ────────────────
@@ -840,6 +954,12 @@ async function loadEmpleados(forzar) {
   if (!forzar && STATE._empCargadosEn && (ahora - STATE._empCargadosEn) < 8000) return;
   const d = await api('GET', '/empleados');
   if (d) { STATE.empleados = d; STATE._empCargadosEn = ahora; }
+}
+async function loadClientes(forzar) {
+  const ahora = Date.now();
+  if (!forzar && STATE._cliCargadosEn && (ahora - STATE._cliCargadosEn) < 8000) return;
+  const d = await api('GET', '/clientes');
+  if (d) { STATE.clientes = d; STATE._cliCargadosEn = ahora; }
 }
 async function loadProyectos(forzar) {
   const ahora = Date.now();
@@ -1828,7 +1948,7 @@ function openNuevoProyecto() {
     <div class="panel-section">
       <div class="panel-section-title">INFORMACIÓN GENERAL</div>
       <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE DEL PROYECTO</label><input class="field-input" id="np-nombre" placeholder="Ej: Inspección Palas — PE Ingenio"></div></div>
-      <div class="field-row full"><div class="field-group"><label class="field-label">CLIENTE</label><input class="field-input" id="np-cliente" placeholder="Nombre del cliente"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">CLIENTE</label><input class="field-input" id="np-cliente" list="dl-clientes" placeholder="Nombre del cliente"></div></div>
       <div class="field-row">
         <div class="field-group"><label class="field-label">CRITICIDAD</label><select class="field-select" id="np-crit"><option value="tipo_a">Tipo A — Crítico</option><option value="tipo_b" selected>Tipo B — Moderado</option><option value="tipo_c">Tipo C — Estándar</option></select></div>
         <div class="field-group"><label class="field-label">INTENSIDAD</label><select class="field-select" id="np-intens"><option value="alta">Alta</option><option value="media" selected>Media</option><option value="baja">Baja</option></select></div>
@@ -1980,6 +2100,11 @@ async function guardarNuevoProyecto() {
   const presup   = document.getElementById('np-presup')?.value;
   const err      = document.getElementById('np-err');
   if (!nombre || !inicio || !fin || !ciudad) { err.textContent = 'Nombre, fechas y ciudad son obligatorios.'; return; }
+  let cliente_id = null;
+  if (cliente) {
+    const cli = await api('POST', `/clientes/buscar-o-crear?nombre=${encodeURIComponent(cliente)}`);
+    cliente_id = cli?.id || null;
+  }
   const id_pry = `PRY-${Date.now().toString(36).toUpperCase()}`;
   const habilidades_requeridas = {};
   (STATE._np_habilidades||[]).forEach(h=>{ habilidades_requeridas[h.nombre] = h.nivel; });
@@ -1989,7 +2114,7 @@ async function guardarNuevoProyecto() {
   const no_requiere_vehiculo = document.getElementById('np-sin-vehiculo')?.checked ?? true;
   const vehiculo_requerido = no_requiere_vehiculo ? [] : (STATE._np_vehiculo||[]).slice();
   const r = await api('POST', '/proyectos/proyectos', {
-    id: id_pry, nombre, cliente, criticidad: crit, intensidad: intens,
+    id: id_pry, nombre, cliente, cliente_id, criticidad: crit, intensidad: intens,
     fecha_inicio: inicio, fecha_fin_estimada: fin,
     personal_requerido: parseInt(personal)||1,
     presupuesto_viaticos: parseFloat(presup)||0,
@@ -3474,6 +3599,165 @@ async function eliminarIncidenciaConfirm(id) {
   if (!r.ok) { toast('Error al eliminar','error'); return; }
   toast('Incidencia eliminada');
   renderIncidencias();
+}
+
+// =============================================================================
+// CLIENTES
+// =============================================================================
+async function renderClientes() {
+  await loadClientes(true);
+  const clientes = STATE.clientes || [];
+  const puedeEditar = STATE.rol === 'administrador' || STATE.rol === 'director_proyecto';
+  document.getElementById('topbar-actions').innerHTML = puedeEditar
+    ? `<button class="btn btn-primary btn-sm" onclick="abrirNuevoCliente()"><i class="ti ti-plus" aria-hidden="true"></i> Nuevo Cliente</button>` : '';
+  html(`
+    ${clientes.length === 0 ? `<div class="empty-state"><i class="ti ti-building" aria-hidden="true"></i><p>Sin clientes registrados</p><span>${puedeEditar ? 'Crea uno o se crearán solos al capturar el cliente de un proyecto nuevo' : ''}</span></div>` : `
+    <div class="equipo-grid">
+      ${clientes.map(c => `
+        <div class="table-section" style="padding:16px;cursor:pointer" onclick="verCliente('${c.id}')">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+            <div style="font-size:14px;font-weight:600;color:var(--text)">${escHtml(c.nombre)}</div>
+            <span style="font-size:11px;font-weight:700;color:var(--red);background:var(--red-bg);padding:2px 8px;border-radius:10px;white-space:nowrap">${c.veces_trabajado} proyecto(s)</span>
+          </div>
+          ${c.contacto_nombre ? `<div style="font-size:12px;color:var(--text2)"><i class="ti ti-user" aria-hidden="true"></i> ${escHtml(c.contacto_nombre)}</div>` : ''}
+          ${c.contacto_telefono ? `<div style="font-size:12px;color:var(--text3);margin-top:2px"><i class="ti ti-phone" aria-hidden="true"></i> ${escHtml(c.contacto_telefono)}</div>` : ''}
+        </div>
+      `).join('')}
+    </div>`}
+  `);
+}
+
+function formularioCliente(c) {
+  return `
+    <div class="field-group"><label class="field-label">NOMBRE DEL CLIENTE *</label><input class="field-input" id="cli-nombre" value="${c ? escHtml(c.nombre) : ''}" placeholder="Ej: ACME Corp"></div>
+    <div class="field-group"><label class="field-label">CONTACTO</label><input class="field-input" id="cli-contacto-nombre" value="${c?.contacto_nombre ? escHtml(c.contacto_nombre) : ''}" placeholder="Nombre del contacto"></div>
+    <div class="field-row">
+      <div class="field-group"><label class="field-label">TELÉFONO</label><input class="field-input" id="cli-contacto-telefono" value="${c?.contacto_telefono ? escHtml(c.contacto_telefono) : ''}"></div>
+      <div class="field-group"><label class="field-label">EMAIL</label><input class="field-input" id="cli-contacto-email" value="${c?.contacto_email ? escHtml(c.contacto_email) : ''}"></div>
+    </div>
+    <div class="field-group"><label class="field-label">NOTAS</label><textarea class="field-input" id="cli-notas" rows="3">${c?.notas ? escHtml(c.notas) : ''}</textarea></div>
+  `;
+}
+
+function abrirNuevoCliente() {
+  openPanel('Nuevo Cliente', formularioCliente(), `
+    <button class="btn btn-ghost" onclick="closePanel(null,true)">Cancelar</button>
+    <button class="btn btn-primary" id="btn-guardar-cliente" onclick="ejecutarConCarga(this, guardarNuevoCliente)">Guardar</button>
+  `);
+}
+
+async function guardarNuevoCliente() {
+  const nombre = document.getElementById('cli-nombre').value.trim();
+  if (!nombre) { toast('El nombre es obligatorio', 'error'); return; }
+  let base = nombre.toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30) || 'CLI';
+  const datos = {
+    id: `CLI-${base}`,
+    nombre,
+    contacto_nombre: document.getElementById('cli-contacto-nombre').value.trim() || null,
+    contacto_telefono: document.getElementById('cli-contacto-telefono').value.trim() || null,
+    contacto_email: document.getElementById('cli-contacto-email').value.trim() || null,
+    notas: document.getElementById('cli-notas').value.trim(),
+  };
+  const r = await api('POST', '/clientes', datos);
+  if (!r) { toast('Error al crear el cliente (¿ya existe uno con ese nombre?)', 'error'); return; }
+  toast('Cliente creado');
+  closePanel(null, true);
+  renderClientes();
+}
+
+async function verCliente(id) {
+  const c = await api('GET', `/clientes/${id}`);
+  if (!c) { toast('No se pudo cargar el cliente', 'error'); return; }
+  const puedeEditar = STATE.rol === 'administrador' || STATE.rol === 'director_proyecto';
+  const historial = c.historial_proyectos || [];
+  openPanel(c.nombre, `
+    <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:20px">
+      ${c.contacto_nombre ? `<div style="font-size:13px;color:var(--text2)"><i class="ti ti-user" aria-hidden="true"></i> ${escHtml(c.contacto_nombre)}</div>` : ''}
+      ${c.contacto_telefono ? `<div style="font-size:13px;color:var(--text2)"><i class="ti ti-phone" aria-hidden="true"></i> ${escHtml(c.contacto_telefono)}</div>` : ''}
+      ${c.contacto_email ? `<div style="font-size:13px;color:var(--text2)"><i class="ti ti-mail" aria-hidden="true"></i> ${escHtml(c.contacto_email)}</div>` : ''}
+      ${c.notas ? `<div style="font-size:12px;color:var(--text3);margin-top:8px;white-space:pre-wrap">${escHtml(c.notas)}</div>` : ''}
+    </div>
+    <div class="table-header" style="padding:0 0 10px"><span class="table-title">HISTORIAL — ${historial.length} PROYECTO(S)</span></div>
+    ${historial.length === 0 ? `<div class="empty-state" style="padding:24px 0"><span>Aún no hay proyectos registrados con este cliente</span></div>` :
+      historial.map(p => `
+        <div class="table-section" style="padding:12px 14px;margin-bottom:8px;cursor:pointer" onclick="closePanel(null,true);verProyecto('${p.id}')">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:13px;font-weight:600;color:var(--text)">${escHtml(p.nombre)}</span>
+            ${badge(estadoProyectoVisible(p))}
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px"><i class="ti ti-calendar" aria-hidden="true"></i> ${p.fecha_inicio} → ${p.fecha_fin_estimada}</div>
+        </div>
+      `).join('')
+    }
+  `, puedeEditar ? `
+    <button class="btn btn-ghost" style="color:var(--red-text)" onclick="eliminarClienteConfirm('${c.id}')"><i class="ti ti-trash" aria-hidden="true"></i> Eliminar</button>
+    <button class="btn btn-ghost" onclick="abrirEditarCliente('${c.id}')">Editar</button>
+  ` : '');
+}
+
+async function abrirEditarCliente(id) {
+  const c = await api('GET', `/clientes/${id}`);
+  if (!c) return;
+  openPanel('Editar Cliente', formularioCliente(c), `
+    <button class="btn btn-ghost" onclick="closePanel(null,true)">Cancelar</button>
+    <button class="btn btn-primary" id="btn-editar-cliente" onclick="ejecutarConCarga(this, () => guardarEdicionCliente('${id}'))">Guardar</button>
+  `);
+}
+
+async function guardarEdicionCliente(id) {
+  const datos = {
+    nombre: document.getElementById('cli-nombre').value.trim(),
+    contacto_nombre: document.getElementById('cli-contacto-nombre').value.trim() || null,
+    contacto_telefono: document.getElementById('cli-contacto-telefono').value.trim() || null,
+    contacto_email: document.getElementById('cli-contacto-email').value.trim() || null,
+    notas: document.getElementById('cli-notas').value.trim(),
+  };
+  const r = await api('PUT', `/clientes/${id}`, datos);
+  if (!r) { toast('Error al guardar', 'error'); return; }
+  toast('Cliente actualizado');
+  closePanel(null, true);
+  renderClientes();
+}
+
+async function eliminarClienteConfirm(id) {
+  if (!confirm('¿Eliminar este cliente? Sus proyectos existentes conservan el nombre pero pierden el vínculo con su historial.')) return;
+  const r = await fetch(`${API}/clientes/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${STATE.token}` } });
+  if (!r.ok) { toast('Error al eliminar', 'error'); return; }
+  toast('Cliente eliminado');
+  closePanel(null, true);
+  renderClientes();
+}
+
+// =============================================================================
+// BITÁCORA DE CAMBIOS (solo administrador)
+// =============================================================================
+const ACCION_LABEL = {
+  crear: 'Creó', editar: 'Editó', eliminar: 'Eliminó', asignar: 'Asignó',
+  cambiar_estado: 'Cambió estado', finalizar: 'Finalizó',
+};
+const ENTIDAD_ICONO = {
+  proyecto: 'ti-folder', empleado: 'ti-users', equipo: 'ti-tool',
+  vehiculo: 'ti-truck', cliente: 'ti-building', asignacion: 'ti-link',
+};
+
+async function renderBitacora() {
+  const entradas = await api('GET', '/bitacora') || [];
+  html(`
+    ${entradas.length === 0 ? `<div class="empty-state"><i class="ti ti-history" aria-hidden="true"></i><p>Sin movimientos registrados todavía</p></div>` : `
+    <div class="table-section">
+      <div class="table-header"><span class="table-title">ÚLTIMOS ${entradas.length} MOVIMIENTOS</span></div>
+      ${entradas.map(b => `
+        <div style="display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-top:1px solid var(--border)">
+          <i class="ti ${ENTIDAD_ICONO[b.entidad] || 'ti-circle'}" aria-hidden="true" style="font-size:18px;color:var(--text3);margin-top:2px"></i>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;color:var(--text)"><strong>${escHtml(b.usuario_nombre)}</strong> ${ACCION_LABEL[b.accion] || b.accion} ${b.entidad}${b.entidad_nombre ? `: <strong>${escHtml(b.entidad_nombre)}</strong>` : ''}</div>
+            ${b.detalle ? `<div style="font-size:12px;color:var(--text2);margin-top:2px">${escHtml(b.detalle)}</div>` : ''}
+          </div>
+          <div style="font-size:11px;color:var(--text3);white-space:nowrap">${new Date(b.fecha + 'Z').toLocaleString('es-MX', {dateStyle:'short', timeStyle:'short'})}</div>
+        </div>
+      `).join('')}
+    </div>`}
+  `);
 }
 
 // ─── SECCIÓN: MAPA DE OPERACIONES ─────────────────────────────────────────────
