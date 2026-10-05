@@ -1926,21 +1926,16 @@ async function verProyecto(id) {
       <div class="panel-section-title">EQUIPO Y HERRAMIENTAS</div>
       ${p.no_requiere_equipo ? '<div style="font-size:12px;color:var(--text3)">Este proyecto no requiere equipo.</div>' : `
         ${(p.equipo_requerido_items||[]).length ? p.equipo_requerido_items.map(it=>{
-          const labels = { drone:'Drone / RPAS', camara:'Cámara', termografo:'Termógrafo', escalada:'Equipo de escalada', medicion:'Medición', otro:'Otro' };
           const dispInfo = dispEquipo ? dispEquipo.items.find(d=>d.tipo===it.tipo) : null;
           return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
-            <span>${labels[it.tipo]||it.tipo} — necesita ${it.cantidad}</span>
+            <span style="display:flex;align-items:center;gap:8px"><i class="ti ti-${iconoEquipo(it.tipo)}" aria-hidden="true" style="font-size:16px;color:var(--text2)"></i>${escHtml(etiquetaEquipo(it.tipo))} — necesita ${it.cantidad}</span>
             <span style="display:flex;align-items:center;gap:10px">
               ${dispInfo ? `<span style="color:${dispInfo.suficiente?'var(--green)':'var(--amber)'}">${dispInfo.disponibles} disponible(s)</span>` : ''}
               ${editando ? `<button class="btn btn-ghost btn-sm" style="padding:2px 6px" onclick="ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','equipo-requerido',${it.id}))"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}
             </span>
           </div>`;
         }).join('') : '<div style="font-size:12px;color:var(--text3);margin-bottom:10px">Sin equipo requerido configurado.</div>'}
-        ${editando ? `<div style="display:flex;gap:8px;margin:8px 0 14px">
-          <select class="field-select" id="pd-eq-tipo" style="flex:2" onchange="manejarTipoEquipoOtro(this)"><option value="drone">Drone / RPAS</option><option value="camara">Cámara</option><option value="termografo">Cámara Termográfica</option><option value="escalada">Equipo de escalada</option><option value="medicion">Medición</option><option value="otro">Otro</option></select>
-          <input class="field-input" id="pd-eq-cantidad" type="number" min="1" value="1" style="width:70px">
-          <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => agregarEquipoRequeridoProyecto('${p.id}'))"><i class="ti ti-plus" aria-hidden="true"></i></button>
-        </div>` : ''}
+        ${editando ? `<button class="btn btn-ghost btn-sm" style="margin:8px 0 14px" onclick="abrirSelectorTerminos('equipo','proyecto','${p.id}')"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Elegir equipo</button>` : ''}
         ${dispEquipo && !dispEquipo.todo_disponible ? `
           <div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);padding:10px 14px;margin:12px 0;font-size:12px;color:var(--amber)">
             <i class="ti ti-alert-triangle" aria-hidden="true"></i> <strong>Falta equipo disponible para estas fechas</strong> — revisa si comprar, rentar o conseguir de otro lado. Esto no bloquea el proyecto.
@@ -2242,12 +2237,8 @@ function openNuevoProyecto() {
         Este proyecto no requiere equipo (ej: capacitaciones)
       </label>
       <div id="np-equipo-section">
-        <div class="field-row">
-          <div class="field-group" style="flex:2"><label class="field-label">TIPO DE EQUIPO</label><select class="field-select" id="np-eq-tipo" onchange="manejarTipoEquipoOtro(this)"><option value="drone">Drone / RPAS</option><option value="camara">Cámara</option><option value="termografo">Cámara Termográfica</option><option value="escalada">Equipo de escalada</option><option value="medicion">Medición</option><option value="otro">Otro</option></select></div>
-          <div class="field-group"><label class="field-label">CANTIDAD</label><input class="field-input" id="np-eq-cantidad" type="number" min="1" value="1"></div>
-        </div>
-        <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="agregarEquipoProyecto()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar equipo</button>
-        <div id="np-equipo-list" style="margin-top:10px">${renderListaEquipoProyecto()}</div>
+        <div id="np-equipo-list" style="margin-bottom:8px">${renderListaEquipoProyecto()}</div>
+        <button class="btn btn-ghost btn-sm" onclick="abrirSelectorTerminos('equipo','nuevo')"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Elegir equipo</button>
       </div>
     </div>
     <div class="panel-section">
@@ -2257,12 +2248,8 @@ function openNuevoProyecto() {
         Este proyecto no requiere vehículo
       </label>
       <div id="np-vehiculo-section" style="display:none">
-        <div class="field-row">
-          <div class="field-group" style="flex:2"><label class="field-label">TIPO DE VEHÍCULO</label><select class="field-select" id="np-veh-tipo">${opcionesTipoVehiculo('camioneta')}</select></div>
-          <div class="field-group"><label class="field-label">CANTIDAD</label><input class="field-input" id="np-veh-cantidad" type="number" min="1" value="1"></div>
-        </div>
-        <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="agregarVehiculoProyecto()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar vehículo</button>
-        <div id="np-vehiculo-list" style="margin-top:10px">${renderListaVehiculoProyecto()}</div>
+        <div id="np-vehiculo-list" style="margin-bottom:8px">${renderListaVehiculoProyecto()}</div>
+        <button class="btn btn-ghost btn-sm" onclick="abrirSelectorTerminos('vehiculo','nuevo')"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Elegir vehículos</button>
       </div>
     </div>
     <div class="panel-section">
@@ -2317,12 +2304,8 @@ function quitarCertificadoProyecto(i) {
 
 function renderListaEquipoProyecto() {
   const list = STATE._np_equipo || [];
-  if (!list.length) return '<div style="font-size:12px;color:var(--text3)">Ninguno agregado.</div>';
-  const labels = { drone:'Drone / RPAS', camara:'Cámara', termografo:'Termógrafo', escalada:'Equipo de escalada', medicion:'Medición', otro:'Otro' };
-  return list.map((e,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
-    <span>${labels[e.tipo]||e.tipo} — cantidad: ${e.cantidad}</span>
-    <button class="btn btn-ghost btn-sm" onclick="quitarEquipoProyecto(${i})" style="padding:2px 6px"><i class="ti ti-x" aria-hidden="true"></i></button>
-  </div>`).join('');
+  if (!list.length) return '<div style="font-size:12px;color:var(--text3)">Ninguno elegido.</div>';
+  return list.map((e,i) => chipIcono(iconoEquipo(e.tipo), etiquetaEquipo(e.tipo), `× ${e.cantidad}`, `quitarEquipoProyecto(${i})`)).join('');
 }
 function agregarEquipoProyecto() {
   const tipo = document.getElementById('np-eq-tipo')?.value;
@@ -3390,7 +3373,7 @@ async function renderEquipos() {
   } else {
     await loadEquipos();
   }
-  const iconMap = { drone:'ti-drone', camara:'ti-camera', termografo:'ti-thermometer', escalada:'ti-mountain', medicion:'ti-ruler', otro:'ti-tool' };
+  const iconMap = new Proxy({}, { get: (_, k) => 'ti-' + iconoEquipo(k) });   // mismo ícono que en el selector
   const equipos = STATE.equipos || [];
   const disp = equipos.filter(e=>e.estado==='disponible').length;
   const mant = equipos.filter(e=>e.estado==='mantenimiento').length;
@@ -4098,18 +4081,14 @@ function seccionVehiculosProyecto(p, asignados, disp, editando) {
       ${items.length ? items.map(it => {
         const info = disp ? (disp.items||[]).find(d => d.tipo === it.tipo) : null;
         return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
-          <span>${VEH_TIPOS[it.tipo]||escHtml(it.tipo)} — necesita ${it.cantidad}</span>
+          <span style="display:flex;align-items:center;gap:8px"><i class="ti ti-${iconoVehiculo(it.tipo)}" aria-hidden="true" style="font-size:16px;color:var(--text2)"></i>${escHtml(etiquetaVehiculo(it.tipo))} — necesita ${it.cantidad}</span>
           <span style="display:flex;align-items:center;gap:10px">
             ${info ? `<span style="color:${info.suficiente?'var(--green)':'var(--amber)'}">${info.disponibles} disponible(s)</span>` : ''}
             ${editando && puedeEditar ? `<button class="btn btn-ghost btn-sm" style="padding:2px 6px" onclick="ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','vehiculo-requerido',${it.id}))"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}
           </span>
         </div>`;
       }).join('') : '<div style="font-size:12px;color:var(--text3);margin-bottom:10px">Sin vehículo requerido configurado.</div>'}
-      ${editando && puedeEditar ? `<div style="display:flex;gap:8px;margin:8px 0 14px">
-        <select class="field-select" id="pd-veh-tipo" style="flex:2">${opcionesTipoVehiculo('camioneta')}</select>
-        <input class="field-input" id="pd-veh-cantidad" type="number" min="1" value="1" style="width:70px">
-        <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => agregarVehiculoRequeridoProyecto('${p.id}'))"><i class="ti ti-plus" aria-hidden="true"></i></button>
-      </div>` : ''}
+      ${editando && puedeEditar ? `<button class="btn btn-ghost btn-sm" style="margin:8px 0 14px" onclick="abrirSelectorTerminos('vehiculo','proyecto','${p.id}')"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Elegir vehículos</button>` : ''}
       ${disp && !disp.todo_disponible ? `
         <div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);padding:10px 14px;margin:12px 0;font-size:12px;color:var(--amber)">
           <i class="ti ti-alert-triangle" aria-hidden="true"></i> <strong>Falta vehículo disponible para estas fechas</strong> — revisa si rentar o conseguir otro. Esto no bloquea el proyecto.
@@ -4182,11 +4161,8 @@ async function liberarVehiculoDeProyecto(proyectoId, vehiculoId) {
 // Formulario "Nuevo proyecto": lista de vehículos requeridos
 function renderListaVehiculoProyecto() {
   const list = STATE._np_vehiculo || [];
-  if (!list.length) return '<div style="font-size:12px;color:var(--text3)">Ninguno agregado.</div>';
-  return list.map((v, i) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
-    <span>${VEH_TIPOS[v.tipo]||escHtml(v.tipo)} — cantidad: ${v.cantidad}</span>
-    <button class="btn btn-ghost btn-sm" onclick="quitarVehiculoProyecto(${i})" style="padding:2px 6px"><i class="ti ti-x" aria-hidden="true"></i></button>
-  </div>`).join('');
+  if (!list.length) return '<div style="font-size:12px;color:var(--text3)">Ninguno elegido.</div>';
+  return list.map((v,i) => chipIcono(iconoVehiculo(v.tipo), etiquetaVehiculo(v.tipo), `× ${v.cantidad}`, `quitarVehiculoProyecto(${i})`)).join('');
 }
 function agregarVehiculoProyecto() {
   const tipo = document.getElementById('np-veh-tipo')?.value;
@@ -5028,36 +5004,95 @@ function iconoTermino(tipo, nombre) {
   }
   return tipo === 'habilidad' ? 'star' : 'certificate';
 }
-function chipTermino(tipo, nombre, extra, onQuitar) {
-  return `<span class="chip-termino"><i class="ti ti-${iconoTermino(tipo, nombre)}" aria-hidden="true"></i>${escHtml(nombre)}${extra ? `<span class="chip-extra">${extra}</span>` : ''}${onQuitar ? `<button title="Quitar" onclick="${onQuitar}"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}</span>`;
+function chipIcono(icono, texto, extra, onQuitar) {
+  return `<span class="chip-termino"><i class="ti ti-${icono}" aria-hidden="true"></i>${escHtml(texto)}${extra ? `<span class="chip-extra">${extra}</span>` : ''}${onQuitar ? `<button title="Quitar" onclick="${onQuitar}"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}</span>`;
 }
+function chipTermino(tipo, nombre, extra, onQuitar) { return chipIcono(iconoTermino(tipo, nombre), nombre, extra, onQuitar); }
 
-// ─── SELECTOR EMERGENTE ──────────────────────────────────────────────────────
+// ─── SELECTOR EMERGENTE (habilidades, certificados, equipo y vehículos) ─────
 // destino 'nuevo': formulario de Nuevo proyecto (STATE._np_*)
 // destino 'proyecto': agrega requisitos a un proyecto existente (API)
+const EQ_TIPOS_BASE = { drone:'Drone / RPAS', camara:'Cámara', termografo:'Cámara Termográfica', escalada:'Equipo de escalada', medicion:'Medición' };
+const EQ_ICONOS_BASE = { drone:'drone', camara:'camera', termografo:'temperature', escalada:'ladder', medicion:'ruler-measure' };
+const prettyTipo = k => (k||'').replace(/-/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+function etiquetaEquipo(k) { return EQ_TIPOS_BASE[k] || STATE._tiposEqExtra?.[k] || (k === 'otro' ? 'Otro' : prettyTipo(k)); }
+function iconoEquipo(k) {
+  if (EQ_ICONOS_BASE[k]) return EQ_ICONOS_BASE[k];
+  const ic = iconoTermino('habilidad', etiquetaEquipo(k));
+  return ic === 'star' ? 'tool' : ic;
+}
+function etiquetaVehiculo(k) { return VEH_TIPOS[k] || prettyTipo(k); }
+function iconoVehiculo(k) { return (VEH_ICONOS[k] || 'ti-car').replace(/^ti-/, ''); }
+const slugTipo = t => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+
+const CONF_SELECTOR = {
+  habilidad: {
+    titulo: 'Habilidades operativas requeridas', ayuda: 'Toca una habilidad para elegirla y ajusta el nivel mínimo (1-10) que se exigirá.',
+    items: () => (STATE.catHabs||[]).map(n => ({ key: n, label: n })),
+    icono: k => iconoTermino('habilidad', k), etiqueta: k => k,
+    inicial: 5, min: 1, max: 10, texto: v => `Nivel ${v}`, nuevoKey: t => t.toUpperCase(),
+  },
+  certificado: {
+    titulo: 'Certificados técnicos requeridos', ayuda: '',
+    items: () => (STATE.catCerts||[]).map(n => ({ key: n, label: n })),
+    icono: k => iconoTermino('certificado', k), etiqueta: k => k,
+    inicial: null, nuevoKey: t => t.toUpperCase(),
+  },
+  equipo: {
+    titulo: 'Equipo requerido', ayuda: 'Toca un tipo de equipo y ajusta cuántas unidades se necesitan.',
+    items: () => {
+      const keys = new Set([...Object.keys(EQ_TIPOS_BASE), ...(STATE.equipos||[]).map(e => e.tipo).filter(t => t && t !== 'otro'), ...Object.keys(STATE._tiposEqExtra||{})]);
+      return [...keys].map(k => ({ key: k, label: etiquetaEquipo(k) }));
+    },
+    icono: k => iconoEquipo(k), etiqueta: k => etiquetaEquipo(k),
+    inicial: 1, min: 1, max: 20, texto: v => `Cant. ${v}`,
+    nuevoKey: t => { const k = slugTipo(t) || 'otro'; STATE._tiposEqExtra = { ...(STATE._tiposEqExtra||{}), [k]: t.trim() }; return k; },
+  },
+  vehiculo: {
+    titulo: 'Vehículos requeridos', ayuda: 'Toca un tipo de vehículo y ajusta cuántas unidades se necesitan.',
+    items: () => {
+      const keys = new Set([...Object.keys(VEH_TIPOS).filter(k => k !== 'otro'), ...(STATE.vehiculos||[]).map(v => v.tipo).filter(t => t && t !== 'otro')]);
+      return [...keys].map(k => ({ key: k, label: etiquetaVehiculo(k) }));
+    },
+    icono: k => iconoVehiculo(k), etiqueta: k => etiquetaVehiculo(k),
+    inicial: 1, min: 1, max: 10, texto: v => `Cant. ${v}`, nuevoKey: null,
+  },
+};
+
 async function abrirSelectorTerminos(tipo, destino, proyectoId) {
   if (!STATE.catHabs || !STATE.catCerts || !STATE.iconosTerminos) await cargarCatalogos();
+  if (tipo === 'equipo' && !STATE.equipos) await loadEquipos();
+  if (tipo === 'vehiculo' && !STATE.vehiculos) await loadVehiculos();
   const p = proyectoId ? STATE.proyectos.find(x => x.id === proyectoId) : null;
-  const yaEnProyecto = new Set(p ? (tipo === 'habilidad' ? (p.habilidades_requeridas_items||[]).map(h => h.nombre) : (p.certificados_requeridos_nombres||[])) : []);
+  const ya = {
+    habilidad: () => (p.habilidades_requeridas_items||[]).map(h => h.nombre),
+    certificado: () => (p.certificados_requeridos_nombres||[]),
+    equipo: () => (p.equipo_requerido_items||[]).map(e => e.tipo),
+    vehiculo: () => (p.vehiculo_requerido_items||[]).map(v => v.tipo),
+  };
+  const yaEnProyecto = new Set(p ? ya[tipo]() : []);
   const elegidos = new Map();
   if (destino === 'nuevo') {
     if (tipo === 'habilidad') (STATE._np_habilidades||[]).forEach(h => elegidos.set(h.nombre, h.nivel));
-    else (STATE._np_certificados||[]).forEach(c => elegidos.set(c, null));
+    if (tipo === 'certificado') (STATE._np_certificados||[]).forEach(c => elegidos.set(c, null));
+    if (tipo === 'equipo') (STATE._np_equipo||[]).forEach(e => elegidos.set(e.tipo, e.cantidad));
+    if (tipo === 'vehiculo') (STATE._np_vehiculo||[]).forEach(v => elegidos.set(v.tipo, v.cantidad));
   }
+  const conf = CONF_SELECTOR[tipo];
   STATE._sel = { tipo, destino, proyectoId, elegidos, yaEnProyecto, busqueda: '' };
   let ov = document.getElementById('selector-overlay');
-  if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; ov.className = 'modal-overlay open'; ov.style.zIndex = 1100; document.body.appendChild(ov); }
+  if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; ov.style.zIndex = 1100; document.body.appendChild(ov); }
   ov.className = 'modal-overlay open';
   ov.onclick = e => { if (e.target === ov) cerrarSelectorTerminos(); };
   ov.innerHTML = `
     <div class="sel-card">
       <div class="sel-head">
-        <div style="font-weight:700;font-size:14px;color:var(--text)">${tipo === 'habilidad' ? 'Habilidades operativas requeridas' : 'Certificados técnicos requeridos'}</div>
+        <div style="font-weight:700;font-size:14px;color:var(--text)">${conf.titulo}</div>
         <button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()"><i class="ti ti-x" aria-hidden="true"></i></button>
       </div>
       <div style="padding:0 18px 12px">
-        <input class="field-input" id="sel-busqueda" placeholder="Buscar o escribir uno nuevo…" oninput="STATE._sel.busqueda=this.value;pintarSelectorTerminos()" autocomplete="off">
-        ${tipo === 'habilidad' ? '<div style="font-size:11px;color:var(--text3);margin-top:6px">Toca una habilidad para elegirla y ajusta el nivel mínimo (1-10) que se exigirá.</div>' : ''}
+        <input class="field-input" id="sel-busqueda" placeholder="${conf.nuevoKey ? 'Buscar o escribir uno nuevo…' : 'Buscar…'}" oninput="STATE._sel.busqueda=this.value;pintarSelectorTerminos()" autocomplete="off">
+        ${conf.ayuda ? `<div style="font-size:11px;color:var(--text3);margin-top:6px">${conf.ayuda}</div>` : ''}
       </div>
       <div class="sel-grid-wrap"><div class="sel-grid" id="sel-grid"></div></div>
       <div class="sel-foot">
@@ -5074,49 +5109,51 @@ async function abrirSelectorTerminos(tipo, destino, proyectoId) {
 
 function pintarSelectorTerminos() {
   const s = STATE._sel; if (!s) return;
-  const base = s.tipo === 'habilidad' ? (STATE.catHabs||[]) : (STATE.catCerts||[]);
+  const conf = CONF_SELECTOR[s.tipo];
   const q = sinAcentos(s.busqueda.trim());
-  const todos = [...new Set([...base, ...s.elegidos.keys()])];
-  const lista = todos.filter(n => !q || sinAcentos(n).includes(q))
-    .sort((a,b) => (s.elegidos.has(b) - s.elegidos.has(a)) || a.localeCompare(b,'es'));
-  const exacto = todos.some(n => sinAcentos(n) === q);
-  const esc = n => escHtml(n).replace(/'/g, "\\'");
+  const porKey = new Map(conf.items().map(it => [it.key, it.label]));
+  for (const k of s.elegidos.keys()) if (!porKey.has(k)) porKey.set(k, conf.etiqueta(k));
+  const todos = [...porKey].map(([key, label]) => ({ key, label }));
+  const lista = todos.filter(it => !q || sinAcentos(it.label).includes(q) || sinAcentos(it.key).includes(q))
+    .sort((a,b) => (s.elegidos.has(b.key) - s.elegidos.has(a.key)) || a.label.localeCompare(b.label,'es'));
+  const exacto = todos.some(it => sinAcentos(it.label) === q);
+  const esc = k => escHtml(k).replace(/'/g, "\\'");
   let html = '';
-  if (q && !exacto) {
-    html += `<div class="sel-tile sel-nuevo" onclick="agregarTerminoNuevoSelector()"><i class="ti ti-plus" aria-hidden="true"></i><div class="sel-nombre">Agregar «${escHtml(s.busqueda.trim().toUpperCase())}»</div></div>`;
+  if (q && !exacto && conf.nuevoKey) {
+    html += `<div class="sel-tile sel-nuevo" onclick="agregarTerminoNuevoSelector()"><i class="ti ti-plus" aria-hidden="true"></i><div class="sel-nombre">Agregar «${escHtml(s.busqueda.trim())}»</div></div>`;
   }
-  html += lista.map(n => {
-    const ya = s.yaEnProyecto.has(n);
-    const on = s.elegidos.has(n);
-    return `<div class="sel-tile${on?' on':''}${ya?' ya':''}" ${ya ? 'title="Ya está en el proyecto"' : `onclick="alternarTerminoSelector('${esc(n)}')"`}>
-      <i class="ti ti-${iconoTermino(s.tipo, n)}" aria-hidden="true"></i>
-      <div class="sel-nombre">${escHtml(n)}</div>
-      ${ya ? '<div class="sel-nivel" style="color:var(--text3)">Ya incluido</div>' : ''}
-      ${on && s.tipo === 'habilidad' ? `<div class="sel-nivel" onclick="event.stopPropagation()">
-        <button onclick="nivelTerminoSelector('${esc(n)}',-1)">−</button><span>Nivel ${s.elegidos.get(n)}</span><button onclick="nivelTerminoSelector('${esc(n)}',1)">+</button>
+  html += lista.map(({ key, label }) => {
+    const yaEsta = s.yaEnProyecto.has(key);
+    const on = s.elegidos.has(key);
+    return `<div class="sel-tile${on?' on':''}${yaEsta?' ya':''}" ${yaEsta ? 'title="Ya está en el proyecto"' : `onclick="alternarTerminoSelector('${esc(key)}')"`}>
+      <i class="ti ti-${conf.icono(key)}" aria-hidden="true"></i>
+      <div class="sel-nombre">${escHtml(label)}</div>
+      ${yaEsta ? '<div class="sel-nivel" style="color:var(--text3)">Ya incluido</div>' : ''}
+      ${on && conf.inicial !== null ? `<div class="sel-nivel" onclick="event.stopPropagation()">
+        <button onclick="nivelTerminoSelector('${esc(key)}',-1)">−</button><span>${conf.texto(s.elegidos.get(key))}</span><button onclick="nivelTerminoSelector('${esc(key)}',1)">+</button>
       </div>` : ''}
     </div>`;
   }).join('');
-  if (!html) html = '<div style="grid-column:1/-1;font-size:12px;color:var(--text3);padding:20px;text-align:center">Escribe un nombre para agregar uno nuevo.</div>';
+  if (!html) html = `<div style="grid-column:1/-1;font-size:12px;color:var(--text3);padding:20px;text-align:center">${conf.nuevoKey ? 'Escribe un nombre para agregar uno nuevo.' : 'Sin resultados.'}</div>`;
   document.getElementById('sel-grid').innerHTML = html;
   const n = s.elegidos.size;
   document.getElementById('sel-conteo').textContent = n ? `${n} seleccionado${n>1?'s':''}` : 'Ninguno seleccionado';
 }
-function alternarTerminoSelector(n) {
-  const s = STATE._sel;
-  if (s.elegidos.has(n)) s.elegidos.delete(n); else s.elegidos.set(n, s.tipo === 'habilidad' ? 5 : null);
+function alternarTerminoSelector(k) {
+  const s = STATE._sel, conf = CONF_SELECTOR[s.tipo];
+  if (s.elegidos.has(k)) s.elegidos.delete(k); else s.elegidos.set(k, conf.inicial);
   pintarSelectorTerminos();
 }
-function nivelTerminoSelector(n, delta) {
-  const s = STATE._sel;
-  s.elegidos.set(n, Math.min(10, Math.max(1, (s.elegidos.get(n)||5) + delta)));
+function nivelTerminoSelector(k, delta) {
+  const s = STATE._sel, conf = CONF_SELECTOR[s.tipo];
+  s.elegidos.set(k, Math.min(conf.max, Math.max(conf.min, (s.elegidos.get(k) ?? conf.inicial) + delta)));
   pintarSelectorTerminos();
 }
 function agregarTerminoNuevoSelector() {
-  const s = STATE._sel;
-  const n = s.busqueda.trim().toUpperCase();
-  if (!n) return;
-  s.elegidos.set(n, s.tipo === 'habilidad' ? 5 : null);
+  const s = STATE._sel, conf = CONF_SELECTOR[s.tipo];
+  const t = s.busqueda.trim();
+  if (!t || !conf.nuevoKey) return;
+  s.elegidos.set(conf.nuevoKey(t), conf.inicial);
   s.busqueda = '';
   document.getElementById('sel-busqueda').value = '';
   pintarSelectorTerminos();
@@ -5129,23 +5166,23 @@ function cerrarSelectorTerminos() {
 async function confirmarSelectorTerminos() {
   const s = STATE._sel; if (!s) return;
   if (s.destino === 'nuevo') {
-    if (s.tipo === 'habilidad') {
-      STATE._np_habilidades = [...s.elegidos].map(([nombre, nivel]) => ({ nombre, nivel }));
-      document.getElementById('np-habs-list').innerHTML = renderListaHabilidadesProyecto();
-    } else {
-      STATE._np_certificados = [...s.elegidos.keys()];
-      document.getElementById('np-certs-list').innerHTML = renderListaCertificadosProyecto();
-    }
+    const pares = [...s.elegidos];
+    if (s.tipo === 'habilidad') { STATE._np_habilidades = pares.map(([nombre, nivel]) => ({ nombre, nivel })); document.getElementById('np-habs-list').innerHTML = renderListaHabilidadesProyecto(); }
+    if (s.tipo === 'certificado') { STATE._np_certificados = pares.map(([k]) => k); document.getElementById('np-certs-list').innerHTML = renderListaCertificadosProyecto(); }
+    if (s.tipo === 'equipo') { STATE._np_equipo = pares.map(([tipo, cantidad]) => ({ tipo, cantidad })); document.getElementById('np-equipo-list').innerHTML = renderListaEquipoProyecto(); }
+    if (s.tipo === 'vehiculo') { STATE._np_vehiculo = pares.map(([tipo, cantidad]) => ({ tipo, cantidad })); document.getElementById('np-vehiculo-list').innerHTML = renderListaVehiculoProyecto(); }
     cerrarSelectorTerminos();
     return;
   }
   // Proyecto existente: se agregan uno por uno con los endpoints de siempre
-  const nuevos = [...s.elegidos].filter(([n]) => !s.yaEnProyecto.has(n));
+  const rutas = { habilidad: 'habilidad-requerida', certificado: 'certificado-requerido', equipo: 'equipo-requerido', vehiculo: 'vehiculo-requerido' };
+  const nuevos = [...s.elegidos].filter(([k]) => !s.yaEnProyecto.has(k));
   let errores = 0;
-  for (const [nombre, nivel] of nuevos) {
-    const ruta = s.tipo === 'habilidad' ? 'habilidad-requerida' : 'certificado-requerido';
-    const params = new URLSearchParams(s.tipo === 'habilidad' ? { nombre, nivel } : { nombre });
-    const r = await fetch(`${API}/proyectos/proyectos/${s.proyectoId}/${ruta}?${params}`, { method: 'POST', headers: { 'Authorization': `Bearer ${STATE.token}` } });
+  for (const [k, v] of nuevos) {
+    const params = new URLSearchParams(
+      s.tipo === 'habilidad' ? { nombre: k, nivel: v } :
+      s.tipo === 'certificado' ? { nombre: k } : { tipo: k, cantidad: v });
+    const r = await fetch(`${API}/proyectos/proyectos/${s.proyectoId}/${rutas[s.tipo]}?${params}`, { method: 'POST', headers: { 'Authorization': `Bearer ${STATE.token}` } });
     if (!r.ok) errores++;
   }
   const pid = s.proyectoId;
