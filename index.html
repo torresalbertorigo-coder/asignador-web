@@ -293,7 +293,6 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .gantt-cell.assigned{background:var(--blue-bg)}
 .gantt-cell.past{background:var(--gantt-past)}
 .gantt-cell.retraso{background:rgba(227,28,34,.14);box-shadow:inset 0 0 0 1.5px var(--red)}
-.gantt-cell.retraso-fin{box-shadow:inset 0 -4px 0 var(--red)}
 .gantt-cell.tenue{background:rgba(227,28,34,.28)}
 .gantt-cell.no-usado{box-shadow:inset 0 0 0 1px rgba(227,28,34,.5)}
 .gantt-cell.descanso{background:rgba(148,163,184,.42)}
@@ -2424,7 +2423,7 @@ async function renderGantt() {
                 const finalizado = pry && pry.fecha_fin_real;
                 if (aus) cls += ' ausencia' + (pry ? ' conflicto' : '');
                 else if (tipoDia === 'no-usado') cls += ' no-usado';
-                else if (tipoDia === 'retraso' && finalizado) cls += (trabajado ? ' past' : ' tenue') + ' retraso-fin';
+                else if (tipoDia === 'retraso' && finalizado) cls += trabajado ? ' past' : ' tenue';
                 else if (tipoDia) cls += ' ' + tipoDia;
                 else if (finalizado) cls += trabajado ? ' past' : ' tenue';
                 else if (pry) cls += d < hoy00 ? ' past' : ' occupied';
@@ -2445,7 +2444,6 @@ async function renderGantt() {
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:12px;height:8px;background:var(--input-bg);border:1px solid var(--border)"></div> Fin de semana</div>
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div class="gantt-cell ausencia" style="width:12px;height:8px;padding:0"></div> Ausencia (vacaciones, permiso, incapacidad)</div>
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div class="gantt-cell retraso" style="width:12px;height:8px;padding:0"></div> Retraso (en curso)</div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div class="gantt-cell past retraso-fin" style="width:12px;height:10px;padding:0"></div> Retraso (ya finalizado)</div>
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div class="gantt-cell tenue" style="width:12px;height:10px;padding:0"></div> Sin checada (finalizado)</div>
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div class="gantt-cell no-usado" style="width:12px;height:10px;padding:0"></div> Planeado, ya no fue necesario</div>
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div class="gantt-cell descanso" style="width:12px;height:8px;padding:0"></div> Descanso</div>
@@ -2463,7 +2461,7 @@ async function exportarGanttPDF() {
   const desdePdf = new Date(hoyPdf); desdePdf.setDate(desdePdf.getDate()-7);
   const hastaPdf = new Date(hoyPdf); hastaPdf.setDate(hastaPdf.getDate()+22);
   const trabajados = await cargarDiasTrabajados(desdePdf, hastaPdf);
-  const marcas = [];   // por celda: { subrayado: retraso de proyecto finalizado, punto: día trabajado }
+  const marcas = [];   // por celda: { contorno: planeado que ya no fue necesario }
   const coloresTipoDia = { retraso: [248,180,182], descanso: [203,213,225], standby: [252,211,77], pausa: [229,231,235] };
   const tiposUsados = new Set();
   const { jsPDF } = window.jspdf;
@@ -2514,7 +2512,6 @@ async function exportarGanttPDF() {
       const aus = ausenciaEn(e, d);
       const trabajadoPdf = !!pry && trabajados.has(`${e.id}|${pry.id}|${isoLocal(d)}`);
       filaMarcas.push({
-        subrayado: !aus && tipoDia === 'retraso' && !!pry?.fecha_fin_real,
         contorno: !aus && tipoDia === 'no-usado',
       });
       if (aus) {
@@ -2529,7 +2526,7 @@ async function exportarGanttPDF() {
         const base = coloresProyecto[estadoVis] || [156,163,175];
         const tenue = base.map(c => Math.round(c + (255 - c) * 0.62));   // mismo tono, aclarado
         if (tipoDia === 'no-usado') { filaColor.push([255,255,255]); tiposUsados.add('no-usado'); }
-        else if (tipoDia === 'retraso' && pry.fecha_fin_real) { filaColor.push(trabajadoPdf ? base : tenue); tiposUsados.add('retraso-fin'); if (!trabajadoPdf) tiposUsados.add('tenue'); }
+        else if (tipoDia === 'retraso' && pry.fecha_fin_real) { filaColor.push(trabajadoPdf ? base : tenue); if (!trabajadoPdf) tiposUsados.add('tenue'); }
         else if (tipoDia) { filaColor.push(coloresTipoDia[tipoDia]); tiposUsados.add(tipoDia); }
         else if (pry.fecha_fin_real) { filaColor.push(trabajadoPdf ? base : tenue); if (!trabajadoPdf) tiposUsados.add('tenue'); }
         else filaColor.push(base);
@@ -2582,7 +2579,6 @@ async function exportarGanttPDF() {
       const m = marcas[data.row.index]?.[data.column.index - 1];
       if (!m) return;
       const { x, y, width: w, height: h } = data.cell;
-      if (m.subrayado) { doc.setFillColor(227,28,34); doc.rect(x, y + h - 1.1, w, 1.1, 'F'); }
       if (m.contorno) { doc.setDrawColor(227,28,34); doc.setLineWidth(0.25); doc.rect(x + 0.4, y + 0.4, w - 0.8, h - 0.8, 'S'); }
     }
   });
@@ -2632,7 +2628,7 @@ async function exportarGanttPDF() {
 
   doc.setFontSize(7);
   doc.setTextColor(120);
-  const nombresTipoDia = { retraso: 'Rosa = retraso (en curso)', 'retraso-fin': 'Franja roja inferior = días de retraso', descanso: 'Gris azulado = descanso', standby: 'Ámbar = standby', pausa: 'Gris claro = en pausa' };
+  const nombresTipoDia = { retraso: 'Rosa = retraso (en curso)', descanso: 'Gris azulado = descanso', standby: 'Ámbar = standby', pausa: 'Gris claro = en pausa' };
   nombresTipoDia.tenue = 'Tono claro = día sin checada (proyecto finalizado)';
   nombresTipoDia['no-usado'] = 'Contorno = planeado, ya no fue necesario';
   const leyendaColores = [...seccionesConDatos.map(s => `${s.nombreColor} = ${s.label.toLowerCase()}`), ...[...tiposUsados].map(t => nombresTipoDia[t])].join(' · ');
