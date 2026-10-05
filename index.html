@@ -301,6 +301,29 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .gantt-cell.ausencia{background:rgba(139,92,246,.5)}
 .gantt-cell.ausencia.conflicto{box-shadow:inset 0 0 0 2px var(--red)}
 .nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;border-radius:9px;padding:1px 7px;line-height:16px}
+#tut-capa{position:fixed;inset:0;z-index:3000;pointer-events:none}
+.tut-bloq{position:fixed;background:rgba(0,0,0,.72);pointer-events:auto;transition:all .15s}
+#tut-hueco{position:fixed;border-radius:10px;box-shadow:0 0 0 2px var(--red),0 0 0 6px rgba(227,28,34,.25);pointer-events:none;transition:all .15s;animation:tutPulso 1.6s ease-in-out infinite}
+@keyframes tutPulso{50%{box-shadow:0 0 0 2px var(--red),0 0 0 10px rgba(227,28,34,.12)}}
+#tut-burbuja{position:fixed;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:16px;box-shadow:0 12px 40px rgba(0,0,0,.55);pointer-events:auto;transition:top .15s,left .15s}
+.tut-min{position:absolute;top:8px;right:8px;width:24px;height:24px;border:none;border-radius:6px;background:var(--surface2);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center}
+#tut-burbuja.min .tut-txt,#tut-burbuja.min .tut-acc{display:none}
+#tut-burbuja.min{padding:10px 40px 10px 14px}
+.tut-prog{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--red);font-weight:700;margin-bottom:6px}
+.tut-tit{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px}
+.tut-txt{font-size:13px;color:var(--text2);line-height:1.5}
+.tut-acc{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px}
+.tut-salir{background:none;border:none;color:var(--text3);font:inherit;font-size:12px;cursor:pointer;padding:0}
+.tut-pista{font-size:12px;color:var(--text3);display:flex;align-items:center;gap:4px}
+.campo-elegir{display:flex;align-items:center;gap:8px;width:100%;padding:9px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text3);font:inherit;font-size:13px;cursor:pointer;text-align:left}
+.campo-elegir:hover{border-color:var(--border2)}
+.campo-elegir>i:first-child{font-size:18px;color:var(--text2)}
+.btn-checar{display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;max-width:300px;margin-top:16px;padding:18px 20px;border:none;border-radius:12px;font-family:inherit;font-size:17px;font-weight:700;letter-spacing:.5px;color:#fff;cursor:pointer;transition:transform .08s,filter .15s}
+.btn-checar i{font-size:22px}
+.btn-checar.entrada{background:var(--red)}
+.btn-checar.salida{background:#1F2937;box-shadow:inset 0 0 0 2px var(--red)}
+.btn-checar:active{transform:scale(.98)}
+.btn-checar:disabled{filter:grayscale(.6) opacity(.7);cursor:default}
 .sel-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:100%;max-width:820px;max-height:86vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5)}
 .sel-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px 12px}
 .sel-grid-wrap{overflow-y:auto;padding:0 18px 14px;flex:1}
@@ -491,6 +514,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
                 <div class="user-menu-item" onclick="showSection('bitacora');toggleUserMenu()" id="um-bitacora" style="display:none"><i class="ti ti-history" aria-hidden="true"></i> Bitácora de cambios</div>
                 <div class="user-menu-item" onclick="showSection('catalogo');toggleUserMenu()" id="um-catalogo" style="display:none"><i class="ti ti-tags" aria-hidden="true"></i> Catálogo de términos</div>
                 <div class="user-menu-item" onclick="showSection('permisos');toggleUserMenu()" id="um-permisos" style="display:none"><i class="ti ti-key" aria-hidden="true"></i> Permisos de exportación</div>
+                <div class="user-menu-item" onclick="iniciarTutorial()" id="um-tutorial" style="display:none"><i class="ti ti-school" aria-hidden="true"></i> Ver tutorial</div>
                 <div class="user-menu-item user-menu-item-danger" onclick="doLogout()"><i class="ti ti-logout" aria-hidden="true"></i> Cerrar sesión</div>
               </div>
             </div>
@@ -629,6 +653,9 @@ async function initApp() {
   document.getElementById('sb-avatar').textContent = av;
   document.getElementById('sb-name').textContent = STATE.user.nombre;
   document.getElementById('sb-rol').textContent = STATE.rol === 'administrador' ? 'Administrador' : STATE.rol === 'director_proyecto' ? 'Director de Proyecto' : 'Técnico de campo';
+  const umTut = document.getElementById('um-tutorial');
+  if (umTut) umTut.style.display = STATE.user?.empleado_id ? 'flex' : 'none';
+  if (typeof tutorialPrimeraVez === 'function') tutorialPrimeraVez();
   api('GET', '/auth/auth/yo').then(yo => {
     if (!yo) return;
     STATE.user.puede_exportar = !!yo.puede_exportar;
@@ -678,6 +705,7 @@ function buildNav() {
     document.getElementById('um-bitacora').style.display = STATE.rol === 'administrador' ? 'flex' : 'none';
     document.getElementById('um-catalogo').style.display = STATE.rol === 'administrador' ? 'flex' : 'none';
     document.getElementById('um-permisos').style.display = STATE.rol === 'administrador' ? 'flex' : 'none';
+    document.getElementById('um-tutorial').style.display = STATE.user?.empleado_id ? 'flex' : 'none';
     document.getElementById('mobile-nav-bar').innerHTML = `
       <div class="mobile-nav-items">
         <div class="mobile-nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i>Empleados</div>
@@ -889,6 +917,7 @@ const RENDERERS = {
 };
 
 function showSection(sec) {
+  STATE._seccion = sec;
   document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(el => {
     el.classList.toggle('active', el.dataset.sec === sec);
   });
@@ -1568,6 +1597,17 @@ async function eliminarAusencia(empId, ausenciaId) {
   await loadEmpleados(true);
   verEmpleado(empId, 'ausencias');
 }
+
+function campoElegirTermino(tipo, id, placeholder) {
+  return `<input type="hidden" id="${id}">
+    <button type="button" class="campo-elegir" id="${id}-btn" onclick="abrirSelectorTerminos('${tipo}','campo','${id}')">
+      <i id="${id}-ic" class="ti ti-search" aria-hidden="true"></i><span id="${id}-txt">${placeholder}</span><i class="ti ti-chevron-right" aria-hidden="true" style="margin-left:auto"></i>
+    </button>`;
+}
+const AYUDA_HAB_VS_CERT = `<div style="background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text2);line-height:1.45;margin-bottom:12px">
+  <div><i class="ti ti-tools" aria-hidden="true"></i> <strong>Habilidad</strong>: lo que sabes hacer, con o sin papel que lo diga. Ej. pilotaje RPAS, termografía, manejo de Megger. Se califica del 1 al 10.</div>
+  <div style="margin-top:6px"><i class="ti ti-file-certificate" aria-hidden="true"></i> <strong>Certificado / documento</strong>: tiene constancia, número o vigencia. Ej. DC-3, GWO, licencia, INE. Se sube el archivo.</div>
+</div>`;
 
 function verDocumentosEmpleado(id) {
   const e = STATE.empleados.find(x=>x.id===id);
@@ -5076,7 +5116,11 @@ async function abrirSelectorTerminos(tipo, destino, proyectoId) {
     equipo: () => (p.equipo_requerido_items||[]).map(e => e.tipo),
     vehiculo: () => (p.vehiculo_requerido_items||[]).map(v => v.tipo),
   };
-  const yaEnProyecto = new Set(p ? ya[tipo]() : []);
+  let yaEnProyecto = new Set(p ? ya[tipo]() : []);
+  if (destino === 'campo') {
+    // Elegir UN término para un formulario (Mi Perfil). Se marca lo que ya tiene la persona.
+    yaEnProyecto = new Set(tipo === 'habilidad' ? (STATE.perfil_habs||[]).map(h => h.nombre) : (STATE.perfil_docs||[]).map(d => d.nombre));
+  }
   const elegidos = new Map();
   if (destino === 'nuevo') {
     if (tipo === 'habilidad') (STATE._np_habilidades||[]).forEach(h => elegidos.set(h.nombre, h.nivel));
@@ -5085,7 +5129,7 @@ async function abrirSelectorTerminos(tipo, destino, proyectoId) {
     if (tipo === 'vehiculo') (STATE._np_vehiculo||[]).forEach(v => elegidos.set(v.tipo, v.cantidad));
   }
   const conf = CONF_SELECTOR[tipo];
-  STATE._sel = { tipo, destino, proyectoId, elegidos, yaEnProyecto, busqueda: '' };
+  STATE._sel = { tipo, destino, proyectoId, campoId: destino === 'campo' ? proyectoId : null, elegidos, yaEnProyecto, busqueda: '' };
   let ov = document.getElementById('selector-overlay');
   if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; ov.style.zIndex = 1100; document.body.appendChild(ov); }
   ov.className = 'modal-overlay open';
@@ -5093,19 +5137,21 @@ async function abrirSelectorTerminos(tipo, destino, proyectoId) {
   ov.innerHTML = `
     <div class="sel-card">
       <div class="sel-head">
-        <div style="font-weight:700;font-size:14px;color:var(--text)">${conf.titulo}</div>
+        <div style="font-weight:700;font-size:14px;color:var(--text)">${destino === 'campo' ? (tipo === 'habilidad' ? 'Elige tu habilidad' : 'Elige tu certificado o documento') : conf.titulo}</div>
         <button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()"><i class="ti ti-x" aria-hidden="true"></i></button>
       </div>
       <div style="padding:0 18px 12px">
         <input class="field-input" id="sel-busqueda" placeholder="${conf.nuevoKey ? 'Buscar o escribir uno nuevo…' : 'Buscar…'}" oninput="STATE._sel.busqueda=this.value;pintarSelectorTerminos()" autocomplete="off">
-        ${conf.ayuda ? `<div style="font-size:11px;color:var(--text3);margin-top:6px">${conf.ayuda}</div>` : ''}
+        ${destino === 'campo'
+          ? `<div style="font-size:11px;color:var(--text2);margin-top:6px"><strong>Busca primero.</strong> Si ya existe, tócala. Solo si no aparece, agrégala como nueva — así no se duplican nombres.</div>`
+          : (conf.ayuda ? `<div style="font-size:11px;color:var(--text3);margin-top:6px">${conf.ayuda}</div>` : '')}
       </div>
       <div class="sel-grid-wrap"><div class="sel-grid" id="sel-grid"></div></div>
       <div class="sel-foot">
         <span id="sel-conteo" style="font-size:12px;color:var(--text2)"></span>
         <div style="display:flex;gap:8px">
           <button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()">Cancelar</button>
-          <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, confirmarSelectorTerminos)"><i class="ti ti-check" aria-hidden="true"></i> Listo</button>
+          ${destino === 'campo' ? '' : `<button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, confirmarSelectorTerminos)"><i class="ti ti-check" aria-hidden="true"></i> Listo</button>`}
         </div>
       </div>
     </div>`;
@@ -5122,7 +5168,7 @@ function pintarSelectorTerminos() {
   const todos = [...porKey].map(([key, label]) => ({ key, label }));
   const lista = todos.filter(it => !q || sinAcentos(it.label).includes(q) || sinAcentos(it.key).includes(q))
     .sort((a,b) => (s.elegidos.has(b.key) - s.elegidos.has(a.key)) || a.label.localeCompare(b.label,'es'));
-  const exacto = todos.some(it => sinAcentos(it.label) === q);
+  const exacto = todos.some(it => sinAcentos(it.label) === q) || [...s.yaEnProyecto].some(n => sinAcentos(n) === q);
   const esc = k => escHtml(k).replace(/'/g, "\\'");
   let html = '';
   if (q && !exacto && conf.nuevoKey) {
@@ -5131,11 +5177,12 @@ function pintarSelectorTerminos() {
   html += lista.map(({ key, label }) => {
     const yaEsta = s.yaEnProyecto.has(key);
     const on = s.elegidos.has(key);
-    return `<div class="sel-tile${on?' on':''}${yaEsta?' ya':''}" ${yaEsta ? 'title="Ya está en el proyecto"' : `onclick="alternarTerminoSelector('${esc(key)}')"`}>
+    const accion = s.destino === 'campo' ? `elegirTerminoCampo('${esc(key)}')` : `alternarTerminoSelector('${esc(key)}')`;
+    return `<div class="sel-tile${on?' on':''}${yaEsta?' ya':''}" ${yaEsta ? 'title="Ya lo tienes"' : `onclick="${accion}"`}>
       <i class="ti ti-${conf.icono(key)}" aria-hidden="true"></i>
       <div class="sel-nombre">${escHtml(label)}</div>
       ${conf.inventario && !yaEsta && !on ? `<div class="sel-nivel" style="color:var(--text3)">${conf.inventario()[key] || 0} registrado${(conf.inventario()[key]||0) === 1 ? '' : 's'}</div>` : ''}
-      ${yaEsta ? '<div class="sel-nivel" style="color:var(--text3)">Ya incluido</div>' : ''}
+      ${yaEsta ? `<div class="sel-nivel" style="color:var(--text3)">${s.destino === 'campo' ? 'Ya en tu perfil' : 'Ya incluido'}</div>` : ''}
       ${on && conf.inicial !== null ? `<div class="sel-nivel" onclick="event.stopPropagation()">
         <button onclick="nivelTerminoSelector('${esc(key)}',-1)">−</button><span>${conf.texto(s.elegidos.get(key))}</span><button onclick="nivelTerminoSelector('${esc(key)}',1)">+</button>
       </div>` : ''}
@@ -5144,7 +5191,7 @@ function pintarSelectorTerminos() {
   if (!html) html = `<div style="grid-column:1/-1;font-size:12px;color:var(--text3);padding:20px;text-align:center">${conf.nuevoKey ? 'Escribe un nombre para agregar uno nuevo.' : (!todos.length && conf.vacio ? conf.vacio : 'Sin resultados.')}</div>`;
   document.getElementById('sel-grid').innerHTML = html;
   const n = s.elegidos.size;
-  document.getElementById('sel-conteo').textContent = n ? `${n} seleccionado${n>1?'s':''}` : 'Ninguno seleccionado';
+  document.getElementById('sel-conteo').textContent = s.destino === 'campo' ? 'Toca una opción para elegirla' : (n ? `${n} seleccionado${n>1?'s':''}` : 'Ninguno seleccionado');
 }
 function alternarTerminoSelector(k) {
   const s = STATE._sel, conf = CONF_SELECTOR[s.tipo];
@@ -5157,10 +5204,21 @@ function nivelTerminoSelector(k, delta) {
   s.elegidos.set(k, Math.min(max, Math.max(conf.min, (s.elegidos.get(k) ?? conf.inicial) + delta)));
   pintarSelectorTerminos();
 }
+function elegirTerminoCampo(k) {
+  const s = STATE._sel; if (!s) return;
+  const campo = document.getElementById(s.campoId);
+  if (campo) campo.value = k;
+  const txt = document.getElementById(s.campoId + '-txt');
+  if (txt) { txt.textContent = k; txt.style.color = 'var(--text)'; }
+  const ic = document.getElementById(s.campoId + '-ic');
+  if (ic) ic.className = `ti ti-${CONF_SELECTOR[s.tipo].icono(k)}`;
+  cerrarSelectorTerminos();
+}
 function agregarTerminoNuevoSelector() {
   const s = STATE._sel, conf = CONF_SELECTOR[s.tipo];
   const t = s.busqueda.trim();
   if (!t || !conf.nuevoKey) return;
+  if (s.destino === 'campo') { elegirTerminoCampo(conf.nuevoKey(t)); return; }
   s.elegidos.set(conf.nuevoKey(t), conf.inicial);
   s.busqueda = '';
   document.getElementById('sel-busqueda').value = '';
@@ -5168,7 +5226,7 @@ function agregarTerminoNuevoSelector() {
 }
 function cerrarSelectorTerminos() {
   const ov = document.getElementById('selector-overlay');
-  if (ov) ov.className = 'modal-overlay';
+  if (ov) { ov.className = 'modal-overlay'; ov.innerHTML = ''; }
   STATE._sel = null;
 }
 async function confirmarSelectorTerminos() {
@@ -5290,6 +5348,280 @@ async function guardarReprogramacion(proyectoId) {
   verProyecto(proyectoId);
 }
 
+// ═════════════════════════════════════════════════════════════════════════════
+// TUTORIAL GUIADO (modo práctica)
+// Recorre el ciclo completo con un proyecto ficticio. Mientras está activo,
+// TODAS las peticiones al servidor se interceptan: las lecturas devuelven
+// datos de práctica y ninguna escritura llega a la base de datos.
+// ═════════════════════════════════════════════════════════════════════════════
+const TUT_ID = 'TUT-PRACTICA';
+const claveTutorial = () => `ws_tutorial_${STATE.user?.email || 'x'}`;
+
+function crearDatosTutorial() {
+  const hoy = new Date(); const iso = d => isoLocal(d);
+  const fin = new Date(hoy); fin.setDate(fin.getDate() + 2);
+  const empId = STATE.user?.empleado_id || 'EMP-TUTORIAL';
+  return {
+    empId,
+    proyecto: {
+      id: TUT_ID, nombre: 'PRÁCTICA · Inspección de prueba', cliente: 'CLIENTE DE PRÁCTICA', cliente_id: null,
+      criticidad: 'tipo_b', intensidad: 'media', estado: 'asignado', ciudad: 'Aguascalientes',
+      fecha_inicio: iso(hoy), fecha_fin_estimada: iso(fin), fecha_inicio_real: null, fecha_fin_real: null,
+      personal_requerido: 1, tecnicos_asignados: [empId],
+      habilidades_requeridas_dict: {}, habilidades_requeridas_items: [], certificados_requeridos_nombres: [], certificados_requeridos_items: [],
+      equipo_requerido_resumen: [], equipo_requerido_items: [], equipo_asignado_ids: [], no_requiere_equipo: true,
+      vehiculo_requerido_resumen: [], vehiculo_requerido_items: [], vehiculo_asignado_ids: [], no_requiere_vehiculo: true,
+      pausas_resumen: [], reprogramaciones_resumen: [], latitud: null, longitud: null,
+    },
+    checadas: [], inactividad: [], incidencias: 0, habilidades: {}, historial: {}, certificados: [],
+    notificaciones: [{ id: 999001, tipo: 'asignacion', titulo: 'Nuevo proyecto asignado: PRÁCTICA · Inspección de prueba',
+      mensaje: 'Aguascalientes · proyecto de práctica', leida: false, entidad_tipo: 'proyecto', entidad_id: TUT_ID, fecha: new Date().toISOString() }],
+  };
+}
+
+// Respuestas simuladas: [status, cuerpo]. null = dejar pasar al servidor (solo lecturas inofensivas, como el catálogo).
+function respuestaTutorial(metodo, ruta, cuerpo, query) {
+  const t = STATE.tutorial.datos;
+  const ahora = new Date();
+  const json = o => [200, o];
+  if (metodo === 'GET') {
+    if (ruta === '/proyectos/proyectos') return json([t.proyecto]);
+    if (ruta.startsWith('/proyectos/proyectos/' + TUT_ID)) return json(t.proyecto);
+    if (ruta === '/checador/mis-checadas') return json([...t.checadas].reverse());
+    if (ruta === '/checador/dias-faltantes') return json([]);
+    if (ruta === '/inactividad/mias') return json(t.inactividad);
+    if (ruta === '/notificaciones') return json(t.notificaciones);
+    if (ruta === '/notificaciones/no-leidas') return json({ no_leidas: t.notificaciones.filter(n => !n.leida).length });
+    if (ruta === '/empleados') return json([]);
+    if (ruta.startsWith('/empleados/catalogo/')) return null;
+    if (/^\/empleados\/[^/]+$/.test(ruta)) return json({
+      id: t.empId, nombre: STATE.user?.nombre || 'Técnico', apellido: '', seniority: 'junior', disponibilidad: 'en_proyecto',
+      estado_perfil: 'activo', indice_fatiga: 0, dias_acumulados_campo: 0, fecha_regreso: null, nivel_estres_ultimo_servicio: 0,
+      ciudad: 'Aguascalientes', estado: 'Aguascalientes', certificados: t.certificados.map((c, i) => ({ id: i + 1, ...c })),
+      habilidades_declaradas: t.habilidades, historial_habilidades_declarado: t.historial, historial_proyectos_real: [],
+      horas_totales_trabajadas: 0, perfil_habilidades: [], perfil_documentos: [], ausencias: [],
+    });
+    return null;
+  }
+  // ── Escrituras: nunca salen del navegador
+  if (ruta === '/checador') {
+    const c = { id: 'TUT-' + Date.now(), empleado_id: t.empId, proyecto_id: cuerpo?.proyecto_id || TUT_ID, tipo: cuerpo?.tipo,
+      fecha_hora: cuerpo?.fecha_hora || isoLocal(ahora) + 'T' + ahora.toTimeString().slice(0, 8), manual: !!cuerpo?.motivo_manual, motivo_manual: cuerpo?.motivo_manual || null };
+    t.checadas.push(c); return json(c);
+  }
+  if (ruta.endsWith('/iniciar')) { t.proyecto.fecha_inicio_real = isoLocal(ahora); return json({ mensaje: 'Proyecto iniciado (práctica)' }); }
+  if (ruta.endsWith('/finalizar')) { t.proyecto.fecha_fin_real = isoLocal(ahora); t.proyecto.fecha_inicio_real ||= isoLocal(ahora); t.proyecto.estado = 'completado'; return json({ mensaje: 'Proyecto finalizado (práctica)' }); }
+  if (ruta === '/inactividad/solicitar') {
+    t.inactividad.unshift({ solicitud_id: 'TUT-' + Date.now(), proyecto_id: TUT_ID, proyecto_nombre: t.proyecto.nombre, tipo: cuerpo.tipo,
+      motivo: cuerpo.motivo, estado: 'pendiente', fecha_inicio: cuerpo.fecha_inicio, fecha_fin: cuerpo.fecha_fin, dias: 1, fechas: [cuerpo.fecha_inicio] });
+    return [201, { solicitud_id: 'TUT', dias: 1 }];
+  }
+  if (ruta === '/incidencias' || ruta.startsWith('/incidencias')) { t.incidencias++; return [201, { id: 'TUT-INC' }]; }
+  if (/\/encuesta$/.test(ruta)) { t.habilidades = { ...(cuerpo?.habilidades || {}) }; t.historial = { ...(cuerpo?.historial_habilidades || {}) }; return json({ mensaje: 'ok' }); }
+  if (/\/certificados$/.test(ruta) && metodo === 'POST') {
+    t.certificados.push({ nombre: query.get('nombre'), tipo: query.get('tipo'), institucion: query.get('institucion'),
+      fecha_vencimiento: query.get('fecha_vencimiento') || null, fecha_expedicion: query.get('fecha_expedicion') || null, ruta_pdf: query.get('ruta_pdf') || null });
+    return [201, { mensaje: 'ok' }];
+  }
+  if (/\/certificados\/\d+$/.test(ruta) && metodo === 'DELETE') { t.certificados.splice(parseInt(ruta.split('/').pop()) - 1, 1); return json({ ok: true }); }
+  if (ruta.startsWith('/storage/upload')) return json({ url: '' });
+  if (ruta.startsWith('/notificaciones/')) { t.notificaciones.forEach(n => n.leida = true); return json({ ok: true }); }
+  return json({ ok: true, mensaje: 'Práctica: no se guardó nada' });
+}
+
+function activarInterceptor() {
+  if (window._fetchReal) return;
+  window._fetchReal = window.fetch;
+  window.fetch = async (url, opts = {}) => {
+    const u = String(url);
+    if (!STATE.tutorial?.activo || !u.startsWith(API)) return window._fetchReal(url, opts);
+    const parsed = new URL(u);
+    const ruta = parsed.pathname.replace(new URL(API).pathname.replace(/\/$/, ''), '') || '/';
+    const metodo = (opts.method || 'GET').toUpperCase();
+    let cuerpo = null;
+    try { cuerpo = typeof opts.body === 'string' ? JSON.parse(opts.body) : null; } catch (e) {}
+    const r = respuestaTutorial(metodo, ruta, cuerpo, parsed.searchParams);
+    if (r === null) return window._fetchReal(url, opts);
+    return new Response(JSON.stringify(r[1]), { status: r[0], headers: { 'Content-Type': 'application/json' } });
+  };
+}
+function desactivarInterceptor() {
+  if (window._fetchReal) { window.fetch = window._fetchReal; window._fetchReal = null; }
+}
+
+// ── Pasos ──────────────────────────────────────────────────────────────────
+// sel: lo que se ilumina (el primero visible de la lista). avanza: 'click' (al tocarlo),
+// 'boton' (botón Siguiente) o una función que se revisa hasta que sea verdadera.
+const nav = sec => [`.mobile-nav-item[data-sec="${sec}"]`, `.nav-item[data-sec="${sec}"]`];
+const T = () => STATE.tutorial.datos;
+const PASOS_TUTORIAL = [
+  { titulo: 'Bienvenido a WorkSync', texto: 'Vamos a practicar con un <strong>proyecto ficticio</strong>. Nada de lo que hagas aquí se guarda, así que equivócate con confianza.<br><br>Toca lo que se ilumine para avanzar.', avanza: 'boton', boton: 'Empezar' },
+  { sel: nav('mis-asignaciones'), titulo: 'Tus proyectos', texto: 'Aquí aparecen los proyectos a los que te asignan. Toca <strong>Mis Asignaciones</strong>.', avanza: 'click' },
+  { sel: [`[onclick*="verProyectoTecnico('${TUT_ID}')"]`], titulo: 'Abre el proyecto', texto: 'Este es tu proyecto de práctica. Tócalo para ver sus detalles.', avanza: 'click' },
+  { sel: [`button[onclick*="iniciarProyecto('${TUT_ID}'"]`], titulo: 'Inicia al llegar al sitio', texto: 'Cuando llegues al sitio, dale <strong>Iniciar proyecto</strong>. Así empieza a contar tu tiempo en campo. <em>Es muy importante no olvidarlo.</em>', avanza: () => !!T().proyecto.fecha_inicio_real },
+  { sel: ['#panel-footer button[onclick*="checador"]', `button[onclick*="showSection('checador')"]`, ...nav('checador')], titulo: 'Ahora el checador', texto: 'Ve al <strong>checador</strong> para marcar tu entrada.', avanza: () => document.getElementById('btn-checar') },
+  { sel: ['#btn-checar'], titulo: 'Marca tu entrada', texto: 'Un solo toque registra tu <strong>entrada</strong> con la hora exacta. Tócalo.', avanza: () => T().checadas.length >= 1 },
+  { sel: ['#btn-checar'], titulo: 'Y tu salida', texto: 'Al terminar tu jornada, el mismo botón marca tu <strong>salida</strong>. Tócalo.', avanza: () => T().checadas.length >= 2 },
+  { sel: ['#lnk-chk-manual'], titulo: '¿Se te olvidó checar?', texto: 'Si se te pasó o no había señal, usa este enlace: pones la hora real y el motivo. Queda marcado como <strong>manual</strong> y lo ve tu gerente.', avanza: 'boton' },
+  { sel: ['#btn-reportar-inact'], titulo: 'Días sin trabajo', texto: 'Si un día no se trabajó, repórtalo aquí: <strong>Descanso</strong> (día libre) o <strong>Standby</strong> (en sitio sin poder trabajar: clima, cliente, permisos). Toca <strong>Reportar</strong>.', avanza: () => document.getElementById('form-inact')?.style.display === 'block' },
+  { sel: ['#form-inact'], titulo: 'Envíalo para aprobación', texto: 'Elige el tipo, escribe el motivo y toca <strong>Enviar para aprobación</strong>. Tu gerente lo aprueba o rechaza.', avanza: () => T().inactividad.length >= 1 },
+  { sel: nav('reportar'), titulo: 'Incidencias', texto: 'Si pasa algo en campo (equipo dañado, accidente, clima), se reporta en <strong>Reportar</strong>. Tócalo.', avanza: 'click' },
+  { sel: ['#form-reportar'], titulo: 'Haz un reporte de prueba', texto: 'Llena el tipo, la severidad y una descripción breve, y toca <strong>Enviar reporte</strong>.', avanza: () => T().incidencias >= 1 },
+  { sel: nav('mi-gantt'), opcional: true, titulo: 'Tu calendario', texto: 'En <strong>Mi Calendario</strong> ves tus días asignados del mes. Tócalo.', avanza: 'click' },
+  { sel: ['.mobile-nav-item[data-sec="mi-perfil"]', '.user-menu-trigger'], titulo: 'Tu perfil', texto: 'Ahora lo más importante: tu perfil. Toca aquí.', avanza: () => STATE._seccion === 'mi-perfil' || document.getElementById('user-menu-dropdown')?.classList.contains('open') },
+  { sel: ['.user-menu-item[onclick*="mi-perfil"]'], opcional: true, titulo: 'Mi Perfil', texto: 'Toca <strong>Mi Perfil</strong>.', avanza: () => STATE._seccion === 'mi-perfil' },
+  { sel: ['#sec-habilidades'], titulo: 'Habilidades', texto: '<strong>Habilidades</strong> = lo que sabes hacer, con o sin un papel que lo diga (pilotaje RPAS, termografía, manejo de Megger). Te calificas del 1 al 10, <em>con honestidad</em>: el sistema las usa para elegir a quién asignar.', avanza: 'boton' },
+  { sel: ['#sec-certificados'], titulo: 'Certificados', texto: '<strong>Certificados y documentos</strong> = lo que tiene constancia, número o vigencia (DC-3, GWO, licencia, INE). Aquí subes el archivo y su vigencia. Te avisaremos antes de que venzan.', avanza: 'boton' },
+  { sel: ['button[onclick="openAgregarHabilidad()"]'], titulo: 'Agrega una habilidad', texto: 'Toca <strong>Agregar</strong> en Habilidades.', avanza: () => document.getElementById('hab-nombre-btn') },
+  { sel: ['#hab-nombre-btn'], titulo: 'Elígela de la lista', texto: 'Toca aquí para abrir la lista de habilidades.', avanza: () => document.querySelector('#selector-overlay.open #sel-grid') },
+  { sel: ['.sel-card'], titulo: 'Busca antes de crear', texto: '<strong>Primero busca</strong> si ya existe (escribe una parte del nombre). Si aparece, tócala. <strong>Solo si no existe</strong>, usa «Agregar…». Así todos usamos el mismo nombre.', avanza: () => document.getElementById('hab-nombre')?.value },
+  { sel: ['#panel-footer button[onclick*="guardarHabilidad"]', 'button[onclick*="guardarHabilidad"]'], titulo: 'Tu nivel y guardar', texto: 'Ajusta tu nivel (1-10) y la última vez que la hiciste, y toca <strong>Guardar</strong>.', avanza: () => Object.keys(T().habilidades).length >= 1 },
+  { sel: ['button[onclick="openAgregarDocumento()"]'], titulo: 'Ahora un certificado', texto: 'Toca <strong>Agregar</strong> en Documentos y certificados.', avanza: () => document.getElementById('doc-nombre-btn') },
+  { sel: ['#doc-nombre-btn'], titulo: 'Elígelo de la lista', texto: 'Igual que con las habilidades: abre la lista.', avanza: () => document.querySelector('#selector-overlay.open #sel-grid') },
+  { sel: ['.sel-card'], titulo: 'Busca antes de crear', texto: 'Busca tu certificado. Si ya existe, tócalo; si no, agrégalo como nuevo.', avanza: () => document.getElementById('doc-nombre')?.value },
+  { sel: ['#panel-side'], titulo: 'Vigencia y archivo', texto: 'Pon la fecha de vigencia (o marca "no tiene vigencia"), sube la foto o PDF y toca <strong>Guardar</strong>. <em>En la práctica no se sube nada.</em>', avanza: () => T().certificados.length >= 1 },
+  { sel: nav('mis-asignaciones'), titulo: 'Para terminar', texto: 'Regresa a <strong>Mis Asignaciones</strong>.', avanza: 'click' },
+  { sel: [`[onclick*="verProyectoTecnico('${TUT_ID}')"]`], titulo: 'Abre el proyecto', texto: 'Ábrelo otra vez.', avanza: 'click' },
+  { sel: [`button[onclick*="finalizarProyecto('${TUT_ID}'"]`], titulo: 'Finaliza al terminar', texto: 'Cuando el trabajo termine, dale <strong>Finalizar proyecto</strong>. Si no lo haces, el sistema no te puede asignar a otro proyecto.', avanza: () => !!T().proyecto.fecha_fin_real },
+  { titulo: '¡Listo!', texto: 'Ya conoces lo esencial:<br>• Iniciar y finalizar proyectos<br>• Checar entrada y salida<br>• Reportar días sin trabajo e incidencias<br>• Tus habilidades y certificados<br><br>Puedes repetir este tutorial cuando quieras desde el menú de tu foto → <strong>Ver tutorial</strong>.', avanza: 'boton', boton: 'Terminar' },
+];
+
+// ── Motor ──────────────────────────────────────────────────────────────────
+async function iniciarTutorial() {
+  if (STATE.tutorial?.activo) return;
+  if (['administrador','director_proyecto'].includes(STATE.rol) && !STATE.modoTecnico) switchModo();
+  document.getElementById('user-menu-dropdown')?.classList.remove('open');
+  STATE.tutorial = {
+    activo: true, i: 0, datos: crearDatosTutorial(),
+    respaldo: { proyectos: STATE.proyectos, empleados: STATE.empleados, perfil_habs: STATE.perfil_habs, perfil_docs: STATE.perfil_docs },
+  };
+  STATE._pryCargadosEn = 0; STATE._empCargadosEn = 0;
+  activarInterceptor();
+  const capa = document.createElement('div');
+  capa.id = 'tut-capa';
+  capa.innerHTML = `<div class="tut-bloq" id="tut-b1"></div><div class="tut-bloq" id="tut-b2"></div><div class="tut-bloq" id="tut-b3"></div><div class="tut-bloq" id="tut-b4"></div>
+    <div id="tut-hueco"></div><div id="tut-burbuja"></div>`;
+  document.body.appendChild(capa);
+  document.addEventListener('click', clicTutorial, true);
+  STATE.tutorial.timer = setInterval(cicloTutorial, 250);
+  if (typeof cargarNotificaciones === 'function') cargarNotificaciones();
+  mostrarPasoTutorial();
+}
+
+function objetivoTutorial(paso) {
+  for (const sel of (paso.sel || [])) {
+    const el = [...document.querySelectorAll(sel)].find(e => e.offsetParent !== null || e.getClientRects().length);
+    if (el) { const r = el.getBoundingClientRect(); if (r.width > 0 && r.height > 0) return el; }
+  }
+  return null;
+}
+
+function mostrarPasoTutorial() {
+  const t = STATE.tutorial; if (!t) return;
+  const paso = PASOS_TUTORIAL[t.i];
+  t.desde = Date.now();
+  t.clicado = false;
+  document.getElementById('tut-burbuja').classList.remove('min');
+  document.getElementById('tut-burbuja').innerHTML = `
+    <button class="tut-min" onclick="this.closest('#tut-burbuja').classList.toggle('min')" title="Minimizar / mostrar"><i class="ti ti-minus" aria-hidden="true"></i></button>
+    <div class="tut-prog">Paso ${t.i + 1} de ${PASOS_TUTORIAL.length} · modo práctica</div>
+    <div class="tut-tit">${paso.titulo}</div>
+    <div class="tut-txt">${paso.texto}</div>
+    <div class="tut-acc">
+      <button class="tut-salir" onclick="terminarTutorial(false)">Salir del tutorial</button>
+      ${paso.avanza === 'boton' ? `<button class="btn btn-primary btn-sm" onclick="avanzarTutorial()">${paso.boton || 'Siguiente'}</button>` : '<span class="tut-pista"><i class="ti ti-hand-finger" aria-hidden="true"></i> Toca lo iluminado</span>'}
+    </div>`;
+  cicloTutorial();
+}
+
+function cicloTutorial() {
+  const t = STATE.tutorial; if (!t?.activo) return;
+  const paso = PASOS_TUTORIAL[t.i];
+  const el = paso.sel ? objetivoTutorial(paso) : null;
+  if (paso.sel && !el && paso.opcional && Date.now() - t.desde > 2500) { avanzarTutorial(); return; }
+  if (typeof paso.avanza === 'function' && Date.now() - t.desde > 300) {
+    try { if (paso.avanza()) { avanzarTutorial(); return; } } catch (e) {}
+  }
+  if (paso.avanza === 'click' && t.clicado && Date.now() - t.clicado > 350) { avanzarTutorial(); return; }
+  posicionarTutorial(el, !!paso.sel);
+}
+
+function posicionarTutorial(el, conObjetivo) {
+  const W = window.innerWidth, H = window.innerHeight, pad = 6;
+  const hueco = document.getElementById('tut-hueco'), burbuja = document.getElementById('tut-burbuja');
+  let r = el ? el.getBoundingClientRect() : null;
+  if (r) r = { top: Math.max(0, r.top - pad), left: Math.max(0, r.left - pad), right: Math.min(W, r.right + pad), bottom: Math.min(H, r.bottom + pad) };
+  // Bloqueadores alrededor del hueco: solo lo iluminado recibe clics
+  const b = n => document.getElementById('tut-b' + n);
+  if (r) {
+    Object.assign(b(1).style, { top: '0', left: '0', width: W + 'px', height: r.top + 'px' });
+    Object.assign(b(2).style, { top: r.bottom + 'px', left: '0', width: W + 'px', height: Math.max(0, H - r.bottom) + 'px' });
+    Object.assign(b(3).style, { top: r.top + 'px', left: '0', width: r.left + 'px', height: (r.bottom - r.top) + 'px' });
+    Object.assign(b(4).style, { top: r.top + 'px', left: r.right + 'px', width: Math.max(0, W - r.right) + 'px', height: (r.bottom - r.top) + 'px' });
+    Object.assign(hueco.style, { display: 'block', top: r.top + 'px', left: r.left + 'px', width: (r.right - r.left) + 'px', height: (r.bottom - r.top) + 'px' });
+  } else {
+    Object.assign(b(1).style, { top: '0', left: '0', width: W + 'px', height: H + 'px' });
+    [2,3,4].forEach(n => Object.assign(b(n).style, { width: '0', height: '0' }));
+    hueco.style.display = 'none';
+    if (conObjetivo) { /* buscando el elemento: oscurece todo sin hueco */ }
+  }
+  // Burbuja: abajo del objetivo si cabe; si no, arriba; sin objetivo, al centro
+  const bw = Math.min(360, W - 24);
+  burbuja.style.width = bw + 'px';
+  const bh = burbuja.offsetHeight || 160;
+  let top, left;
+  if (r) {
+    top = (r.bottom + 12 + bh < H) ? r.bottom + 12 : Math.max(12, r.top - bh - 12);
+    if (r.bottom - r.top > H * 0.6) top = 12;   // objetivo enorme (panel): burbuja arriba, deja libres los botones de abajo
+    left = Math.min(Math.max(12, r.left), W - bw - 12);
+  } else { top = (H - bh) / 2; left = (W - bw) / 2; }
+  burbuja.style.top = top + 'px'; burbuja.style.left = left + 'px';
+}
+
+function clicTutorial(ev) {
+  const t = STATE.tutorial; if (!t?.activo) return;
+  if (ev.target.closest('#tut-burbuja')) return;
+  const paso = PASOS_TUTORIAL[t.i];
+  if (paso.avanza !== 'click') return;
+  const el = objetivoTutorial(paso);
+  if (el && el.contains(ev.target)) t.clicado = Date.now();
+}
+
+function avanzarTutorial() {
+  const t = STATE.tutorial; if (!t) return;
+  if (t.i >= PASOS_TUTORIAL.length - 1) { terminarTutorial(true); return; }
+  t.i++;
+  mostrarPasoTutorial();
+}
+
+async function terminarTutorial(completo) {
+  const t = STATE.tutorial; if (!t) return;
+  if (!completo && !confirm('¿Salir del tutorial? Puedes repetirlo cuando quieras desde el menú de tu foto → Ver tutorial.')) return;
+  clearInterval(t.timer);
+  document.removeEventListener('click', clicTutorial, true);
+  document.getElementById('tut-capa')?.remove();
+  cerrarSelectorTerminos?.();
+  closePanel?.(null, true);
+  t.activo = false;
+  desactivarInterceptor();
+  try { localStorage.setItem(claveTutorial(), '1'); } catch (e) {}
+  Object.assign(STATE, t.respaldo);
+  STATE.tutorial = null;
+  STATE._pryCargadosEn = 0; STATE._empCargadosEn = 0;
+  await loadProyectos(true);
+  if (typeof cargarPerfil === 'function') await cargarPerfil();
+  if (typeof cargarNotificaciones === 'function') cargarNotificaciones();
+  showSection('mis-asignaciones');
+  if (completo) toast('¡Tutorial completado!');
+}
+
+// Primera vez en este dispositivo: se ofrece solo
+function tutorialPrimeraVez() {
+  try { if (localStorage.getItem(claveTutorial())) return; } catch (e) { return; }
+  if (STATE.rol !== 'tecnico' || !STATE.user?.empleado_id) return;
+  setTimeout(iniciarTutorial, 800);
+}
+
 // ─── DÍAS SIN TRABAJO (descanso / standby) ───────────────────────────────────
 const ESTADO_INACT = {
   pendiente: '<span class="badge badge-mant">PENDIENTE</span>',
@@ -5308,7 +5640,7 @@ function tarjetaReporteInactividad(proyectos, reportes, proyectoActual) {
   return `
     <div class="table-section" style="margin-bottom:14px">
       <div class="table-header"><span class="table-title">DÍAS SIN TRABAJO</span>
-        ${proyectos.length ? `<button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="const f=document.getElementById('form-inact');f.style.display=f.style.display==='none'?'block':'none'"><i class="ti ti-plus" aria-hidden="true"></i> Reportar</button>` : ''}
+        ${proyectos.length ? `<button class="btn btn-ghost btn-sm" id="btn-reportar-inact" style="margin-left:auto" onclick="const f=document.getElementById('form-inact');f.style.display=f.style.display==='none'?'block':'none'"><i class="ti ti-plus" aria-hidden="true"></i> Reportar</button>` : ''}
       </div>
       <div style="padding:10px 16px 0;font-size:12px;color:var(--text2)">
         <strong>Descanso</strong>: día libre, no suma fatiga. <strong>Standby</strong>: en sitio sin poder trabajar (clima, cliente, permisos, material), sí suma fatiga. Lo aprueba un administrador o director.
@@ -5497,20 +5829,23 @@ async function renderChecador() {
     <div class="check-card">
       <div id="check-time" class="check-time">--:--:--</div>
       <div class="check-date" id="check-date">${new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
-      <div class="field-group" style="max-width:260px;margin:14px auto 0">
+      <div class="field-group" style="max-width:300px;margin:14px auto 0">
         <label class="field-label">PROYECTO</label>
         <select class="field-select" id="chk-proyecto">
           <option value="">Sin proyecto específico</option>
           ${misProyectos.map(p=>`<option value="${p.id}" ${p.id===proyectoActual?'selected':''}>${p.nombre}</option>`).join('')}
         </select>
       </div>
-      <div class="field-group" style="max-width:260px;margin:10px auto 0">
-        <label class="field-label">FECHA Y HORA A REGISTRAR</label>
-        <input type="datetime-local" class="field-input" id="chk-fecha-hora" value="${ahoraLocal}">
-      </div>
-      <div class="check-btns" style="margin-top:14px">
-        <button class="btn btn-primary" onclick="ejecutarConCarga(this, marcarEntrada)" ${puedeEntrada?'':'disabled'} style="${puedeEntrada?'':'opacity:.4'}" id="btn-entrada"><i class="ti ti-login" aria-hidden="true"></i> Entrada</button>
-        <button class="btn btn-ghost" onclick="ejecutarConCarga(this, marcarSalida)" ${puedeEntrada?'disabled':''} style="${puedeEntrada?'opacity:.4':''}" id="btn-salida"><i class="ti ti-logout" aria-hidden="true"></i> Salida</button>
+      <!-- Un toque: la hora la pone el servidor -->
+      <button class="btn-checar ${puedeEntrada?'entrada':'salida'}" id="btn-checar" onclick="ejecutarConCarga(this, () => checarAhora('${puedeEntrada?'entrada':'salida'}'), 'Registrando...')">
+        <i class="ti ${puedeEntrada?'ti-login':'ti-logout'}" aria-hidden="true"></i> Marcar ${puedeEntrada?'ENTRADA':'SALIDA'}
+      </button>
+      <div style="margin-top:10px"><a href="#" id="lnk-chk-manual" onclick="event.preventDefault();const m=document.getElementById('chk-manual');m.style.display=m.style.display==='none'?'block':'none'" style="font-size:12px;color:var(--text3)">¿Olvidaste checar? Registrar con otra hora</a></div>
+      <div id="chk-manual" style="display:none;max-width:300px;margin:10px auto 0;text-align:left;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:12px">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Queda marcado como <strong>registro manual</strong> y lo ve tu gerente.</div>
+        <div class="field-group"><label class="field-label">FECHA Y HORA REAL</label><input type="datetime-local" class="field-input" id="chk-fecha-hora" value="${ahoraLocal}"></div>
+        <div class="field-group" style="margin-top:8px"><label class="field-label">MOTIVO</label><input class="field-input" id="chk-motivo" maxlength="300" placeholder="Ej. se me olvidó al llegar, sin señal en sitio"></div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:10px;width:100%" onclick="ejecutarConCarga(this, () => checarManual('${puedeEntrada?'entrada':'salida'}'))"><i class="ti ti-clock-edit" aria-hidden="true"></i> Registrar ${puedeEntrada?'entrada':'salida'} manual</button>
       </div>
       <div class="check-status" id="check-status">${ultima ? `<span style="color:${ultima.tipo==='entrada'?'var(--green)':'var(--text2)'}">Última checada: ${ultima.tipo} — ${new Date(ultima.fecha_hora).toLocaleString('es-MX')}</span>` : 'Sin registros todavía'}</div>
     </div>
@@ -5519,7 +5854,7 @@ async function renderChecador() {
       <div class="table-header"><span class="table-title">HISTORIAL RECIENTE</span></div>
       ${historial.length ? historial.slice(0,30).map(h=>`
         <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;border-bottom:1px solid var(--border);font-size:12px">
-          <span style="color:var(--text)">${h.tipo==='entrada'?'<i class="ti ti-login" aria-hidden="true"></i>':'<i class="ti ti-logout" aria-hidden="true"></i>'} ${h.tipo.charAt(0).toUpperCase()+h.tipo.slice(1)}</span>
+          <span style="color:var(--text)">${h.tipo==='entrada'?'<i class="ti ti-login" aria-hidden="true"></i>':'<i class="ti ti-logout" aria-hidden="true"></i>'} ${h.tipo.charAt(0).toUpperCase()+h.tipo.slice(1)}${h.manual ? ` <span class="badge badge-mant" title="${escHtml(h.motivo_manual||'')}">MANUAL</span>` : ''}</span>
           <span class="td-mono" style="color:var(--text2)">${new Date(h.fecha_hora).toLocaleString('es-MX')}</span>
         </div>`).join('') : '<div class="empty-state" style="padding:20px"><i class="ti ti-clock" aria-hidden="true"></i><p style="font-size:12px">Sin registros todavía</p></div>'}
     </div>`);
@@ -5530,6 +5865,24 @@ async function renderChecador() {
   document.getElementById('check-time').textContent = new Date().toLocaleTimeString('es-MX');
 }
 
+async function checarAhora(tipo) {
+  const proyectoId = document.getElementById('chk-proyecto')?.value || null;
+  const r = await api('POST', '/checador', { tipo, proyecto_id: proyectoId });   // sin hora: la pone el servidor
+  if (!r) return;
+  toast(`${tipo === 'entrada' ? 'Entrada' : 'Salida'} registrada · ${new Date(r.fecha_hora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`);
+  renderChecador();
+}
+async function checarManual(tipo) {
+  const fechaHora = document.getElementById('chk-fecha-hora')?.value;
+  const motivo = document.getElementById('chk-motivo')?.value.trim();
+  const proyectoId = document.getElementById('chk-proyecto')?.value || null;
+  if (!fechaHora) { toast('Indica la fecha y hora real', 'error'); return; }
+  if (!motivo) { toast('Escribe el motivo del registro manual', 'error'); return; }
+  const r = await api('POST', '/checador', { tipo, fecha_hora: fechaHora, proyecto_id: proyectoId, motivo_manual: motivo });
+  if (!r) return;
+  toast(`${tipo === 'entrada' ? 'Entrada' : 'Salida'} manual registrada`);
+  renderChecador();
+}
 async function marcarEntrada() {
   const fechaHora = document.getElementById('chk-fecha-hora')?.value;
   const proyectoId = document.getElementById('chk-proyecto')?.value || null;
@@ -5555,7 +5908,7 @@ async function renderReportar() {
   const empId = STATE.user?.empleado_id;
   const misProyectos = STATE.proyectos.filter(p => (p.tecnicos_asignados||[]).includes(empId));
   html(`
-    <div class="table-section" style="padding:20px">
+    <div class="table-section" style="padding:20px" id="form-reportar">
       <div class="panel-section-title" style="margin-bottom:16px">NUEVO REPORTE DE INCIDENCIA</div>
       <div class="field-row">
         <div class="field-group"><label class="field-label">PROYECTO</label>
@@ -5633,7 +5986,7 @@ async function renderMiPerfil() {
       </div>
     </div>
 
-    <div class="table-section" style="margin-bottom:12px">
+    <div class="table-section" style="margin-bottom:12px" id="sec-habilidades">
       <div class="table-header">
         <div><span class="table-title">HABILIDADES OPERATIVAS</span><div class="table-meta" style="margin-top:2px">sin constancia — declaradas por ti</div></div>
         <button class="btn btn-ghost btn-sm" onclick="openAgregarHabilidad()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar</button>
@@ -5652,7 +6005,7 @@ async function renderMiPerfil() {
       </div>
     </div>
 
-    <div class="table-section" style="margin-bottom:12px">
+    <div class="table-section" style="margin-bottom:12px" id="sec-certificados">
       <div class="table-header">
         <div><span class="table-title">DOCUMENTOS Y CERTIFICADOS TÉCNICOS</span><div class="table-meta" style="margin-top:2px">con constancia o vigencia</div></div>
         <button class="btn btn-ghost btn-sm" onclick="openAgregarDocumento()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar</button>
@@ -5758,8 +6111,9 @@ function openAgregarHabilidad() {
   const hoy = new Date().toISOString().split('T')[0];
   openPanel('Agregar habilidad operativa', `
     <div class="panel-section">
+      ${AYUDA_HAB_VS_CERT}
       <div class="panel-section-title">DATOS DE LA HABILIDAD</div>
-      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE DE LA HABILIDAD</label><input class="field-input" id="hab-nombre" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" list="dl-habilidades" placeholder="Ej: Pilotaje RPAs, Termografía aérea, Manejar, Inglés"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">HABILIDAD</label>${campoElegirTermino('habilidad', 'hab-nombre', 'Elige de la lista…')}</div></div>
       <div class="field-row full"><div class="field-group">
         <label class="field-label">NIVEL (1-10)</label>
         <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
@@ -5778,7 +6132,7 @@ async function guardarHabilidad() {
   const nivel  = parseInt(document.getElementById('hab-nivel')?.value || '7');
   const fecha  = document.getElementById('hab-fecha')?.value || null;
   const err    = document.getElementById('hab-err');
-  if (!nombre) { err.textContent = 'Escribe el nombre de la habilidad.'; return; }
+  if (!nombre) { err.textContent = 'Elige la habilidad de la lista.'; return; }
   if (!STATE.perfil_habs) STATE.perfil_habs = [];
   STATE.perfil_habs = STATE.perfil_habs.filter(h => h.nombre.toLowerCase() !== nombre.toLowerCase());
   STATE.perfil_habs.push({ nombre, nivel, ultimo_uso: fecha });
@@ -5821,13 +6175,14 @@ function openAgregarDocumento(empIdObjetivo, nombreObjetivo) {
   cargarCatalogos();
   openPanel(empIdObjetivo ? `Agregar documento — ${nombreObjetivo||''}` : 'Agregar documento', `
     <div class="panel-section">
+      ${empIdObjetivo ? '' : AYUDA_HAB_VS_CERT}
       <div class="panel-section-title">DATOS DEL DOCUMENTO</div>
       <div class="field-row full"><div class="field-group"><label class="field-label">TIPO</label>
         <select class="field-select" id="doc-tipo" onchange="toggleVigencia(this.value)">
           ${TIPOS_DOC.map(t=>`<option value="${t}">${t}</option>`).join('')}
         </select>
       </div></div>
-      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE / NÚMERO</label><input class="field-input" id="doc-nombre" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" list="dl-certificados" placeholder="Ej: Licencia Federal Tipo E, CURP TOSR..."></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">CERTIFICADO / DOCUMENTO</label>${campoElegirTermino('certificado', 'doc-nombre', 'Elige de la lista…')}</div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">INSTITUCIÓN EMISORA</label><input class="field-input" id="doc-inst" placeholder="Opcional"></div></div>
       <div id="vig-section" style="margin-top:10px">
         <div class="field-row" id="vig-fecha-row">
@@ -5885,7 +6240,7 @@ async function guardarDocumento() {
   const hasta   = document.getElementById('doc-hasta')?.value;
   const err     = document.getElementById('doc-err');
   const empId   = STATE._docTargetEmpId || STATE.user?.empleado_id;
-  if (!nombre) { err.textContent = 'El nombre del documento es obligatorio.'; return; }
+  if (!nombre) { err.textContent = 'Elige el certificado o documento de la lista.'; return; }
   if (!sinVig && !hasta) { err.textContent = 'Selecciona la fecha de vigencia o marca "sin vigencia".'; return; }
   let ruta_pdf = null;
   if (STATE._doc_file) {
