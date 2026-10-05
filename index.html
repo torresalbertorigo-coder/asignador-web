@@ -1239,6 +1239,7 @@ async function cargarPerfil() {
   try {
     const d = await api('GET', `/empleados/${empId}`);
     if (d) {
+      STATE.perfil_contacto = { telefono: d.telefono || '', contacto_emergencia: d.contacto_emergencia || '' };
       const habs = d.habilidades_declaradas || {};
       const hist = d.historial_habilidades_declarado || {};
       STATE.perfil_habs = Object.keys(habs).map(nombre => ({
@@ -1488,7 +1489,8 @@ function verEmpleado(id, tab) {
         <div><span style="color:var(--text3);font-size:10px">COORDENADAS</span><div style="margin-top:2px;color:var(--text)" class="td-mono">${e.latitud&&e.longitud?`${e.latitud.toFixed(5)}, ${e.longitud.toFixed(5)}`:'sin definir'} <a href="#" onclick="event.preventDefault();abrirEditarCoordenadasEmpleado('${e.id}')" style="color:var(--blue);text-decoration:none;font-size:11px;font-family:var(--sans)">editar</a></div></div>
         <div><span style="color:var(--text3);font-size:10px">TIPO DE CONTRATO</span><div style="margin-top:2px;color:var(--text)">${e.tipo_contrato==='temporal'?`Temporal${e.fecha_fin_contrato?' — vence '+e.fecha_fin_contrato:' — sin fecha límite'}`:'Permanente'} <a href="#" onclick="event.preventDefault();abrirEditarTipoContrato('${e.id}')" style="color:var(--blue);text-decoration:none;font-size:11px;font-family:var(--sans)">editar</a></div></div>
         <div><span style="color:var(--text3);font-size:10px">ESTADO</span><div style="margin-top:2px;color:var(--text)">${e.estado||'—'}</div></div>
-        <div><span style="color:var(--text3);font-size:10px">TELÉFONO</span><div style="margin-top:2px;color:var(--text)">${e.telefono||'—'}</div></div>
+        <div><span style="color:var(--text3);font-size:10px">TELÉFONO</span><div style="margin-top:2px;color:var(--text)">${escHtml(e.telefono||'—')} <a href="#" onclick="event.preventDefault();editarContacto('${e.id}', false)" style="color:var(--blue);text-decoration:none;font-size:11px">editar</a></div></div>
+        <div><span style="color:var(--text3);font-size:10px">CONTACTO DE EMERGENCIA</span><div style="margin-top:2px;color:var(--text)">${escHtml(e.contacto_emergencia||'—')}</div></div>
         <div><span style="color:var(--text3);font-size:10px">CORREO</span><div style="margin-top:2px;color:var(--text);word-break:break-all">${e.email_contacto||'—'}</div></div>
       </div>
     </div>`;
@@ -5990,7 +5992,18 @@ async function renderMiPerfil() {
       <div class="perfil-info">
         <h2>${nombre}</h2>
         <p>${STATE.user?.email||'—'}</p>
-        <span class="badge badge-libre">${STATE.rol==='administrador'?'ADMINISTRADOR':'TÉCNICO DE CAMPO'}</span>
+        <span class="badge badge-libre">${STATE.rol==='administrador'?'ADMINISTRADOR':STATE.rol==='director_proyecto'?'DIRECTOR DE PROYECTO':'TÉCNICO DE CAMPO'}</span>
+      </div>
+    </div>
+
+    <div class="table-section" style="margin-bottom:12px" id="sec-contacto">
+      <div class="table-header">
+        <div><span class="table-title">DATOS DE CONTACTO</span><div class="table-meta" style="margin-top:2px">mantenlos al día — se usan si hay que localizarte en campo</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="editarContacto('${STATE.user?.empleado_id||''}', true)"><i class="ti ti-pencil" aria-hidden="true"></i> Editar</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 16px;font-size:13px">
+        <div><div style="font-size:10px;color:var(--text3);letter-spacing:.5px">TELÉFONO</div><div style="color:var(--text);margin-top:2px">${escHtml(STATE.perfil_contacto?.telefono || '') || '<span style="color:var(--text3)">Sin capturar</span>'}</div></div>
+        <div><div style="font-size:10px;color:var(--text3);letter-spacing:.5px">CONTACTO DE EMERGENCIA</div><div style="color:var(--text);margin-top:2px">${escHtml(STATE.perfil_contacto?.contacto_emergencia || '') || '<span style="color:var(--text3)">Sin capturar</span>'}</div></div>
       </div>
     </div>
 
@@ -6340,6 +6353,34 @@ async function cambiarPassword() {
   const r = await api('PUT', '/auth/auth/cambiar-password', { password_actual: actual, nueva_password: nueva });
   if (r) { closePanel(null,true); toast('Contraseña actualizada'); }
   else { err.textContent = 'No se pudo cambiar. Revisa el mensaje en rojo.'; }
+}
+
+// ─── DATOS DE CONTACTO (cada quien el suyo; admin/director cualquiera) ──────
+function editarContacto(empId, propio) {
+  const datos = propio ? (STATE.perfil_contacto || {}) : (STATE.empleados.find(x => x.id === empId) || {});
+  const e = STATE.empleados.find(x => x.id === empId);
+  openPanel(propio ? 'Mis datos de contacto' : `Contacto · ${e ? e.nombre + ' ' + e.apellido : empId}`, `
+    <div class="panel-section">
+      <div class="field-row full"><div class="field-group"><label class="field-label">TELÉFONO</label>
+        <input class="field-input" id="ct-tel" type="tel" inputmode="tel" maxlength="20" placeholder="Ej. 449 123 4567" value="${escHtml(datos.telefono || '')}"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">CONTACTO DE EMERGENCIA</label>
+        <input class="field-input" id="ct-emerg" maxlength="200" placeholder="Nombre, parentesco y teléfono — ej. Ana López (esposa) 449 765 4321" value="${escHtml(datos.contacto_emergencia || '')}"></div></div>
+      <div id="ct-err" style="color:var(--red-text);font-size:12px;margin-top:8px"></div>
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button>
+     <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarContacto('${empId}', ${propio}))"><i class="ti ti-check" aria-hidden="true"></i> Guardar</button>`);
+}
+async function guardarContacto(empId, propio) {
+  const telefono = document.getElementById('ct-tel').value.trim();
+  const contacto_emergencia = document.getElementById('ct-emerg').value.trim();
+  if (telefono && !/^[0-9+\-\s()]{7,20}$/.test(telefono)) { document.getElementById('ct-err').textContent = 'Teléfono inválido: usa solo números, espacios, +, - o paréntesis.'; return; }
+  const r = await api('PATCH', `/empleados/${encodeURIComponent(empId)}/perfil`, { telefono, contacto_emergencia });
+  if (!r) return;
+  STATE._panelDirty = false;
+  closePanel(null, true);
+  toast('Datos de contacto actualizados');
+  if (propio) renderMiPerfil();
+  else { await loadEmpleados(true); verEmpleado(empId); }
 }
 
 // ─── CUENTA NUEVA: credenciales e invitación ─────────────────────────────────
