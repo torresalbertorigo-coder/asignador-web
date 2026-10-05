@@ -5038,31 +5038,37 @@ const CONF_SELECTOR = {
     icono: k => iconoTermino('certificado', k), etiqueta: k => k,
     inicial: null, nuevoKey: t => t.toUpperCase(),
   },
+  // Equipo y vehículos: solo los tipos que de verdad tenemos registrados (sin bajas),
+  // y la cantidad no puede pasar de las unidades que hay de ese tipo.
   equipo: {
-    titulo: 'Equipo requerido', ayuda: 'Toca un tipo de equipo y ajusta cuántas unidades se necesitan.',
-    items: () => {
-      const keys = new Set([...Object.keys(EQ_TIPOS_BASE), ...(STATE.equipos||[]).map(e => e.tipo).filter(t => t && t !== 'otro'), ...Object.keys(STATE._tiposEqExtra||{})]);
-      return [...keys].map(k => ({ key: k, label: etiquetaEquipo(k) }));
-    },
+    titulo: 'Equipo requerido', ayuda: 'Solo aparecen los tipos de equipo que hay registrados. Toca uno y ajusta cuántas unidades se necesitan.',
+    vacio: 'No hay equipo registrado todavía. Regístralo primero en Equipos.',
+    inventario: () => contarPorTipo(STATE.equipos),
+    items() { return Object.keys(this.inventario()).map(k => ({ key: k, label: etiquetaEquipo(k) })); },
     icono: k => iconoEquipo(k), etiqueta: k => etiquetaEquipo(k),
-    inicial: 1, min: 1, max: 20, texto: v => `Cant. ${v}`,
-    nuevoKey: t => { const k = slugTipo(t) || 'otro'; STATE._tiposEqExtra = { ...(STATE._tiposEqExtra||{}), [k]: t.trim() }; return k; },
+    inicial: 1, min: 1, max(k) { return this.inventario()[k] || 1; }, texto: v => `Cant. ${v}`, nuevoKey: null,
   },
   vehiculo: {
-    titulo: 'Vehículos requeridos', ayuda: 'Toca un tipo de vehículo y ajusta cuántas unidades se necesitan.',
-    items: () => {
-      const keys = new Set([...Object.keys(VEH_TIPOS).filter(k => k !== 'otro'), ...(STATE.vehiculos||[]).map(v => v.tipo).filter(t => t && t !== 'otro')]);
-      return [...keys].map(k => ({ key: k, label: etiquetaVehiculo(k) }));
-    },
+    titulo: 'Vehículos requeridos', ayuda: 'Solo aparecen los tipos de vehículo que hay registrados. Toca uno y ajusta cuántas unidades se necesitan.',
+    vacio: 'No hay vehículos registrados todavía. Regístralos primero en Vehículos.',
+    inventario: () => contarPorTipo(STATE.vehiculos),
+    items() { return Object.keys(this.inventario()).map(k => ({ key: k, label: etiquetaVehiculo(k) })); },
     icono: k => iconoVehiculo(k), etiqueta: k => etiquetaVehiculo(k),
-    inicial: 1, min: 1, max: 10, texto: v => `Cant. ${v}`, nuevoKey: null,
+    inicial: 1, min: 1, max(k) { return this.inventario()[k] || 1; }, texto: v => `Cant. ${v}`, nuevoKey: null,
   },
 };
 
+// { tipo: unidades registradas } sin contar las dadas de baja
+function contarPorTipo(lista) {
+  const c = {};
+  (lista||[]).filter(x => x.tipo && x.estado !== 'baja').forEach(x => { c[x.tipo] = (c[x.tipo]||0) + 1; });
+  return c;
+}
+
 async function abrirSelectorTerminos(tipo, destino, proyectoId) {
   if (!STATE.catHabs || !STATE.catCerts || !STATE.iconosTerminos) await cargarCatalogos();
-  if (tipo === 'equipo' && !STATE.equipos) await loadEquipos();
-  if (tipo === 'vehiculo' && !STATE.vehiculos) await loadVehiculos();
+  if (tipo === 'equipo') await loadEquipos();
+  if (tipo === 'vehiculo') await loadVehiculos();
   const p = proyectoId ? STATE.proyectos.find(x => x.id === proyectoId) : null;
   const ya = {
     habilidad: () => (p.habilidades_requeridas_items||[]).map(h => h.nombre),
@@ -5128,13 +5134,14 @@ function pintarSelectorTerminos() {
     return `<div class="sel-tile${on?' on':''}${yaEsta?' ya':''}" ${yaEsta ? 'title="Ya está en el proyecto"' : `onclick="alternarTerminoSelector('${esc(key)}')"`}>
       <i class="ti ti-${conf.icono(key)}" aria-hidden="true"></i>
       <div class="sel-nombre">${escHtml(label)}</div>
+      ${conf.inventario && !yaEsta && !on ? `<div class="sel-nivel" style="color:var(--text3)">${conf.inventario()[key] || 0} registrado${(conf.inventario()[key]||0) === 1 ? '' : 's'}</div>` : ''}
       ${yaEsta ? '<div class="sel-nivel" style="color:var(--text3)">Ya incluido</div>' : ''}
       ${on && conf.inicial !== null ? `<div class="sel-nivel" onclick="event.stopPropagation()">
         <button onclick="nivelTerminoSelector('${esc(key)}',-1)">−</button><span>${conf.texto(s.elegidos.get(key))}</span><button onclick="nivelTerminoSelector('${esc(key)}',1)">+</button>
       </div>` : ''}
     </div>`;
   }).join('');
-  if (!html) html = `<div style="grid-column:1/-1;font-size:12px;color:var(--text3);padding:20px;text-align:center">${conf.nuevoKey ? 'Escribe un nombre para agregar uno nuevo.' : 'Sin resultados.'}</div>`;
+  if (!html) html = `<div style="grid-column:1/-1;font-size:12px;color:var(--text3);padding:20px;text-align:center">${conf.nuevoKey ? 'Escribe un nombre para agregar uno nuevo.' : (!todos.length && conf.vacio ? conf.vacio : 'Sin resultados.')}</div>`;
   document.getElementById('sel-grid').innerHTML = html;
   const n = s.elegidos.size;
   document.getElementById('sel-conteo').textContent = n ? `${n} seleccionado${n>1?'s':''}` : 'Ninguno seleccionado';
@@ -5146,7 +5153,8 @@ function alternarTerminoSelector(k) {
 }
 function nivelTerminoSelector(k, delta) {
   const s = STATE._sel, conf = CONF_SELECTOR[s.tipo];
-  s.elegidos.set(k, Math.min(conf.max, Math.max(conf.min, (s.elegidos.get(k) ?? conf.inicial) + delta)));
+  const max = typeof conf.max === 'function' ? conf.max(k) : conf.max;
+  s.elegidos.set(k, Math.min(max, Math.max(conf.min, (s.elegidos.get(k) ?? conf.inicial) + delta)));
   pintarSelectorTerminos();
 }
 function agregarTerminoNuevoSelector() {
