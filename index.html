@@ -292,6 +292,9 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .gantt-cell.occupied{background:var(--gantt-occupied)}
 .gantt-cell.assigned{background:var(--blue-bg)}
 .gantt-cell.past{background:var(--gantt-past)}
+.gantt-cell.ausencia{background:repeating-linear-gradient(45deg,rgba(139,92,246,.75) 0 4px,rgba(139,92,246,.35) 4px 8px)}
+.gantt-cell.ausencia.conflicto{box-shadow:inset 0 0 0 2px var(--red)}
+.badge-ausente{background:rgba(139,92,246,.14);color:#8B5CF6;border:1px solid rgba(139,92,246,.4)}
 
 /* EQUIPOS */
 .equipo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
@@ -990,7 +993,15 @@ async function loadProyectos(forzar) {
 // ─── HELPER UI ────────────────────────────────────────────────────────────────
 function html(el) { document.getElementById('main-content').innerHTML = el; }
 
+// Ausencia (vacaciones, permiso, incapacidad) que cubre la fecha d, o null.
+function ausenciaEn(e, d) {
+  const dia = new Date(d); dia.setHours(0,0,0,0);
+  return (e.ausencias||[]).find(a => fechaLocal(a.fecha_inicio) <= dia && fechaLocal(a.fecha_fin) >= dia) || null;
+}
+const tipoAusencia = a => (a?.motivo || 'Vacaciones').split(' — ')[0];
+
 function estadoVisible(e) {
+  if (ausenciaEn(e, new Date())) return 'ausente';
   // El estado guardado en BD siempre es 'en_proyecto' desde el momento de
   // la asignación (lo necesita el motor para otros cálculos). Aquí solo
   // se calcula qué ETIQUETA mostrar, sin tocar el dato real:
@@ -1066,7 +1077,7 @@ function badge(val) {
     en_espera_inicio:'badge-orange EN ESPERA DE INICIO',
     archivado:'badge-proy ARCHIVADO', rechazado:'badge-proy RECHAZADO', suspendido:'badge-proy SUSPENDIDO',
     incompleto:'badge-pend INCOMPLETO', pendiente_validacion:'badge-mant PENDIENTE VALID.',
-    disponible:'badge-libre DISPONIBLE' };
+    disponible:'badge-libre DISPONIBLE', ausente:'badge-ausente AUSENTE' };
   const [cls, lbl] = (map[val] || 'badge-pend ' + val).split(' ').reduce((a,c,i)=>i===0?[c,a[1]]:[a[0],a[1]+(i>1?' ':'')+c], ['','']);
   return `<span class="badge ${cls}">${(map[val]||'').split(' ').slice(1).join(' ')||val.toUpperCase()}</span>`;
 }
@@ -1364,12 +1375,89 @@ function verEmpleado(id, tab) {
     <div class="panel-tabs">
       <button class="panel-tab ${tab==='info'?'active':''}" onclick="verEmpleado('${e.id}','info')">Información general</button>
       <button class="panel-tab ${tab==='historial'?'active':''}" onclick="verEmpleado('${e.id}','historial')">Historial de proyectos${historial.length?` (${historial.length})`:''}</button>
+      <button class="panel-tab ${tab==='ausencias'?'active':''}" onclick="verEmpleado('${e.id}','ausencias')">Ausencias${(e.ausencias||[]).length?` (${e.ausencias.length})`:''}</button>
     </div>
-    ${tab==='historial' ? contenidoHistorial : contenidoInfo}`,
+    ${tab==='historial' ? contenidoHistorial : tab==='ausencias' ? contenidoAusencias(e) : contenidoInfo}`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>
      <button class="btn btn-primary btn-sm" onclick="verDocumentosEmpleado('${e.id}')"><i class="ti ti-file-text" aria-hidden="true"></i> Ver documentos y habilidades</button>
      ${e.estado_perfil !== 'archivado' ? `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => archivarEmpleado('${e.id}'))"><i class="ti ti-archive" aria-hidden="true"></i> Archivar</button>` : `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => reactivarEmpleado('${e.id}'))"><i class="ti ti-archive-off" aria-hidden="true"></i> Reactivar</button>`}
      ${STATE.rol==='administrador' ? `<button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="eliminarEmpleadoConfirm('${e.id}')"><i class="ti ti-trash" aria-hidden="true"></i> Eliminar</button>` : ''}`);
+}
+
+function contenidoAusencias(e) {
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const lista = (e.ausencias||[]).slice().sort((a,b) => b.fecha_inicio.localeCompare(a.fecha_inicio));
+  const iconoTipo = { Vacaciones:'ti-beach', Permiso:'ti-calendar-off', Incapacidad:'ti-first-aid-kit', Otro:'ti-calendar-x' };
+  const fmt = f => fechaLocal(f).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
+  const fila = a => {
+    const ini = fechaLocal(a.fecha_inicio), fin = fechaLocal(a.fecha_fin);
+    const dias = Math.round((fin - ini)/86400000) + 1;
+    const etapa = fin < hoy ? 'Pasada' : ini > hoy ? 'Próxima' : 'En curso';
+    const tipo = tipoAusencia(a);
+    const nota = (a.motivo||'').includes(' — ') ? a.motivo.split(' — ').slice(1).join(' — ') : '';
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)${fin < hoy ? ';opacity:.6' : ''}">
+      <i class="ti ${iconoTipo[tipo]||'ti-calendar-x'}" aria-hidden="true" style="font-size:20px;color:#8B5CF6"></i>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;color:var(--text);font-weight:600">${tipo} · ${dias} día${dias>1?'s':''} <span style="font-weight:400;font-size:11px;color:var(--text3)">· ${etapa}</span></div>
+        <div style="font-size:11px;color:var(--text2)">${fmt(a.fecha_inicio)} → ${fmt(a.fecha_fin)}${nota ? ` · ${escHtml(nota)}` : ''}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" title="Eliminar" style="color:var(--red-text)" onclick="ejecutarConCarga(this, () => eliminarAusencia('${e.id}', ${a.id}))"><i class="ti ti-trash" aria-hidden="true"></i></button>
+    </div>`;
+  };
+  return `
+    <div class="panel-section">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Vacaciones, permisos e incapacidades. Mientras dure una ausencia, el motor no propone a esta persona para proyectos que choquen con esas fechas (filtro F5 · Agenda).</div>
+      <div id="form-ausencia" style="background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px">
+        <div class="panel-section-title" style="margin-bottom:10px">REGISTRAR AUSENCIA</div>
+        <div class="field-row">
+          <div class="field-group"><label class="field-label">TIPO</label>
+            <select class="field-select" id="aus-tipo">
+              <option>Vacaciones</option><option>Permiso</option><option>Incapacidad</option><option>Otro</option>
+            </select></div>
+          <div class="field-group"><label class="field-label">NOTA (OPCIONAL)</label><input class="field-input" id="aus-nota" maxlength="120" placeholder="Ej. aprobadas por RH"></div>
+        </div>
+        <div class="field-row" style="margin-top:8px">
+          <div class="field-group"><label class="field-label">DESDE</label><input type="date" class="field-input" id="aus-desde"></div>
+          <div class="field-group"><label class="field-label">HASTA</label><input type="date" class="field-input" id="aus-hasta"></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:10px">
+          <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarAusencia('${e.id}'))"><i class="ti ti-plus" aria-hidden="true"></i> Registrar</button>
+        </div>
+      </div>
+      ${lista.length ? lista.map(fila).join('') : '<div style="font-size:12px;color:var(--text3)">Sin ausencias registradas.</div>'}
+    </div>`;
+}
+
+async function guardarAusencia(empId) {
+  const e = STATE.empleados.find(x => x.id === empId);
+  const tipo = document.getElementById('aus-tipo').value;
+  const nota = document.getElementById('aus-nota').value.trim();
+  const desde = document.getElementById('aus-desde').value;
+  const hasta = document.getElementById('aus-hasta').value;
+  if (!desde || !hasta) { toast('Indica las fechas de la ausencia', 'error'); return; }
+  if (hasta < desde) { toast('La fecha final es anterior a la inicial', 'error'); return; }
+  // ¿Choca con algún proyecto que ya tiene asignado?
+  const choques = (STATE.proyectos||[]).filter(p =>
+    (p.tecnicos_asignados||[]).includes(empId) && !['completado','cancelado'].includes(p.estado) &&
+    p.fecha_inicio && p.fecha_fin_estimada && p.fecha_inicio <= hasta && p.fecha_fin_estimada >= desde);
+  if (choques.length) {
+    const nombres = choques.map(p => `• ${p.nombre} (${p.fecha_inicio} al ${p.fecha_fin_estimada})`).join('\n');
+    if (!confirm(`${e ? e.nombre : 'Esta persona'} está asignado(a) en esas fechas a:\n${nombres}\n\nLa ausencia se registra igual, pero esa asignación no se quita sola: habrá que reasignar. ¿Continuar?`)) return;
+  }
+  const r = await api('POST', `/empleados/${empId}/ausencias`, { fecha_inicio: desde, fecha_fin: hasta, tipo, nota });
+  if (!r) return;
+  toast(`${tipo} registrada`);
+  await loadEmpleados(true);
+  verEmpleado(empId, 'ausencias');
+}
+
+async function eliminarAusencia(empId, ausenciaId) {
+  if (!confirm('¿Eliminar esta ausencia?')) return;
+  const r = await api('DELETE', `/empleados/${empId}/ausencias/${ausenciaId}`);
+  if (!r) return;
+  toast('Ausencia eliminada');
+  await loadEmpleados(true);
+  verEmpleado(empId, 'ausencias');
 }
 
 function verDocumentosEmpleado(id) {
@@ -2238,9 +2326,13 @@ async function renderGantt() {
                 const isHoy = d.toDateString() === hoy;
                 const isWknd = d.getDay()===0||d.getDay()===6;
                 const pry = STATE.proyectos.find(p => (p.tecnicos_asignados||[]).includes(e.id) && p.fecha_inicio && p.fecha_fin_estimada && fechaLocal(p.fecha_inicio)<=d && fechaLocal(p.fecha_fin_estimada)>=d);
+                const aus = ausenciaEn(e, d);
                 let cls = 'gantt-cell' + (isWknd ? ' weekend' : '') + (isHoy ? ' today' : '');
-                if (pry) cls += d < hoy00 ? ' past' : ' occupied';
-                const tip = pry ? `${pry.nombre}${pry.cliente?' · '+pry.cliente:''} (${pry.fecha_inicio} → ${pry.fecha_fin_estimada})`.replace(/"/g,'&quot;') : '';
+                if (aus) cls += ' ausencia' + (pry ? ' conflicto' : '');
+                else if (pry) cls += d < hoy00 ? ' past' : ' occupied';
+                let tip = pry ? `${pry.nombre}${pry.cliente?' · '+pry.cliente:''} (${pry.fecha_inicio} → ${pry.fecha_fin_estimada})` : '';
+                if (aus) tip = `${aus.motivo} (${aus.fecha_inicio} → ${aus.fecha_fin})` + (pry ? ` · CHOCA con ${tip}` : '');
+                tip = tip.replace(/"/g,'&quot;');
                 const estilos = [pry ? 'cursor:pointer' : '', isHoy ? `--hoy-pos:${horaHoyPct}%` : ''].filter(Boolean).join(';');
                 const click = pry ? ` onclick="verProyecto('${pry.id}')"` : '';
                 return `<td class="${cls}" title="${tip}"${click}${estilos?` style="${estilos}"`:''}></td>`;
@@ -2253,6 +2345,7 @@ async function renderGantt() {
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:12px;height:8px;background:var(--gantt-occupied)"></div> Días completados</div>
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:12px;height:8px;background:var(--gantt-past)"></div> Días pasados (proyecto)</div>
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:12px;height:8px;background:var(--input-bg);border:1px solid var(--border)"></div> Fin de semana</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div class="gantt-cell ausencia" style="width:12px;height:8px;padding:0"></div> Ausencia (vacaciones, permiso, incapacidad)</div>
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:2px;height:16px;background:var(--red)"></div> Hoy</div>
       </div>
     </div>`);
@@ -2278,6 +2371,8 @@ async function exportarGanttPDF() {
     { key: 'cancelado', label: 'CANCELADO', color: [156,163,175], nombreColor: 'Gris' },
   ];
   const coloresProyecto = Object.fromEntries(secciones.map(s=>[s.key,s.color]));
+  const seccionAusencias = { key: 'ausencia', label: 'AUSENCIAS', color: [139,92,246], nombreColor: 'Morado' };
+  secciones.push(seccionAusencias);
 
   doc.setFontSize(14);
   doc.setFont(undefined, 'bold');
@@ -2301,7 +2396,15 @@ async function exportarGanttPDF() {
     cols.forEach(d => {
       const isWknd = d.getDay()===0||d.getDay()===6;
       const pry = STATE.proyectos.find(p => (p.tecnicos_asignados||[]).includes(e.id) && p.fecha_inicio && p.fecha_fin_estimada && fechaLocal(p.fecha_inicio)<=d && fechaLocal(p.fecha_fin_estimada)>=d);
-      if (pry) {
+      const aus = ausenciaEn(e, d);
+      if (aus) {
+        filaColor.push(seccionAusencias.color);
+        const clave = `${e.id}-aus-${aus.id}`;
+        if (!vistos.has(clave)) {
+          vistos.add(clave);
+          asignacionesPorSeccion.ausencia.push(`${e.nombre} ${e.apellido} - ${aus.motivo} (${aus.fecha_inicio} al ${aus.fecha_fin})${pry ? ' · choca con ' + pry.nombre : ''}`);
+        }
+      } else if (pry) {
         const estadoVis = estadoProyectoVisible(pry);
         filaColor.push(coloresProyecto[estadoVis] || [156,163,175]);
         const clave = `${e.id}-${pry.id}`;
@@ -4130,7 +4233,7 @@ const ACCION_LABEL = {
 const ENTIDAD_ICONO = {
   proyecto: 'ti-folder', empleado: 'ti-users', equipo: 'ti-tool',
   vehiculo: 'ti-truck', cliente: 'ti-building', asignacion: 'ti-link',
-  datos: 'ti-file-spreadsheet', permiso: 'ti-key',
+  datos: 'ti-file-spreadsheet', permiso: 'ti-key', ausencia: 'ti-beach',
 };
 
 async function renderBitacora() {
