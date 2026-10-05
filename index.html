@@ -292,6 +292,10 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .gantt-cell.occupied{background:var(--gantt-occupied)}
 .gantt-cell.assigned{background:var(--blue-bg)}
 .gantt-cell.past{background:var(--gantt-past)}
+.gantt-cell.retraso{background:repeating-linear-gradient(45deg,var(--gantt-occupied) 0 4px,rgba(0,0,0,.45) 4px 8px)}
+.gantt-cell.descanso{background:rgba(148,163,184,.6)}
+.gantt-cell.standby{background:repeating-linear-gradient(45deg,rgba(245,158,11,.9) 0 4px,rgba(245,158,11,.45) 4px 8px)}
+.gantt-cell.pausa{background:repeating-linear-gradient(135deg,rgba(156,163,175,.7) 0 3px,transparent 3px 6px)}
 .gantt-cell.ausencia{background:repeating-linear-gradient(45deg,rgba(139,92,246,.75) 0 4px,rgba(139,92,246,.35) 4px 8px)}
 .gantt-cell.ausencia.conflicto{box-shadow:inset 0 0 0 2px var(--red)}
 .nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;border-radius:9px;padding:1px 7px;line-height:16px}
@@ -887,6 +891,17 @@ async function api(method, path, body) {
     const r = await fetch(API + path, opts);
     if (r.status === 401) { doLogout(); return null; }
     if (r.ok && method !== 'GET') STATE._panelDirty = false;
+    if (!r.ok && method !== 'GET') {
+      // Antes se descartaba en silencio: el usuario no veía por qué no se guardaba nada
+      let detalle = `No se pudo completar (error ${r.status}).`;
+      try {
+        const j = await r.json();
+        if (typeof j.detail === 'string') detalle = j.detail;
+        else if (Array.isArray(j.detail) && j.detail[0]?.msg) detalle = `Dato inválido: ${j.detail[0].msg}`;
+      } catch (e) {}
+      toast(detalle, 'error');
+      return null;
+    }
     return r.ok ? r.json() : null;
   } catch (err) {
     toast('No se pudo conectar con el servidor. Revisa tu conexión e intenta de nuevo.', 'error');
@@ -926,12 +941,60 @@ async function cargarCatalogos() {
 // ─── CALENDARIO MENSUAL (popup reutilizable: admin y técnico) ────────────────
 STATE._cal_offset = 0;
 
+// Fechas que un proyecto ocupa de verdad (misma regla que el backend):
+// iniciado y sin finalizar => ocupa hasta que se le dé "Finalizar" (fin abierto).
+function ventanaOcupacion(p) {
+  if (!p || !p.fecha_inicio || !p.fecha_fin_estimada || ['completado','cancelado'].includes(p.estado)) return null;
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const ini = fechaLocal(p.fecha_inicio_real || p.fecha_inicio);
+  if (p.fecha_inicio_real && !p.fecha_fin_real && p.estado !== 'pausado') return { ini, fin: null, abierto: true };
+  let fin = fechaLocal(p.fecha_fin_real || p.fecha_fin_estimada);
+  if (!p.fecha_inicio_real && p.estado !== 'pausado' && fin < hoy) fin = hoy;
+  return { ini, fin, abierto: false };
+}
+// Lo que se DIBUJA: del inicio real (o planeado) al fin real; si sigue en
+// campo sin finalizar, al menos hasta hoy aunque ya pasó la fecha estimada.
+function ventanaVisible(p) {
+  if (!p || !p.fecha_inicio || !p.fecha_fin_estimada) return null;
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const ini = fechaLocal(p.fecha_inicio_real || p.fecha_inicio);
+  let fin = fechaLocal(p.fecha_fin_real || p.fecha_fin_estimada);
+  if (p.fecha_inicio_real && !p.fecha_fin_real && !['pausado','cancelado'].includes(p.estado) && fin < hoy) fin = hoy;
+  return { ini, fin };
+}
+const isoLocal = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+function proyectoEnDia(empId, d) {
+  return (STATE.proyectos||[]).find(p => {
+    if (!(p.tecnicos_asignados||[]).includes(empId)) return false;
+    const v = ventanaVisible(p);
+    return v && v.ini <= d && v.fin >= d;
+  }) || null;
+}
+// Qué fue ese día dentro del proyecto: pausa, descanso, standby, retraso o null (día normal)
+function tipoDiaProyecto(p, empId, d, inact) {
+  const iso = isoLocal(d);
+  if ((p.pausas_resumen||[]).some(z => z.inicio <= iso && (!z.fin || z.fin >= iso))) return 'pausa';
+  const t = inact && inact[`${empId}|${p.id}|${iso}`];
+  if (t) return t;
+  if (p.fecha_inicio_real && d > fechaLocal(p.fecha_fin_estimada)) return 'retraso';
+  return null;
+}
+async function cargarInactividadAprobada() {
+  if (!['administrador','director_proyecto'].includes(STATE.rol)) return {};
+  const lista = await api('GET', '/inactividad?estado=aprobado') || [];
+  const mapa = {};
+  lista.forEach(g => (g.fechas||[]).forEach(f => { mapa[`${g.empleado_id}|${g.proyecto_id}|${f}`] = g.tipo; }));
+  return mapa;
+}
+const ETIQ_TIPO_DIA = { pausa: 'Proyecto en pausa', descanso: 'Descanso', standby: 'Standby', retraso: 'Retraso (después de la fecha estimada)' };
+
 function eventosProyectosPorDia(empId) {
   const mapa = {};
-  (STATE.proyectos||[]).filter(p => (p.tecnicos_asignados||[]).includes(empId) && p.fecha_inicio && p.fecha_fin_estimada)
+  (STATE.proyectos||[]).filter(p => (p.tecnicos_asignados||[]).includes(empId) && ventanaVisible(p))
     .forEach(p => {
-      let d = fechaLocal(p.fecha_inicio);
-      const fin = fechaLocal(p.fecha_fin_estimada);
+      const v = ventanaVisible(p);
+      let d = new Date(v.ini);
+      const fin = v.fin;
       while (d <= fin) {
         const key = d.toISOString().split('T')[0];
         if (!mapa[key]) mapa[key] = [];
@@ -1997,14 +2060,13 @@ function detectarTraslapes(empId, proyectoId) {
   if (!objetivo || !objetivo.fecha_inicio || !objetivo.fecha_fin_estimada) return [];
   const inicioObj = fechaLocal(objetivo.fecha_inicio);
   const finObj = fechaLocal(objetivo.fecha_fin_estimada);
-  return STATE.proyectos.filter(p =>
-    p.id !== proyectoId &&
-    !['completado','cancelado'].includes(p.estado) &&
-    (p.tecnicos_asignados||[]).includes(empId) &&
-    p.fecha_inicio && p.fecha_fin_estimada &&
-    fechaLocal(p.fecha_inicio) <= finObj &&
-    fechaLocal(p.fecha_fin_estimada) >= inicioObj
-  );
+  return STATE.proyectos.filter(p => {
+    if (p.id === proyectoId || !(p.tecnicos_asignados||[]).includes(empId)) return false;
+    const v = ventanaOcupacion(p);
+    if (!v || v.ini > finObj) return false;
+    if (v.abierto) { p._sinFinalizar = true; return true; }
+    return v.fin >= inicioObj;
+  });
 }
 
 async function confirmarAsignacionDirecta(proyectoId) {
@@ -2012,6 +2074,11 @@ async function confirmarAsignacionDirecta(proyectoId) {
   if (!empId) return;
   const emp = STATE.empleados.find(e=>e.id===empId);
   const traslapes = detectarTraslapes(empId, proyectoId);
+  const abierto = traslapes.find(p => p._sinFinalizar);
+  if (abierto) {
+    alert(`${emp?.nombre||'Este técnico'} sigue en "${abierto.nombre}" (iniciado el ${abierto.fecha_inicio_real}), que todavía no se finaliza.\n\nPrimero dale "Finalizar" a ese proyecto.`);
+    return;
+  }
   if (traslapes.length) {
     const detalle = traslapes.map(p=>`• ${p.nombre} (${p.fecha_inicio} → ${p.fecha_fin_estimada})`).join('\n');
     const continuar = confirm(`⚠️ ${emp?.nombre||'Este técnico'} ya tiene fechas que se traslapan con este proyecto:\n\n${detalle}\n\n¿Asignarlo de todos modos?`);
@@ -2308,6 +2375,7 @@ async function guardarNuevoProyecto() {
 // ─── SECCIÓN: GANTT ───────────────────────────────────────────────────────────
 async function renderGantt() {
   await loadEmpleados(); await loadProyectos();
+  const inact = await cargarInactividadAprobada();
   const today = new Date();
   const dias = 30;
   const cols = Array.from({length:dias}, (_,i) => { const d = new Date(today); d.setDate(d.getDate()-7+i); d.setHours(0,0,0,0); return d; });
@@ -2335,12 +2403,14 @@ async function renderGantt() {
               ${cols.map(d=>{
                 const isHoy = d.toDateString() === hoy;
                 const isWknd = d.getDay()===0||d.getDay()===6;
-                const pry = STATE.proyectos.find(p => (p.tecnicos_asignados||[]).includes(e.id) && p.fecha_inicio && p.fecha_fin_estimada && fechaLocal(p.fecha_inicio)<=d && fechaLocal(p.fecha_fin_estimada)>=d);
+                const pry = proyectoEnDia(e.id, d);
                 const aus = ausenciaEn(e, d);
+                const tipoDia = pry ? tipoDiaProyecto(pry, e.id, d, inact) : null;
                 let cls = 'gantt-cell' + (isWknd ? ' weekend' : '') + (isHoy ? ' today' : '');
                 if (aus) cls += ' ausencia' + (pry ? ' conflicto' : '');
+                else if (tipoDia) cls += ' ' + tipoDia;
                 else if (pry) cls += d < hoy00 ? ' past' : ' occupied';
-                let tip = pry ? `${pry.nombre}${pry.cliente?' · '+pry.cliente:''} (${pry.fecha_inicio} → ${pry.fecha_fin_estimada})` : '';
+                let tip = pry ? `${pry.nombre}${pry.cliente?' · '+pry.cliente:''} (${pry.fecha_inicio_real||pry.fecha_inicio} → ${pry.fecha_fin_real||(pry.fecha_inicio_real?'sin finalizar · estimado '+pry.fecha_fin_estimada:pry.fecha_fin_estimada)})${tipoDia?' · '+ETIQ_TIPO_DIA[tipoDia]:''}` : '';
                 if (aus) tip = `${aus.motivo} (${aus.fecha_inicio} → ${aus.fecha_fin})` + (pry ? ` · CHOCA con ${tip}` : '');
                 tip = tip.replace(/"/g,'&quot;');
                 const estilos = [pry ? 'cursor:pointer' : '', isHoy ? `--hoy-pos:${horaHoyPct}%` : ''].filter(Boolean).join(';');
@@ -2356,6 +2426,10 @@ async function renderGantt() {
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:12px;height:8px;background:var(--gantt-past)"></div> Días pasados (proyecto)</div>
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:12px;height:8px;background:var(--input-bg);border:1px solid var(--border)"></div> Fin de semana</div>
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div class="gantt-cell ausencia" style="width:12px;height:8px;padding:0"></div> Ausencia (vacaciones, permiso, incapacidad)</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div class="gantt-cell retraso" style="width:12px;height:8px;padding:0"></div> Retraso (sigue después de la fecha estimada)</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div class="gantt-cell descanso" style="width:12px;height:8px;padding:0"></div> Descanso</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div class="gantt-cell standby" style="width:12px;height:8px;padding:0"></div> Standby</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div class="gantt-cell pausa" style="width:12px;height:8px;padding:0"></div> Proyecto en pausa</div>
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:2px;height:16px;background:var(--red)"></div> Hoy</div>
       </div>
     </div>`);
@@ -2363,6 +2437,9 @@ async function renderGantt() {
 
 async function exportarGanttPDF() {
   await loadEmpleados(); await loadProyectos();
+  const inact = await cargarInactividadAprobada();
+  const coloresTipoDia = { retraso: [127,29,29], descanso: [148,163,184], standby: [245,158,11], pausa: [209,213,219] };
+  const tiposUsados = new Set();
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
   const today = new Date();
@@ -2405,7 +2482,8 @@ async function exportarGanttPDF() {
     const filaColor = [];
     cols.forEach(d => {
       const isWknd = d.getDay()===0||d.getDay()===6;
-      const pry = STATE.proyectos.find(p => (p.tecnicos_asignados||[]).includes(e.id) && p.fecha_inicio && p.fecha_fin_estimada && fechaLocal(p.fecha_inicio)<=d && fechaLocal(p.fecha_fin_estimada)>=d);
+      const pry = proyectoEnDia(e.id, d);
+      const tipoDia = pry ? tipoDiaProyecto(pry, e.id, d, inact) : null;
       const aus = ausenciaEn(e, d);
       if (aus) {
         filaColor.push(seccionAusencias.color);
@@ -2416,11 +2494,16 @@ async function exportarGanttPDF() {
         }
       } else if (pry) {
         const estadoVis = estadoProyectoVisible(pry);
-        filaColor.push(coloresProyecto[estadoVis] || [156,163,175]);
+        if (tipoDia) { filaColor.push(coloresTipoDia[tipoDia]); tiposUsados.add(tipoDia); }
+        else filaColor.push(coloresProyecto[estadoVis] || [156,163,175]);
         const clave = `${e.id}-${pry.id}`;
         if (!vistos.has(clave) && asignacionesPorSeccion[estadoVis]) {
           vistos.add(clave);
-          const inicioReal = (estadoVis === 'en_progreso' && pry.fecha_inicio_real) ? ` · inició ${pry.fecha_inicio_real}` : '';
+          let inicioReal = (estadoVis === 'en_progreso' && pry.fecha_inicio_real) ? ` · inició ${pry.fecha_inicio_real}` : '';
+          if (pry.fecha_inicio_real && !pry.fecha_fin_real) {
+            const diasRetraso = Math.round((new Date(new Date().setHours(0,0,0,0)) - fechaLocal(pry.fecha_fin_estimada)) / 86400000);
+            if (diasRetraso > 0) inicioReal += ` · ${diasRetraso} día(s) de retraso, sin finalizar`;
+          }
           asignacionesPorSeccion[estadoVis].push(`${e.nombre} ${e.apellido} - ${pry.nombre} (${pry.fecha_inicio} al ${pry.fecha_fin_estimada}${inicioReal})`);
         }
       } else if (isWknd) {
@@ -2495,7 +2578,8 @@ async function exportarGanttPDF() {
 
   doc.setFontSize(7);
   doc.setTextColor(120);
-  const leyendaColores = seccionesConDatos.map(s => `${s.nombreColor} = ${s.label.toLowerCase()}`).join(' · ');
+  const nombresTipoDia = { retraso: 'Rojo oscuro = retraso', descanso: 'Gris azulado = descanso', standby: 'Ámbar = standby', pausa: 'Gris claro = en pausa' };
+  const leyendaColores = [...seccionesConDatos.map(s => `${s.nombreColor} = ${s.label.toLowerCase()}`), ...[...tiposUsados].map(t => nombresTipoDia[t])].join(' · ');
   if (leyendaColores) doc.text(leyendaColores, 10, doc.internal.pageSize.getHeight() - 7);
 
   doc.save(`Gantt General - ${today.toISOString().split('T')[0]}.pdf`);
