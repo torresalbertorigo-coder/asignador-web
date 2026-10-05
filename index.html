@@ -292,11 +292,11 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .gantt-cell.occupied{background:var(--gantt-occupied)}
 .gantt-cell.assigned{background:var(--blue-bg)}
 .gantt-cell.past{background:var(--gantt-past)}
-.gantt-cell.retraso{background:repeating-linear-gradient(45deg,var(--gantt-occupied) 0 4px,rgba(0,0,0,.45) 4px 8px)}
-.gantt-cell.descanso{background:rgba(148,163,184,.6)}
-.gantt-cell.standby{background:repeating-linear-gradient(45deg,rgba(245,158,11,.9) 0 4px,rgba(245,158,11,.45) 4px 8px)}
-.gantt-cell.pausa{background:repeating-linear-gradient(135deg,rgba(156,163,175,.7) 0 3px,transparent 3px 6px)}
-.gantt-cell.ausencia{background:repeating-linear-gradient(45deg,rgba(139,92,246,.75) 0 4px,rgba(139,92,246,.35) 4px 8px)}
+.gantt-cell.retraso{background:rgba(227,28,34,.14);box-shadow:inset 0 0 0 1.5px var(--red)}
+.gantt-cell.descanso{background:rgba(148,163,184,.42)}
+.gantt-cell.standby{background:rgba(245,158,11,.5)}
+.gantt-cell.pausa{background:rgba(156,163,175,.32)}
+.gantt-cell.ausencia{background:rgba(139,92,246,.5)}
 .gantt-cell.ausencia.conflicto{box-shadow:inset 0 0 0 2px var(--red)}
 .nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;border-radius:9px;padding:1px 7px;line-height:16px}
 .badge-ausente{background:rgba(139,92,246,.14);color:#8B5CF6;border:1px solid rgba(139,92,246,.4)}
@@ -946,7 +946,7 @@ STATE._cal_offset = 0;
 function ventanaOcupacion(p) {
   if (!p || !p.fecha_inicio || !p.fecha_fin_estimada || ['completado','cancelado'].includes(p.estado)) return null;
   const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const ini = fechaLocal(p.fecha_inicio_real || p.fecha_inicio);
+  const ini = fechaLocal(p.fecha_inicio_real && p.fecha_inicio_real < p.fecha_inicio ? p.fecha_inicio_real : p.fecha_inicio);
   if (p.fecha_inicio_real && !p.fecha_fin_real && p.estado !== 'pausado') return { ini, fin: null, abierto: true };
   let fin = fechaLocal(p.fecha_fin_real || p.fecha_fin_estimada);
   if (!p.fecha_inicio_real && p.estado !== 'pausado' && fin < hoy) fin = hoy;
@@ -957,7 +957,8 @@ function ventanaOcupacion(p) {
 function ventanaVisible(p) {
   if (!p || !p.fecha_inicio || !p.fecha_fin_estimada) return null;
   const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const ini = fechaLocal(p.fecha_inicio_real || p.fecha_inicio);
+  // Desde lo que ocurra primero: la fecha planeada o el inicio real
+  const ini = fechaLocal(p.fecha_inicio_real && p.fecha_inicio_real < p.fecha_inicio ? p.fecha_inicio_real : p.fecha_inicio);
   let fin = fechaLocal(p.fecha_fin_real || p.fecha_fin_estimada);
   if (p.fecha_inicio_real && !p.fecha_fin_real && !['pausado','cancelado'].includes(p.estado) && fin < hoy) fin = hoy;
   return { ini, fin };
@@ -2438,7 +2439,7 @@ async function renderGantt() {
 async function exportarGanttPDF() {
   await loadEmpleados(); await loadProyectos();
   const inact = await cargarInactividadAprobada();
-  const coloresTipoDia = { retraso: [127,29,29], descanso: [148,163,184], standby: [245,158,11], pausa: [209,213,219] };
+  const coloresTipoDia = { retraso: [248,180,182], descanso: [203,213,225], standby: [252,211,77], pausa: [229,231,235] };
   const tiposUsados = new Set();
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
@@ -2458,7 +2459,7 @@ async function exportarGanttPDF() {
     { key: 'cancelado', label: 'CANCELADO', color: [156,163,175], nombreColor: 'Gris' },
   ];
   const coloresProyecto = Object.fromEntries(secciones.map(s=>[s.key,s.color]));
-  const seccionAusencias = { key: 'ausencia', label: 'AUSENCIAS', color: [139,92,246], nombreColor: 'Morado' };
+  const seccionAusencias = { key: 'ausencia', label: 'AUSENCIAS', color: [196,181,253], nombreColor: 'Morado' };
   secciones.push(seccionAusencias);
 
   doc.setFontSize(14);
@@ -2578,7 +2579,7 @@ async function exportarGanttPDF() {
 
   doc.setFontSize(7);
   doc.setTextColor(120);
-  const nombresTipoDia = { retraso: 'Rojo oscuro = retraso', descanso: 'Gris azulado = descanso', standby: 'Ámbar = standby', pausa: 'Gris claro = en pausa' };
+  const nombresTipoDia = { retraso: 'Rosa = retraso', descanso: 'Gris azulado = descanso', standby: 'Ámbar = standby', pausa: 'Gris claro = en pausa' };
   const leyendaColores = [...seccionesConDatos.map(s => `${s.nombreColor} = ${s.label.toLowerCase()}`), ...[...tiposUsados].map(t => nombresTipoDia[t])].join(' · ');
   if (leyendaColores) doc.text(leyendaColores, 10, doc.internal.pageSize.getHeight() - 7);
 
