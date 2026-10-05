@@ -1526,6 +1526,7 @@ function verEmpleado(id, tab) {
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>
      <button class="btn btn-primary btn-sm" onclick="verDocumentosEmpleado('${e.id}')"><i class="ti ti-file-text" aria-hidden="true"></i> Ver documentos y habilidades</button>
      ${e.estado_perfil !== 'archivado' ? `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => archivarEmpleado('${e.id}'))"><i class="ti ti-archive" aria-hidden="true"></i> Archivar</button>` : `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => reactivarEmpleado('${e.id}'))"><i class="ti ti-archive-off" aria-hidden="true"></i> Reactivar</button>`}
+     <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => restablecerPassword('${e.id}'))" title="Genera una contraseña temporal nueva"><i class="ti ti-key" aria-hidden="true"></i> Restablecer contraseña</button>
      ${STATE.rol==='administrador' ? `<button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="eliminarEmpleadoConfirm('${e.id}')"><i class="ti ti-trash" aria-hidden="true"></i> Eliminar</button>` : ''}`);
 }
 
@@ -6353,9 +6354,25 @@ function copiarTextoRespaldo(texto, ok) {
   try { document.execCommand('copy'); ok(); } catch (e) { toast('No se pudo copiar; cópialo a mano', 'error'); }
   ta.remove();
 }
-function mensajeInvitacion(nombre, email, pass) {
+function mensajeInvitacion(nombre, email, pass, modo) {
   const liga = window.location.origin + window.location.pathname.replace(/index\.html$/, '');
   const firma = STATE.user?.nombre || 'El equipo de Walross';
+  if (modo === 'restablecer') return `Hola, ${nombre}:
+
+Se restableció tu acceso a WorkSync, la plataforma de Walross Tech & Innovation.
+
+Para ingresar:
+
+• Liga: ${liga}
+• Correo: ${email}
+• Contraseña temporal: ${pass}
+
+Tu contraseña anterior ya no funciona. Esta contraseña temporal es de un solo uso: al entrar, la plataforma te pedirá crear una nueva contraseña personal.
+
+Si tú no solicitaste este cambio o tienes algún problema para ingresar, avísame.
+
+Saludos,
+${firma}`;
   return `Hola, ${nombre}:
 
 Te damos la bienvenida a WorkSync, la plataforma de Walross Tech & Innovation para la asignación de personal, equipo y vehículos en los proyectos de campo.
@@ -6373,10 +6390,19 @@ Si tienes algún problema para ingresar, avísame.
 Saludos,
 ${firma}`;
 }
-function mostrarCredencialesNuevo(nombre, apellido, email, pass, rol) {
-  STATE._credNueva = { nombre, email, pass };
+async function restablecerPassword(empId) {
+  const e = STATE.empleados.find(x => x.id === empId);
+  if (!confirm(`¿Restablecer la contraseña de ${e ? e.nombre + ' ' + e.apellido : 'esta persona'}?\n\nSe generará una contraseña temporal nueva, la actual dejará de funcionar y deberá crear una propia al entrar.`)) return;
+  const r = await api('POST', `/auth/auth/usuarios/por-empleado/${encodeURIComponent(empId)}/restablecer`);
+  if (!r) return;
+  closePanel(null, true);
+  mostrarCredencialesNuevo(e?.nombre || r.nombre, e?.apellido || '', r.email, r.password_temporal, r.rol, 'restablecer');
+}
+
+function mostrarCredencialesNuevo(nombre, apellido, email, pass, rol, modo) {
+  STATE._credNueva = { nombre, email, pass, modo };
   const etiquetaRol = { tecnico: 'Técnico de campo', director_proyecto: 'Director de proyecto', administrador: 'Administrador' }[rol] || rol;
-  openPanel('Cuenta creada', `
+  openPanel(modo === 'restablecer' ? 'Contraseña restablecida' : 'Cuenta creada', `
     <div class="panel-section">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
         <i class="ti ti-circle-check" aria-hidden="true" style="font-size:28px;color:var(--green)"></i>
@@ -6388,13 +6414,13 @@ function mostrarCredencialesNuevo(nombre, apellido, email, pass, rol) {
         <div style="font-size:11px;color:var(--text3)">CONTRASEÑA TEMPORAL</div>
         <div style="font-family:var(--mono);font-size:20px;letter-spacing:1px;color:var(--text)">${pass ? escHtml(pass) : '—'}</div>
       </div>
-      <div style="font-size:12px;color:var(--amber);margin-top:10px;display:flex;gap:6px"><i class="ti ti-alert-triangle" aria-hidden="true" style="margin-top:2px"></i><span>Esta contraseña <strong>solo se muestra ahora</strong>. Cópiala o envía la invitación antes de cerrar.</span></div>
+      <div style="font-size:12px;color:var(--amber);margin-top:10px;display:flex;gap:6px"><i class="ti ti-alert-triangle" aria-hidden="true" style="margin-top:2px"></i><span>Esta contraseña <strong>solo se muestra ahora</strong>. Cópiala o envía ${modo === 'restablecer' ? 'el mensaje' : 'la invitación'} antes de cerrar.</span></div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
-        <button class="btn btn-primary" onclick="copiarTexto(mensajeInvitacion(STATE._credNueva.nombre, STATE._credNueva.email, STATE._credNueva.pass), 'Mensaje de invitación copiado')"><i class="ti ti-message-share" aria-hidden="true"></i> Copiar mensaje de invitación</button>
+        <button class="btn btn-primary" onclick="copiarTexto(mensajeInvitacion(STATE._credNueva.nombre, STATE._credNueva.email, STATE._credNueva.pass, STATE._credNueva.modo), 'Mensaje copiado')"><i class="ti ti-message-share" aria-hidden="true"></i> ${modo === 'restablecer' ? 'Copiar mensaje de acceso' : 'Copiar mensaje de invitación'}</button>
         <button class="btn btn-ghost" onclick="copiarTexto(STATE._credNueva.pass, 'Contraseña copiada')"><i class="ti ti-copy" aria-hidden="true"></i> Copiar contraseña</button>
       </div>
       <div class="panel-section-title" style="margin-top:18px">VISTA PREVIA DEL MENSAJE</div>
-      <div style="white-space:pre-wrap;font-size:12px;line-height:1.5;color:var(--text2);background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:12px">${escHtml(mensajeInvitacion(nombre, email, pass || '—'))}</div>
+      <div style="white-space:pre-wrap;font-size:12px;line-height:1.5;color:var(--text2);background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:12px">${escHtml(mensajeInvitacion(nombre, email, pass || '—', modo))}</div>
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Listo</button>`);
 }
