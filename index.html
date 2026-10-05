@@ -294,6 +294,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .gantt-cell.past{background:var(--gantt-past)}
 .gantt-cell.ausencia{background:repeating-linear-gradient(45deg,rgba(139,92,246,.75) 0 4px,rgba(139,92,246,.35) 4px 8px)}
 .gantt-cell.ausencia.conflicto{box-shadow:inset 0 0 0 2px var(--red)}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;border-radius:9px;padding:1px 7px;line-height:16px}
 .badge-ausente{background:rgba(139,92,246,.14);color:#8B5CF6;border:1px solid rgba(139,92,246,.4)}
 
 /* EQUIPOS */
@@ -643,7 +644,9 @@ function buildNav() {
       <div class="nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-tool" aria-hidden="true"></i> Equipos</div>
       <div class="nav-item" onclick="showSection('vehiculos')" data-sec="vehiculos"><i class="ti ti-truck" aria-hidden="true"></i> Vehículos</div>
       <div class="nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Incidencias</div>
+      <div class="nav-item" onclick="showSection('inactividad')" data-sec="inactividad"><i class="ti ti-calendar-pause" aria-hidden="true"></i> Días sin trabajo <span id="nav-badge-inactividad" class="nav-badge" style="display:none"></span></div>
       <div class="nav-item" onclick="showSection('metricas')" data-sec="metricas"><i class="ti ti-chart-bar" aria-hidden="true"></i> Métricas</div>`;
+    actualizarBadgeInactividad();
     document.getElementById('um-switch-modo').style.display = 'flex';
     document.getElementById('um-bitacora').style.display = STATE.rol === 'administrador' ? 'flex' : 'none';
     document.getElementById('um-catalogo').style.display = STATE.rol === 'administrador' ? 'flex' : 'none';
@@ -771,7 +774,7 @@ async function cargarNotificaciones() {
       return;
     }
     cont.innerHTML = lista.map(n => `
-      <div class="notif-item ${n.leida ? '' : 'unread'}" onclick="clicNotificacion(${n.id}, ${n.entidad_tipo === 'proyecto' ? `'${n.entidad_id}'` : 'null'})">
+      <div class="notif-item ${n.leida ? '' : 'unread'}" onclick="clicNotificacion(${n.id}, ${n.entidad_tipo === 'proyecto' ? `'${n.entidad_id}'` : 'null'}, '${n.entidad_tipo||''}')">
         <div class="notif-title">${escHtml(n.titulo)}</div>
         ${n.mensaje ? `<div class="notif-msg">${escHtml(n.mensaje)}</div>` : ''}
         <div class="notif-time">${tiempoRelativo(n.fecha)}</div>
@@ -780,9 +783,14 @@ async function cargarNotificaciones() {
   } catch (e) { /* silencioso — no interrumpir la app si falla */ }
 }
 
-async function clicNotificacion(id, proyectoId) {
+async function clicNotificacion(id, proyectoId, entidadTipo) {
   try { await api('POST', `/notificaciones/${id}/marcar-leida`); } catch (e) {}
   cargarNotificaciones();
+  if (entidadTipo === 'inactividad') {
+    document.getElementById('notif-dropdown').classList.remove('open');
+    showSection((STATE.rol === 'tecnico' || STATE.modoTecnico) ? 'checador' : 'inactividad');
+    return;
+  }
   if (proyectoId) {
     document.getElementById('notif-dropdown').classList.remove('open');
     if (STATE.rol === 'tecnico' || STATE.modoTecnico) verProyectoTecnico(proyectoId);
@@ -821,6 +829,7 @@ const TITLES = {
   'clientes':         ['ti-building',           'Clientes'],
   'bitacora':         ['ti-history',            'Bitácora de Cambios'],
   'catalogo':         ['ti-tags',               'Catálogo de Términos'],
+  'inactividad':      ['ti-calendar-pause',     'Días sin trabajo'],
   'permisos':         ['ti-key',                'Permisos de Exportación'],
   'mis-asignaciones': ['ti-briefcase',          'Mis Asignaciones'],
   'mi-gantt':         ['ti-calendar-stats',     'Mi Calendario'],
@@ -843,6 +852,7 @@ const RENDERERS = {
   clientes:         renderClientes,
   bitacora:         renderBitacora,
   catalogo:         renderCatalogo,
+  inactividad:      renderInactividad,
   permisos:         renderPermisos,
   'mis-asignaciones': renderMisAsignaciones,
   'mi-gantt':       renderMiGantt,
@@ -4229,11 +4239,12 @@ async function eliminarClienteConfirm(id) {
 const ACCION_LABEL = {
   crear: 'Creó', editar: 'Editó', eliminar: 'Eliminó', asignar: 'Asignó',
   cambiar_estado: 'Cambió estado', finalizar: 'Finalizó', exportar: 'Exportó',
+  aprobar: 'Aprobó', rechazar: 'Rechazó',
 };
 const ENTIDAD_ICONO = {
   proyecto: 'ti-folder', empleado: 'ti-users', equipo: 'ti-tool',
   vehiculo: 'ti-truck', cliente: 'ti-building', asignacion: 'ti-link',
-  datos: 'ti-file-spreadsheet', permiso: 'ti-key', ausencia: 'ti-beach',
+  datos: 'ti-file-spreadsheet', permiso: 'ti-key', ausencia: 'ti-beach', inactividad: 'ti-calendar-pause',
 };
 
 async function renderBitacora() {
@@ -4711,6 +4722,8 @@ async function generarMetricas() {
         <div><span style="color:var(--text3)">Días trabajados (checador)</span><div style="color:var(--text)">${p.asistencia?.dias_trabajados ?? 0}</div></div>
         <div><span style="color:var(--text3)">Horas aprox. trabajadas</span><div style="color:var(--text)">${p.asistencia?.horas_aprox ?? 0} h</div></div>
         <div><span style="color:var(--text3)">Días sin checada</span><div style="color:${p.dias_faltantes?'var(--amber)':'var(--text)'}">${p.dias_faltantes ?? 0}</div></div>
+        <div><span style="color:var(--text3)">Descanso / standby (días-persona)</span><div style="color:var(--text)">${p.dias_descanso ?? 0} / ${p.dias_standby ?? 0}</div></div>
+        <div><span style="color:var(--text3)">Días en pausa</span><div style="color:${p.dias_pausa?'var(--orange)':'var(--text)'}">${p.dias_pausa ?? 0}</div></div>
       </div>
       ${p.incidencias.length ? `<div style="border-top:1px solid var(--border);padding-top:8px">
         <div style="font-size:11px;color:var(--text3);margin-bottom:6px">POSIBLES CAUSAS (INCIDENCIAS REGISTRADAS)</div>
@@ -4761,7 +4774,8 @@ function exportarMetricasPDF() {
       doc.text(lineaVeh, 14, y); y += 5 * lineaVeh.length;
     }
     doc.text(`Incidencias: ${p.total_incidencias} (${p.incidencias_altas} alta(s))`, 14, y); y += 5;
-    doc.text(`Días trabajados (checador): ${p.asistencia?.dias_trabajados ?? 0}    Horas aprox.: ${p.asistencia?.horas_aprox ?? 0} h    Días sin checada: ${p.dias_faltantes ?? 0}`, 14, y); y += 6;
+    doc.text(`Días trabajados (checador): ${p.asistencia?.dias_trabajados ?? 0}    Horas aprox.: ${p.asistencia?.horas_aprox ?? 0} h    Días sin checada: ${p.dias_faltantes ?? 0}`, 14, y); y += 5;
+    doc.text(`Descanso: ${p.dias_descanso ?? 0} día(s)-persona    Standby: ${p.dias_standby ?? 0} día(s)-persona    En pausa: ${p.dias_pausa ?? 0} día(s)`, 14, y); y += 6;
 
     if (p.incidencias.length) {
       doc.setFont(undefined, 'italic');
@@ -4828,6 +4842,181 @@ function verProyectoTecnico(id) {
 
 // ─── SECCIÓN: CHECADOR ────────────────────────────────────────────────────────
 let clockInterval;
+// ─── DÍAS SIN TRABAJO (descanso / standby) ───────────────────────────────────
+const ESTADO_INACT = {
+  pendiente: '<span class="badge badge-mant">PENDIENTE</span>',
+  aprobado:  '<span class="badge badge-libre">APROBADO</span>',
+  rechazado: '<span class="badge badge-gray">RECHAZADO</span>',
+};
+const TIPO_INACT = {
+  descanso: '<i class="ti ti-zzz" aria-hidden="true"></i> Descanso',
+  standby:  '<i class="ti ti-player-pause" aria-hidden="true"></i> Standby',
+};
+const rangoInact = g => g.dias > 1 ? `${g.fecha_inicio} al ${g.fecha_fin} (${g.dias} días)` : g.fecha_inicio;
+const hoyIsoLocal = () => new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+
+function tarjetaReporteInactividad(proyectos, reportes, proyectoActual) {
+  const hoyIso = hoyIsoLocal();
+  return `
+    <div class="table-section" style="margin-bottom:14px">
+      <div class="table-header"><span class="table-title">DÍAS SIN TRABAJO</span>
+        ${proyectos.length ? `<button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="const f=document.getElementById('form-inact');f.style.display=f.style.display==='none'?'block':'none'"><i class="ti ti-plus" aria-hidden="true"></i> Reportar</button>` : ''}
+      </div>
+      <div style="padding:10px 16px 0;font-size:12px;color:var(--text2)">
+        <strong>Descanso</strong>: día libre, no suma fatiga. <strong>Standby</strong>: en sitio sin poder trabajar (clima, cliente, permisos, material), sí suma fatiga. Lo aprueba un administrador o director.
+      </div>
+      <div id="form-inact" style="display:none;padding:12px 16px">
+        <div class="field-row">
+          <div class="field-group"><label class="field-label">PROYECTO</label>
+            <select class="field-select" id="inact-proyecto">
+              ${proyectos.map(p => `<option value="${p.id}" ${p.id===proyectoActual?'selected':''}>${escHtml(p.nombre)}</option>`).join('')}
+            </select></div>
+          <div class="field-group"><label class="field-label">TIPO</label>
+            <select class="field-select" id="inact-tipo"><option value="descanso">Descanso</option><option value="standby">Standby</option></select></div>
+        </div>
+        <div class="field-row" style="margin-top:8px">
+          <div class="field-group"><label class="field-label">DESDE</label><input type="date" class="field-input" id="inact-desde" value="${hoyIso}"></div>
+          <div class="field-group"><label class="field-label">HASTA</label><input type="date" class="field-input" id="inact-hasta" value="${hoyIso}"></div>
+        </div>
+        <div class="field-group" style="margin-top:8px"><label class="field-label">MOTIVO</label>
+          <input class="field-input" id="inact-motivo" maxlength="300" placeholder="Ej. viento fuera de límite, cliente sin permisos de acceso, domingo"></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:10px">
+          <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, enviarReporteInactividad)"><i class="ti ti-send" aria-hidden="true"></i> Enviar para aprobación</button>
+        </div>
+      </div>
+      ${reportes.length ? reportes.slice(0,10).map(g => `
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-top:1px solid var(--border);font-size:12px">
+          <div style="flex:1;min-width:0">
+            <div style="color:var(--text)">${TIPO_INACT[g.tipo]||g.tipo} · ${escHtml(g.proyecto_nombre)}</div>
+            <div style="color:var(--text3);font-size:11px">${rangoInact(g)}${g.motivo ? ' · ' + escHtml(g.motivo) : ''}${g.comentario ? ` · <em>${escHtml(g.comentario)}</em>` : ''}</div>
+          </div>
+          ${ESTADO_INACT[g.estado]||g.estado}
+        </div>`).join('') : `<div style="padding:12px 16px;font-size:12px;color:var(--text3)">${proyectos.length ? 'Sin reportes todavía.' : 'Disponible cuando tengas un proyecto ya iniciado en sitio.'}</div>`}
+    </div>`;
+}
+
+async function enviarReporteInactividad() {
+  const desde = document.getElementById('inact-desde').value, hasta = document.getElementById('inact-hasta').value;
+  if (!desde || !hasta) { toast('Indica las fechas', 'error'); return; }
+  if (hasta < desde) { toast('La fecha final es anterior a la inicial', 'error'); return; }
+  const r = await api('POST', '/inactividad/solicitar', {
+    proyecto_id: document.getElementById('inact-proyecto').value,
+    tipo: document.getElementById('inact-tipo').value,
+    fecha_inicio: desde, fecha_fin: hasta,
+    motivo: document.getElementById('inact-motivo').value.trim(),
+  });
+  if (!r) return;
+  toast('Enviado para aprobación');
+  renderChecador();
+}
+
+async function actualizarBadgeInactividad() {
+  if (!['administrador','director_proyecto'].includes(STATE.rol)) return;
+  const r = await api('GET', '/inactividad/pendientes/conteo');
+  const b = document.getElementById('nav-badge-inactividad');
+  if (!b || !r) return;
+  b.textContent = r.pendientes;
+  b.style.display = r.pendientes ? 'inline-block' : 'none';
+}
+
+async function renderInactividad(filtro) {
+  filtro = filtro || STATE._filtroInact || 'pendiente';
+  STATE._filtroInact = filtro;
+  await loadProyectos(); await loadEmpleados();
+  const lista = await api('GET', `/inactividad${filtro === 'todos' ? '' : '?estado=' + filtro}`) || [];
+  actualizarBadgeInactividad();
+  const activos = STATE.proyectos.filter(p => p.fecha_inicio_real && !['completado','cancelado'].includes(p.estado));
+  const hoyIso = hoyIsoLocal();
+  const etiquetaFiltro = { pendiente: 'Pendientes', aprobado: 'Aprobados', rechazado: 'Rechazados', todos: 'Todos' };
+  html(`
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px">
+      Días en que el personal no trabajó dentro de un proyecto activo. <strong>Descanso</strong> no suma fatiga; <strong>standby</strong> sí. Los días con el proyecto en <strong>Pausado</strong> se descuentan solos, no hace falta registrarlos. Mientras un reporte está pendiente o aprobado, ese día no cuenta como "sin checada".
+    </div>
+    <div class="table-section" style="padding:16px;margin-bottom:14px">
+      <div class="panel-section-title" style="margin-bottom:10px">REGISTRAR PARA EL EQUIPO (QUEDA APROBADO)</div>
+      ${activos.length ? `
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">PROYECTO</label>
+          <select class="field-select" id="reg-inact-proyecto" onchange="pintarPersonalInact()">
+            ${activos.map(p => `<option value="${p.id}">${escHtml(p.nombre)}</option>`).join('')}
+          </select></div>
+        <div class="field-group"><label class="field-label">TIPO</label>
+          <select class="field-select" id="reg-inact-tipo"><option value="standby">Standby</option><option value="descanso">Descanso</option></select></div>
+      </div>
+      <div class="field-row" style="margin-top:8px">
+        <div class="field-group"><label class="field-label">DESDE</label><input type="date" class="field-input" id="reg-inact-desde" value="${hoyIso}"></div>
+        <div class="field-group"><label class="field-label">HASTA</label><input type="date" class="field-input" id="reg-inact-hasta" value="${hoyIso}"></div>
+      </div>
+      <div class="field-group" style="margin-top:8px"><label class="field-label">MOTIVO</label>
+        <input class="field-input" id="reg-inact-motivo" maxlength="300" placeholder="Ej. el cliente suspendió el acceso al sitio"></div>
+      <div style="margin-top:10px"><label class="field-label">PERSONAL</label><div id="reg-inact-personal" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:4px"></div></div>
+      <div style="display:flex;justify-content:flex-end;margin-top:10px">
+        <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, registrarInactividadEquipo)"><i class="ti ti-check" aria-hidden="true"></i> Registrar</button>
+      </div>` : '<div style="font-size:12px;color:var(--text3)">No hay proyectos iniciados en sitio en este momento.</div>'}
+    </div>
+    <div class="table-section">
+      <div class="table-header"><span class="table-title">REPORTES</span>
+        <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+          ${Object.keys(etiquetaFiltro).map(f => `<button class="btn ${f===filtro?'btn-primary':'btn-ghost'} btn-sm" onclick="renderInactividad('${f}')">${etiquetaFiltro[f]}</button>`).join('')}
+        </div>
+      </div>
+      ${lista.length ? lista.map(g => `
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--border);flex-wrap:wrap">
+          <div style="flex:1;min-width:220px">
+            <div style="font-size:13px;color:var(--text)"><strong>${escHtml(g.empleado_nombre)}</strong> · ${TIPO_INACT[g.tipo]||g.tipo} · ${escHtml(g.proyecto_nombre)}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px">${rangoInact(g)}${g.motivo ? ' · ' + escHtml(g.motivo) : ''}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">Reportó ${escHtml(g.solicitado_por||'—')}${g.resuelto_por && g.estado !== 'pendiente' ? ` · ${g.estado === 'aprobado' ? 'aprobó' : 'rechazó'} ${escHtml(g.resuelto_por)}` : ''}${g.comentario ? ` · <em>${escHtml(g.comentario)}</em>` : ''}</div>
+          </div>
+          ${g.estado === 'pendiente' ? `
+            <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => resolverInactividad('${g.solicitud_id}', true))"><i class="ti ti-check" aria-hidden="true"></i> Aprobar</button>
+            <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => resolverInactividad('${g.solicitud_id}', false))"><i class="ti ti-x" aria-hidden="true"></i> Rechazar</button>`
+          : ESTADO_INACT[g.estado]||g.estado}
+        </div>`).join('') : `<div class="empty-state" style="padding:24px"><i class="ti ti-calendar-pause" aria-hidden="true"></i><p style="font-size:12px">Sin reportes${filtro === 'todos' ? '' : ' ' + etiquetaFiltro[filtro].toLowerCase()}</p></div>`}
+    </div>`);
+  pintarPersonalInact();
+}
+
+function pintarPersonalInact() {
+  const sel = document.getElementById('reg-inact-proyecto');
+  const cont = document.getElementById('reg-inact-personal');
+  if (!sel || !cont) return;
+  const p = STATE.proyectos.find(x => x.id === sel.value);
+  const ids = p ? (p.tecnicos_asignados||[]) : [];
+  cont.innerHTML = ids.length ? ids.map(id => {
+    const e = STATE.empleados.find(x => x.id === id);
+    return `<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text);cursor:pointer"><input type="checkbox" class="reg-inact-emp" value="${id}" checked> ${e ? escHtml(e.nombre + ' ' + e.apellido) : id}</label>`;
+  }).join('') : '<span style="font-size:12px;color:var(--text3)">Sin personal asignado</span>';
+}
+
+async function registrarInactividadEquipo() {
+  const ids = [...document.querySelectorAll('.reg-inact-emp:checked')].map(c => c.value);
+  if (!ids.length) { toast('Selecciona al menos a una persona', 'error'); return; }
+  const desde = document.getElementById('reg-inact-desde').value, hasta = document.getElementById('reg-inact-hasta').value;
+  if (!desde || !hasta || hasta < desde) { toast('Revisa las fechas', 'error'); return; }
+  const r = await api('POST', '/inactividad/registrar', {
+    proyecto_id: document.getElementById('reg-inact-proyecto').value,
+    tipo: document.getElementById('reg-inact-tipo').value,
+    fecha_inicio: desde, fecha_fin: hasta,
+    motivo: document.getElementById('reg-inact-motivo').value.trim(),
+    empleado_ids: ids,
+  });
+  if (!r) return;
+  toast(r.dias_registrados ? `Registrado: ${r.dias_registrados} día(s)-persona` : 'Esos días ya estaban registrados');
+  renderInactividad('aprobado');
+}
+
+async function resolverInactividad(solicitudId, aprobar) {
+  let comentario = '';
+  if (!aprobar) {
+    comentario = prompt('Motivo del rechazo (opcional, lo verá el técnico):');
+    if (comentario === null) return;
+  }
+  const r = await api('POST', `/inactividad/${solicitudId}/resolver`, { aprobar, comentario });
+  if (!r) return;
+  toast(aprobar ? 'Aprobado' : 'Rechazado');
+  renderInactividad();
+}
+
 async function renderChecador() {
   if (clockInterval) clearInterval(clockInterval);
   await loadProyectos();
@@ -4847,6 +5036,8 @@ async function renderChecador() {
     api('GET', `/checador/mis-checadas${qEmp}`).then(r => r || []),
     api('GET', `/checador/dias-faltantes${qEmp}`).then(r => r || [])
   ]);
+  const misReportes = await api('GET', '/inactividad/mias') || [];
+  const proyectosReportables = misProyectos.filter(p => p.fecha_inicio_real && !['completado','cancelado'].includes(p.estado));
   const ultima = historial[0];
   const puedeEntrada = !ultima || ultima.tipo === 'salida';
   const ahoraLocal = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
@@ -4875,6 +5066,7 @@ async function renderChecador() {
       </div>
       <div class="check-status" id="check-status">${ultima ? `<span style="color:${ultima.tipo==='entrada'?'var(--green)':'var(--text2)'}">Última checada: ${ultima.tipo} — ${new Date(ultima.fecha_hora).toLocaleString('es-MX')}</span>` : 'Sin registros todavía'}</div>
     </div>
+    ${tarjetaReporteInactividad(proyectosReportables, misReportes, proyectoActual)}
     <div class="table-section">
       <div class="table-header"><span class="table-title">HISTORIAL RECIENTE</span></div>
       ${historial.length ? historial.slice(0,30).map(h=>`
