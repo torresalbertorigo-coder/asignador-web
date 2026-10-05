@@ -301,6 +301,27 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .gantt-cell.ausencia{background:rgba(139,92,246,.5)}
 .gantt-cell.ausencia.conflicto{box-shadow:inset 0 0 0 2px var(--red)}
 .nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;border-radius:9px;padding:1px 7px;line-height:16px}
+.sel-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:100%;max-width:820px;max-height:86vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.sel-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px 12px}
+.sel-grid-wrap{overflow-y:auto;padding:0 18px 14px;flex:1}
+.sel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px}
+.sel-grid-iconos{grid-template-columns:repeat(auto-fill,minmax(52px,1fr))}
+.sel-tile{border:1px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center;cursor:pointer;background:var(--surface2);transition:border-color .12s,background .12s;user-select:none}
+.sel-tile:hover{border-color:var(--border2)}
+.sel-tile i{font-size:24px;color:var(--text2)}
+.sel-tile.on{border-color:var(--red);background:rgba(227,28,34,.08)}
+.sel-tile.on i{color:var(--red)}
+.sel-tile.ya{opacity:.45;cursor:default}
+.sel-tile.sel-nuevo{border-style:dashed}
+.sel-nombre{font-size:11px;font-weight:600;margin-top:6px;color:var(--text);line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.sel-nivel{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;font-size:11px;color:var(--text)}
+.sel-nivel button{width:22px;height:22px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);color:var(--text);cursor:pointer;line-height:1}
+.sel-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 18px;border-top:1px solid var(--border)}
+.chip-termino{display:inline-flex;align-items:center;gap:6px;padding:5px 8px 5px 10px;margin:0 6px 6px 0;border:1px solid var(--border);border-radius:16px;background:var(--surface2);font-size:12px;color:var(--text)}
+.chip-termino>i{font-size:15px;color:var(--text2)}
+.chip-extra{font-size:10px;color:var(--text3)}
+.chip-termino button{border:none;background:none;color:var(--text3);cursor:pointer;padding:0 2px;display:flex}
+.chip-termino button:hover{color:var(--red-text)}
 .badge-ausente{background:rgba(139,92,246,.14);color:#8B5CF6;border:1px solid rgba(139,92,246,.4)}
 
 /* EQUIPOS */
@@ -927,11 +948,15 @@ async function ejecutarConCarga(btnEl, fn, textoCargando) {
 }
 
 async function cargarCatalogos() {
-  const [habs, certs, clientes] = await Promise.all([
+  const [habs, certs, clientes, iconos] = await Promise.all([
     api('GET', '/empleados/catalogo/habilidades'),
     api('GET', '/empleados/catalogo/certificados'),
     api('GET', '/clientes'),
+    api('GET', '/empleados/catalogo/iconos'),
   ]);
+  if (habs) STATE.catHabs = habs;
+  if (certs) STATE.catCerts = certs;
+  STATE.iconosTerminos = iconos || STATE.iconosTerminos || { habilidad: {}, certificado: {} };
   const dlHabs = document.getElementById('dl-habilidades');
   const dlCerts = document.getElementById('dl-certificados');
   const dlClientes = document.getElementById('dl-clientes');
@@ -1864,8 +1889,9 @@ async function verProyecto(id) {
         <div><span style="color:var(--text3);font-size:10px">ESTADO</span><div style="margin-top:4px">${badge(estadoProyectoVisible(p))}${textoRetrasoInicio(p)?`<div style="font-size:11px;color:var(--amber);margin-top:4px">${textoRetrasoInicio(p)}</div>`:''}</div></div>
         <div><span style="color:var(--text3);font-size:10px">CLIENTE</span><div style="margin-top:2px;color:var(--text)">${p.cliente||'—'}</div></div>
         <div><span style="color:var(--text3);font-size:10px">CRITICIDAD</span><div style="margin-top:2px;color:var(--text)">${(p.criticidad||'—').replace('_',' ').toUpperCase()}</div></div>
-        <div><span style="color:var(--text3);font-size:10px">INICIO</span><div class="td-mono" style="margin-top:2px">${p.fecha_inicio||'—'}</div></div>
+        <div><span style="color:var(--text3);font-size:10px">INICIO</span><div class="td-mono" style="margin-top:2px">${p.fecha_inicio||'—'}${['administrador','director_proyecto'].includes(STATE.rol) && !['completado','cancelado'].includes(p.estado) ? ` <a href="#" onclick="event.preventDefault();abrirReprogramar('${p.id}')" style="color:var(--blue);text-decoration:none;font-size:11px;font-family:var(--sans)">reprogramar</a>` : ''}</div></div>
         <div><span style="color:var(--text3);font-size:10px">FIN ESTIMADO</span><div class="td-mono" style="margin-top:2px">${p.fecha_fin_estimada||'—'}</div></div>
+        ${(p.reprogramaciones_resumen||[]).length ? `<div style="grid-column:1/-1;font-size:11px;color:var(--text2)"><i class="ti ti-calendar-event" aria-hidden="true"></i> Reprogramado ${p.reprogramaciones_resumen.length} vez${p.reprogramaciones_resumen.length>1?'es':''} · fechas originales ${p.reprogramaciones_resumen[0].inicio_anterior} al ${p.reprogramaciones_resumen[0].fin_anterior}${p.reprogramaciones_resumen.at(-1).motivo ? ` · último motivo: ${escHtml(p.reprogramaciones_resumen.at(-1).motivo)}` : ''}</div>` : ''}
         ${p.fecha_inicio_real ? `<div><span style="color:var(--text3);font-size:10px">INICIO REAL</span><div class="td-mono" style="margin-top:2px;color:var(--blue)">${p.fecha_inicio_real}</div></div>` : ''}
         ${p.fecha_fin_real ? `<div><span style="color:var(--text3);font-size:10px">FIN REAL</span><div class="td-mono" style="margin-top:2px;color:var(--green)">${p.fecha_fin_real}</div></div>` : ''}
         <div><span style="color:var(--text3);font-size:10px">CIUDAD</span><div style="margin-top:2px;color:var(--text)">${p.ciudad||'—'}</div></div>
@@ -1876,28 +1902,15 @@ async function verProyecto(id) {
     <div class="panel-section">
       <div class="panel-section-title">REQUISITOS PARA ASIGNACIÓN</div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:6px">HABILIDADES OPERATIVAS MÍNIMAS</div>
-      ${(p.habilidades_requeridas_items||[]).length ? p.habilidades_requeridas_items.map(h=>
-        `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;color:var(--text)">
-          <span>${h.nombre} — nivel ${h.nivel}</span>
-          ${editando ? `<button class="btn btn-ghost btn-sm" style="padding:2px 6px" onclick="ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','habilidad-requerida',${h.id}))"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}
-        </div>`
-      ).join('') : '<div style="font-size:12px;color:var(--text3)">Sin requisitos de habilidad configurados.</div>'}
-      ${editando ? `<div style="display:flex;gap:8px;margin-top:8px">
-        <input class="field-input" id="pd-hab-nombre" style="flex:2;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" list="dl-habilidades" placeholder="Nombre de habilidad">
-        <input class="field-input" id="pd-hab-nivel" type="number" min="1" max="10" value="5" style="width:70px">
-        <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => agregarRequisitoProyecto('${p.id}'))"><i class="ti ti-plus" aria-hidden="true"></i></button>
-      </div>` : ''}
+      ${(p.habilidades_requeridas_items||[]).length ? `<div>${p.habilidades_requeridas_items.map(h =>
+        chipTermino('habilidad', h.nombre, `nivel ${h.nivel}`, editando ? `ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','habilidad-requerida',${h.id}))` : '')
+      ).join('')}</div>` : '<div style="font-size:12px;color:var(--text3)">Sin requisitos de habilidad configurados.</div>'}
+      ${editando ? `<button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="abrirSelectorTerminos('habilidad','proyecto','${p.id}')"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Elegir habilidades</button>` : ''}
       <div style="font-size:11px;color:var(--text3);margin:14px 0 6px">CERTIFICADOS TÉCNICOS REQUERIDOS</div>
-      ${(p.certificados_requeridos_items||[]).length ? p.certificados_requeridos_items.map(c=>
-        `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;color:var(--text)">
-          <span>${c.nombre}</span>
-          ${editando ? `<button class="btn btn-ghost btn-sm" style="padding:2px 6px" onclick="ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','certificado-requerido',${c.id}))"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}
-        </div>`
-      ).join('') : '<div style="font-size:12px;color:var(--text3)">Sin certificados requeridos configurados.</div>'}
-      ${editando ? `<div style="display:flex;gap:8px;margin-top:8px">
-        <input class="field-input" id="pd-cert-nombre" style="flex:1;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" list="dl-certificados" placeholder="Nombre de certificado">
-        <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => agregarCertRequeridoProyecto('${p.id}'))"><i class="ti ti-plus" aria-hidden="true"></i></button>
-      </div>` : ''}
+      ${(p.certificados_requeridos_items||[]).length ? `<div>${p.certificados_requeridos_items.map(c =>
+        chipTermino('certificado', c.nombre, '', editando ? `ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','certificado-requerido',${c.id}))` : '')
+      ).join('')}</div>` : '<div style="font-size:12px;color:var(--text3)">Sin certificados requeridos configurados.</div>'}
+      ${editando ? `<button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="abrirSelectorTerminos('certificado','proyecto','${p.id}')"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Elegir certificados</button>` : ''}
       <button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="toggleEditarRequisitos('${p.id}')"><i class="ti ${editando?'ti-eye-off':'ti-pencil'}" aria-hidden="true"></i> ${editando?'Ocultar edición':'Editar requisitos'}</button>
     </div>
     <div class="panel-section">
@@ -2214,18 +2227,13 @@ function openNuevoProyecto() {
     </div>
     <div class="panel-section">
       <div class="panel-section-title">HABILIDADES OPERATIVAS REQUERIDAS</div>
-      <div class="field-row">
-        <div class="field-group" style="flex:2"><label class="field-label">HABILIDAD</label><input class="field-input" id="np-hab-nombre" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" list="dl-habilidades" placeholder="Ej: Pilotaje RPAs, Termografía aérea"></div>
-        <div class="field-group"><label class="field-label">NIVEL MÍN. (1-10)</label><input class="field-input" id="np-hab-nivel" type="number" min="1" max="10" value="5"></div>
-      </div>
-      <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="agregarHabilidadProyecto()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar habilidad</button>
-      <div id="np-habs-list" style="margin-top:10px">${renderListaHabilidadesProyecto()}</div>
+      <div id="np-habs-list" style="margin-bottom:8px">${renderListaHabilidadesProyecto()}</div>
+      <button class="btn btn-ghost btn-sm" onclick="abrirSelectorTerminos('habilidad','nuevo')"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Elegir habilidades</button>
     </div>
     <div class="panel-section">
       <div class="panel-section-title">CERTIFICADOS TÉCNICOS REQUERIDOS</div>
-      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE DEL CERTIFICADO</label><input class="field-input" id="np-cert-nombre" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" list="dl-certificados" placeholder="Ej: DC-3 Manejo a la defensiva, Licencia de conducir"></div></div>
-      <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="agregarCertificadoProyecto()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar certificado</button>
-      <div id="np-certs-list" style="margin-top:10px">${renderListaCertificadosProyecto()}</div>
+      <div id="np-certs-list" style="margin-bottom:8px">${renderListaCertificadosProyecto()}</div>
+      <button class="btn btn-ghost btn-sm" onclick="abrirSelectorTerminos('certificado','nuevo')"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Elegir certificados</button>
     </div>
     <div class="panel-section">
       <div class="panel-section-title">EQUIPO REQUERIDO</div>
@@ -2271,11 +2279,8 @@ function openNuevoProyecto() {
 
 function renderListaHabilidadesProyecto() {
   const list = STATE._np_habilidades || [];
-  if (!list.length) return '<div style="font-size:12px;color:var(--text3)">Ninguna agregada — el proyecto no exigirá nivel mínimo de habilidades.</div>';
-  return list.map((h,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
-    <span>${h.nombre} — nivel mín. ${h.nivel}</span>
-    <button class="btn btn-ghost btn-sm" onclick="quitarHabilidadProyecto(${i})" style="padding:2px 6px"><i class="ti ti-x" aria-hidden="true"></i></button>
-  </div>`).join('');
+  if (!list.length) return '<div style="font-size:12px;color:var(--text3)">Ninguna elegida — el proyecto no exigirá nivel mínimo de habilidades.</div>';
+  return list.map((h,i) => chipTermino('habilidad', h.nombre, `nivel ${h.nivel}`, `quitarHabilidadProyecto(${i})`)).join('');
 }
 function agregarHabilidadProyecto() {
   const nombre = document.getElementById('np-hab-nombre')?.value.trim();
@@ -2294,11 +2299,8 @@ function quitarHabilidadProyecto(i) {
 
 function renderListaCertificadosProyecto() {
   const list = STATE._np_certificados || [];
-  if (!list.length) return '<div style="font-size:12px;color:var(--text3)">Ninguno agregado — el proyecto no exigirá certificados.</div>';
-  return list.map((c,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
-    <span>${c}</span>
-    <button class="btn btn-ghost btn-sm" onclick="quitarCertificadoProyecto(${i})" style="padding:2px 6px"><i class="ti ti-x" aria-hidden="true"></i></button>
-  </div>`).join('');
+  if (!list.length) return '<div style="font-size:12px;color:var(--text3)">Ninguno elegido — el proyecto no exigirá certificados.</div>';
+  return list.map((c,i) => chipTermino('certificado', c, '', `quitarCertificadoProyecto(${i})`)).join('');
 }
 function agregarCertificadoProyecto() {
   const nombre = document.getElementById('np-cert-nombre')?.value.trim();
@@ -4375,7 +4377,7 @@ async function eliminarClienteConfirm(id) {
 const ACCION_LABEL = {
   crear: 'Creó', editar: 'Editó', eliminar: 'Eliminó', asignar: 'Asignó',
   cambiar_estado: 'Cambió estado', finalizar: 'Finalizó', exportar: 'Exportó',
-  aprobar: 'Aprobó', rechazar: 'Rechazó',
+  aprobar: 'Aprobó', rechazar: 'Rechazó', reprogramar: 'Reprogramó',
 };
 const ENTIDAD_ICONO = {
   proyecto: 'ti-folder', empleado: 'ti-users', equipo: 'ti-tool',
@@ -4407,11 +4409,15 @@ async function renderBitacora() {
 function filaCatalogoTermino(tipo, item) {
   return `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 16px;border-top:1px solid var(--border)">
-      <div style="min-width:0">
-        <div style="font-size:13px;color:var(--text);font-weight:600">${escHtml(item.nombre)}</div>
-        <div style="font-size:11px;color:var(--text3)">${item.usos} uso(s)</div>
+      <div style="min-width:0;display:flex;align-items:center;gap:12px">
+        <i class="ti ti-${iconoTermino(tipo, item.nombre)}" aria-hidden="true" style="font-size:22px;color:var(--text2)"></i>
+        <div style="min-width:0">
+          <div style="font-size:13px;color:var(--text);font-weight:600">${escHtml(item.nombre)}</div>
+          <div style="font-size:11px;color:var(--text3)">${item.usos} uso(s)</div>
+        </div>
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn btn-ghost btn-sm" onclick="abrirSelectorIcono('${tipo}','${escHtml(item.nombre).replace(/'/g,"\\'")}')" title="Cambiar ícono"><i class="ti ti-photo-scan" aria-hidden="true"></i> Ícono</button>
         <button class="btn btn-ghost btn-sm" onclick="renombrarTerminoCatalogo('${tipo}','${escHtml(item.nombre).replace(/'/g,"\\'")}')" title="Renombrar / fusionar con otro término"><i class="ti ti-edit" aria-hidden="true"></i> Renombrar</button>
         <button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="eliminarTerminoCatalogo('${tipo}','${escHtml(item.nombre).replace(/'/g,"\\'")}',${item.usos})" title="Eliminar de todo el sistema"><i class="ti ti-trash" aria-hidden="true"></i></button>
       </div>
@@ -4419,6 +4425,7 @@ function filaCatalogoTermino(tipo, item) {
 }
 
 async function renderCatalogo() {
+  if (!STATE.iconosTerminos) await cargarCatalogos();
   const [habs, certs] = await Promise.all([
     api('GET', '/empleados/catalogo/habilidades/detalle'),
     api('GET', '/empleados/catalogo/certificados/detalle'),
@@ -4859,6 +4866,7 @@ async function generarMetricas() {
         <div><span style="color:var(--text3)">Horas aprox. trabajadas</span><div style="color:var(--text)">${p.asistencia?.horas_aprox ?? 0} h</div></div>
         <div><span style="color:var(--text3)">Días sin checada</span><div style="color:${p.dias_faltantes?'var(--amber)':'var(--text)'}">${p.dias_faltantes ?? 0}</div></div>
         <div><span style="color:var(--text3)">Descanso / standby (días-persona)</span><div style="color:var(--text)">${p.dias_descanso ?? 0} / ${p.dias_standby ?? 0}</div></div>
+        ${p.veces_reprogramado ? `<div><span style="color:var(--text3)">Reprogramado (acordado)</span><div style="color:var(--text)">${p.veces_reprogramado} vez/veces · original ${p.inicio_original} al ${p.fin_original}</div></div>` : ''}
         <div><span style="color:var(--text3)">Días en pausa</span><div style="color:${p.dias_pausa?'var(--orange)':'var(--text)'}">${p.dias_pausa ?? 0}</div></div>
       </div>
       ${p.incidencias.length ? `<div style="border-top:1px solid var(--border);padding-top:8px">
@@ -4911,7 +4919,9 @@ function exportarMetricasPDF() {
     }
     doc.text(`Incidencias: ${p.total_incidencias} (${p.incidencias_altas} alta(s))`, 14, y); y += 5;
     doc.text(`Días trabajados (checador): ${p.asistencia?.dias_trabajados ?? 0}    Horas aprox.: ${p.asistencia?.horas_aprox ?? 0} h    Días sin checada: ${p.dias_faltantes ?? 0}`, 14, y); y += 5;
-    doc.text(`Descanso: ${p.dias_descanso ?? 0} día(s)-persona    Standby: ${p.dias_standby ?? 0} día(s)-persona    En pausa: ${p.dias_pausa ?? 0} día(s)`, 14, y); y += 6;
+    doc.text(`Descanso: ${p.dias_descanso ?? 0} día(s)-persona    Standby: ${p.dias_standby ?? 0} día(s)-persona    En pausa: ${p.dias_pausa ?? 0} día(s)`, 14, y); y += 5;
+    if (p.veces_reprogramado) { doc.text(`Reprogramado (acordado): ${p.veces_reprogramado} vez/veces — fechas originales ${p.inicio_original} al ${p.fin_original}`, 14, y); y += 5; }
+    y += 1;
 
     if (p.incidencias.length) {
       doc.setFont(undefined, 'italic');
@@ -4978,6 +4988,263 @@ function verProyectoTecnico(id) {
 
 // ─── SECCIÓN: CHECADOR ────────────────────────────────────────────────────────
 let clockInterval;
+// ─── ÍCONOS DE HABILIDADES Y CERTIFICADOS ────────────────────────────────────
+// Automático por palabra clave; el admin puede cambiarlo en Catálogo de términos.
+const REGLAS_ICONO = [
+  [['DRON','RPAS','VUELO','PILOT','UAV','DJI','MATRICE','MAVIC'], 'drone'],
+  [['TERMOGRAF','TERMIC','INFRARROJ'], 'temperature'],
+  [['LIDAR','FOTOGRAMETR','MAPEO','TOPOGRAF','LEVANTAMIENTO'], 'map-2'],
+  [['CRAWLER','ROBOT'], 'robot'],
+  [['PALA','AEROGENERADOR','EOLIC','WTG','TURBINA'], 'building-wind-turbine'],
+  [['SOLAR','FOTOVOLT','PANEL','CURVA'], 'solar-panel'],
+  [['GWO'], 'helmet'],
+  [['ALTURA','ARNES','RESCATE','ESCALADA','CUERDA','IRATA'], 'ladder'],
+  [['AISLAMIENTO','ELECTRIC','TENSION','SUBESTACION','MEGGER','VOLT'], 'bolt'],
+  [['LOTO','LOTTO','BLOQUEO','ETIQUETADO'], 'lock'],
+  [['EXTINTOR','INCENDIO','FUEGO'], 'fire-extinguisher'],
+  [['ANTIDOPING','TOXICOLOG'], 'flask'],
+  [['MEDICION','CALIBRA'], 'ruler-measure'],
+  [['PRIMEROS AUXILIOS','MEDIC','SALUD','APTO'], 'first-aid-kit'],
+  [['MANEJO','LICENCIA','CONDUC','DEFENSIVA','VEHICUL'], 'car'],
+  [['CONFINADO'], 'box'],
+  [['SEGURIDAD','HIGIENE','EPP','NOM-','STPS'], 'shield-check'],
+  [['INE','PASAPORTE','IDENTIFICACION','CURP','RFC','VISA','NSS','IMSS'], 'id'],
+  [['DC-3','DC3','CONSTANCIA','DIPLOMA'], 'certificate'],
+  [['INSPECCION','VISUAL','NDT','ULTRASONIDO','BOROSCOP'], 'zoom-scan'],
+  [['MANTENIMIENTO','DOCK','REPARACION','INSTALACION'], 'tool'],
+  [['INGLES','IDIOMA'], 'language'],
+  [['CAPACITACION','CURSO','INSTRUCTOR'], 'school'],
+  [['CAMARA','FOTO','VIDEO'], 'camera'],
+  [['ANALISIS','REPORTE','INFORME','DATOS'], 'chart-line'],
+];
+const ICONOS_DISPONIBLES = ['drone','temperature','map-2','robot','building-wind-turbine','windmill','solar-panel','helmet','ladder','bolt','plug','lock','fire-extinguisher','flask','first-aid-kit','car','truck','box','shield-check','id','id-badge','certificate','file-certificate','license','zoom-scan','scan-eye','tool','tools','hammer','language','school','camera','chart-line','ruler-measure','antenna','satellite','radar','engine','battery-charging','building-factory','clipboard-check','award'];
+const sinAcentos = t => (t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+function iconoTermino(tipo, nombre) {
+  const propio = STATE.iconosTerminos?.[tipo]?.[sinAcentos(nombre).replace(/\./g,'').trim()];
+  if (propio) return propio;
+  const n = sinAcentos(nombre);
+  for (const [claves, icono] of REGLAS_ICONO) {
+    if (claves.some(k => k.length <= 3 ? new RegExp(`(^|[^A-Z])${k}([^A-Z]|$)`).test(n) : n.includes(k))) return icono;
+  }
+  return tipo === 'habilidad' ? 'star' : 'certificate';
+}
+function chipTermino(tipo, nombre, extra, onQuitar) {
+  return `<span class="chip-termino"><i class="ti ti-${iconoTermino(tipo, nombre)}" aria-hidden="true"></i>${escHtml(nombre)}${extra ? `<span class="chip-extra">${extra}</span>` : ''}${onQuitar ? `<button title="Quitar" onclick="${onQuitar}"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}</span>`;
+}
+
+// ─── SELECTOR EMERGENTE ──────────────────────────────────────────────────────
+// destino 'nuevo': formulario de Nuevo proyecto (STATE._np_*)
+// destino 'proyecto': agrega requisitos a un proyecto existente (API)
+async function abrirSelectorTerminos(tipo, destino, proyectoId) {
+  if (!STATE.catHabs || !STATE.catCerts || !STATE.iconosTerminos) await cargarCatalogos();
+  const p = proyectoId ? STATE.proyectos.find(x => x.id === proyectoId) : null;
+  const yaEnProyecto = new Set(p ? (tipo === 'habilidad' ? (p.habilidades_requeridas_items||[]).map(h => h.nombre) : (p.certificados_requeridos_nombres||[])) : []);
+  const elegidos = new Map();
+  if (destino === 'nuevo') {
+    if (tipo === 'habilidad') (STATE._np_habilidades||[]).forEach(h => elegidos.set(h.nombre, h.nivel));
+    else (STATE._np_certificados||[]).forEach(c => elegidos.set(c, null));
+  }
+  STATE._sel = { tipo, destino, proyectoId, elegidos, yaEnProyecto, busqueda: '' };
+  let ov = document.getElementById('selector-overlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; ov.className = 'modal-overlay open'; ov.style.zIndex = 1100; document.body.appendChild(ov); }
+  ov.className = 'modal-overlay open';
+  ov.onclick = e => { if (e.target === ov) cerrarSelectorTerminos(); };
+  ov.innerHTML = `
+    <div class="sel-card">
+      <div class="sel-head">
+        <div style="font-weight:700;font-size:14px;color:var(--text)">${tipo === 'habilidad' ? 'Habilidades operativas requeridas' : 'Certificados técnicos requeridos'}</div>
+        <button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()"><i class="ti ti-x" aria-hidden="true"></i></button>
+      </div>
+      <div style="padding:0 18px 12px">
+        <input class="field-input" id="sel-busqueda" placeholder="Buscar o escribir uno nuevo…" oninput="STATE._sel.busqueda=this.value;pintarSelectorTerminos()" autocomplete="off">
+        ${tipo === 'habilidad' ? '<div style="font-size:11px;color:var(--text3);margin-top:6px">Toca una habilidad para elegirla y ajusta el nivel mínimo (1-10) que se exigirá.</div>' : ''}
+      </div>
+      <div class="sel-grid-wrap"><div class="sel-grid" id="sel-grid"></div></div>
+      <div class="sel-foot">
+        <span id="sel-conteo" style="font-size:12px;color:var(--text2)"></span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()">Cancelar</button>
+          <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, confirmarSelectorTerminos)"><i class="ti ti-check" aria-hidden="true"></i> Listo</button>
+        </div>
+      </div>
+    </div>`;
+  pintarSelectorTerminos();
+  setTimeout(() => document.getElementById('sel-busqueda')?.focus(), 50);
+}
+
+function pintarSelectorTerminos() {
+  const s = STATE._sel; if (!s) return;
+  const base = s.tipo === 'habilidad' ? (STATE.catHabs||[]) : (STATE.catCerts||[]);
+  const q = sinAcentos(s.busqueda.trim());
+  const todos = [...new Set([...base, ...s.elegidos.keys()])];
+  const lista = todos.filter(n => !q || sinAcentos(n).includes(q))
+    .sort((a,b) => (s.elegidos.has(b) - s.elegidos.has(a)) || a.localeCompare(b,'es'));
+  const exacto = todos.some(n => sinAcentos(n) === q);
+  const esc = n => escHtml(n).replace(/'/g, "\\'");
+  let html = '';
+  if (q && !exacto) {
+    html += `<div class="sel-tile sel-nuevo" onclick="agregarTerminoNuevoSelector()"><i class="ti ti-plus" aria-hidden="true"></i><div class="sel-nombre">Agregar «${escHtml(s.busqueda.trim().toUpperCase())}»</div></div>`;
+  }
+  html += lista.map(n => {
+    const ya = s.yaEnProyecto.has(n);
+    const on = s.elegidos.has(n);
+    return `<div class="sel-tile${on?' on':''}${ya?' ya':''}" ${ya ? 'title="Ya está en el proyecto"' : `onclick="alternarTerminoSelector('${esc(n)}')"`}>
+      <i class="ti ti-${iconoTermino(s.tipo, n)}" aria-hidden="true"></i>
+      <div class="sel-nombre">${escHtml(n)}</div>
+      ${ya ? '<div class="sel-nivel" style="color:var(--text3)">Ya incluido</div>' : ''}
+      ${on && s.tipo === 'habilidad' ? `<div class="sel-nivel" onclick="event.stopPropagation()">
+        <button onclick="nivelTerminoSelector('${esc(n)}',-1)">−</button><span>Nivel ${s.elegidos.get(n)}</span><button onclick="nivelTerminoSelector('${esc(n)}',1)">+</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+  if (!html) html = '<div style="grid-column:1/-1;font-size:12px;color:var(--text3);padding:20px;text-align:center">Escribe un nombre para agregar uno nuevo.</div>';
+  document.getElementById('sel-grid').innerHTML = html;
+  const n = s.elegidos.size;
+  document.getElementById('sel-conteo').textContent = n ? `${n} seleccionado${n>1?'s':''}` : 'Ninguno seleccionado';
+}
+function alternarTerminoSelector(n) {
+  const s = STATE._sel;
+  if (s.elegidos.has(n)) s.elegidos.delete(n); else s.elegidos.set(n, s.tipo === 'habilidad' ? 5 : null);
+  pintarSelectorTerminos();
+}
+function nivelTerminoSelector(n, delta) {
+  const s = STATE._sel;
+  s.elegidos.set(n, Math.min(10, Math.max(1, (s.elegidos.get(n)||5) + delta)));
+  pintarSelectorTerminos();
+}
+function agregarTerminoNuevoSelector() {
+  const s = STATE._sel;
+  const n = s.busqueda.trim().toUpperCase();
+  if (!n) return;
+  s.elegidos.set(n, s.tipo === 'habilidad' ? 5 : null);
+  s.busqueda = '';
+  document.getElementById('sel-busqueda').value = '';
+  pintarSelectorTerminos();
+}
+function cerrarSelectorTerminos() {
+  const ov = document.getElementById('selector-overlay');
+  if (ov) ov.className = 'modal-overlay';
+  STATE._sel = null;
+}
+async function confirmarSelectorTerminos() {
+  const s = STATE._sel; if (!s) return;
+  if (s.destino === 'nuevo') {
+    if (s.tipo === 'habilidad') {
+      STATE._np_habilidades = [...s.elegidos].map(([nombre, nivel]) => ({ nombre, nivel }));
+      document.getElementById('np-habs-list').innerHTML = renderListaHabilidadesProyecto();
+    } else {
+      STATE._np_certificados = [...s.elegidos.keys()];
+      document.getElementById('np-certs-list').innerHTML = renderListaCertificadosProyecto();
+    }
+    cerrarSelectorTerminos();
+    return;
+  }
+  // Proyecto existente: se agregan uno por uno con los endpoints de siempre
+  const nuevos = [...s.elegidos].filter(([n]) => !s.yaEnProyecto.has(n));
+  let errores = 0;
+  for (const [nombre, nivel] of nuevos) {
+    const ruta = s.tipo === 'habilidad' ? 'habilidad-requerida' : 'certificado-requerido';
+    const params = new URLSearchParams(s.tipo === 'habilidad' ? { nombre, nivel } : { nombre });
+    const r = await fetch(`${API}/proyectos/proyectos/${s.proyectoId}/${ruta}?${params}`, { method: 'POST', headers: { 'Authorization': `Bearer ${STATE.token}` } });
+    if (!r.ok) errores++;
+  }
+  const pid = s.proyectoId;
+  cerrarSelectorTerminos();
+  if (nuevos.length) toast(errores ? `${nuevos.length - errores} agregado(s), ${errores} con error` : `${nuevos.length} agregado(s) al proyecto`, errores ? 'error' : undefined);
+  await loadProyectos(true);
+  cargarCatalogos();
+  verProyecto(pid);
+}
+
+// ─── ÍCONO PERSONALIZADO (Catálogo de términos, solo admin) ──────────────────
+function abrirSelectorIcono(tipo, nombre) {
+  let ov = document.getElementById('selector-overlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; ov.style.zIndex = 1100; document.body.appendChild(ov); }
+  ov.className = 'modal-overlay open';
+  ov.onclick = e => { if (e.target === ov) cerrarSelectorTerminos(); };
+  const actual = iconoTermino(tipo, nombre);
+  const propio = !!STATE.iconosTerminos?.[tipo]?.[nombre];
+  const esc = escHtml(nombre).replace(/'/g, "\\'");
+  ov.innerHTML = `
+    <div class="sel-card" style="max-width:560px">
+      <div class="sel-head">
+        <div style="font-weight:700;font-size:14px;color:var(--text)">Ícono para «${escHtml(nombre)}»</div>
+        <button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()"><i class="ti ti-x" aria-hidden="true"></i></button>
+      </div>
+      <div class="sel-grid-wrap"><div class="sel-grid sel-grid-iconos">
+        ${ICONOS_DISPONIBLES.map(ic => `<div class="sel-tile${ic===actual?' on':''}" title="${ic}" onclick="ejecutarConCarga(this, () => guardarIconoTermino('${tipo}','${esc}','${ic}'))"><i class="ti ti-${ic}" aria-hidden="true"></i></div>`).join('')}
+      </div></div>
+      <div class="sel-foot">
+        <span style="font-size:12px;color:var(--text2)">${propio ? 'Ícono elegido a mano' : 'Ícono automático'}</span>
+        ${propio ? `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => guardarIconoTermino('${tipo}','${esc}',''))"><i class="ti ti-refresh" aria-hidden="true"></i> Volver al automático</button>` : ''}
+      </div>
+    </div>`;
+}
+async function guardarIconoTermino(tipo, nombre, icono) {
+  const r = await api('PUT', '/empleados/catalogo/iconos', { tipo, nombre, icono });
+  if (!r) return;
+  STATE.iconosTerminos = await api('GET', '/empleados/catalogo/iconos') || STATE.iconosTerminos;
+  cerrarSelectorTerminos();
+  toast(icono ? 'Ícono actualizado' : 'Ícono automático restaurado');
+  renderCatalogo();
+}
+
+// ─── REPROGRAMAR FECHAS (cambio acordado, no es retraso) ─────────────────────
+function abrirReprogramar(proyectoId) {
+  const p = STATE.proyectos.find(x => x.id === proyectoId); if (!p) return;
+  const iniciado = !!p.fecha_inicio_real;
+  const durDias = Math.round((fechaLocal(p.fecha_fin_estimada) - fechaLocal(p.fecha_inicio)) / 86400000);
+  let ov = document.getElementById('selector-overlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; ov.style.zIndex = 1100; document.body.appendChild(ov); }
+  ov.className = 'modal-overlay open';
+  ov.onclick = e => { if (e.target === ov) cerrarSelectorTerminos(); };
+  ov.innerHTML = `
+    <div class="sel-card" style="max-width:460px">
+      <div class="sel-head">
+        <div style="font-weight:700;font-size:14px;color:var(--text)">Reprogramar fechas</div>
+        <button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()"><i class="ti ti-x" aria-hidden="true"></i></button>
+      </div>
+      <div style="padding:0 18px 6px;font-size:12px;color:var(--text2)">
+        Para cambios acordados (con el cliente, por logística). <strong>No cuenta como retraso</strong>: queda en el historial y se avisa al personal asignado.
+        ${iniciado ? '<div style="margin-top:6px;color:var(--amber)">El proyecto ya inició en sitio: solo se puede mover la fecha de fin.</div>' : ''}
+      </div>
+      <div style="padding:8px 18px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Actual: ${p.fecha_inicio} al ${p.fecha_fin_estimada}</div>
+        <div class="field-row">
+          <div class="field-group"><label class="field-label">NUEVO INICIO</label><input type="date" class="field-input" id="rep-inicio" value="${p.fecha_inicio}" ${iniciado?'disabled':''} onchange="if(document.getElementById('rep-mantener').checked){const d=fechaLocal(this.value);d.setDate(d.getDate()+${durDias});document.getElementById('rep-fin').value=isoLocal(d);}"></div>
+          <div class="field-group"><label class="field-label">NUEVO FIN ESTIMADO</label><input type="date" class="field-input" id="rep-fin" value="${p.fecha_fin_estimada}"></div>
+        </div>
+        ${iniciado ? '<input type="checkbox" id="rep-mantener" style="display:none">' : `<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);margin-top:8px;cursor:pointer"><input type="checkbox" id="rep-mantener" checked> Mantener la duración (${durDias + 1} día${durDias ? 's' : ''})</label>`}
+        <div class="field-group" style="margin-top:10px"><label class="field-label">MOTIVO</label><input class="field-input" id="rep-motivo" maxlength="300" placeholder="Ej. se acordó con el cliente iniciar el miércoles"></div>
+      </div>
+      <div class="sel-foot">
+        <span></span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()">Cancelar</button>
+          <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarReprogramacion('${p.id}'))"><i class="ti ti-calendar-event" aria-hidden="true"></i> Reprogramar</button>
+        </div>
+      </div>
+    </div>`;
+}
+async function guardarReprogramacion(proyectoId) {
+  const p = STATE.proyectos.find(x => x.id === proyectoId);
+  const ini = p.fecha_inicio_real ? p.fecha_inicio : document.getElementById('rep-inicio').value;
+  const fin = document.getElementById('rep-fin').value;
+  if (!ini || !fin) { toast('Indica las fechas', 'error'); return; }
+  if (fin < ini) { toast('La fecha de fin es anterior a la de inicio', 'error'); return; }
+  const q = new URLSearchParams({ fecha_inicio: ini, fecha_fin_estimada: fin });
+  const ver = await fetch(`${API}/proyectos/proyectos/${proyectoId}/fechas/verificar?${q}`, { headers: { 'Authorization': `Bearer ${STATE.token}` } });
+  const vj = await ver.json().catch(() => ({}));
+  if (!ver.ok) { toast(vj.detail || 'No se pudo verificar', 'error'); return; }
+  if ((vj.conflictos||[]).length && !confirm(`Con las fechas nuevas habría choques:\n\n• ${vj.conflictos.join('\n• ')}\n\n¿Reprogramar de todos modos?`)) return;
+  const r = await api('PATCH', `/proyectos/proyectos/${proyectoId}/fechas`, { fecha_inicio: ini, fecha_fin_estimada: fin, motivo: document.getElementById('rep-motivo').value.trim() });
+  if (!r) return;
+  cerrarSelectorTerminos();
+  toast(`Reprogramado: ${r.fecha_inicio} al ${r.fecha_fin_estimada}`);
+  await loadProyectos(true);
+  verProyecto(proyectoId);
+}
+
 // ─── DÍAS SIN TRABAJO (descanso / standby) ───────────────────────────────────
 const ESTADO_INACT = {
   pendiente: '<span class="badge badge-mant">PENDIENTE</span>',
