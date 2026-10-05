@@ -630,6 +630,7 @@ async function doLogin() {
     localStorage.setItem('w_nombre', d.nombre);
     localStorage.setItem('w_email', email);
     localStorage.setItem('w_emp_id', d.empleado_id || '');
+    if (d.debe_cambiar_password) localStorage.setItem('w_cambiar', '1'); else localStorage.removeItem('w_cambiar');
     initApp();
   } catch(e) { err.textContent = 'Sin conexión a la API.'; }
   finally { btn.textContent = 'Entrar'; btn.disabled = false; }
@@ -639,7 +640,7 @@ document.getElementById('login-pass').addEventListener('keydown', e => { if (e.k
 document.getElementById('login-email').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
 function doLogout() {
-  localStorage.clear();
+  Object.keys(localStorage).filter(k => k.startsWith('w_')).forEach(k => localStorage.removeItem(k));
   STATE = { token: null, user: null, rol: null, empleados: [], proyectos: [], equipos: [], incidencias: [], sesionEmp: null, modoTecnico: false };
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app').classList.remove('visible');
@@ -655,9 +656,15 @@ async function initApp() {
   document.getElementById('sb-rol').textContent = STATE.rol === 'administrador' ? 'Administrador' : STATE.rol === 'director_proyecto' ? 'Director de Proyecto' : 'Técnico de campo';
   const umTut = document.getElementById('um-tutorial');
   if (umTut) umTut.style.display = STATE.user?.empleado_id ? 'flex' : 'none';
-  if (typeof tutorialPrimeraVez === 'function') tutorialPrimeraVez();
+  if (localStorage.getItem('w_cambiar') === '1') mostrarCambioObligatorio();
+  else if (typeof tutorialPrimeraVez === 'function') tutorialPrimeraVez();
   api('GET', '/auth/auth/yo').then(yo => {
     if (!yo) return;
+    if (yo.debe_cambiar_password && !document.getElementById('cambio-obligatorio')) {
+      localStorage.setItem('w_cambiar', '1');
+      if (STATE.tutorial?.activo) terminarTutorial(true);
+      mostrarCambioObligatorio();
+    }
     STATE.user.puede_exportar = !!yo.puede_exportar;
     localStorage.setItem('w_exp', yo.puede_exportar ? '1' : '0');
   });
@@ -1705,7 +1712,7 @@ function openNuevoTecnico() {
       <div class="panel-section-title">DATOS PERSONALES</div>
       <div class="field-row"><div class="field-group"><label class="field-label">NOMBRE</label><input class="field-input" id="nt-nombre" placeholder="Nombre"></div><div class="field-group"><label class="field-label">APELLIDO</label><input class="field-input" id="nt-apellido" placeholder="Apellido"></div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">CORREO</label><input class="field-input" id="nt-email" type="email" placeholder="correo@walross.mx"></div></div>
-      <div class="field-row full"><div class="field-group"><label class="field-label">CONTRASEÑA TEMPORAL</label><input class="field-input" id="nt-pass" type="password" placeholder="Mínimo 8 caracteres"></div></div>
+      <div style="font-size:12px;color:var(--text2);margin-top:8px;display:flex;gap:6px;align-items:flex-start"><i class="ti ti-key" aria-hidden="true" style="margin-top:2px"></i><span>La <strong>contraseña temporal se genera automáticamente</strong>. Al crear la cuenta podrás copiarla o copiar un mensaje de invitación listo para enviar. En su primer ingreso, la persona deberá crear su propia contraseña.</span></div>
       ${puedeElegirRol ? `<div class="field-row full"><div class="field-group"><label class="field-label">ROL EN EL SISTEMA</label><select class="field-select" id="nt-rol"><option value="tecnico" selected>Técnico de campo</option><option value="director_proyecto">Director de proyecto (gerente)</option><option value="administrador">Administrador</option></select></div></div>` : ''}
     </div>
     <div class="panel-section">
@@ -1730,7 +1737,6 @@ async function guardarNuevoTecnico() {
   const nombre   = document.getElementById('nt-nombre')?.value.trim();
   const apellido = document.getElementById('nt-apellido')?.value.trim();
   const email    = document.getElementById('nt-email')?.value.trim();
-  const pass     = document.getElementById('nt-pass')?.value.trim();
   const nivel    = document.getElementById('nt-nivel')?.value;
   const ciudad   = document.getElementById('nt-ciudad')?.value.trim();
   const estado   = document.getElementById('nt-estado')?.value.trim();
@@ -1740,7 +1746,7 @@ async function guardarNuevoTecnico() {
   const finContrato  = document.getElementById('nt-fin-contrato')?.value || null;
   const rol      = document.getElementById('nt-rol')?.value || 'tecnico';
   const err      = document.getElementById('nt-err');
-  if (!nombre || !apellido || !email || !pass || !nivel || !ciudad) {
+  if (!nombre || !apellido || !email || !nivel || !ciudad) {
     err.textContent = 'Completa todos los campos obligatorios.'; return;
   }
   const todosEmpleados = await api('GET', '/empleados?solo_activos=false');   // TODOS, no solo activos, para no chocar con un ID que ya existe
@@ -1765,15 +1771,16 @@ async function guardarNuevoTecnico() {
 
   const r1raw = await fetch(`${API}/auth/auth/usuarios`, {
     method: 'POST', headers,
-    body: JSON.stringify({ id: id_usr, nombre: `${nombre} ${apellido}`, email, password: pass, rol, empleado_id: id_emp })
+    body: JSON.stringify({ id: id_usr, nombre: `${nombre} ${apellido}`, email, rol, empleado_id: id_emp })
   });
   if (r1raw.ok) {
+    const cuenta = await r1raw.json().catch(() => ({}));
     const r3 = await api('PUT', `/empleados/${id_emp}/perfil-estado`, { nuevo_estado: 'activo' });
     if (!r3) console.warn('No se pudo activar automáticamente el perfil del nuevo técnico.');
     await loadEmpleados(true);
     closePanel(null, true);
-    toast(`Técnico ${nombre} ${apellido} creado — ID: ${id_emp}`);
     renderEmpleados();
+    mostrarCredencialesNuevo(nombre, apellido, email, cuenta.password_temporal, rol);
   } else {
     const d = await r1raw.json().catch(()=>({}));
     err.textContent = `El perfil del técnico se creó, pero falló crear su usuario de acceso: ${d.detail || 'correo ya registrado o error del servidor'}.`;
@@ -6311,9 +6318,11 @@ async function reemplazarDocumento(i) {
 function openCambiarPassword() {
   openPanel('Cambiar contraseña', `
     <div class="panel-section">
-      <div class="panel-section-title">NUEVA CONTRASEÑA</div>
-      <div class="field-row full"><div class="field-group"><label class="field-label">NUEVA CONTRASEÑA</label><input class="field-input" id="cp-nueva" type="password" placeholder="Mínimo 8 caracteres"></div></div>
-      <div class="field-row full"><div class="field-group"><label class="field-label">CONFIRMAR CONTRASEÑA</label><input class="field-input" id="cp-conf" type="password" placeholder="Repite la contraseña"></div></div>
+      <div class="panel-section-title">CAMBIAR CONTRASEÑA</div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">CONTRASEÑA ACTUAL</label><input class="field-input cp-pass" id="cp-actual" type="password" autocomplete="current-password"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">NUEVA CONTRASEÑA</label><input class="field-input cp-pass" id="cp-nueva" type="password" placeholder="Mínimo 8 caracteres" autocomplete="new-password"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">CONFIRMAR NUEVA CONTRASEÑA</label><input class="field-input cp-pass" id="cp-conf" type="password" placeholder="Escríbela otra vez" autocomplete="new-password"></div></div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);margin-top:8px;cursor:pointer"><input type="checkbox" onchange="document.querySelectorAll('.cp-pass').forEach(i=>i.type=this.checked?'text':'password')"> Mostrar contraseñas</label>
       <div id="cp-err" style="color:var(--red-text);font-size:12px;margin-top:8px"></div>
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="cambiarPassword()"><i class="ti ti-check" aria-hidden="true"></i> Guardar</button>`);
@@ -6323,11 +6332,112 @@ async function cambiarPassword() {
   const nueva = document.getElementById('cp-nueva')?.value;
   const conf  = document.getElementById('cp-conf')?.value;
   const err   = document.getElementById('cp-err');
-  if (!nueva || nueva.length < 8) { err.textContent = 'Mínimo 8 caracteres.'; return; }
-  if (nueva !== conf) { err.textContent = 'Las contraseñas no coinciden.'; return; }
-  const r = await api('PUT', '/auth/auth/cambiar-password', { email: STATE.user.email, nueva_password: nueva });
+  const actual = document.getElementById('cp-actual')?.value;
+  if (!actual) { err.textContent = 'Escribe tu contraseña actual.'; return; }
+  if (!nueva || nueva.length < 8) { err.textContent = 'La nueva debe tener mínimo 8 caracteres.'; return; }
+  if (nueva !== conf) { err.textContent = 'La nueva contraseña y su confirmación no coinciden.'; return; }
+  const r = await api('PUT', '/auth/auth/cambiar-password', { password_actual: actual, nueva_password: nueva });
   if (r) { closePanel(null,true); toast('Contraseña actualizada'); }
-  else { err.textContent = 'Error al cambiar la contraseña.'; }
+  else { err.textContent = 'No se pudo cambiar. Revisa el mensaje en rojo.'; }
+}
+
+// ─── CUENTA NUEVA: credenciales e invitación ─────────────────────────────────
+function copiarTexto(texto, aviso) {
+  const ok = () => toast(aviso || 'Copiado');
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(texto).then(ok).catch(() => copiarTextoRespaldo(texto, ok));
+  else copiarTextoRespaldo(texto, ok);
+}
+function copiarTextoRespaldo(texto, ok) {
+  const ta = document.createElement('textarea'); ta.value = texto; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); ok(); } catch (e) { toast('No se pudo copiar; cópialo a mano', 'error'); }
+  ta.remove();
+}
+function mensajeInvitacion(nombre, email, pass) {
+  const liga = window.location.origin + window.location.pathname.replace(/index\.html$/, '');
+  const firma = STATE.user?.nombre || 'El equipo de Walross';
+  return `Hola, ${nombre}:
+
+Te damos la bienvenida a WorkSync, la plataforma de Walross Tech & Innovation para la asignación de personal, equipo y vehículos en los proyectos de campo.
+
+Ya tienes una cuenta activa. Para ingresar:
+
+• Liga: ${liga}
+• Correo: ${email}
+• Contraseña temporal: ${pass}
+
+Por seguridad, esta contraseña es de un solo uso: al entrar por primera vez, la plataforma te pedirá crear tu propia contraseña. Después encontrarás un breve recorrido guiado para conocer las funciones principales.
+
+Si tienes algún problema para ingresar, avísame.
+
+Saludos,
+${firma}`;
+}
+function mostrarCredencialesNuevo(nombre, apellido, email, pass, rol) {
+  STATE._credNueva = { nombre, email, pass };
+  const etiquetaRol = { tecnico: 'Técnico de campo', director_proyecto: 'Director de proyecto', administrador: 'Administrador' }[rol] || rol;
+  openPanel('Cuenta creada', `
+    <div class="panel-section">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <i class="ti ti-circle-check" aria-hidden="true" style="font-size:28px;color:var(--green)"></i>
+        <div><div style="font-size:14px;font-weight:700;color:var(--text)">${escHtml(nombre)} ${escHtml(apellido)}</div><div style="font-size:12px;color:var(--text2)">${etiquetaRol}</div></div>
+      </div>
+      <div style="background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:12px">
+        <div style="font-size:11px;color:var(--text3)">CORREO</div>
+        <div style="font-size:13px;color:var(--text);margin-bottom:10px">${escHtml(email)}</div>
+        <div style="font-size:11px;color:var(--text3)">CONTRASEÑA TEMPORAL</div>
+        <div style="font-family:var(--mono);font-size:20px;letter-spacing:1px;color:var(--text)">${pass ? escHtml(pass) : '—'}</div>
+      </div>
+      <div style="font-size:12px;color:var(--amber);margin-top:10px;display:flex;gap:6px"><i class="ti ti-alert-triangle" aria-hidden="true" style="margin-top:2px"></i><span>Esta contraseña <strong>solo se muestra ahora</strong>. Cópiala o envía la invitación antes de cerrar.</span></div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+        <button class="btn btn-primary" onclick="copiarTexto(mensajeInvitacion(STATE._credNueva.nombre, STATE._credNueva.email, STATE._credNueva.pass), 'Mensaje de invitación copiado')"><i class="ti ti-message-share" aria-hidden="true"></i> Copiar mensaje de invitación</button>
+        <button class="btn btn-ghost" onclick="copiarTexto(STATE._credNueva.pass, 'Contraseña copiada')"><i class="ti ti-copy" aria-hidden="true"></i> Copiar contraseña</button>
+      </div>
+      <div class="panel-section-title" style="margin-top:18px">VISTA PREVIA DEL MENSAJE</div>
+      <div style="white-space:pre-wrap;font-size:12px;line-height:1.5;color:var(--text2);background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:12px">${escHtml(mensajeInvitacion(nombre, email, pass || '—'))}</div>
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Listo</button>`);
+}
+
+// ─── CAMBIO DE CONTRASEÑA OBLIGATORIO (primer ingreso) ──────────────────────
+function mostrarCambioObligatorio() {
+  if (document.getElementById('cambio-obligatorio')) return;
+  const ov = document.createElement('div');
+  ov.id = 'cambio-obligatorio';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.innerHTML = `
+    <div class="sel-card" style="max-width:400px;padding:22px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <i class="ti ti-lock" aria-hidden="true" style="font-size:24px;color:var(--red)"></i>
+        <div style="font-size:16px;font-weight:700;color:var(--text)">Crea tu contraseña</div>
+      </div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:14px">Hola, ${escHtml((STATE.user?.nombre || '').split(' ')[0])}. Entraste con una contraseña temporal. Por seguridad, crea ahora una contraseña personal; la temporal dejará de funcionar.</div>
+      <div class="field-group"><label class="field-label">NUEVA CONTRASEÑA</label><input class="field-input co-pass" id="co-nueva" type="password" placeholder="Mínimo 8 caracteres" autocomplete="new-password" oninput="validarCambioObligatorio()"></div>
+      <div class="field-group" style="margin-top:10px"><label class="field-label">CONFIRMAR CONTRASEÑA</label><input class="field-input co-pass" id="co-conf" type="password" placeholder="Escríbela otra vez" autocomplete="new-password" oninput="validarCambioObligatorio()"></div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);margin-top:8px;cursor:pointer"><input type="checkbox" onchange="document.querySelectorAll('.co-pass').forEach(i=>i.type=this.checked?'text':'password')"> Mostrar contraseñas</label>
+      <div id="co-reglas" style="font-size:12px;margin-top:10px;line-height:1.7"></div>
+      <button class="btn btn-primary" id="co-btn" style="width:100%;margin-top:12px" disabled onclick="ejecutarConCarga(this, guardarCambioObligatorio, 'Guardando...')"><i class="ti ti-check" aria-hidden="true"></i> Guardar y continuar</button>
+      <div style="text-align:center;margin-top:12px"><a href="#" onclick="event.preventDefault();document.getElementById('cambio-obligatorio').remove();doLogout()" style="font-size:12px;color:var(--text3)">Cerrar sesión</a></div>
+    </div>`;
+  document.body.appendChild(ov);
+  validarCambioObligatorio();
+  setTimeout(() => document.getElementById('co-nueva')?.focus(), 50);
+}
+function validarCambioObligatorio() {
+  const n = document.getElementById('co-nueva')?.value || '', c = document.getElementById('co-conf')?.value || '';
+  const reglas = [[n.length >= 8, 'Al menos 8 caracteres'], [n.length > 0 && n === c, 'Las dos coinciden']];
+  document.getElementById('co-reglas').innerHTML = reglas.map(([ok, t]) =>
+    `<div style="color:${ok ? 'var(--green)' : 'var(--text3)'}"><i class="ti ${ok ? 'ti-circle-check' : 'ti-circle'}" aria-hidden="true"></i> ${t}</div>`).join('');
+  document.getElementById('co-btn').disabled = !reglas.every(r => r[0]);
+}
+async function guardarCambioObligatorio() {
+  const nueva = document.getElementById('co-nueva').value;
+  const r = await api('PUT', '/auth/auth/cambiar-password', { nueva_password: nueva });
+  if (!r) return;
+  localStorage.removeItem('w_cambiar');
+  document.getElementById('cambio-obligatorio')?.remove();
+  toast('Contraseña creada. ¡Bienvenido!');
+  if (typeof tutorialPrimeraVez === 'function') tutorialPrimeraVez();
 }
 
 // ─── MI GANTT ─────────────────────────────────────────────────────────────────
