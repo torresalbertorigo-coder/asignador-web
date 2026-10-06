@@ -5562,19 +5562,23 @@ async function buscarFechasReprogramar(proyectoId) {
       <div class="bus-op" style="padding:10px">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
           <div style="font-weight:700;color:var(--text);font-size:13px">${i === 0 ? '<span class="bus-tag">MÁS PRÓXIMA</span> ' : ''}${fechaLarga(o.inicio)} → ${fechaLarga(o.fin)}</div>
-          <button class="btn btn-primary btn-sm" onclick="usarFechasReprogramar(${i})">Usar</button>
+          <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => usarFechasReprogramar(${i}, '${proyectoId}'))">Usar</button>
         </div>
         <div style="font-size:11px;color:var(--text2);margin-top:4px">${o.equipo_de_trabajo.map(x => escHtml(x.nombre)).join(', ')}${[...o.equipo, ...o.vehiculos].map(a => ' · ' + a.sugeridos.map(escHtml).join(', ')).join('')}</div>
       </div>`).join('');
 }
-function usarFechasReprogramar(i) {
+// "Usar" aplica la reprogramación directo (con una sola confirmación)
+async function usarFechasReprogramar(i, proyectoId) {
   const o = STATE._busRep.opciones[i];
+  if (!confirm(`¿Reprogramar el proyecto al ${fechaLarga(o.inicio)} → ${fechaLarga(o.fin)}?`)) return;
   document.getElementById('rep-inicio').value = o.inicio;
   document.getElementById('rep-fin').value = o.fin;
-  const ini = document.getElementById('rep-inicio');
-  ini.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  [ini, document.getElementById('rep-fin')].forEach(el => { el.classList.add('np-guia-on'); setTimeout(() => el.classList.remove('np-guia-on'), 1800); });
-  toast(`Fechas elegidas: ${fechaLarga(o.inicio)} → ${fechaLarga(o.fin)}. Escribe el motivo y reprograma.`);
+  const motivo = document.getElementById('rep-motivo');
+  if (!motivo.value.trim()) {
+    const mismo = document.querySelector('input[name="rep-modo"]:checked')?.value === 'mismo';
+    motivo.value = `Fecha sugerida por el buscador (${mismo ? 'mismo equipo de trabajo' : 'cualquier personal'})`;
+  }
+  await guardarReprogramacion(proyectoId);
 }
 
 async function guardarReprogramacion(proyectoId) {
