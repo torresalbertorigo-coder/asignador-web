@@ -341,6 +341,14 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .det-sub{font-size:11px;color:var(--text2)}
 .det-barra{height:5px;border-radius:3px;background:var(--border);margin-top:4px;overflow:hidden}
 .det-barra span{display:block;height:100%;background:var(--red);border-radius:3px}
+.bus-personas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+@media (max-width:520px){.bus-personas{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.bus-persona{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font:inherit;font-size:12px;font-weight:600;cursor:pointer;text-align:left;min-width:0}
+.bus-persona>span:first-of-type{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.bus-persona>i{font-size:15px;color:var(--text3)}
+.bus-persona:hover{border-color:var(--border2)}
+.bus-persona.on{border-color:var(--red);background:rgba(227,28,34,.08)}
+.bus-persona.on>i{color:var(--red)}
 .bus-op{border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;background:var(--surface)}
 .bus-tag{font-size:9px;letter-spacing:1px;background:var(--red);color:#fff;border-radius:4px;padding:2px 6px;vertical-align:middle}
 .bus-aviso{font-size:12px;color:var(--text2);background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:6px;padding:10px 12px;margin-bottom:8px;line-height:1.45}
@@ -2319,7 +2327,7 @@ function openNuevoProyecto() {
         <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.45">Con el personal requerido y los requisitos que elegiste arriba, busca la <strong>fecha más próxima en que todo cuadra</strong>. Buscar no guarda nada.</div>
         <div class="field-row">
           <div class="field-group"><label class="field-label">DURACIÓN (DÍAS)</label><input class="field-input" id="np-bus-dur" type="number" min="1" max="365" value="3"></div>
-          <div class="field-group"><label class="field-label">A PARTIR DE</label><input class="field-input" id="np-bus-desde" type="date"></div>
+          <div class="field-group"><label class="field-label">A PARTIR DE <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">(mín. 2 días de anticipación)</span></label><input class="field-input" id="np-bus-desde" type="date"></div>
         </div>
         <div class="field-row" style="margin-top:8px">
           <div class="field-group"><label class="field-label">TERMINAR A MÁS TARDAR (OPCIONAL)</label><input class="field-input" id="np-bus-hasta" type="date"></div>
@@ -6472,7 +6480,9 @@ function alternarBuscadorFechas(activo) {
   bus.style.display = activo ? 'block' : 'none';
   if (activo) {
     const d = document.getElementById('np-bus-desde');
-    if (!d.value) d.value = isoLocal(new Date());
+    const minimo = new Date(); minimo.setDate(minimo.getDate() + 2);   // un proyecto no arranca antes de pasado mañana
+    d.min = isoLocal(minimo);
+    if (!d.value || d.value < d.min) d.value = d.min;
     iniciarGuiaRequisitos();
   } else terminarGuiaRequisitos();
 }
@@ -6556,7 +6566,7 @@ async function buscarFechasProyecto() {
   cont.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:10px 0"><i class="ti ti-loader-2" aria-hidden="true"></i> Buscando la fecha más próxima…</div>';
   const r = await api('POST', '/planeacion/buscar-fechas', cuerpo);
   if (!r) { cont.innerHTML = ''; return; }
-  STATE._busqueda = { ...r, duracion };
+  STATE._busqueda = { ...r, duracion, personaSel: null };
   pintarOpcionesFechas();
   setTimeout(() => desplazarPanelA(cont), 80);
 }
@@ -6567,25 +6577,54 @@ function pintarOpcionesFechas() {
     cont.innerHTML = `<div class="bus-aviso"><i class="ti ti-calendar-x" aria-hidden="true"></i> ${escHtml(r.motivo || 'No se encontraron fechas.')}</div>`;
     return;
   }
-  const etiquetaEq = t => etiquetaEquipo(t), etiquetaVeh = t => etiquetaVehiculo(t);
+  const otras = r.otras_personas || [];
   cont.innerHTML = (r.modo === 'con_brecha'
       ? `<div class="bus-aviso"><i class="ti ti-alert-triangle" aria-hidden="true"></i> No hay fechas con personal que cumpla <strong>todo</strong> hasta el ${r.busco_hasta}. Estas opciones incluyen personas con <strong>brecha técnica</strong> (algo capacitable).</div>` : '')
-    + r.opciones.map((o, i) => `
+    + r.opciones.map((o, i) => tarjetaOpcionFechas(o, `g:${i}`, i === 0)).join('')
+    + (otras.length ? `
+      <div class="panel-section-title" style="margin:16px 0 8px">OTRAS PERSONAS QUE PODRÍAN</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Toca un nombre para ver sus fechas más próximas.</div>
+      <div class="bus-personas">${otras.map((p, k) => `
+        <button class="bus-persona ${r.personaSel === k ? 'on' : ''}" onclick="elegirOtraPersona(${k})">
+          <i class="ti ti-user" aria-hidden="true"></i><span>${escHtml(p.nombre)}</span>
+          <span class="chip-extra">${fechaLarga(p.opciones[0].inicio)}</span>
+        </button>`).join('')}</div>
+      <div id="bus-persona-res">${r.personaSel != null && otras[r.personaSel] ? `
+        <div class="panel-section-title" style="margin:14px 0 8px">FECHAS CON ${escHtml(otras[r.personaSel].nombre.toUpperCase())}</div>
+        ${otras[r.personaSel].opciones.map((o, i) => tarjetaOpcionFechas(o, `p:${r.personaSel}:${i}`, false)).join('')}` : ''}</div>` : '');
+}
+function opcionPorRef(ref) {
+  const [t, a, b2] = ref.split(':');
+  return t === 'g' ? STATE._busqueda.opciones[+a] : STATE._busqueda.otras_personas[+a].opciones[+b2];
+}
+function elegirOtraPersona(k) {
+  const r = STATE._busqueda;
+  r.personaSel = r.personaSel === k ? null : k;
+  pintarOpcionesFechas();
+  if (r.personaSel != null) setTimeout(() => desplazarPanelA(document.getElementById('bus-persona-res')), 60);
+}
+function tarjetaOpcionFechas(o, ref, masProxima) {
+  return `
     <div class="bus-op">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
-        <div style="font-weight:700;color:var(--text)">${i === 0 ? '<span class="bus-tag">MÁS PRÓXIMA</span> ' : ''}${fechaLarga(o.inicio)} → ${fechaLarga(o.fin)}</div>
+        <div style="font-weight:700;color:var(--text)">${masProxima ? '<span class="bus-tag">MÁS PRÓXIMA</span> ' : ''}${fechaLarga(o.inicio)} → ${fechaLarga(o.fin)}</div>
         <div style="font-size:11px;color:var(--text3)">${o.personas_que_cumplen} persona(s) cumplen todo · necesitas ${o.personas_requeridas}</div>
       </div>
-      <div style="margin-top:8px">${o.equipo_de_trabajo.map((p, k) => `<span class="chip-termino chip-clic" onclick="verPersonaBusqueda(${i}, ${k})" title="Ver detalle"><i class="ti ${p.brecha ? 'ti-alert-triangle' : 'ti-user-check'}" aria-hidden="true" style="color:${p.brecha ? 'var(--amber)' : 'var(--green)'}"></i>${escHtml(p.nombre)}<span class="chip-extra">${Math.round(p.puntaje)} pts${p.brecha ? ' · brecha' : ''}</span></span>`).join('')}</div>
-      ${[...o.equipo.map(e => `${etiquetaEq(e.tipo)}: ${e.libres} libre(s) de ${e.requeridos} necesario(s)${e.sugeridos.length ? ' · ' + e.sugeridos.map(escHtml).join(', ') : ''}`),
-         ...o.vehiculos.map(v => `${etiquetaVeh(v.tipo)}: ${v.libres} libre(s) de ${v.requeridos} necesario(s)${v.sugeridos.length ? ' · ' + v.sugeridos.map(escHtml).join(', ') : ''}`)]
+      <div style="margin-top:8px">${o.equipo_de_trabajo.map((p, k) => `<span class="chip-termino chip-clic" onclick="verPersonaRef('${ref}', ${k})" title="Ver detalle"><i class="ti ${p.brecha ? 'ti-alert-triangle' : 'ti-user-check'}" aria-hidden="true" style="color:${p.brecha ? 'var(--amber)' : 'var(--green)'}"></i>${escHtml(p.nombre)}<span class="chip-extra">${Math.round(p.puntaje)} pts${p.brecha ? ' · brecha' : ''}</span></span>`).join('')}</div>
+      ${[...o.equipo.map(e => `${etiquetaEquipo(e.tipo)}: ${e.libres} libre(s) de ${e.requeridos} necesario(s)${e.sugeridos.length ? ' · ' + e.sugeridos.map(escHtml).join(', ') : ''}`),
+         ...o.vehiculos.map(v => `${etiquetaVehiculo(v.tipo)}: ${v.libres} libre(s) de ${v.requeridos} necesario(s)${v.sugeridos.length ? ' · ' + v.sugeridos.map(escHtml).join(', ') : ''}`)]
          .map(t => `<div style="font-size:11px;color:var(--text2);margin-top:2px"><i class="ti ti-check" aria-hidden="true" style="color:var(--green)"></i> ${t}</div>`).join('')}
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-        <button class="btn btn-primary btn-sm" onclick="usarOpcionFechas(${i})"><i class="ti ti-calendar-check" aria-hidden="true"></i> Usar estas fechas</button>
-        <button class="btn btn-ghost btn-sm" onclick="copiarPropuestaFechas(${i})"><i class="ti ti-copy" aria-hidden="true"></i> Copiar propuesta tentativa</button>
+        <button class="btn btn-primary btn-sm" onclick="usarOpcionFechas('${ref}')"><i class="ti ti-calendar-check" aria-hidden="true"></i> Usar estas fechas</button>
+        <button class="btn btn-ghost btn-sm" onclick="copiarPropuestaFechas('${ref}')"><i class="ti ti-copy" aria-hidden="true"></i> Copiar propuesta tentativa</button>
       </div>
-    </div>`).join('');
+    </div>`;
 }
+function verPersonaRef(ref, k) {
+  const p = opcionPorRef(ref).equipo_de_trabajo[k];
+  abrirDetallePersona({ nombre: p.nombre, puntaje: p.puntaje, detalle: p.detalle });
+}
+
 // Ventana con el detalle de una persona sugerida: qué cumple, qué le falta y por qué ese puntaje
 function verPersonaBusqueda(i, k) {
   const p = STATE._busqueda.opciones[i].equipo_de_trabajo[k];
@@ -6653,8 +6692,8 @@ function abrirDetallePersona({ nombre, puntaje, detalle, filtros, pie }) {
     </div>`;
 }
 
-function usarOpcionFechas(i) {
-  const o = STATE._busqueda.opciones[i];
+function usarOpcionFechas(ref) {
+  const o = typeof ref === 'number' ? STATE._busqueda.opciones[ref] : opcionPorRef(ref);
   document.getElementById('np-inicio').value = o.inicio;
   document.getElementById('np-fin').value = o.fin;
   document.getElementById('np-buscar').checked = false;
@@ -6671,8 +6710,8 @@ function usarOpcionFechas(i) {
   fijas.scrollIntoView({ behavior: 'smooth', block: 'center' });
   setTimeout(() => fijas.classList.remove('np-guia-on'), 2200);
 }
-function copiarPropuestaFechas(i) {
-  const o = STATE._busqueda.opciones[i];
+function copiarPropuestaFechas(ref) {
+  const o = typeof ref === 'number' ? STATE._busqueda.opciones[ref] : opcionPorRef(ref);
   const nombre = document.getElementById('np-nombre')?.value.trim() || 'el proyecto';
   const cliente = document.getElementById('np-cliente')?.value.trim();
   const largo = iso => fechaLocal(iso).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
