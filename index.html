@@ -451,6 +451,54 @@ tbody tr:hover .td-action i{color:var(--text2)}
   .eval-config{flex-direction:column}
   .field-row{grid-template-columns:1fr}
   .panel-side{width:100vw}
+
+  /* ── Optimización para celular (solo pantallas chicas; escritorio sin cambios) ── */
+  /* Menú lateral: por encima del mapa y con fondo que lo cierra al tocar fuera */
+  .sidebar.mobile-open{z-index:2100;width:82vw;max-width:300px;box-shadow:8px 0 30px rgba(0,0,0,.5)}
+  #sidebar-fondo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2050}
+  #sidebar-fondo.on{display:block}
+
+  /* Barra superior: título que se recorta y botones solo con ícono */
+  .topbar{padding:0 10px;gap:8px}
+  .topbar>div:first-child{min-width:0;flex:1}
+  .page-title{min-width:0;font-size:14px}
+  .page-title span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .topbar>div:last-child{gap:8px!important}
+  .topbar-right{gap:6px}
+  .topbar-right .btn{font-size:0;gap:0;padding:7px 9px;min-height:34px}
+  .topbar-right .btn i{font-size:17px;margin:0}
+
+  /* Tablas: se desplazan de lado en vez de cortarse; encabezado en columna */
+  .table-section{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .table-header{flex-wrap:wrap;gap:8px;align-items:stretch}
+  .table-header>*{min-width:0}
+  .table-header>div{flex:1 1 100%;flex-wrap:wrap;gap:8px}
+  .search-box{max-width:none!important;min-width:0;flex:1 1 100%}
+  .table-header .field-select{flex:1 1 100%}
+  th,td{padding:8px 10px}
+  td{font-size:12.5px}
+
+  .filter-bar-inner{flex-wrap:wrap!important;gap:8px;width:100%}
+  .filter-bar-inner .search-box{flex:1 1 100%!important;width:100%}
+  .filter-bar-inner .field-select{flex:1 1 calc(50% - 4px);min-width:0}
+
+  /* Barra inferior: se desliza de lado si no caben todas las opciones */
+  .mobile-nav-items{overflow-x:auto;justify-content:flex-start;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .mobile-nav-items::-webkit-scrollbar{display:none}
+  .mobile-nav-item{flex:0 0 auto;padding:4px 11px;min-width:64px}
+
+  /* Gantt: nombres angostos y fijos a la izquierda; se ven muchos más días */
+  #gantt-export-area .table-header{flex-direction:column;align-items:flex-start;gap:4px}
+  #gantt-export-area .table-header .btn{margin-left:0!important}
+  .gantt-table th:first-child{min-width:0!important;width:92px;max-width:92px;position:sticky;left:0;z-index:3}
+  .gantt-name{min-width:0;width:92px;max-width:92px;white-space:normal;font-size:11px;line-height:1.25;padding:3px 6px;position:sticky;left:0;z-index:2}
+  .gantt-nom{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .gantt-table th{padding:5px 3px}
+
+  /* Toques más cómodos y ventanas que no se salen */
+  .btn-sm{min-height:32px}
+  .sel-card{max-height:92vh;border-radius:10px}
+  .notif-dropdown,#notif-dropdown{max-width:calc(100vw - 16px)}
 }.cal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .cal-monthlabel{font-size:14px;font-weight:600;color:var(--text);text-transform:capitalize}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
@@ -465,6 +513,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 </head>
 <body>
 
+<div id="sidebar-fondo" onclick="cerrarSidebarMovil()"></div>
 <!-- ── LOGIN ─────────────────────────────────────────────────────────── -->
 <div id="login-screen">
   <div class="login-card">
@@ -972,6 +1021,7 @@ const RENDERERS = {
 
 function showSection(sec) {
   STATE._seccion = sec;
+  if (window.innerWidth <= 768) cerrarSidebarMovil();   // al elegir una opción del menú en celular, se cierra
   document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(el => {
     el.classList.toggle('active', el.dataset.sec === sec);
   });
@@ -987,6 +1037,13 @@ function toggleSidebar() {
   const sb = document.getElementById('sidebar');
   sb.classList.toggle('mobile-open');
   sb.classList.toggle('collapsed');
+  // En celular: fondo oscuro detrás del menú; tocarlo lo cierra
+  document.getElementById('sidebar-fondo')?.classList.toggle('on', sb.classList.contains('mobile-open') && window.innerWidth <= 768);
+}
+function cerrarSidebarMovil() {
+  const sb = document.getElementById('sidebar');
+  if (sb?.classList.contains('mobile-open')) { sb.classList.remove('mobile-open'); sb.classList.remove('collapsed'); }
+  document.getElementById('sidebar-fondo')?.classList.remove('on');
 }
 
 // ─── API HELPERS ──────────────────────────────────────────────────────────────
@@ -2530,7 +2587,7 @@ async function renderGantt() {
           </tr></thead>
           <tbody>
             ${empsGantt.map(e=>`<tr>
-              <td class="gantt-name" style="cursor:pointer" onclick="abrirCalendarioMensual('${e.id}','${(e.nombre+' '+e.apellido).replace(/'/g,"\\'")}',0)">${e.nombre} ${e.apellido}</td>
+              <td class="gantt-name" style="cursor:pointer" onclick="abrirCalendarioMensual('${e.id}','${(e.nombre+' '+e.apellido).replace(/'/g,"\\'")}',0)"><span class="gantt-nom">${e.nombre} ${e.apellido}</span></td>
               ${cols.map(d=>{
                 const isHoy = d.toDateString() === hoy;
                 const isWknd = d.getDay()===0||d.getDay()===6;
