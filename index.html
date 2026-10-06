@@ -324,6 +324,12 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .btn-checar.salida{background:#1F2937;box-shadow:inset 0 0 0 2px var(--red)}
 .btn-checar:active{transform:scale(.98)}
 .btn-checar:disabled{filter:grayscale(.6) opacity(.7);cursor:default}
+.np-guia-on{outline:2px solid var(--red);outline-offset:6px;border-radius:8px;box-shadow:0 0 0 10px rgba(227,28,34,.07);transition:outline-color .2s,box-shadow .2s}
+#np-guia{position:sticky;bottom:-1px;z-index:5;margin:14px -4px 0;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:10px 12px;box-shadow:0 -8px 24px rgba(0,0,0,.35)}
+.np-guia-pasos{display:flex;gap:4px;margin-bottom:8px}
+.np-guia-pasos span{flex:1;height:4px;border-radius:2px;background:var(--border);cursor:pointer}
+.np-guia-pasos span.hecho{background:rgba(227,28,34,.5)}
+.np-guia-pasos span.actual{background:var(--red)}
 .bus-op{border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;background:var(--surface)}
 .bus-tag{font-size:9px;letter-spacing:1px;background:var(--red);color:#fff;border-radius:4px;padding:2px 6px;vertical-align:middle}
 .bus-aviso{font-size:12px;color:var(--text2);background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:6px;padding:10px 12px;margin-bottom:8px;line-height:1.45}
@@ -2296,8 +2302,10 @@ function openNuevoProyecto() {
         <div class="field-group"><label class="field-label">FECHA INICIO</label><input class="field-input" id="np-inicio" type="date"></div>
         <div class="field-group"><label class="field-label">FECHA FIN EST.</label><input class="field-input" id="np-fin" type="date"></div>
       </div>
+      <div id="np-bus-nota" style="display:none;font-size:12px;color:var(--text2);background:var(--input-bg);border:1px dashed var(--border2);border-radius:8px;padding:10px 12px;margin-bottom:10px"><i class="ti ti-arrow-down" aria-hidden="true"></i> Primero elige los requisitos abajo; la búsqueda de fechas está <strong>al final del formulario</strong>.</div>
       <div id="np-buscador" style="display:none;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px">
-        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.45">Usa el personal requerido y los requisitos que elijas abajo (habilidades, certificados, equipo y vehículos) para encontrar la <strong>fecha más próxima en que todo cuadra</strong>. Buscar no guarda nada.</div>
+        <div class="panel-section-title" style="margin-bottom:8px">BUSCAR FECHA MÁS PRÓXIMA</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.45">Con el personal requerido y los requisitos que elegiste arriba, busca la <strong>fecha más próxima en que todo cuadra</strong>. Buscar no guarda nada.</div>
         <div class="field-row">
           <div class="field-group"><label class="field-label">DURACIÓN (DÍAS)</label><input class="field-input" id="np-bus-dur" type="number" min="1" max="365" value="3"></div>
           <div class="field-group"><label class="field-label">A PARTIR DE</label><input class="field-input" id="np-bus-desde" type="date"></div>
@@ -2309,22 +2317,22 @@ function openNuevoProyecto() {
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="np-bus-eq" checked> Considerar equipo</label>
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="np-bus-veh" checked> Considerar vehículos</label>
         </div>
-        <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="ejecutarConCarga(this, buscarFechasProyecto, 'Buscando...')"><i class="ti ti-calendar-search" aria-hidden="true"></i> Buscar fechas</button>
+        <button class="btn btn-primary btn-sm" id="np-bus-btn" style="margin-top:12px" onclick="ejecutarConCarga(this, buscarFechasProyecto, 'Buscando...')"><i class="ti ti-calendar-search" aria-hidden="true"></i> Buscar fechas</button>
         <div id="np-bus-res" style="margin-top:12px"></div>
       </div>
       <div id="np-sugerido"></div>
     </div>
-    <div class="panel-section">
+    <div class="panel-section" id="np-sec-habs">
       <div class="panel-section-title">HABILIDADES OPERATIVAS REQUERIDAS</div>
       <div id="np-habs-list" style="margin-bottom:8px">${renderListaHabilidadesProyecto()}</div>
       <button class="btn btn-ghost btn-sm" onclick="abrirSelectorTerminos('habilidad','nuevo')"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Elegir habilidades</button>
     </div>
-    <div class="panel-section">
+    <div class="panel-section" id="np-sec-certs">
       <div class="panel-section-title">CERTIFICADOS TÉCNICOS REQUERIDOS</div>
       <div id="np-certs-list" style="margin-bottom:8px">${renderListaCertificadosProyecto()}</div>
       <button class="btn btn-ghost btn-sm" onclick="abrirSelectorTerminos('certificado','nuevo')"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Elegir certificados</button>
     </div>
-    <div class="panel-section">
+    <div class="panel-section" id="np-sec-equipo">
       <div class="panel-section-title">EQUIPO REQUERIDO</div>
       <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);margin-bottom:12px;cursor:pointer">
         <input type="checkbox" id="np-sin-equipo" onchange="document.getElementById('np-equipo-section').style.display=this.checked?'none':'block'">
@@ -2335,7 +2343,7 @@ function openNuevoProyecto() {
         <button class="btn btn-ghost btn-sm" onclick="abrirSelectorTerminos('equipo','nuevo')"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Elegir equipo</button>
       </div>
     </div>
-    <div class="panel-section">
+    <div class="panel-section" id="np-sec-veh">
       <div class="panel-section-title">VEHÍCULOS REQUERIDOS</div>
       <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);margin-bottom:12px;cursor:pointer">
         <input type="checkbox" id="np-sin-vehiculo" checked onchange="document.getElementById('np-vehiculo-section').style.display=this.checked?'none':'block'">
@@ -2346,7 +2354,7 @@ function openNuevoProyecto() {
         <button class="btn btn-ghost btn-sm" onclick="abrirSelectorTerminos('vehiculo','nuevo')"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Elegir vehículos</button>
       </div>
     </div>
-    <div class="panel-section">
+    <div class="panel-section" id="np-sec-ubic">
       <div class="panel-section-title">UBICACIÓN</div>
       <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD</label><input class="field-input" id="np-ciudad" placeholder="Ciudad del proyecto"></div><div class="field-group"><label class="field-label">ESTADO</label><select class="field-select" id="np-estado"><option value="">Selecciona...</option>${ESTADOS_MX.map(e=>`<option value="${e}">${e}</option>`).join('')}</select></div></div>
       <div class="field-row" style="margin-top:8px">
@@ -2354,6 +2362,8 @@ function openNuevoProyecto() {
       </div>
       <p style="font-size:11px;color:var(--text3);margin-top:6px">Si el sitio está retirado de la ciudad (línea de transmisión, parque eólico, etc.), pega aquí el par de números tal cual te lo da Google Maps (mantén presionado el punto en el mapa y cópialo). Si lo dejas vacío, se calcula automáticamente a partir de la ciudad.</p>
     </div>
+    <div id="np-buscador-final"></div>
+    <div id="np-guia-lugar"></div>
     <div id="np-err" style="color:var(--red-text);font-size:12px;margin-top:8px"></div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, guardarNuevoProyecto)"><i class="ti ti-check" aria-hidden="true"></i> Crear proyecto</button>`);
 }
@@ -6442,12 +6452,70 @@ async function guardarContacto(empId, propio) {
 
 // ─── BUSCADOR DE FECHAS ("cazar fechas") en Nuevo proyecto ──────────────────
 function alternarBuscadorFechas(activo) {
+  const bus = document.getElementById('np-buscador');
   document.getElementById('np-fechas-fijas').style.display = activo ? 'none' : 'flex';
-  document.getElementById('np-buscador').style.display = activo ? 'block' : 'none';
+  document.getElementById('np-bus-nota').style.display = activo ? 'block' : 'none';
+  // El buscador vive al final: primero se eligen requisitos, al último se busca
+  const destino = document.getElementById('np-buscador-final');
+  if (activo && destino && bus.parentElement !== destino) destino.appendChild(bus);
+  bus.style.display = activo ? 'block' : 'none';
   if (activo) {
     const d = document.getElementById('np-bus-desde');
     if (!d.value) d.value = isoLocal(new Date());
+    iniciarGuiaRequisitos();
+  } else terminarGuiaRequisitos();
+}
+
+// ─── Recorrido guiado de requisitos (al marcar "buscar la fecha más próxima") ──
+const PASOS_GUIA_NP = [
+  { id: 'np-sec-habs',   titulo: 'Habilidades del personal', texto: 'Elige qué habilidades se necesitan y su nivel mínimo.' },
+  { id: 'np-sec-certs',  titulo: 'Certificados',             texto: 'Elige los certificados que debe tener el personal.' },
+  { id: 'np-sec-equipo', titulo: 'Equipo',                   texto: 'Elige el equipo y cuántas unidades. Si no aplica, marca "No requiere equipo".' },
+  { id: 'np-sec-veh',    titulo: 'Vehículos',                texto: 'Desmarca "No requiere vehículo" y elige cuáles, si aplica.' },
+  { id: 'np-sec-ubic',   titulo: 'Ubicación',                texto: 'La ciudad o coordenadas ayudan a priorizar al personal más cercano.' },
+  { id: 'np-buscador',   titulo: 'Buscar fechas',            texto: 'Revisa la duración y desde cuándo puede empezar, y busca.' },
+];
+function iniciarGuiaRequisitos() {
+  let barra = document.getElementById('np-guia');
+  if (!barra) {
+    barra = document.createElement('div');
+    barra.id = 'np-guia';
+    document.getElementById('panel-body').appendChild(barra);   // hijo directo del área con scroll: así se queda fija abajo
   }
+  STATE._guiaNp = 0;
+  setTimeout(() => mostrarPasoGuiaNp(0), 120);
+}
+function mostrarPasoGuiaNp(i) {
+  STATE._guiaNp = i;
+  const paso = PASOS_GUIA_NP[i];
+  document.querySelectorAll('.np-guia-on').forEach(el => el.classList.remove('np-guia-on'));
+  const sec = document.getElementById(paso.id);
+  if (sec) { sec.classList.add('np-guia-on'); desplazarPanelA(sec); }
+  const ultimo = i === PASOS_GUIA_NP.length - 1;
+  document.getElementById('np-guia').innerHTML = `
+    <div class="np-guia-pasos">${PASOS_GUIA_NP.map((p, k) => `<span class="${k < i ? 'hecho' : k === i ? 'actual' : ''}" title="${p.titulo}" onclick="mostrarPasoGuiaNp(${k})"></span>`).join('')}</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:700;color:var(--text)">${i + 1}. ${paso.titulo}</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.35">${paso.texto}</div>
+      </div>
+      ${i > 0 ? `<button class="btn btn-ghost btn-sm" onclick="mostrarPasoGuiaNp(${i - 1})"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>` : ''}
+      ${ultimo
+        ? `<button class="btn btn-primary btn-sm" onclick="terminarGuiaRequisitos();document.getElementById('np-bus-btn').click()"><i class="ti ti-calendar-search" aria-hidden="true"></i> Buscar</button>`
+        : `<button class="btn btn-primary btn-sm" onclick="mostrarPasoGuiaNp(${i + 1})">Siguiente <i class="ti ti-chevron-right" aria-hidden="true"></i></button>`}
+    </div>`;
+}
+// Desplaza el panel lateral para dejar la sección arriba, con un pequeño margen
+function desplazarPanelA(el, margen = 16) {
+  const cuerpo = document.getElementById('panel-side');   // el panel completo es el que hace scroll
+  if (!cuerpo || !el) return;
+  const encabezado = cuerpo.querySelector('.panel-head')?.offsetHeight || 0;   // el encabezado fijo tapa la parte de arriba
+  const top = el.getBoundingClientRect().top - cuerpo.getBoundingClientRect().top + cuerpo.scrollTop - encabezado - margen;
+  cuerpo.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+}
+function terminarGuiaRequisitos() {
+  document.querySelectorAll('.np-guia-on').forEach(el => el.classList.remove('np-guia-on'));
+  document.getElementById('np-guia')?.remove();
 }
 async function buscarFechasProyecto() {
   const cont = document.getElementById('np-bus-res');
@@ -6477,6 +6545,7 @@ async function buscarFechasProyecto() {
   if (!r) { cont.innerHTML = ''; return; }
   STATE._busqueda = { ...r, duracion };
   pintarOpcionesFechas();
+  setTimeout(() => desplazarPanelA(cont), 80);
 }
 const fechaLarga = iso => fechaLocal(iso).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
 function pintarOpcionesFechas() {
@@ -6517,6 +6586,10 @@ function usarOpcionFechas(i) {
       <span>Al crear el proyecto, <strong>asignar al personal sugerido</strong>: ${o.equipo_de_trabajo.map(p => escHtml(p.nombre)).join(', ')}.</span>
     </label>`;
   toast(`Fechas: ${fechaLarga(o.inicio)} → ${fechaLarga(o.fin)}`);
+  const fijas = document.getElementById('np-fechas-fijas');
+  fijas.classList.add('np-guia-on');
+  fijas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => fijas.classList.remove('np-guia-on'), 2200);
 }
 function copiarPropuestaFechas(i) {
   const o = STATE._busqueda.opciones[i];
