@@ -3691,7 +3691,8 @@ function verEquipo(id) {
   openPanel(eq.nombre, `
     <div class="panel-section">
       <div class="panel-section-title">DATOS DEL EQUIPO</div>
-      <div class="field-row"><div class="field-group"><label class="field-label">TIPO</label><select class="field-select" id="ve-tipo" onchange="manejarTipoEquipoOtro(this)"><option value="drone" ${eq.tipo==='drone'?'selected':''}>Drone / RPAS</option><option value="camara" ${eq.tipo==='camara'?'selected':''}>Cámara</option><option value="termografo" ${eq.tipo==='termografo'?'selected':''}>Cámara Termográfica</option><option value="escalada" ${eq.tipo==='escalada'?'selected':''}>Equipo de escalada</option><option value="medicion" ${eq.tipo==='medicion'?'selected':''}>Medición</option><option value="otro" ${eq.tipo==='otro'?'selected':''}>Otro</option></select></div>
+      <div class="field-row"><div class="field-group"><label class="field-label">TIPO</label><select class="field-select" id="ve-tipo" onchange="manejarTipoEquipoOtro(this)">${[...new Set([...Object.keys(EQ_TIPOS_BASE), ...(STATE.equipos||[]).map(x => x.tipo).filter(Boolean), eq.tipo].filter(t => t && t !== 'otro'))]
+          .map(t => `<option value="${t}" ${eq.tipo===t?'selected':''}>${escHtml(etiquetaEquipo(t))}</option>`).join('')}<option value="otro" ${eq.tipo==='otro'?'selected':''}>Otro</option></select></div>
       <div class="field-group"><label class="field-label">ESTADO</label><select class="field-select" id="ve-estado"><option value="disponible" ${eq.estado==='disponible'?'selected':''}>Disponible</option><option value="en_uso" ${eq.estado==='en_uso'?'selected':''}>En uso</option><option value="mantenimiento" ${eq.estado==='mantenimiento'?'selected':''}>Mantenimiento</option><option value="baja" ${eq.estado==='baja'?'selected':''}>Dado de baja</option></select></div></div>
       <div class="field-row"><div class="field-group"><label class="field-label">N° SERIE</label><input class="field-input" id="ve-serie" value="${eq.numero_serie||''}"></div><div class="field-group"><label class="field-label">APODO (OPCIONAL)</label><input class="field-input" id="ve-apodo" value="${eq.apodo||''}"></div></div>
       <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD ACTUAL</label><input class="field-input" id="ve-ciudad" value="${eq.ciudad_actual||''}"></div></div>
@@ -3720,6 +3721,10 @@ function verEquipo(id) {
 }
 
 async function guardarEdicionEquipo(id) {
+  // Si dejaste un documento capturado en "Agregar documento", también se sube
+  if (document.getElementById('ed-archivo')?.files?.[0] || document.getElementById('ed-vence')?.value) {
+    await agregarDocumentoEquipo(id);
+  }
   const coordsParseadas = parsearCoordenadas(document.getElementById('ve-coords')?.value.trim());
   const datos = {
     tipo: document.getElementById('ve-tipo')?.value,
@@ -4055,6 +4060,9 @@ function verVehiculo(id) {
 }
 
 async function guardarEdicionVehiculo(id) {
+  if (document.getElementById('vd-archivo')?.files?.[0] || document.getElementById('vd-vence')?.value) {
+    await agregarDocumentoVehiculo(id);
+  }
   const val = i => document.getElementById(i)?.value.trim();
   const nombre = val('vv-nombre');
   if (!nombre) { toast('El nombre del vehículo es obligatorio','error'); return; }
