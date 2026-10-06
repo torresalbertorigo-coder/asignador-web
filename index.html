@@ -2847,7 +2847,7 @@ async function exportarGanttPDF() {
   const leyendaColores = [...seccionesConDatos.map(s => `${s.nombreColor} = ${s.label.toLowerCase()}`), ...[...tiposUsados].map(t => nombresTipoDia[t])].join(' · ');
   if (leyendaColores) doc.text(leyendaColores, 10, doc.internal.pageSize.getHeight() - 7);
 
-  doc.save(`Gantt General - ${today.toISOString().split('T')[0]}.pdf`);
+  entregarPDF(doc, `Gantt General - ${today.toISOString().split('T')[0]}.pdf`);
 }
 
 async function exportarCalendarioEmpleadoPDF(empId, nombre, year, month) {
@@ -2984,7 +2984,7 @@ async function exportarCalendarioEmpleadoPDF(empId, nombre, year, month) {
   }
 
   const mesLabel = primerDia.toLocaleDateString('es-MX',{month:'long',year:'numeric'});
-  doc.save(`Calendario - ${nombre.replace(/[\\/:*?"<>|]/g,'-')} - ${mesLabel}.pdf`);
+  entregarPDF(doc, `Calendario - ${nombre.replace(/[\\/:*?"<>|]/g,'-')} - ${mesLabel}.pdf`);
 }
 
 function dibujarMesCalendarioPDF(doc, year, month, diasResaltadosSet, startY) {
@@ -3175,7 +3175,7 @@ async function exportarGanttProyectoPDF(proyectoId) {
   doc.setTextColor(150);
   doc.text(`Generado el ${new Date().toLocaleString('es-MX')}`, 14, 280);
 
-  doc.save(`Gantt - ${p.nombre.replace(/[\\/:*?"<>|]/g,'-')} - ${new Date().toISOString().split('T')[0]}.pdf`);
+  entregarPDF(doc, `Gantt - ${p.nombre.replace(/[\\/:*?"<>|]/g,'-')} - ${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
 // ─── SECCIÓN: EVALUAR ─────────────────────────────────────────────────────────
@@ -5147,7 +5147,7 @@ function exportarMetricasPDF() {
   });
 
   const nombreArchivo = datos.length === 1 ? datos[0].nombre.replace(/[\\/:*?"<>|]/g,'-') : `${datos.length} proyectos`;
-  doc.save(`Metricas - ${nombreArchivo} - ${new Date().toISOString().split('T')[0]}.pdf`);
+  entregarPDF(doc, `Metricas - ${nombreArchivo} - ${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
 // ─── SECCIÓN: MIS ASIGNACIONES (TÉCNICO) ──────────────────────────────────────
@@ -5484,6 +5484,11 @@ async function guardarIconoTermino(tipo, nombre, icono) {
 // ─── REPROGRAMAR FECHAS (cambio acordado, no es retraso) ─────────────────────
 function abrirReprogramar(proyectoId) {
   const p = STATE.proyectos.find(x => x.id === proyectoId); if (!p) return;
+  setTimeout(() => {
+    const d = document.getElementById('rep-bus-desde'); if (!d) return;
+    const minimo = new Date(); minimo.setDate(minimo.getDate() + 2);
+    d.min = isoLocal(minimo); d.value = d.min;
+  }, 0);
   const iniciado = !!p.fecha_inicio_real;
   const durDias = Math.round((fechaLocal(p.fecha_fin_estimada) - fechaLocal(p.fecha_inicio)) / 86400000);
   let ov = document.getElementById('selector-overlay');
@@ -5500,7 +5505,7 @@ function abrirReprogramar(proyectoId) {
         Para cambios acordados (con el cliente, por logística). <strong>No cuenta como retraso</strong>: queda en el historial y se avisa al personal asignado.
         ${iniciado ? '<div style="margin-top:6px;color:var(--amber)">El proyecto ya inició en sitio: solo se puede mover la fecha de fin.</div>' : ''}
       </div>
-      <div style="padding:8px 18px">
+      <div style="padding:8px 18px;overflow-y:auto;flex:1">
         <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Actual: ${p.fecha_inicio} al ${p.fecha_fin_estimada}</div>
         <div class="field-row">
           <div class="field-group"><label class="field-label">NUEVO INICIO</label><input type="date" class="field-input" id="rep-inicio" value="${p.fecha_inicio}" ${iniciado?'disabled':''} onchange="if(document.getElementById('rep-mantener').checked){const d=fechaLocal(this.value);d.setDate(d.getDate()+${durDias});document.getElementById('rep-fin').value=isoLocal(d);}"></div>
@@ -5508,6 +5513,15 @@ function abrirReprogramar(proyectoId) {
         </div>
         ${iniciado ? '<input type="checkbox" id="rep-mantener" style="display:none">' : `<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);margin-top:8px;cursor:pointer"><input type="checkbox" id="rep-mantener" checked> Mantener la duración (${durDias + 1} día${durDias ? 's' : ''})</label>`}
         <div class="field-group" style="margin-top:10px"><label class="field-label">MOTIVO</label><input class="field-input" id="rep-motivo" maxlength="300" placeholder="Ej. se acordó con el cliente iniciar el miércoles"></div>
+        ${iniciado ? '' : `
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+          <div class="panel-section-title" style="margin-bottom:8px">¿NO SABES A QUÉ FECHA MOVERLO?</div>
+          <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--text);cursor:pointer;margin-bottom:6px"><input type="radio" name="rep-modo" value="mismo" checked style="margin-top:2px"><span><strong>Mismo equipo de trabajo</strong><br><span style="color:var(--text3)">Las mismas personas, equipo y vehículo ya asignados</span></span></label>
+          <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--text);cursor:pointer"><input type="radio" name="rep-modo" value="cualquiera" style="margin-top:2px"><span><strong>Cualquier personal</strong><br><span style="color:var(--text3)">Quien cumpla los requisitos del proyecto</span></span></label>
+          <div class="field-group" style="margin-top:10px"><label class="field-label">A PARTIR DE <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">(mín. 2 días)</span></label><input type="date" class="field-input" id="rep-bus-desde"></div>
+          <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="ejecutarConCarga(this, () => buscarFechasReprogramar('${p.id}'), 'Buscando...')"><i class="ti ti-calendar-search" aria-hidden="true"></i> Buscar fechas disponibles</button>
+          <div id="rep-bus-res" style="margin-top:10px"></div>
+        </div>`}
       </div>
       <div class="sel-foot">
         <span></span>
@@ -5518,6 +5532,51 @@ function abrirReprogramar(proyectoId) {
       </div>
     </div>`;
 }
+async function buscarFechasReprogramar(proyectoId) {
+  const p = STATE.proyectos.find(x => x.id === proyectoId); if (!p) return;
+  const mismo = document.querySelector('input[name="rep-modo"]:checked')?.value === 'mismo';
+  const duracion = Math.round((fechaLocal(p.fecha_fin_estimada) - fechaLocal(p.fecha_inicio)) / 86400000) + 1;
+  const desde = document.getElementById('rep-bus-desde').value;
+  const cont = document.getElementById('rep-bus-res');
+  if (mismo && !(p.tecnicos_asignados||[]).length && !(p.equipo_asignado_ids||[]).length && !(p.vehiculo_asignado_ids||[]).length) {
+    cont.innerHTML = '<div class="bus-aviso">Este proyecto todavía no tiene personal, equipo ni vehículo asignados. Usa "Cualquier personal".</div>'; return;
+  }
+  const r = await api('POST', '/planeacion/buscar-fechas', {
+    duracion_dias: duracion, desde, personal_requerido: p.personal_requerido || 1,
+    habilidades: (p.habilidades_requeridas_items||[]).map(h => ({ nombre: h.nombre, nivel: h.nivel })),
+    certificados: p.certificados_requeridos_nombres || [],
+    equipo: p.no_requiere_equipo ? [] : (p.equipo_requerido_items||[]).map(e => ({ tipo: e.tipo, cantidad: e.cantidad })),
+    vehiculos: p.no_requiere_vehiculo ? [] : (p.vehiculo_requerido_items||[]).map(v => ({ tipo: v.tipo, cantidad: v.cantidad })),
+    criticidad: p.criticidad || 'tipo_b', intensidad: p.intensidad || 'media', ciudad: p.ciudad || '',
+    latitud: p.latitud || 0, longitud: p.longitud || 0,
+    excluir_proyecto_id: p.id,
+    fijar_personal: mismo ? (p.tecnicos_asignados||[]) : [],
+    fijar_equipo_ids: mismo ? (p.equipo_asignado_ids||[]) : [],
+    fijar_vehiculo_ids: mismo ? (p.vehiculo_asignado_ids||[]) : [],
+  });
+  if (!r) return;
+  STATE._busRep = r;
+  if (!r.opciones.length) { cont.innerHTML = `<div class="bus-aviso"><i class="ti ti-calendar-x" aria-hidden="true"></i> ${escHtml(r.motivo || 'No se encontraron fechas.')}</div>`; return; }
+  cont.innerHTML = (mismo ? '' : '<div class="bus-aviso">Reprogramar solo mueve las fechas. Si eliges fechas con otras personas, reasígnalas después desde el proyecto.</div>')
+    + r.opciones.map((o, i) => `
+      <div class="bus-op" style="padding:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <div style="font-weight:700;color:var(--text);font-size:13px">${i === 0 ? '<span class="bus-tag">MÁS PRÓXIMA</span> ' : ''}${fechaLarga(o.inicio)} → ${fechaLarga(o.fin)}</div>
+          <button class="btn btn-primary btn-sm" onclick="usarFechasReprogramar(${i})">Usar</button>
+        </div>
+        <div style="font-size:11px;color:var(--text2);margin-top:4px">${o.equipo_de_trabajo.map(x => escHtml(x.nombre)).join(', ')}${[...o.equipo, ...o.vehiculos].map(a => ' · ' + a.sugeridos.map(escHtml).join(', ')).join('')}</div>
+      </div>`).join('');
+}
+function usarFechasReprogramar(i) {
+  const o = STATE._busRep.opciones[i];
+  document.getElementById('rep-inicio').value = o.inicio;
+  document.getElementById('rep-fin').value = o.fin;
+  const ini = document.getElementById('rep-inicio');
+  ini.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  [ini, document.getElementById('rep-fin')].forEach(el => { el.classList.add('np-guia-on'); setTimeout(() => el.classList.remove('np-guia-on'), 1800); });
+  toast(`Fechas elegidas: ${fechaLarga(o.inicio)} → ${fechaLarga(o.fin)}. Escribe el motivo y reprograma.`);
+}
+
 async function guardarReprogramacion(proyectoId) {
   const p = STATE.proyectos.find(x => x.id === proyectoId);
   const ini = p.fecha_inicio_real ? p.fecha_inicio : document.getElementById('rep-inicio').value;
@@ -6817,6 +6876,41 @@ Esta fecha es tentativa y está sujeta a confirmación. La disponibilidad de per
   copiarTexto(texto, 'Propuesta copiada');
 }
 
+// ─── ENTREGAR PDF: en celular, compartir (WhatsApp, correo…) o descargar ────
+// Los celulares solo dejan abrir el menú de compartir justo después de un toque,
+// y armar el PDF tarda un momento: por eso se pregunta con dos botones.
+function entregarPDF(doc, nombre) {
+  let archivo = null;
+  try { archivo = new File([doc.output('blob')], nombre, { type: 'application/pdf' }); } catch (e) {}
+  const esCel = window.matchMedia('(pointer:coarse)').matches || window.innerWidth <= 768;
+  const puedeCompartir = esCel && archivo && navigator.canShare && navigator.canShare({ files: [archivo] });
+  if (!puedeCompartir) { doc.save(nombre); return; }
+  STATE._pdfPendiente = { doc, nombre, archivo };
+  let ov = document.getElementById('selector-overlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; ov.style.zIndex = 1100; document.body.appendChild(ov); }
+  ov.className = 'modal-overlay open';
+  ov.onclick = e => { if (e.target === ov) cerrarSelectorTerminos(); };
+  ov.innerHTML = `
+    <div class="sel-card" style="max-width:380px;padding:18px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <i class="ti ti-file-type-pdf" aria-hidden="true" style="font-size:26px;color:var(--red)"></i>
+        <div style="min-width:0"><div style="font-weight:700;color:var(--text);font-size:14px">PDF listo</div>
+          <div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(nombre)}</div></div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:12px;min-height:44px" onclick="compartirPDFPendiente()"><i class="ti ti-share" aria-hidden="true"></i> Compartir (WhatsApp, correo…)</button>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px;min-height:44px" onclick="STATE._pdfPendiente.doc.save(STATE._pdfPendiente.nombre);cerrarSelectorTerminos()"><i class="ti ti-download" aria-hidden="true"></i> Descargar al celular</button>
+    </div>`;
+}
+async function compartirPDFPendiente() {
+  const p = STATE._pdfPendiente; if (!p) return;
+  try {
+    await navigator.share({ files: [p.archivo], title: p.nombre.replace(/\.pdf$/, '') });
+    cerrarSelectorTerminos();
+  } catch (e) {
+    if (e?.name !== 'AbortError') { p.doc.save(p.nombre); cerrarSelectorTerminos(); }   // si no se pudo compartir, se descarga
+  }
+}
+
 // ─── PDF INTERNO DE LA PROPUESTA DE FECHAS ──────────────────────────────────
 function exportarPropuestaPDF() {
   const r = STATE._busqueda; if (!r) return;
@@ -6920,7 +7014,7 @@ function exportarPropuestaPDF() {
     doc.text('Uso interno. Fechas tentativas: la disponibilidad de personal, equipo y vehículos no queda reservada hasta crear y asignar el proyecto.', M, H - 10);
     doc.text(`${generado}  ·  página ${pg} de ${total}`, M, H - 6);
   }
-  doc.save(`Propuesta de fechas - ${nombre.replace(/[\\/:*?"<>|]/g, '-')} - ${isoLocal(new Date())}.pdf`);
+  entregarPDF(doc, `Propuesta de fechas - ${nombre.replace(/[\\/:*?"<>|]/g, '-')} - ${isoLocal(new Date())}.pdf`);
 }
 
 // ─── AVISOS DE CONTROL (campana de administradores y directores) ────────────
