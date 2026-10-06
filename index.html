@@ -6566,7 +6566,7 @@ async function buscarFechasProyecto() {
   cont.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:10px 0"><i class="ti ti-loader-2" aria-hidden="true"></i> Buscando la fecha más próxima…</div>';
   const r = await api('POST', '/planeacion/buscar-fechas', cuerpo);
   if (!r) { cont.innerHTML = ''; return; }
-  STATE._busqueda = { ...r, duracion, personaSel: null };
+  STATE._busqueda = { ...r, duracion, personaSel: null, params: cuerpo };
   pintarOpcionesFechas();
   setTimeout(() => desplazarPanelA(cont), 80);
 }
@@ -6580,6 +6580,7 @@ function pintarOpcionesFechas() {
   const otras = r.otras_personas || [];
   cont.innerHTML = (r.modo === 'con_brecha'
       ? `<div class="bus-aviso"><i class="ti ti-alert-triangle" aria-hidden="true"></i> No hay fechas con personal que cumpla <strong>todo</strong> hasta el ${r.busco_hasta}. Estas opciones incluyen personas con <strong>brecha técnica</strong> (algo capacitable).</div>` : '')
+    + `<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn btn-ghost btn-sm" onclick="exportarPropuestaPDF()"><i class="ti ti-file-type-pdf" aria-hidden="true"></i> PDF interno</button></div>`
     + r.opciones.map((o, i) => tarjetaOpcionFechas(o, `g:${i}`, i === 0)).join('')
     + (otras.length ? `
       <div class="panel-section-title" style="margin:16px 0 8px">OTRAS PERSONAS QUE PODRÍAN</div>
@@ -6721,6 +6722,112 @@ Fecha tentativa: del ${largo(o.inicio)} al ${largo(o.fin)} (${STATE._busqueda.du
 
 Esta fecha es tentativa y está sujeta a confirmación. La disponibilidad de personal y equipo se asegura al momento de confirmarla.`;
   copiarTexto(texto, 'Propuesta copiada');
+}
+
+// ─── PDF INTERNO DE LA PROPUESTA DE FECHAS ──────────────────────────────────
+function exportarPropuestaPDF() {
+  const r = STATE._busqueda; if (!r) return;
+  const prm = r.params || {};
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), M = 14, ancho = W - 2 * M;
+  let y = 18;
+  const salto = (alto) => { if (y + alto > H - 18) { doc.addPage(); y = 18; } };
+  const fLarga = iso => fechaLocal(iso).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  const txt = (t, x, size = 9, color = 20, bold = false) => { doc.setFontSize(size); doc.setTextColor(color); doc.setFont(undefined, bold ? 'bold' : 'normal'); doc.text(t, x, y); };
+  const parrafo = (t, x, w, size = 9, color = 60, interlinea = 4.2) => {
+    doc.setFontSize(size); doc.setTextColor(color); doc.setFont(undefined, 'normal');
+    const lineas = doc.splitTextToSize(t, w); salto(lineas.length * interlinea); doc.text(lineas, x, y); y += lineas.length * interlinea;
+  };
+  const titulo = t => { salto(14); y += 3; txt(t, M, 9, 0, true); y += 2; doc.setDrawColor(225); doc.line(M, y, W - M, y); y += 5; };
+
+  // Encabezado
+  txt('WORKSYNC · DOCUMENTO INTERNO', M, 8, 150);
+  doc.setTextColor(227, 28, 34); doc.setFontSize(8); doc.setFont(undefined, 'bold');
+  doc.text('PROPUESTA TENTATIVA', W - M, y, { align: 'right' });
+  y += 9;
+  const nombre = document.getElementById('np-nombre')?.value.trim() || 'Proyecto sin nombre';
+  txt(nombre, M, 16, 0, true); y += 6.5;
+  const cliente = document.getElementById('np-cliente')?.value.trim();
+  const ciudad = document.getElementById('np-ciudad')?.value.trim(), estado = document.getElementById('np-estado')?.value;
+  txt([cliente || 'Cliente sin capturar', [ciudad, estado].filter(Boolean).join(', ')].filter(Boolean).join('  ·  '), M, 10, 90);
+  y += 9;
+
+  // Parámetros de búsqueda
+  titulo('PARÁMETROS DE LA BÚSQUEDA');
+  const critTxt = document.getElementById('np-crit')?.selectedOptions[0]?.textContent || '';
+  const intTxt = document.getElementById('np-intens')?.selectedOptions[0]?.textContent || '';
+  const filas = [
+    ['Duración', `${r.duracion} día(s)`], ['Personal requerido', `${prm.personal_requerido || 1}`],
+    ['A partir de', fLarga(r.desde || prm.desde)], ['Terminar a más tardar', prm.hasta ? fLarga(prm.hasta) : 'Sin límite (busca 6 meses)'],
+    ['Criticidad / intensidad', `${critTxt} · ${intTxt}`],
+    ['Habilidades', (prm.habilidades || []).map(h => `${h.nombre} (nivel ${h.nivel})`).join(', ') || 'Ninguna'],
+    ['Certificados', (prm.certificados || []).join(', ') || 'Ninguno'],
+    ['Equipo', prm.considerar_equipo === false ? 'No considerado' : ((prm.equipo || []).map(e => `${etiquetaEquipo(e.tipo)} × ${e.cantidad}`).join(', ') || 'No requiere')],
+    ['Vehículos', prm.considerar_vehiculos === false ? 'No considerados' : ((prm.vehiculos || []).map(v => `${etiquetaVehiculo(v.tipo)} × ${v.cantidad}`).join(', ') || 'No requiere')],
+  ];
+  filas.forEach(([k, v]) => {
+    const lineas = doc.splitTextToSize(v, ancho - 48); salto(lineas.length * 4.4 + 1);
+    txt(k, M, 9, 120); doc.setTextColor(20); doc.text(lineas, M + 48, y); y += lineas.length * 4.4 + 1;
+  });
+  if (r.modo === 'con_brecha') { y += 2; parrafo(`Nota: no hay fechas con personal que cumpla todos los requisitos hasta el ${r.busco_hasta}. Las opciones incluyen personas con brecha técnica (capacitable).`, M, ancho, 9, 150); }
+
+  // Bloque de una opción
+  const bloque = (o, etiqueta) => {
+    const personas = o.equipo_de_trabajo.map(p => {
+      const d = p.detalle || {};
+      const falta = [...(d.habilidades || []).filter(h => !h.ok).map(h => h.tiene == null ? `${h.nombre} (no la tiene)` : `${h.nombre} (tiene ${h.tiene}, se pide ${h.requerido})`),
+                     ...(d.certificados || []).filter(c => !c.ok).map(c => `${c.nombre} (${c.motivo.toLowerCase()})`)];
+      return { linea: `${p.nombre} — ${Math.round(p.puntaje)} pts${d.recomendacion ? ' · ' + d.recomendacion : ''}`, falta };
+    });
+    const activos = [...o.equipo.map(e => `${etiquetaEquipo(e.tipo)}: ${e.libres} libre(s) de ${e.requeridos}${e.sugeridos.length ? ' · ' + e.sugeridos.join(', ') : ''}`),
+                     ...o.vehiculos.map(v => `${etiquetaVehiculo(v.tipo)}: ${v.libres} libre(s) de ${v.requeridos}${v.sugeridos.length ? ' · ' + v.sugeridos.join(', ') : ''}`)];
+    const alto = 14 + personas.reduce((a, p) => a + 5 + p.falta.length * 4, 0) + activos.length * 4.4 + 4;
+    salto(alto);
+    const y0 = y;
+    txt(`${etiqueta}  ${fLarga(o.inicio)} al ${fLarga(o.fin)}`, M + 5, 10.5, 0, true);
+    doc.setFontSize(8); doc.setTextColor(130); doc.setFont(undefined, 'normal');
+    doc.text(`${o.personas_que_cumplen} persona(s) cumplen todo · se necesitan ${o.personas_requeridas}`, W - M, y, { align: 'right' });
+    y += 6;
+    personas.forEach(p => {
+      if (p.falta.length) doc.setFillColor(217, 140, 0); else doc.setFillColor(34, 160, 80);
+      doc.circle(M + 6.2, y - 1.2, 1.1, 'F');
+      txt(p.linea, M + 10, 9.5, 20); y += 5;
+      p.falta.forEach(f => { doc.setFontSize(8.5); doc.setTextColor(180, 110, 0); doc.text(`Le falta: ${f}`, M + 14, y); y += 4; });
+    });
+    activos.forEach(a => { txt(a, M + 10, 8.5, 90); y += 4.4; });
+    y += 2;
+    doc.setFillColor(227, 28, 34); doc.rect(M, y0 - 4, 1.2, y - y0 + 1, 'F');
+    doc.setDrawColor(230); doc.line(M, y + 1, W - M, y + 1);
+    y += 6;
+  };
+
+  titulo('OPCIONES DE FECHAS');
+  if (!r.opciones.length) parrafo(r.motivo || 'No se encontraron fechas.', M, ancho);
+  r.opciones.forEach((o, i) => bloque(o, i === 0 ? 'MÁS PRÓXIMA ·' : `OPCIÓN ${i + 1} ·`));
+
+  if ((r.otras_personas || []).length) {
+    titulo('OTRAS PERSONAS QUE PODRÍAN');
+    r.otras_personas.forEach(p => {
+      salto(6);
+      txt(p.nombre, M, 9.5, 20, true);
+      if (doc.getTextWidth(p.nombre) > 58) { y += 4.5; salto(5); }   // nombre largo: las fechas van debajo
+      doc.setFontSize(9); doc.setTextColor(90); doc.setFont(undefined, 'normal');
+      doc.text(p.opciones.map(o => `${fechaLocal(o.inicio).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })} – ${fechaLocal(o.fin).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}`).join('   ·   '), M + 62, y);
+      y += 5.5;
+    });
+  }
+
+  // Pie en cada página
+  const total = doc.internal.getNumberOfPages();
+  const generado = `Generado por ${STATE.user?.nombre || '—'} el ${new Date().toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' })}`;
+  for (let pg = 1; pg <= total; pg++) {
+    doc.setPage(pg);
+    doc.setFontSize(7.5); doc.setTextColor(150); doc.setFont(undefined, 'normal');
+    doc.text('Uso interno. Fechas tentativas: la disponibilidad de personal, equipo y vehículos no queda reservada hasta crear y asignar el proyecto.', M, H - 10);
+    doc.text(`${generado}  ·  página ${pg} de ${total}`, M, H - 6);
+  }
+  doc.save(`Propuesta de fechas - ${nombre.replace(/[\\/:*?"<>|]/g, '-')} - ${isoLocal(new Date())}.pdf`);
 }
 
 // ─── AVISOS DE CONTROL (campana de administradores y directores) ────────────
