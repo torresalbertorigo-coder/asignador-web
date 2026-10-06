@@ -2561,6 +2561,27 @@ async function guardarNuevoProyecto() {
 }
 
 // ─── SECCIÓN: GANTT ───────────────────────────────────────────────────────────
+// Leyenda del Gantt: solo lo que de verdad aparece en pantalla (fin de semana y hoy, siempre)
+function leyendaGantt(usados) {
+  const item = (muestra, texto) => `<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)">${muestra}${texto}</div>`;
+  const celda = (clase, alto = 8) => `<div class="gantt-cell ${clase}" style="width:12px;height:${alto}px;padding:0"></div> `;
+  const items = [
+    ['occupied', item('<div style="width:12px;height:8px;background:var(--gantt-occupied)"></div> ', 'Días completados')],
+    ['past',     item('<div style="width:12px;height:8px;background:var(--gantt-past)"></div> ', 'Días pasados (proyecto)')],
+    ['ausencia', item(celda('ausencia'), 'Ausencia (vacaciones, permiso, incapacidad)')],
+    ['retraso',  item(celda('retraso'), 'Retraso (en curso)')],
+    ['tenue',    item(celda('tenue', 10), 'Sin checada (finalizado)')],
+    ['no-usado', item(celda('no-usado', 10), 'Planeado, ya no fue necesario')],
+    ['descanso', item(celda('descanso'), 'Descanso')],
+    ['standby',  item(celda('standby'), 'Standby')],
+    ['pausa',    item(celda('pausa'), 'Proyecto en pausa')],
+    ['conflicto', item('<div class="gantt-cell ausencia conflicto" style="width:12px;height:8px;padding:0"></div> ', 'Ausencia que choca con un proyecto')],
+  ].filter(([clase]) => usados.has(clase)).map(([, h]) => h);
+  items.push(item('<div style="width:12px;height:8px;background:var(--input-bg);border:1px solid var(--border)"></div> ', 'Fin de semana'));
+  items.push(item('<div style="width:2px;height:16px;background:var(--red)"></div> ', 'Hoy'));
+  return `<div style="padding:12px 16px;display:flex;gap:16px;flex-wrap:wrap">${items.join('')}</div>`;
+}
+
 async function renderGantt() {
   await loadEmpleados(); await loadProyectos();
   const today = new Date();
@@ -2576,6 +2597,7 @@ async function renderGantt() {
     if (enCampoA !== enCampoB) return enCampoA - enCampoB;
     return `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`, 'es');
   });
+  const usados = new Set();   // tipos de celda que aparecen: la leyenda solo muestra esos
   html(`
     <div class="table-section" id="gantt-export-area">
       <div class="table-header"><span class="table-title">CALENDARIO DE DISPONIBILIDAD — 30 DÍAS</span><span class="table-meta">hoy: ${today.toLocaleDateString('es-MX')}</span><button class="btn btn-ghost btn-sm" onclick="exportarGanttPDF()" style="margin-left:10px"><i class="ti ti-file-download" aria-hidden="true"></i> Exportar PDF</button></div>
@@ -2604,6 +2626,7 @@ async function renderGantt() {
                 else if (tipoDia) cls += ' ' + tipoDia;
                 else if (finalizado) cls += trabajado ? ' past' : ' tenue';
                 else if (pry) cls += d < hoy00 ? ' past' : ' occupied';
+                cls.split(' ').forEach(c => usados.add(c));
                 let tip = pry ? `${pry.nombre}${pry.cliente?' · '+pry.cliente:''} (${pry.fecha_inicio_real||pry.fecha_inicio} → ${pry.fecha_fin_real||(pry.fecha_inicio_real?'sin finalizar · estimado '+pry.fecha_fin_estimada:pry.fecha_fin_estimada)})${tipoDia?' · '+ETIQ_TIPO_DIA[tipoDia]:''}${pry && trabajados.has(`${e.id}|${pry.id}|${isoLocal(d)}`)?' · trabajado (checada)':''}` : '';
                 if (aus) tip = `${aus.motivo} (${aus.fecha_inicio} → ${aus.fecha_fin})` + (pry ? ` · CHOCA con ${tip}` : '');
                 tip = tip.replace(/"/g,'&quot;');
@@ -2615,19 +2638,7 @@ async function renderGantt() {
           </tbody>
         </table>
       </div>
-      <div style="padding:12px 16px;display:flex;gap:16px;flex-wrap:wrap">
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:12px;height:8px;background:var(--gantt-occupied)"></div> Días completados</div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:12px;height:8px;background:var(--gantt-past)"></div> Días pasados (proyecto)</div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:12px;height:8px;background:var(--input-bg);border:1px solid var(--border)"></div> Fin de semana</div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div class="gantt-cell ausencia" style="width:12px;height:8px;padding:0"></div> Ausencia (vacaciones, permiso, incapacidad)</div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div class="gantt-cell retraso" style="width:12px;height:8px;padding:0"></div> Retraso (en curso)</div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div class="gantt-cell tenue" style="width:12px;height:10px;padding:0"></div> Sin checada (finalizado)</div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div class="gantt-cell no-usado" style="width:12px;height:10px;padding:0"></div> Planeado, ya no fue necesario</div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div class="gantt-cell descanso" style="width:12px;height:8px;padding:0"></div> Descanso</div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div class="gantt-cell standby" style="width:12px;height:8px;padding:0"></div> Standby</div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div class="gantt-cell pausa" style="width:12px;height:8px;padding:0"></div> Proyecto en pausa</div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><div style="width:2px;height:16px;background:var(--red)"></div> Hoy</div>
-      </div>
+      ${leyendaGantt(usados)}
     </div>`);
 }
 
