@@ -325,7 +325,8 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .btn-checar:active{transform:scale(.98)}
 .btn-checar:disabled{filter:grayscale(.6) opacity(.7);cursor:default}
 .np-guia-on{outline:2px solid var(--red);outline-offset:6px;border-radius:8px;box-shadow:0 0 0 10px rgba(227,28,34,.07);transition:outline-color .2s,box-shadow .2s}
-#np-guia{position:sticky;bottom:-1px;z-index:5;margin:14px -4px 0;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:10px 12px;box-shadow:0 -8px 24px rgba(0,0,0,.35)}
+#np-guia{position:relative;margin:14px 0 22px;background:var(--surface2);border:1px solid var(--red);border-radius:10px;padding:10px 12px}
+#np-guia::before{content:'';position:absolute;top:-7px;left:24px;width:12px;height:12px;background:var(--surface2);border-left:1px solid var(--red);border-top:1px solid var(--red);transform:rotate(45deg)}
 .np-guia-pasos{display:flex;gap:4px;margin-bottom:8px}
 .np-guia-pasos span{flex:1;height:4px;border-radius:2px;background:var(--border);cursor:pointer}
 .np-guia-pasos span.hecho{background:rgba(227,28,34,.5)}
@@ -6480,8 +6481,8 @@ function iniciarGuiaRequisitos() {
   if (!barra) {
     barra = document.createElement('div');
     barra.id = 'np-guia';
-    document.getElementById('panel-body').appendChild(barra);   // hijo directo del área con scroll: así se queda fija abajo
   }
+  STATE._guiaBarra = barra;
   STATE._guiaNp = 0;
   setTimeout(() => mostrarPasoGuiaNp(0), 120);
 }
@@ -6490,9 +6491,11 @@ function mostrarPasoGuiaNp(i) {
   const paso = PASOS_GUIA_NP[i];
   document.querySelectorAll('.np-guia-on').forEach(el => el.classList.remove('np-guia-on'));
   const sec = document.getElementById(paso.id);
-  if (sec) { sec.classList.add('np-guia-on'); desplazarPanelA(sec); }
+  // La barra va JUSTO DEBAJO de la sección que se está llenando
+  const barra = STATE._guiaBarra;
+  if (sec) { sec.classList.add('np-guia-on'); sec.insertAdjacentElement('afterend', barra); desplazarPanelA(sec); }
   const ultimo = i === PASOS_GUIA_NP.length - 1;
-  document.getElementById('np-guia').innerHTML = `
+  barra.innerHTML = `
     <div class="np-guia-pasos">${PASOS_GUIA_NP.map((p, k) => `<span class="${k < i ? 'hecho' : k === i ? 'actual' : ''}" title="${p.titulo}" onclick="mostrarPasoGuiaNp(${k})"></span>`).join('')}</div>
     <div style="display:flex;align-items:center;gap:10px">
       <div style="flex:1;min-width:0">
