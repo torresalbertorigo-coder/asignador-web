@@ -324,6 +324,11 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .btn-checar.salida{background:#1F2937;box-shadow:inset 0 0 0 2px var(--red)}
 .btn-checar:active{transform:scale(.98)}
 .btn-checar:disabled{filter:grayscale(.6) opacity(.7);cursor:default}
+.bus-op{border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;background:var(--surface)}
+.bus-tag{font-size:9px;letter-spacing:1px;background:var(--red);color:#fff;border-radius:4px;padding:2px 6px;vertical-align:middle}
+.bus-aviso{font-size:12px;color:var(--text2);background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:6px;padding:10px 12px;margin-bottom:8px;line-height:1.45}
+.notif-tab{border:none;background:none;font:inherit;font-size:12px;font-weight:600;color:var(--text3);padding:4px 8px;border-radius:6px;cursor:pointer}
+.notif-tab.on{color:var(--text);background:var(--surface2)}
 .sel-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:100%;max-width:820px;max-height:86vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5)}
 .sel-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px 12px}
 .sel-grid-wrap{overflow-y:auto;padding:0 18px 14px;flex:1}
@@ -509,11 +514,11 @@ tbody tr:hover .td-action i{color:var(--text2)}
                   <div class="user-nm" id="sb-name">Usuario</div>
                   <div class="user-rol" id="sb-rol">Cargando...</div>
                 </div>
-                <div class="user-menu-item" onclick="showSection('mi-perfil');toggleUserMenu()"><i class="ti ti-user-circle" aria-hidden="true"></i> Mi Perfil</div>
+                <div class="user-menu-item" id="um-mi-perfil" onclick="showSection('mi-perfil');toggleUserMenu()"><i class="ti ti-user-circle" aria-hidden="true"></i> Mi Perfil</div>
                 <div class="user-menu-item" onclick="switchModo();toggleUserMenu()" id="um-switch-modo" style="display:none"><i class="ti ti-arrows-exchange" aria-hidden="true"></i> <span id="um-switch-label">Vista Técnico</span></div>
                 <div class="user-menu-item" onclick="showSection('bitacora');toggleUserMenu()" id="um-bitacora" style="display:none"><i class="ti ti-history" aria-hidden="true"></i> Bitácora de cambios</div>
                 <div class="user-menu-item" onclick="showSection('catalogo');toggleUserMenu()" id="um-catalogo" style="display:none"><i class="ti ti-tags" aria-hidden="true"></i> Catálogo de términos</div>
-                <div class="user-menu-item" onclick="showSection('permisos');toggleUserMenu()" id="um-permisos" style="display:none"><i class="ti ti-key" aria-hidden="true"></i> Permisos de exportación</div>
+                <div class="user-menu-item" onclick="showSection('permisos');toggleUserMenu()" id="um-permisos" style="display:none"><i class="ti ti-key" aria-hidden="true"></i> Cuentas y permisos</div>
                 <div class="user-menu-item" onclick="iniciarTutorial()" id="um-tutorial" style="display:none"><i class="ti ti-school" aria-hidden="true"></i> Ver tutorial</div>
                 <div class="user-menu-item user-menu-item-danger" onclick="doLogout()"><i class="ti ti-logout" aria-hidden="true"></i> Cerrar sesión</div>
               </div>
@@ -524,9 +529,12 @@ tbody tr:hover .td-action i{color:var(--text2)}
                 <span class="notif-badge" id="notif-badge" style="display:none">0</span>
               </div>
               <div class="user-menu-dropdown notif-dropdown" id="notif-dropdown">
-                <div class="user-menu-header" style="display:flex;justify-content:space-between;align-items:center">
-                  <span style="font-size:12px;font-weight:600;color:var(--text)">Notificaciones</span>
-                  <span style="font-size:11px;color:var(--red);cursor:pointer" onclick="marcarTodasNotifLeidas()">Marcar todas leídas</span>
+                <div class="user-menu-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                  <div style="display:flex;gap:4px">
+                    <button class="notif-tab on" data-tab="notif" id="notif-tab-notif" onclick="event.stopPropagation();cambiarPestanaNotif('notif')">Notificaciones</button>
+                    <button class="notif-tab" data-tab="avisos" id="notif-tab-avisos" style="display:none" onclick="event.stopPropagation();cambiarPestanaNotif('avisos')">Avisos <span id="avisos-cuenta"></span></button>
+                  </div>
+                  <span id="notif-marcar" style="font-size:11px;color:var(--red);cursor:pointer" onclick="marcarTodasNotifLeidas()">Marcar leídas</span>
                 </div>
                 <div id="notif-list"></div>
               </div>
@@ -654,6 +662,8 @@ async function initApp() {
   document.getElementById('sb-avatar').textContent = av;
   document.getElementById('sb-name').textContent = STATE.user.nombre;
   document.getElementById('sb-rol').textContent = STATE.rol === 'administrador' ? 'Administrador' : STATE.rol === 'director_proyecto' ? 'Director de Proyecto' : 'Técnico de campo';
+  const umPerfil = document.getElementById('um-mi-perfil');
+  if (umPerfil) umPerfil.style.display = STATE.user?.empleado_id ? 'flex' : 'none';
   const umTut = document.getElementById('um-tutorial');
   if (umTut) umTut.style.display = STATE.user?.empleado_id ? 'flex' : 'none';
   if (localStorage.getItem('w_cambiar') === '1') mostrarCambioObligatorio();
@@ -708,7 +718,7 @@ function buildNav() {
       <div class="nav-item" onclick="showSection('inactividad')" data-sec="inactividad"><i class="ti ti-calendar-pause" aria-hidden="true"></i> Días sin trabajo <span id="nav-badge-inactividad" class="nav-badge" style="display:none"></span></div>
       <div class="nav-item" onclick="showSection('metricas')" data-sec="metricas"><i class="ti ti-chart-bar" aria-hidden="true"></i> Métricas</div>`;
     actualizarBadgeInactividad();
-    document.getElementById('um-switch-modo').style.display = 'flex';
+    document.getElementById('um-switch-modo').style.display = STATE.user?.empleado_id ? 'flex' : 'none';
     document.getElementById('um-bitacora').style.display = STATE.rol === 'administrador' ? 'flex' : 'none';
     document.getElementById('um-catalogo').style.display = STATE.rol === 'administrador' ? 'flex' : 'none';
     document.getElementById('um-permisos').style.display = STATE.rol === 'administrador' ? 'flex' : 'none';
@@ -814,24 +824,36 @@ function tiempoRelativo(fechaIso) {
 
 async function cargarNotificaciones() {
   try {
-    const [lista, conteo] = await Promise.all([
-      api('GET', '/notificaciones'),
-      api('GET', '/notificaciones/no-leidas'),
-    ]);
-    STATE.notificaciones = lista;
+    // Cuentas solo de gestión (sin perfil de empleado) no tienen notificaciones personales
+    const tieneEmp = !!STATE.user?.empleado_id;
+    const [lista, conteo] = tieneEmp
+      ? await Promise.all([api('GET', '/notificaciones'), api('GET', '/notificaciones/no-leidas')])
+      : [[], { no_leidas: 0 }];
+    await cargarAvisos();
+    STATE.notificaciones = lista || [];
+    const urgentes = STATE.avisos?.altas || 0;
+    const total = (conteo?.no_leidas || 0) + urgentes;
     const badge = document.getElementById('notif-badge');
     const avatar = document.getElementById('sb-avatar');
-    if (conteo.no_leidas > 0) {
+    if (total > 0) {
       badge.style.display = 'block';
-      badge.textContent = conteo.no_leidas > 9 ? '9+' : conteo.no_leidas;
+      badge.textContent = total > 9 ? '9+' : total;
       avatar?.classList.add('has-unread');
     } else {
       badge.style.display = 'none';
       avatar?.classList.remove('has-unread');
     }
+    // Pestañas: Avisos solo para admin/director; Notificaciones solo si hay perfil de empleado
+    const tabAv = document.getElementById('notif-tab-avisos'), tabNo = document.getElementById('notif-tab-notif');
+    if (tabAv) { tabAv.style.display = STATE.avisos ? '' : 'none'; document.getElementById('avisos-cuenta').textContent = STATE.avisos?.total ? `(${STATE.avisos.total})` : ''; }
+    if (tabNo) tabNo.style.display = tieneEmp ? '' : 'none';
+    if (!STATE._notifTab) STATE._notifTab = tieneEmp ? 'notif' : 'avisos';
+    document.querySelectorAll('.notif-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === STATE._notifTab));
+    const marcar = document.getElementById('notif-marcar'); if (marcar) marcar.style.display = STATE._notifTab === 'notif' ? '' : 'none';
+    if (STATE._notifTab === 'avisos' && STATE.avisos) { pintarAvisos(); return; }
     const cont = document.getElementById('notif-list');
     if (!cont) return;
-    if (lista.length === 0) {
+    if (!lista || lista.length === 0) {
       cont.innerHTML = `<div class="notif-empty"><i class="ti ti-bell-off" aria-hidden="true" style="font-size:22px;display:block;margin-bottom:6px"></i>Sin notificaciones</div>`;
       return;
     }
@@ -892,7 +914,7 @@ const TITLES = {
   'bitacora':         ['ti-history',            'Bitácora de Cambios'],
   'catalogo':         ['ti-tags',               'Catálogo de Términos'],
   'inactividad':      ['ti-calendar-pause',     'Días sin trabajo'],
-  'permisos':         ['ti-key',                'Permisos de Exportación'],
+  'permisos':         ['ti-key',                'Cuentas y Permisos'],
   'mis-asignaciones': ['ti-briefcase',          'Mis Asignaciones'],
   'mi-gantt':         ['ti-calendar-stats',     'Mi Calendario'],
   'checador':         ['ti-clock',              'Reloj Checador'],
@@ -2248,6 +2270,7 @@ async function eliminarProyectoConfirm(id) {
 
 function openNuevoProyecto() {
   cargarCatalogos();
+  STATE._np_sugerido = null; STATE._busqueda = null;
   STATE._np_habilidades = [];
   STATE._np_certificados = [];
   STATE._np_equipo = [];
@@ -2264,11 +2287,32 @@ function openNuevoProyecto() {
     </div>
     <div class="panel-section">
       <div class="panel-section-title">FECHAS Y PERSONAL</div>
-      <div class="field-row">
+      <div class="field-row" style="margin-bottom:10px"><div class="field-group"><label class="field-label">PERSONAL REQUERIDO</label><input class="field-input" id="np-personal" type="number" value="1" min="1"></div><div class="field-group"><label class="field-label">PRESUPUESTO VIÁTICOS</label><input class="field-input" id="np-presup" type="number" placeholder="0.00"></div></div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);cursor:pointer;margin-bottom:10px">
+        <input type="checkbox" id="np-buscar" onchange="alternarBuscadorFechas(this.checked)">
+        <span><i class="ti ti-calendar-search" aria-hidden="true"></i> No tengo fechas fijas: <strong>buscar la fecha más próxima</strong></span>
+      </label>
+      <div class="field-row" id="np-fechas-fijas">
         <div class="field-group"><label class="field-label">FECHA INICIO</label><input class="field-input" id="np-inicio" type="date"></div>
         <div class="field-group"><label class="field-label">FECHA FIN EST.</label><input class="field-input" id="np-fin" type="date"></div>
       </div>
-      <div class="field-row"><div class="field-group"><label class="field-label">PERSONAL REQUERIDO</label><input class="field-input" id="np-personal" type="number" value="1" min="1"></div><div class="field-group"><label class="field-label">PRESUPUESTO VIÁTICOS</label><input class="field-input" id="np-presup" type="number" placeholder="0.00"></div></div>
+      <div id="np-buscador" style="display:none;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.45">Usa el personal requerido y los requisitos que elijas abajo (habilidades, certificados, equipo y vehículos) para encontrar la <strong>fecha más próxima en que todo cuadra</strong>. Buscar no guarda nada.</div>
+        <div class="field-row">
+          <div class="field-group"><label class="field-label">DURACIÓN (DÍAS)</label><input class="field-input" id="np-bus-dur" type="number" min="1" max="365" value="3"></div>
+          <div class="field-group"><label class="field-label">A PARTIR DE</label><input class="field-input" id="np-bus-desde" type="date"></div>
+        </div>
+        <div class="field-row" style="margin-top:8px">
+          <div class="field-group"><label class="field-label">TERMINAR A MÁS TARDAR (OPCIONAL)</label><input class="field-input" id="np-bus-hasta" type="date"></div>
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--text2)">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="np-bus-eq" checked> Considerar equipo</label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="np-bus-veh" checked> Considerar vehículos</label>
+        </div>
+        <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="ejecutarConCarga(this, buscarFechasProyecto, 'Buscando...')"><i class="ti ti-calendar-search" aria-hidden="true"></i> Buscar fechas</button>
+        <div id="np-bus-res" style="margin-top:12px"></div>
+      </div>
+      <div id="np-sugerido"></div>
     </div>
     <div class="panel-section">
       <div class="panel-section-title">HABILIDADES OPERATIVAS REQUERIDAS</div>
@@ -2377,6 +2421,9 @@ async function guardarNuevoProyecto() {
   const intens   = document.getElementById('np-intens')?.value;
   const inicio   = document.getElementById('np-inicio')?.value;
   const fin      = document.getElementById('np-fin')?.value;
+  if (document.getElementById('np-buscar')?.checked && (!inicio || !fin)) {
+    toast('Elige una de las fechas encontradas ("Usar estas fechas") o desmarca la búsqueda', 'error'); return;
+  }
   const personal = document.getElementById('np-personal')?.value;
   const ciudad   = document.getElementById('np-ciudad')?.value.trim();
   const estadoUb = document.getElementById('np-estado')?.value.trim();
@@ -2410,9 +2457,18 @@ async function guardarNuevoProyecto() {
     vehiculo_requerido, no_requiere_vehiculo
   });
   if (r) {
+    // Personal sugerido por el buscador de fechas (si se eligió asignarlo)
+    let asignados = 0;
+    if (STATE._np_sugerido && document.getElementById('np-asignar-sugerido')?.checked) {
+      for (const p of STATE._np_sugerido) {
+        const a = await api('POST', `/proyectos/proyectos/${encodeURIComponent(id_pry)}/asignar/${encodeURIComponent(p.id)}`);
+        if (a) asignados++;
+      }
+    }
+    STATE._np_sugerido = null;
     await loadProyectos(true);
     closePanel(null, true);
-    toast(`Proyecto "${nombre}" creado`);
+    toast(`Proyecto "${nombre}" creado${asignados ? ` · ${asignados} persona(s) asignada(s)` : ''}`);
     renderProyectos();
     cargarCatalogos();
   } else { err.textContent = 'Error al crear el proyecto.'; }
@@ -4806,7 +4862,8 @@ async function renderPermisos() {
       Quién puede descargar el Excel de auditoría desde Métricas. El administrador siempre puede. Los técnicos no tienen acceso a Métricas, así que el permiso solo aplica a directores.
     </div>
     <div class="table-section">
-      <div class="table-header"><span class="table-title">CUENTAS (${lista.length})</span></div>
+      <div class="table-header"><span class="table-title">CUENTAS (${lista.length})</span>
+        <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="openNuevaCuentaGestion()"><i class="ti ti-user-shield" aria-hidden="true"></i> Nueva cuenta de gestión</button></div>
       ${lista.map(u => {
         const esAdmin = u.rol === 'administrador';
         const aplica = u.rol !== 'tecnico';
@@ -4814,7 +4871,7 @@ async function renderPermisos() {
         <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--border)">
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;color:var(--text);font-weight:600">${escHtml(u.nombre)}</div>
-            <div style="font-size:11px;color:var(--text3)">${escHtml(u.email)} · ${etiquetaRol[u.rol] || u.rol}${u.activo ? '' : ' · desactivada'}</div>
+            <div style="font-size:11px;color:var(--text3)">${escHtml(u.email)} · ${etiquetaRol[u.rol] || u.rol}${u.empleado_id ? '' : ' · solo gestión'}${u.activo ? '' : ' · desactivada'}</div>
           </div>
           ${esAdmin ? `<span class="badge badge-libre">SIEMPRE</span>`
             : !aplica ? `<span style="font-size:11px;color:var(--text3)">No aplica</span>`
@@ -6381,6 +6438,169 @@ async function guardarContacto(empId, propio) {
   toast('Datos de contacto actualizados');
   if (propio) renderMiPerfil();
   else { await loadEmpleados(true); verEmpleado(empId); }
+}
+
+// ─── BUSCADOR DE FECHAS ("cazar fechas") en Nuevo proyecto ──────────────────
+function alternarBuscadorFechas(activo) {
+  document.getElementById('np-fechas-fijas').style.display = activo ? 'none' : 'flex';
+  document.getElementById('np-buscador').style.display = activo ? 'block' : 'none';
+  if (activo) {
+    const d = document.getElementById('np-bus-desde');
+    if (!d.value) d.value = isoLocal(new Date());
+  }
+}
+async function buscarFechasProyecto() {
+  const cont = document.getElementById('np-bus-res');
+  const duracion = parseInt(document.getElementById('np-bus-dur').value);
+  const desde = document.getElementById('np-bus-desde').value;
+  const hasta = document.getElementById('np-bus-hasta').value || null;
+  if (!duracion || duracion < 1) { toast('Indica cuántos días dura el proyecto', 'error'); return; }
+  if (!desde) { toast('Indica desde qué fecha puede empezar', 'error'); return; }
+  const sinEquipo = document.getElementById('np-sin-equipo')?.checked;
+  const sinVehiculo = document.getElementById('np-sin-vehiculo')?.checked ?? true;
+  const coords = parsearCoordenadas(document.getElementById('np-coords')?.value.trim());
+  const cuerpo = {
+    duracion_dias: duracion, desde, hasta,
+    personal_requerido: parseInt(document.getElementById('np-personal').value) || 1,
+    habilidades: (STATE._np_habilidades||[]).map(h => ({ nombre: h.nombre, nivel: h.nivel })),
+    certificados: (STATE._np_certificados||[]).slice(),
+    equipo: sinEquipo ? [] : (STATE._np_equipo||[]),
+    vehiculos: sinVehiculo ? [] : (STATE._np_vehiculo||[]),
+    considerar_equipo: document.getElementById('np-bus-eq').checked,
+    considerar_vehiculos: document.getElementById('np-bus-veh').checked,
+    criticidad: document.getElementById('np-crit').value, intensidad: document.getElementById('np-intens').value,
+    ciudad: document.getElementById('np-ciudad')?.value.trim() || '', estado_ub: document.getElementById('np-estado')?.value || '',
+    latitud: coords ? coords.lat : 0, longitud: coords ? coords.lon : 0,
+  };
+  cont.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:10px 0"><i class="ti ti-loader-2" aria-hidden="true"></i> Buscando la fecha más próxima…</div>';
+  const r = await api('POST', '/planeacion/buscar-fechas', cuerpo);
+  if (!r) { cont.innerHTML = ''; return; }
+  STATE._busqueda = { ...r, duracion };
+  pintarOpcionesFechas();
+}
+const fechaLarga = iso => fechaLocal(iso).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
+function pintarOpcionesFechas() {
+  const r = STATE._busqueda, cont = document.getElementById('np-bus-res');
+  if (!r.opciones.length) {
+    cont.innerHTML = `<div class="bus-aviso"><i class="ti ti-calendar-x" aria-hidden="true"></i> ${escHtml(r.motivo || 'No se encontraron fechas.')}</div>`;
+    return;
+  }
+  const etiquetaEq = t => etiquetaEquipo(t), etiquetaVeh = t => etiquetaVehiculo(t);
+  cont.innerHTML = (r.modo === 'con_brecha'
+      ? `<div class="bus-aviso"><i class="ti ti-alert-triangle" aria-hidden="true"></i> No hay fechas con personal que cumpla <strong>todo</strong> hasta el ${r.busco_hasta}. Estas opciones incluyen personas con <strong>brecha técnica</strong> (algo capacitable).</div>` : '')
+    + r.opciones.map((o, i) => `
+    <div class="bus-op">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
+        <div style="font-weight:700;color:var(--text)">${i === 0 ? '<span class="bus-tag">MÁS PRÓXIMA</span> ' : ''}${fechaLarga(o.inicio)} → ${fechaLarga(o.fin)}</div>
+        <div style="font-size:11px;color:var(--text3)">${o.personas_que_cumplen} persona(s) cumplen todo · necesitas ${o.personas_requeridas}</div>
+      </div>
+      <div style="margin-top:8px">${o.equipo_de_trabajo.map(p => `<span class="chip-termino" title="${p.brecha ? escHtml(p.brecha.join(' · ')) : 'Cumple todos los requisitos'}"><i class="ti ${p.brecha ? 'ti-alert-triangle' : 'ti-user-check'}" aria-hidden="true" style="color:${p.brecha ? 'var(--amber)' : 'var(--green)'}"></i>${escHtml(p.nombre)}<span class="chip-extra">${Math.round(p.puntaje)} pts${p.brecha ? ' · brecha' : ''}</span></span>`).join('')}</div>
+      ${[...o.equipo.map(e => `${etiquetaEq(e.tipo)}: ${e.libres} libre(s) de ${e.requeridos} necesario(s)${e.sugeridos.length ? ' · ' + e.sugeridos.map(escHtml).join(', ') : ''}`),
+         ...o.vehiculos.map(v => `${etiquetaVeh(v.tipo)}: ${v.libres} libre(s) de ${v.requeridos} necesario(s)${v.sugeridos.length ? ' · ' + v.sugeridos.map(escHtml).join(', ') : ''}`)]
+         .map(t => `<div style="font-size:11px;color:var(--text2);margin-top:2px"><i class="ti ti-check" aria-hidden="true" style="color:var(--green)"></i> ${t}</div>`).join('')}
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="usarOpcionFechas(${i})"><i class="ti ti-calendar-check" aria-hidden="true"></i> Usar estas fechas</button>
+        <button class="btn btn-ghost btn-sm" onclick="copiarPropuestaFechas(${i})"><i class="ti ti-copy" aria-hidden="true"></i> Copiar propuesta tentativa</button>
+      </div>
+    </div>`).join('');
+}
+function usarOpcionFechas(i) {
+  const o = STATE._busqueda.opciones[i];
+  document.getElementById('np-inicio').value = o.inicio;
+  document.getElementById('np-fin').value = o.fin;
+  document.getElementById('np-buscar').checked = false;
+  alternarBuscadorFechas(false);
+  STATE._np_sugerido = o.equipo_de_trabajo;
+  document.getElementById('np-sugerido').innerHTML = `
+    <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--text2);margin-top:10px;cursor:pointer;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px">
+      <input type="checkbox" id="np-asignar-sugerido" checked style="margin-top:2px">
+      <span>Al crear el proyecto, <strong>asignar al personal sugerido</strong>: ${o.equipo_de_trabajo.map(p => escHtml(p.nombre)).join(', ')}.</span>
+    </label>`;
+  toast(`Fechas: ${fechaLarga(o.inicio)} → ${fechaLarga(o.fin)}`);
+}
+function copiarPropuestaFechas(i) {
+  const o = STATE._busqueda.opciones[i];
+  const nombre = document.getElementById('np-nombre')?.value.trim() || 'el proyecto';
+  const cliente = document.getElementById('np-cliente')?.value.trim();
+  const largo = iso => fechaLocal(iso).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const texto = `Propuesta de fechas — ${nombre}${cliente ? ' (' + cliente + ')' : ''}
+
+Fecha tentativa: del ${largo(o.inicio)} al ${largo(o.fin)} (${STATE._busqueda.duracion} día${STATE._busqueda.duracion > 1 ? 's' : ''}).
+
+Esta fecha es tentativa y está sujeta a confirmación. La disponibilidad de personal y equipo se asegura al momento de confirmarla.`;
+  copiarTexto(texto, 'Propuesta copiada');
+}
+
+// ─── AVISOS DE CONTROL (campana de administradores y directores) ────────────
+const ES_GESTION = () => ['administrador','director_proyecto'].includes(STATE.rol) && !STATE.modoTecnico;
+async function cargarAvisos() {
+  if (!['administrador','director_proyecto'].includes(STATE.rol)) { STATE.avisos = null; return; }
+  STATE.avisos = await api('GET', '/avisos') || { total: 0, altas: 0, avisos: [] };
+}
+function pintarAvisos() {
+  const cont = document.getElementById('notif-list'); if (!cont) return;
+  const lista = STATE.avisos?.avisos || [];
+  if (!lista.length) { cont.innerHTML = `<div class="notif-empty"><i class="ti ti-shield-check" aria-hidden="true" style="font-size:22px;display:block;margin-bottom:6px;color:var(--green)"></i>Todo en orden</div>`; return; }
+  cont.innerHTML = lista.map((a, i) => `
+    <div class="notif-item" onclick="abrirAviso(${i})" style="display:flex;gap:10px;align-items:flex-start">
+      <i class="ti ti-${a.icono}" aria-hidden="true" style="font-size:18px;margin-top:1px;color:${a.nivel === 'alta' ? 'var(--red)' : 'var(--amber)'}"></i>
+      <div style="min-width:0">
+        <div class="notif-title">${escHtml(a.titulo)}</div>
+        <div class="notif-msg">${escHtml(a.detalle)}</div>
+        <div class="notif-time">${a.categoria}${a.nivel === 'alta' ? ' · urgente' : ''}</div>
+      </div>
+    </div>`).join('');
+}
+async function abrirAviso(i) {
+  const a = STATE.avisos.avisos[i];
+  document.getElementById('notif-dropdown').classList.remove('open');
+  showSection(a.seccion);
+  if (!a.entidad_id) return;
+  setTimeout(async () => {
+    if (a.seccion === 'empleados') { await loadEmpleados(); verEmpleado(a.entidad_id); }
+    else if (a.seccion === 'proyectos') verProyecto(a.entidad_id);
+    else if (a.seccion === 'equipos') { await loadEquipos(); verEquipo(a.entidad_id); }
+    else if (a.seccion === 'vehiculos') { await loadVehiculos(); verVehiculo(a.entidad_id); }
+  }, 400);
+}
+function cambiarPestanaNotif(tab) {
+  STATE._notifTab = tab;
+  document.querySelectorAll('.notif-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  document.getElementById('notif-marcar').style.display = tab === 'notif' ? '' : 'none';
+  if (tab === 'avisos') pintarAvisos(); else cargarNotificaciones();
+}
+
+// ─── CUENTAS DE GESTIÓN (sin perfil de empleado) ────────────────────────────
+function openNuevaCuentaGestion() {
+  openPanel('Nueva cuenta de gestión', `
+    <div class="panel-section">
+      <div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:12px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+        Para quien administra o supervisa <strong>sin ir a campo</strong>: no aparece en el Gantt ni en las asignaciones, y no tiene checador. Recibe los <strong>avisos de control</strong> (vencimientos, proyectos atrasados, pendientes).
+      </div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE COMPLETO</label><input class="field-input" id="cg-nombre" placeholder="Ej. Laura Gómez Ruiz"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">CORREO</label><input class="field-input" id="cg-email" type="email" placeholder="laura@walross.mx"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">ROL</label>
+        <select class="field-select" id="cg-rol"><option value="administrador">Administrador</option><option value="director_proyecto">Director de proyecto</option></select></div></div>
+      <div style="font-size:12px;color:var(--text2);margin-top:8px"><i class="ti ti-key" aria-hidden="true"></i> La contraseña temporal se genera automáticamente.</div>
+      <div id="cg-err" style="color:var(--red-text);font-size:12px;margin-top:8px"></div>
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button>
+     <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, guardarCuentaGestion)"><i class="ti ti-check" aria-hidden="true"></i> Crear cuenta</button>`);
+}
+async function guardarCuentaGestion() {
+  const nombre = document.getElementById('cg-nombre').value.trim();
+  const email = document.getElementById('cg-email').value.trim().toLowerCase();
+  const rol = document.getElementById('cg-rol').value;
+  const err = document.getElementById('cg-err');
+  if (!nombre || !email) { err.textContent = 'Nombre y correo son obligatorios.'; return; }
+  const id = 'USR-G-' + Date.now().toString(36).toUpperCase();
+  const r = await api('POST', '/auth/auth/usuarios', { id, nombre, email, rol });
+  if (!r) return;
+  STATE._panelDirty = false;
+  closePanel(null, true);
+  renderPermisos();
+  const partes = nombre.split(' ');
+  mostrarCredencialesNuevo(partes[0], partes.slice(1).join(' '), r.email || email, r.password_temporal, rol);
 }
 
 // ─── CUENTA NUEVA: credenciales e invitación ─────────────────────────────────
