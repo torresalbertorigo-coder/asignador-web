@@ -1358,6 +1358,20 @@ async function cargarPerfil() {
   } catch(e) { console.error('Error cargando perfil:', e); }
 }
 
+async function descargarConNombre(url, nombre) {
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(r.status);
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = nombre;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  } catch (e) {
+    window.open(url, '_blank');   // si el servidor no deja bajarlo así, se abre normal
+  }
+}
+
 function abrirVisor(url, nombre) {
   const overlay = document.getElementById('visor-overlay');
   const body    = document.getElementById('visor-body');
@@ -1366,6 +1380,7 @@ function abrirVisor(url, nombre) {
   titulo.textContent = nombre || 'Documento';
   dl.href = url;
   dl.download = nombre || 'documento';
+  dl.onclick = ev => { ev.preventDefault(); descargarConNombre(url, nombre || 'documento'); };
   const ext = (url.split('?')[0].split('.').pop() || '').toLowerCase();
   const esImagen = ['jpg','jpeg','png','gif','webp'].includes(ext) || url.startsWith('data:image');
   const esPDF = ext === 'pdf' || url.startsWith('data:application/pdf');
@@ -4194,7 +4209,7 @@ async function reemplazarDocumentoVehiculo(vehId, docId, nombre, vigenciaActual)
 function verDocumentoVehiculo(vehId, docId) {
   const v = (STATE.vehiculos||[]).find(x => x.id === vehId);
   const d = v && (v.documentos||[]).find(x => x.id === docId);
-  if (d && d.ruta_archivo) abrirVisor(d.ruta_archivo, d.nombre);
+  if (d && d.ruta_archivo) abrirVisor(d.ruta_archivo, nombreArchivoActivo('vehiculo', v, d));
 }
 
 // ─── Documentos de equipo (misma mecánica que vehículos) ──────────────────────
@@ -4285,10 +4300,24 @@ async function reemplazarDocumentoEquipo(eqId, docId, nombre, vigenciaActual) {
   input.click();
 }
 
+// Nombre de archivo de un documento de equipo/vehículo:
+//   "Tipo de documento - Tipo de equipo - Apodo - Serie (o placas).ext"
+// Para tipo "Otro" se usa el nombre que se le puso al documento.
+function nombreArchivoActivo(clase, activo, d) {
+  const tipoDoc = d.tipo && d.tipo !== 'otro'
+    ? (clase === 'equipo' ? EQ_DOC_TIPOS : VEH_DOC_TIPOS)[d.tipo] || d.nombre
+    : d.nombre;
+  const tipoActivo = clase === 'equipo' ? etiquetaEquipo(activo.tipo) : etiquetaVehiculo(activo.tipo);
+  const ident = clase === 'equipo' ? activo.numero_serie : activo.placas;
+  const ext = ((d.ruta_archivo || '').split('?')[0].match(/\.[a-z0-9]{2,5}$/i) || ['.pdf'])[0].toLowerCase();
+  const base = [tipoDoc, tipoActivo, activo.apodo || activo.nombre, ident]
+    .filter(x => x && String(x).trim()).map(x => String(x).trim().replace(/\s*\/\s*/g, ' ')).join(' - ');
+  return base.replace(/[\\/:*?"<>|]+/g, '-') + ext;
+}
 function verDocumentoEquipo(eqId, docId) {
   const eq = (STATE.equipos||[]).find(x => x.id === eqId);
   const d = eq && (eq.documentos||[]).find(x => x.id === docId);
-  if (d && d.ruta_archivo) abrirVisor(d.ruta_archivo, d.nombre);
+  if (d && d.ruta_archivo) abrirVisor(d.ruta_archivo, nombreArchivoActivo('equipo', eq, d));
 }
 
 // ─── Vehículos dentro de un proyecto (misma mecánica que equipo) ──────────────
