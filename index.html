@@ -2684,6 +2684,7 @@ async function exportarGanttPDF() {
   const matrizColor = [];
   const asignacionesPorSeccion = Object.fromEntries(secciones.map(s=>[s.key, []]));
   const vistos = new Set();
+  const gruposPdf = {};
   const empsOrdenados = [...STATE.empleados].sort((a,b) => {
     const enCampoA = estadoVisible(a) === 'en_proyecto' ? 0 : 1;
     const enCampoB = estadoVisible(b) === 'en_proyecto' ? 0 : 1;
@@ -2734,7 +2735,13 @@ async function exportarGanttPDF() {
             const d = Math.round((fechaLocal(pry.fecha_fin_estimada) - fechaLocal(pry.fecha_fin_real)) / 86400000);
             inicioReal += ` · terminó el ${pry.fecha_fin_real}, ${d} día(s) antes de lo planeado`;
           }
-          asignacionesPorSeccion[estadoVis].push(`${e.nombre} ${e.apellido} - ${pry.nombre} (${pry.fecha_inicio} al ${pry.fecha_fin_estimada}${inicioReal})`);
+          // Un proyecto = una entrada, con todas sus personas (antes salía una línea por persona)
+          const gk = `${estadoVis}|${pry.id}`;
+          if (!gruposPdf[gk]) {
+            gruposPdf[gk] = { titulo: `${pry.nombre} (${pry.fecha_inicio} al ${pry.fecha_fin_estimada}${inicioReal})`, personas: [] };
+            asignacionesPorSeccion[estadoVis].push(gruposPdf[gk]);
+          }
+          gruposPdf[gk].personas.push(`${e.nombre} ${e.apellido}`);
         }
       } else if (isWknd) {
         filaColor.push([243,244,246]);
@@ -2797,13 +2804,31 @@ async function exportarGanttPDF() {
     colY[col] += 5.5;
     doc.setFontSize(7.5);
     doc.setFont(undefined, 'normal');
-    asignacionesPorSeccion[s.key].forEach(linea => {
-      const wrapped = doc.splitTextToSize(linea, colAncho);
-      wrapped.forEach(l => {
+    asignacionesPorSeccion[s.key].forEach(entrada => {
+      if (typeof entrada === 'string') {          // ausencias: una línea por persona
+        doc.splitTextToSize(entrada, colAncho).forEach(l => {
+          if (colY[col] > maxY) { doc.addPage(); colY[col] = 15; }
+          doc.text(l, colX[col], colY[col]);
+          colY[col] += 4;
+        });
+        return;
+      }
+      // Proyecto: título en negritas y debajo las personas asignadas
+      doc.setFont(undefined, 'bold'); doc.setTextColor(0);
+      doc.splitTextToSize(entrada.titulo, colAncho).forEach(l => {
         if (colY[col] > maxY) { doc.addPage(); colY[col] = 15; }
         doc.text(l, colX[col], colY[col]);
         colY[col] += 4;
       });
+      doc.setFont(undefined, 'normal'); doc.setTextColor(90);
+      const etiqueta = entrada.personas.length > 1 ? `Personal (${entrada.personas.length}): ` : 'Personal: ';
+      doc.splitTextToSize(etiqueta + entrada.personas.join(', '), colAncho - 3).forEach(l => {
+        if (colY[col] > maxY) { doc.addPage(); colY[col] = 15; }
+        doc.text(l, colX[col] + 3, colY[col]);
+        colY[col] += 4;
+      });
+      doc.setTextColor(0);
+      colY[col] += 1.5;
     });
     colY[col] += 4;
   };
