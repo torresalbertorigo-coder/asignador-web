@@ -2099,7 +2099,7 @@ async function verProyecto(id) {
           return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
             <span style="display:flex;align-items:center;gap:8px"><i class="ti ti-${iconoEquipo(it.tipo)}" aria-hidden="true" style="font-size:16px;color:var(--text2)"></i>${escHtml(etiquetaEquipo(it.tipo))} — necesita ${it.cantidad}</span>
             <span style="display:flex;align-items:center;gap:10px">
-              ${dispInfo ? `<span style="color:${dispInfo.suficiente?'var(--green)':'var(--amber)'}">${dispInfo.disponibles} disponible(s)</span>` : ''}
+              ${dispInfo ? textoDisponibilidad(dispInfo, equiposAsignados.filter(x => x.tipo === it.tipo).length, it.cantidad) : ''}
               ${editando ? `<button class="btn btn-ghost btn-sm" style="padding:2px 6px" onclick="ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','equipo-requerido',${it.id}))"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}
             </span>
           </div>`;
@@ -2112,8 +2112,11 @@ async function verProyecto(id) {
         <div style="font-size:11px;color:var(--text3);margin:14px 0 6px">UNIDADES YA APARTADAS PARA ESTE PROYECTO</div>
         ${equiposAsignados.length ? equiposAsignados.map(eq=>`
           <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
-            <span>${eq.nombre} <span style="color:var(--text3)">(${eq.numero_serie||'sin serie'})</span></span>
-            ${editando ? `<button class="btn btn-ghost btn-sm" style="padding:2px 8px;color:var(--red-text)" onclick="liberarEquipoDeProyecto('${p.id}','${eq.id}')"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}
+            <span style="display:flex;align-items:center;gap:8px"><i class="ti ti-${iconoEquipo(eq.tipo)}" aria-hidden="true" style="font-size:16px;color:var(--text2)"></i>${escHtml(etiquetaUnidad(eq, eq.numero_serie))}</span>
+            <span style="display:flex;gap:6px">
+              <button class="btn btn-ghost btn-sm" style="padding:2px 8px" onclick="abrirAsignacionEquipo('${p.id}','${eq.id}')"><i class="ti ti-switch-horizontal" aria-hidden="true"></i> Cambiar</button>
+              ${editando ? `<button class="btn btn-ghost btn-sm" style="padding:2px 8px;color:var(--red-text)" onclick="liberarEquipoDeProyecto('${p.id}','${eq.id}')"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}
+            </span>
           </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Ninguna todavía.</div>'}
         <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="abrirAsignacionEquipo('${p.id}')"><i class="ti ti-tool" aria-hidden="true"></i> Asignar equipo específico</button>
         <button class="btn btn-ghost btn-sm" style="margin-top:10px;margin-left:8px" onclick="toggleEditarRequisitos('${p.id}')"><i class="ti ${editando?'ti-eye-off':'ti-pencil'}" aria-hidden="true"></i> ${editando?'Ocultar edición':'Editar requisitos'}</button>
@@ -2187,30 +2190,39 @@ function etiquetaUnidad(u, ident) {
   const fin = ident ? String(ident).trim().slice(-3) : '';
   return [u.apodo ? u.apodo.toUpperCase() : null, u.nombre, fin ? `SN …${fin}` : 'sin serie'].filter(Boolean).join(' · ');
 }
+function textoDisponibilidad(info, apartados, necesarios) {
+  const libres = Math.max(0, info.disponibles - apartados);   // "disponibles" incluye lo ya apartado aquí
+  const completo = apartados >= necesarios;
+  const color = completo ? 'var(--green)' : (info.suficiente ? 'var(--text2)' : 'var(--amber)');
+  return `<span style="color:${color}">${apartados} apartado(s) · ${libres} más libre(s)</span>`;
+}
 function opcionesPorTipo(candidatos, tiposPedidos, etiquetaTipo, etiqueta) {
   // Solo los tipos que pide el proyecto (si no pide ninguno, todos), agrupados por tipo
   const filtrados = tiposPedidos.length ? candidatos.filter(c => tiposPedidos.includes(c.tipo)) : candidatos;
   const tipos = [...new Set(filtrados.map(c => c.tipo))];
-  const ordenDisp = (a, b) => (b.disponible - a.disponible) || String(a.apodo || a.nombre).localeCompare(String(b.apodo || b.nombre), 'es');
+  const ordenDisp = (a, b) => (!!a.ya_asignado_aqui - !!b.ya_asignado_aqui) || (b.disponible - a.disponible) || String(a.apodo || a.nombre).localeCompare(String(b.apodo || b.nombre), 'es');
   return {
     total: filtrados.length,
     html: tipos.map(t => `<optgroup label="${escHtml(etiquetaTipo(t))}">${filtrados.filter(c => c.tipo === t).sort(ordenDisp).map(c =>
-      `<option value="${c.id}" data-disponible="${c.disponible}" data-conflicto="${escHtml(c.conflicto_con || '')}">${escHtml(etiqueta(c))} — ${c.disponible ? 'disponible' : 'ocupado en "' + escHtml(c.conflicto_con) + '"'}</option>`).join('')}</optgroup>`).join(''),
+      `<option value="${c.id}" data-disponible="${c.disponible}" data-conflicto="${escHtml(c.conflicto_con || '')}" ${c.ya_asignado_aqui ? 'disabled' : ''}>${escHtml(etiqueta(c))} — ${c.ya_asignado_aqui ? 'ya apartado aquí' : c.disponible ? 'disponible' : 'ocupado en "' + escHtml(c.conflicto_con) + '"'}</option>`).join('')}</optgroup>`).join(''),
   };
 }
-async function abrirAsignacionEquipo(proyectoId) {
+async function abrirAsignacionEquipo(proyectoId, reemplazarId) {
   const lista = await api('GET', `/proyectos/proyectos/${proyectoId}/equipos-para-asignar`);
   const p = STATE.proyectos.find(x => x.id === proyectoId) || {};
-  const pedidos = p.no_requiere_equipo ? [] : [...new Set((p.equipo_requerido_items || []).map(i => i.tipo))];
-  const candidatos = (lista||[]).filter(e => !e.ya_asignado_aqui);
-  const ops = opcionesPorTipo(candidatos, pedidos, etiquetaEquipo, e => etiquetaUnidad(e, e.numero_serie));
-  openPanel('Asignar equipo específico', `
+  const actual = reemplazarId ? (lista || []).find(e => e.id === reemplazarId) : null;
+  // Al cambiar, solo unidades del MISMO tipo que la que se reemplaza
+  const pedidos = actual ? [actual.tipo] : (p.no_requiere_equipo ? [] : [...new Set((p.equipo_requerido_items || []).map(i => i.tipo))]);
+  const ops = opcionesPorTipo(lista || [], pedidos, etiquetaEquipo, e => etiquetaUnidad(e, e.numero_serie));
+  STATE._reemplazarEq = reemplazarId || null;
+  openPanel(actual ? 'Cambiar equipo' : 'Asignar equipo específico', `
     <div class="panel-section">
-      ${pedidos.length ? `<div style="font-size:12px;color:var(--text2);margin-bottom:10px">Solo se muestra el equipo del tipo que pide este proyecto: <strong>${pedidos.map(t => escHtml(etiquetaEquipo(t))).join(', ')}</strong>.</div>` : ''}
+      ${actual ? `<div style="font-size:12px;color:var(--text2);margin-bottom:10px">Se reemplazará <strong>${escHtml(etiquetaUnidad(actual, actual.numero_serie))}</strong>; esa unidad queda libre.</div>`
+        : pedidos.length ? `<div style="font-size:12px;color:var(--text2);margin-bottom:10px">Solo se muestra el equipo del tipo que pide este proyecto: <strong>${pedidos.map(t => escHtml(etiquetaEquipo(t))).join(', ')}</strong>.</div>` : ''}
       <div class="field-row full"><div class="field-group"><label class="field-label">EQUIPO</label>
         <select class="field-select" id="asig-eq-select">${ops.html}</select>
       </div></div>
-      ${ops.total===0 ? `<div style="font-size:12px;color:var(--text3)">No hay ${pedidos.length ? 'equipo de ese tipo' : 'más equipo'} registrado para asignar.</div>` : ''}
+      ${!(lista || []).some(e => !e.ya_asignado_aqui && (!pedidos.length || pedidos.includes(e.tipo))) ? `<div style="font-size:12px;color:var(--text3)">No hay ${pedidos.length ? 'más equipo de ese tipo' : 'más equipo'} registrado para asignar.</div>` : ''}
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="verProyecto('${proyectoId}')">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => confirmarAsignacionEquipo('${proyectoId}'))"><i class="ti ti-check" aria-hidden="true"></i> Asignar</button>`);
 }
@@ -2226,7 +2238,11 @@ async function confirmarAsignacionEquipo(proyectoId) {
   }
   const r = await api('POST', `/proyectos/proyectos/${proyectoId}/asignar-equipo/${equipoId}`);
   if (!r) { toast('Error al asignar el equipo','error'); return; }
-  toast(r.mensaje || 'Equipo asignado');
+  if (STATE._reemplazarEq) {   // cambio: se libera la unidad anterior
+    await api('DELETE', `/proyectos/proyectos/${proyectoId}/equipo/${STATE._reemplazarEq}`);
+    STATE._reemplazarEq = null;
+    toast('Equipo cambiado');
+  } else toast(r.mensaje || 'Equipo asignado');
   await loadProyectos(true);
   verProyecto(proyectoId);
 }
@@ -4366,7 +4382,7 @@ function seccionVehiculosProyecto(p, asignados, disp, editando) {
         return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
           <span style="display:flex;align-items:center;gap:8px"><i class="ti ti-${iconoVehiculo(it.tipo)}" aria-hidden="true" style="font-size:16px;color:var(--text2)"></i>${escHtml(etiquetaVehiculo(it.tipo))} — necesita ${it.cantidad}</span>
           <span style="display:flex;align-items:center;gap:10px">
-            ${info ? `<span style="color:${info.suficiente?'var(--green)':'var(--amber)'}">${info.disponibles} disponible(s)</span>` : ''}
+            ${info ? textoDisponibilidad(info, asignados.filter(x => x.tipo === it.tipo).length, it.cantidad) : ''}
             ${editando && puedeEditar ? `<button class="btn btn-ghost btn-sm" style="padding:2px 6px" onclick="ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','vehiculo-requerido',${it.id}))"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}
           </span>
         </div>`;
@@ -4379,8 +4395,11 @@ function seccionVehiculosProyecto(p, asignados, disp, editando) {
       <div style="font-size:11px;color:var(--text3);margin:14px 0 6px">UNIDADES YA APARTADAS PARA ESTE PROYECTO</div>
       ${asignados.length ? asignados.map(v => `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
-          <span>${escHtml(v.nombre)} <span style="color:var(--text3)">(${escHtml(v.placas||'sin placas')})</span></span>
-          ${editando && puedeEditar ? `<button class="btn btn-ghost btn-sm" style="padding:2px 8px;color:var(--red-text)" onclick="ejecutarConCarga(this, () => liberarVehiculoDeProyecto('${p.id}','${v.id}'))"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}
+          <span style="display:flex;align-items:center;gap:8px"><i class="ti ti-${iconoVehiculo(v.tipo)}" aria-hidden="true" style="font-size:16px;color:var(--text2)"></i>${escHtml([v.apodo ? v.apodo.toUpperCase() : null, v.nombre, v.placas || 'sin placas'].filter(Boolean).join(' · '))}</span>
+          <span style="display:flex;gap:6px">
+            ${puedeEditar ? `<button class="btn btn-ghost btn-sm" style="padding:2px 8px" onclick="abrirAsignacionVehiculo('${p.id}','${v.id}')"><i class="ti ti-switch-horizontal" aria-hidden="true"></i> Cambiar</button>` : ''}
+            ${editando && puedeEditar ? `<button class="btn btn-ghost btn-sm" style="padding:2px 8px;color:var(--red-text)" onclick="ejecutarConCarga(this, () => liberarVehiculoDeProyecto('${p.id}','${v.id}'))"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}
+          </span>
         </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Ninguna todavía.</div>'}`;
   }
   const botones = puedeEditar ? `
@@ -4403,20 +4422,22 @@ async function agregarVehiculoRequeridoProyecto(proyectoId) {
   verProyecto(proyectoId);
 }
 
-async function abrirAsignacionVehiculo(proyectoId) {
+async function abrirAsignacionVehiculo(proyectoId, reemplazarId) {
   const lista = await api('GET', `/proyectos/proyectos/${proyectoId}/vehiculos-para-asignar`);
   const p = STATE.proyectos.find(x => x.id === proyectoId) || {};
-  const pedidos = p.no_requiere_vehiculo ? [] : [...new Set((p.vehiculo_requerido_items || []).map(i => i.tipo))];
-  const candidatos = (lista||[]).filter(v => !v.ya_asignado_aqui);
-  const ops = opcionesPorTipo(candidatos, pedidos, etiquetaVehiculo,
-    v => [v.apodo ? v.apodo.toUpperCase() : null, v.nombre, v.placas || 'sin placas'].filter(Boolean).join(' · '));
-  openPanel('Asignar vehículo específico', `
+  const actual = reemplazarId ? (lista || []).find(v => v.id === reemplazarId) : null;
+  const pedidos = actual ? [actual.tipo] : (p.no_requiere_vehiculo ? [] : [...new Set((p.vehiculo_requerido_items || []).map(i => i.tipo))]);
+  const etq = v => [v.apodo ? v.apodo.toUpperCase() : null, v.nombre, v.placas || 'sin placas'].filter(Boolean).join(' · ');
+  const ops = opcionesPorTipo(lista || [], pedidos, etiquetaVehiculo, etq);
+  STATE._reemplazarVeh = reemplazarId || null;
+  openPanel(actual ? 'Cambiar vehículo' : 'Asignar vehículo específico', `
     <div class="panel-section">
-      ${pedidos.length ? `<div style="font-size:12px;color:var(--text2);margin-bottom:10px">Solo se muestran vehículos del tipo que pide este proyecto: <strong>${pedidos.map(t => escHtml(etiquetaVehiculo(t))).join(', ')}</strong>.</div>` : ''}
+      ${actual ? `<div style="font-size:12px;color:var(--text2);margin-bottom:10px">Se reemplazará <strong>${escHtml(etq(actual))}</strong>; ese vehículo queda libre.</div>`
+        : pedidos.length ? `<div style="font-size:12px;color:var(--text2);margin-bottom:10px">Solo se muestran vehículos del tipo que pide este proyecto: <strong>${pedidos.map(t => escHtml(etiquetaVehiculo(t))).join(', ')}</strong>.</div>` : ''}
       <div class="field-row full"><div class="field-group"><label class="field-label">VEHÍCULO</label>
         <select class="field-select" id="asig-veh-select">${ops.html}</select>
       </div></div>
-      ${ops.total===0 ? `<div style="font-size:12px;color:var(--text3)">No hay ${pedidos.length ? 'vehículos de ese tipo' : 'más vehículos'} registrados para asignar.</div>` : ''}
+      ${!(lista || []).some(v => !v.ya_asignado_aqui && (!pedidos.length || pedidos.includes(v.tipo))) ? `<div style="font-size:12px;color:var(--text3)">No hay ${pedidos.length ? 'más vehículos de ese tipo' : 'más vehículos'} registrados para asignar.</div>` : ''}
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="verProyecto('${proyectoId}')">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => confirmarAsignacionVehiculo('${proyectoId}'))"><i class="ti ti-check" aria-hidden="true"></i> Asignar</button>`);
 }
@@ -4431,7 +4452,11 @@ async function confirmarAsignacionVehiculo(proyectoId) {
   }
   const r = await api('POST', `/proyectos/proyectos/${proyectoId}/asignar-vehiculo/${vehId}`);
   if (!r) { toast('Error al asignar el vehículo','error'); return; }
-  toast(r.mensaje || 'Vehículo asignado');
+  if (STATE._reemplazarVeh) {   // cambio: se libera el vehículo anterior
+    await api('DELETE', `/proyectos/proyectos/${proyectoId}/vehiculo/${STATE._reemplazarVeh}`);
+    STATE._reemplazarVeh = null;
+    toast('Vehículo cambiado');
+  } else toast(r.mensaje || 'Vehículo asignado');
   await loadProyectos(true);
   verProyecto(proyectoId);
 }
