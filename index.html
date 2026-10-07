@@ -2182,17 +2182,35 @@ async function quitarRequisitoProyecto(proyectoId, tipoRuta, itemId) {
   verProyecto(proyectoId);
 }
 
+// Cómo se reconoce una unidad: apodo primero, luego el modelo y solo el final de la serie
+function etiquetaUnidad(u, ident) {
+  const fin = ident ? String(ident).trim().slice(-3) : '';
+  return [u.apodo ? u.apodo.toUpperCase() : null, u.nombre, fin ? `SN …${fin}` : 'sin serie'].filter(Boolean).join(' · ');
+}
+function opcionesPorTipo(candidatos, tiposPedidos, etiquetaTipo, etiqueta) {
+  // Solo los tipos que pide el proyecto (si no pide ninguno, todos), agrupados por tipo
+  const filtrados = tiposPedidos.length ? candidatos.filter(c => tiposPedidos.includes(c.tipo)) : candidatos;
+  const tipos = [...new Set(filtrados.map(c => c.tipo))];
+  const ordenDisp = (a, b) => (b.disponible - a.disponible) || String(a.apodo || a.nombre).localeCompare(String(b.apodo || b.nombre), 'es');
+  return {
+    total: filtrados.length,
+    html: tipos.map(t => `<optgroup label="${escHtml(etiquetaTipo(t))}">${filtrados.filter(c => c.tipo === t).sort(ordenDisp).map(c =>
+      `<option value="${c.id}" data-disponible="${c.disponible}" data-conflicto="${escHtml(c.conflicto_con || '')}">${escHtml(etiqueta(c))} — ${c.disponible ? 'disponible' : 'ocupado en "' + escHtml(c.conflicto_con) + '"'}</option>`).join('')}</optgroup>`).join(''),
+  };
+}
 async function abrirAsignacionEquipo(proyectoId) {
   const lista = await api('GET', `/proyectos/proyectos/${proyectoId}/equipos-para-asignar`);
-  const candidatos = (lista||[]).filter(e=>!e.ya_asignado_aqui);
+  const p = STATE.proyectos.find(x => x.id === proyectoId) || {};
+  const pedidos = p.no_requiere_equipo ? [] : [...new Set((p.equipo_requerido_items || []).map(i => i.tipo))];
+  const candidatos = (lista||[]).filter(e => !e.ya_asignado_aqui);
+  const ops = opcionesPorTipo(candidatos, pedidos, etiquetaEquipo, e => etiquetaUnidad(e, e.numero_serie));
   openPanel('Asignar equipo específico', `
     <div class="panel-section">
+      ${pedidos.length ? `<div style="font-size:12px;color:var(--text2);margin-bottom:10px">Solo se muestra el equipo del tipo que pide este proyecto: <strong>${pedidos.map(t => escHtml(etiquetaEquipo(t))).join(', ')}</strong>.</div>` : ''}
       <div class="field-row full"><div class="field-group"><label class="field-label">EQUIPO</label>
-        <select class="field-select" id="asig-eq-select">
-          ${candidatos.map(e=>`<option value="${e.id}" data-disponible="${e.disponible}" data-conflicto="${e.conflicto_con||''}">${e.nombre} — ${e.numero_serie||'sin serie'} (${e.disponible ? 'disponible' : 'no disponible — en uso en "'+e.conflicto_con+'"'})</option>`).join('')}
-        </select>
+        <select class="field-select" id="asig-eq-select">${ops.html}</select>
       </div></div>
-      ${candidatos.length===0 ? '<div style="font-size:12px;color:var(--text3)">No hay más equipo registrado para asignar.</div>' : ''}
+      ${ops.total===0 ? `<div style="font-size:12px;color:var(--text3)">No hay ${pedidos.length ? 'equipo de ese tipo' : 'más equipo'} registrado para asignar.</div>` : ''}
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="verProyecto('${proyectoId}')">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => confirmarAsignacionEquipo('${proyectoId}'))"><i class="ti ti-check" aria-hidden="true"></i> Asignar</button>`);
 }
@@ -4387,15 +4405,18 @@ async function agregarVehiculoRequeridoProyecto(proyectoId) {
 
 async function abrirAsignacionVehiculo(proyectoId) {
   const lista = await api('GET', `/proyectos/proyectos/${proyectoId}/vehiculos-para-asignar`);
+  const p = STATE.proyectos.find(x => x.id === proyectoId) || {};
+  const pedidos = p.no_requiere_vehiculo ? [] : [...new Set((p.vehiculo_requerido_items || []).map(i => i.tipo))];
   const candidatos = (lista||[]).filter(v => !v.ya_asignado_aqui);
+  const ops = opcionesPorTipo(candidatos, pedidos, etiquetaVehiculo,
+    v => [v.apodo ? v.apodo.toUpperCase() : null, v.nombre, v.placas || 'sin placas'].filter(Boolean).join(' · '));
   openPanel('Asignar vehículo específico', `
     <div class="panel-section">
+      ${pedidos.length ? `<div style="font-size:12px;color:var(--text2);margin-bottom:10px">Solo se muestran vehículos del tipo que pide este proyecto: <strong>${pedidos.map(t => escHtml(etiquetaVehiculo(t))).join(', ')}</strong>.</div>` : ''}
       <div class="field-row full"><div class="field-group"><label class="field-label">VEHÍCULO</label>
-        <select class="field-select" id="asig-veh-select">
-          ${candidatos.map(v => `<option value="${v.id}" data-disponible="${v.disponible}" data-conflicto="${escHtml(v.conflicto_con||'')}">${escHtml(v.nombre)} — ${escHtml(v.placas||'sin placas')} (${v.disponible ? 'disponible' : 'no disponible — en uso en "'+escHtml(v.conflicto_con)+'"'})</option>`).join('')}
-        </select>
+        <select class="field-select" id="asig-veh-select">${ops.html}</select>
       </div></div>
-      ${candidatos.length===0 ? '<div style="font-size:12px;color:var(--text3)">No hay más vehículos registrados para asignar.</div>' : ''}
+      ${ops.total===0 ? `<div style="font-size:12px;color:var(--text3)">No hay ${pedidos.length ? 'vehículos de ese tipo' : 'más vehículos'} registrados para asignar.</div>` : ''}
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="verProyecto('${proyectoId}')">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => confirmarAsignacionVehiculo('${proyectoId}'))"><i class="ti ti-check" aria-hidden="true"></i> Asignar</button>`);
 }
