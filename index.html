@@ -222,18 +222,11 @@ a{text-decoration:none;color:inherit}
   html.layout-moderno .stat-lbl{margin:0;font-size:10px;letter-spacing:.06em}
   html.layout-moderno .stat-sub{display:none}
 
-  /* ── Panel lateral deslizante (slide-over) desde la derecha ──
-     Mismo panel de siempre (openPanel/closePanel); solo cambia cómo se presenta. */
-  html.layout-moderno #panel-overlay{justify-content:flex-end;align-items:stretch;padding:0;background:rgba(0,0,0,.32)}
-  html.layout-moderno[data-theme="light"] #panel-overlay{background:rgba(16,16,16,.16)}
-  html.layout-moderno #panel-overlay.open .panel-side{animation:ws-drawer-in .24s cubic-bezier(.2,.8,.2,1)}
-  html.layout-moderno .panel-side{max-width:min(620px,94vw);width:min(620px,94vw);height:100vh;max-height:100vh;border-radius:14px 0 0 14px;
-    border-right:none;background:linear-gradient(to top, var(--surface) 0%, var(--grad-fill-panel) 100%);box-shadow:-24px 0 60px rgba(0,0,0,.45)}
-  html.layout-moderno[data-theme="light"] .panel-side{box-shadow:-18px 0 50px rgba(16,16,16,.14)}
-  html.layout-moderno .panel-side .panel-body{flex:1}
-  html.layout-moderno .panel-side .panel-footer{margin-top:auto}
+  /* ── Detalles (técnico, proyecto, vehículo…): ventana centrada con entrada suave ──
+     Mismo panel de siempre (openPanel/closePanel); solo cambia la animación. */
+  html.layout-moderno #panel-overlay.open .panel-side{animation:ws-panel-in .2s cubic-bezier(.2,.8,.2,1)}
 }
-@keyframes ws-drawer-in{from{transform:translateX(48px);opacity:0}to{transform:none;opacity:1}}
+@keyframes ws-panel-in{from{transform:translateY(10px) scale(.985);opacity:0}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion:reduce){ html.layout-moderno #panel-overlay.open .panel-side{animation:none} }
 /* ═══ LAYOUT MODERNO (fin) ═══ */
 
@@ -707,10 +700,6 @@ tbody tr:hover .td-action i{color:var(--text2)}
         </div>
         <div style="display:flex;align-items:center;gap:14px">
           <div class="topbar-right" id="topbar-actions"></div>
-          <div class="layout-switch" role="group" aria-label="Disposición de la interfaz">
-            <button type="button" data-layout="classic" onclick="setLayoutMode('classic')" title="Clásico: menú lateral"><i class="ti ti-layout-sidebar" aria-hidden="true"></i><span>Clásico</span></button>
-            <button type="button" data-layout="modern" onclick="setLayoutMode('modern')" title="Moderno: menú superior y paneles deslizantes"><i class="ti ti-layout-navbar" aria-hidden="true"></i><span>Moderno</span></button>
-          </div>
           <button class="topbar-menu-btn" onclick="toggleTema()" aria-label="Cambiar tema" id="btn-tema-topbar"><i class="ti ti-moon" aria-hidden="true"></i></button>
           <div style="position:relative">
             <div class="user-menu" id="user-menu">
