@@ -165,6 +165,7 @@ a{text-decoration:none;color:inherit}
 
 /* STATS */
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.stats-grid.stats-5{grid-template-columns:repeat(5,1fr)}
 .stat-card{background:linear-gradient(to top, transparent 0%, var(--grad-fill-card) 100%);border:1px solid var(--border);padding:12px 14px;border-radius:var(--radius);border-left:2px solid var(--border)}
 .stat-card.c-red{border-left-color:var(--red)}
 .stat-card.c-green{border-left-color:var(--green)}
@@ -446,7 +447,8 @@ tbody tr:hover .td-action i{color:var(--text2)}
   .sidebar{display:none}.sidebar.mobile-open{display:flex;position:fixed;z-index:1000;height:100vh}
   .mobile-nav{display:block}
   .topbar-menu-btn{display:block}
-  .stats-grid{grid-template-columns:1fr 1fr}
+  .stats-grid,.stats-grid.stats-5{grid-template-columns:1fr 1fr}
+  .stats-grid.stats-5>.stat-card:first-child{grid-column:1 / -1}
   .equipo-grid{grid-template-columns:1fr}
   .eval-config{flex-direction:column}
   .field-row{grid-template-columns:1fr}
@@ -1916,7 +1918,11 @@ async function renderProyectos() {
   await loadEmpleados();
   let proyectos = STATE.proyectos;
   const pend = proyectos.filter(p=>estadoProyectoVisible(p)==='pendiente_asignacion').length;
-  const prog = proyectos.filter(p=>['asignado','en_preparacion','en_espera_inicio','en_progreso'].includes(estadoProyectoVisible(p))).length;
+  // Programados = asignados que aún no inician; En campo = ya se les dio "Iniciar" y no se han finalizado
+  const programados = proyectos.filter(p => ['asignado','en_preparacion','en_espera_inicio'].includes(estadoProyectoVisible(p))).length;
+  const enCampo = proyectos.filter(p => estadoProyectoVisible(p) === 'en_progreso').length;
+  const pausados = proyectos.filter(p => p.estado === 'pausado').length;
+  const finalizados = proyectos.filter(p => p.estado === 'completado').length;
 
   const filtro = (STATE._pryFiltro||'').toLowerCase().trim();
   if (filtro) {
@@ -1945,11 +1951,12 @@ async function renderProyectos() {
   }
 
   html(`
-    <div class="stats-grid">
+    <div class="stats-grid stats-5">
       <div class="stat-card c-red"><div class="stat-lbl">TOTAL PROYECTOS</div><div class="stat-val">${STATE.proyectos.length}</div><div class="stat-sub">en sistema</div></div>
       <div class="stat-card c-amber"><div class="stat-lbl">PENDIENTES</div><div class="stat-val">${pend}</div><div class="stat-sub">sin asignar</div></div>
-      <div class="stat-card c-blue"><div class="stat-lbl">EN PROGRESO</div><div class="stat-val">${prog}</div><div class="stat-sub">en campo</div></div>
-      <div class="stat-card c-green"><div class="stat-lbl">FINALIZADOS</div><div class="stat-val">${STATE.proyectos.length-pend-prog}</div><div class="stat-sub">completados</div></div>
+      <div class="stat-card c-blue"><div class="stat-lbl">PROGRAMADOS</div><div class="stat-val">${programados}</div><div class="stat-sub">asignados, aún no inician</div></div>
+      <div class="stat-card c-red"><div class="stat-lbl">EN CAMPO</div><div class="stat-val">${enCampo}</div><div class="stat-sub">${pausados ? `iniciados · ${pausados} en pausa aparte` : 'iniciados, sin finalizar'}</div></div>
+      <div class="stat-card c-green"><div class="stat-lbl">FINALIZADOS</div><div class="stat-val">${finalizados}</div><div class="stat-sub">completados</div></div>
     </div>
     <div class="table-section">
       <div class="table-header">
