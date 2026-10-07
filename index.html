@@ -2708,372 +2708,7 @@ async function renderGantt() {
     </div>`);
 }
 
-async function exportarGanttPDF() {
-  await loadEmpleados(); await loadProyectos();
-  const inact = await cargarInactividadAprobada();
-  const hoyPdf = new Date(); hoyPdf.setHours(0,0,0,0);
-  const desdePdf = new Date(hoyPdf); desdePdf.setDate(desdePdf.getDate()-7);
-  const hastaPdf = new Date(hoyPdf); hastaPdf.setDate(hastaPdf.getDate()+22);
-  const trabajados = await cargarDiasTrabajados(desdePdf, hastaPdf);
-  const marcas = [];   // por celda: { contorno: planeado que ya no fue necesario }
-  const coloresTipoDia = { retraso: [248,180,182], descanso: [203,213,225], standby: [252,211,77], pausa: [229,231,235] };
-  const tiposUsados = new Set();
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
-  const today = new Date();
-  const dias = 30;
-  const cols = Array.from({length:dias}, (_,i) => { const d = new Date(today); d.setDate(d.getDate()-7+i); d.setHours(0,0,0,0); return d; });
-  const diaLetra = ['D','L','M','X','J','V','S'];
-  // Mismos estados y colores que el Gantt en pantalla (coloresProyecto de renderGantt)
-  const secciones = [
-    { key: 'en_progreso', label: 'EN PROGRESO', color: [227,28,34], nombreColor: 'Rojo' },
-    { key: 'en_espera_inicio', label: 'EN ESPERA DE INICIO', color: [249,115,22], nombreColor: 'Naranja' },
-    { key: 'en_preparacion', label: 'EN PREPARATIVOS', color: [245,158,11], nombreColor: 'Ámbar' },
-    { key: 'asignado', label: 'ASIGNADO', color: [34,197,94], nombreColor: 'Verde' },
-    { key: 'pendiente_asignacion', label: 'PENDIENTE DE ASIGNACIÓN', color: [107,114,128], nombreColor: 'Gris oscuro' },
-    { key: 'pausado', label: 'PAUSADO', color: [249,115,22], nombreColor: 'Naranja' },
-    { key: 'completado', label: 'COMPLETADO', color: [59,130,246], nombreColor: 'Azul' },
-    { key: 'cancelado', label: 'CANCELADO', color: [156,163,175], nombreColor: 'Gris' },
-  ];
-  const coloresProyecto = Object.fromEntries(secciones.map(s=>[s.key,s.color]));
-  const seccionAusencias = { key: 'ausencia', label: 'AUSENCIAS', color: [196,181,253], nombreColor: 'Morado' };
-  secciones.push(seccionAusencias);
 
-  doc.setFontSize(14);
-  doc.setFont(undefined, 'bold');
-  doc.text('Calendario de Disponibilidad — 30 días', 10, 12);
-  doc.setFontSize(9);
-  doc.setFont(undefined, 'normal');
-  doc.text(`Generado el ${today.toLocaleString('es-MX')}`, 10, 18);
-
-  // Matriz de color y de "a quién pertenece" por celda, calculada de antemano
-  const matrizColor = [];
-  const asignacionesPorSeccion = Object.fromEntries(secciones.map(s=>[s.key, []]));
-  const vistos = new Set();
-  const gruposPdf = {};
-  const empsOrdenados = [...STATE.empleados].sort((a,b) => {
-    const enCampoA = estadoVisible(a) === 'en_proyecto' ? 0 : 1;
-    const enCampoB = estadoVisible(b) === 'en_proyecto' ? 0 : 1;
-    if (enCampoA !== enCampoB) return enCampoA - enCampoB;
-    return `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`, 'es');
-  });
-  empsOrdenados.forEach(e => {
-    const filaColor = [];
-    const filaMarcas = [];
-    cols.forEach(d => {
-      const isWknd = d.getDay()===0||d.getDay()===6;
-      const pry = proyectoEnDia(e.id, d);
-      const tipoDia = pry ? tipoDiaProyecto(pry, e.id, d, inact) : null;
-      const aus = ausenciaEn(e, d);
-      const trabajadoPdf = !!pry && trabajados.has(`${e.id}|${pry.id}|${isoLocal(d)}`);
-      filaMarcas.push({
-        contorno: !aus && tipoDia === 'no-usado',
-      });
-      if (aus) {
-        filaColor.push(seccionAusencias.color);
-        const clave = `${e.id}-aus-${aus.id}`;
-        if (!vistos.has(clave)) {
-          vistos.add(clave);
-          asignacionesPorSeccion.ausencia.push(`${e.nombre} ${e.apellido} - ${aus.motivo} (${aus.fecha_inicio} al ${aus.fecha_fin})${pry ? ' · choca con ' + pry.nombre : ''}`);
-        }
-      } else if (pry) {
-        const estadoVis = estadoProyectoVisible(pry);
-        const base = coloresProyecto[estadoVis] || [156,163,175];
-        const tenue = base.map(c => Math.round(c + (255 - c) * 0.62));   // mismo tono, aclarado
-        if (tipoDia === 'no-usado') { filaColor.push([255,255,255]); tiposUsados.add('no-usado'); }
-        else if (tipoDia === 'retraso' && pry.fecha_fin_real) { filaColor.push(trabajadoPdf ? base : tenue); if (!trabajadoPdf) tiposUsados.add('tenue'); }
-        else if (tipoDia) { filaColor.push(coloresTipoDia[tipoDia]); tiposUsados.add(tipoDia); }
-        else if (pry.fecha_fin_real) { filaColor.push(trabajadoPdf ? base : tenue); if (!trabajadoPdf) tiposUsados.add('tenue'); }
-        else filaColor.push(base);
-        const clave = `${e.id}-${pry.id}`;
-        if (!vistos.has(clave) && asignacionesPorSeccion[estadoVis]) {
-          vistos.add(clave);
-          let inicioReal = (estadoVis === 'en_progreso' && pry.fecha_inicio_real) ? ` · inició ${pry.fecha_inicio_real}` : '';
-          if (pry.fecha_inicio_real && !pry.fecha_fin_real) {
-            const diasRetraso = Math.round((new Date(new Date().setHours(0,0,0,0)) - fechaLocal(pry.fecha_fin_estimada)) / 86400000);
-            if (diasRetraso > 0) inicioReal += ` · ${diasRetraso} día(s) de retraso, sin finalizar`;
-          }
-          else if (pry.fecha_fin_real && pry.fecha_fin_real > pry.fecha_fin_estimada) {
-            const d = Math.round((fechaLocal(pry.fecha_fin_real) - fechaLocal(pry.fecha_fin_estimada)) / 86400000);
-            inicioReal += ` · terminó el ${pry.fecha_fin_real} con ${d} día(s) de retraso`;
-          }
-          else if (pry.fecha_fin_real && pry.fecha_fin_real < pry.fecha_fin_estimada) {
-            const d = Math.round((fechaLocal(pry.fecha_fin_estimada) - fechaLocal(pry.fecha_fin_real)) / 86400000);
-            inicioReal += ` · terminó el ${pry.fecha_fin_real}, ${d} día(s) antes de lo planeado`;
-          }
-          // Un proyecto = una entrada, con todas sus personas (antes salía una línea por persona)
-          const gk = `${estadoVis}|${pry.id}`;
-          if (!gruposPdf[gk]) {
-            gruposPdf[gk] = { titulo: `${pry.nombre} (${pry.fecha_inicio} al ${pry.fecha_fin_estimada}${inicioReal})`, personas: [] };
-            asignacionesPorSeccion[estadoVis].push(gruposPdf[gk]);
-          }
-          gruposPdf[gk].personas.push(`${e.nombre} ${e.apellido}`);
-        }
-      } else if (isWknd) {
-        filaColor.push([243,244,246]);
-      } else {
-        filaColor.push([255,255,255]);
-      }
-    });
-    matrizColor.push(filaColor);
-    marcas.push(filaMarcas);
-  });
-
-  const head = [['TÉCNICO', ...cols.map(d => `${d.getDate()}\n${diaLetra[d.getDay()]}`)]];
-  const body = empsOrdenados.map(e => [`${e.nombre} ${e.apellido}`, ...cols.map(()=>'')]);
-
-  doc.autoTable({
-    startY: 22,
-    head, body,
-    theme: 'grid',
-    styles: { fontSize: 6, cellPadding: 1, halign: 'center', lineColor: [220,220,220], lineWidth: 0.1 },
-    headStyles: { fillColor: [30,30,33], textColor: 255, fontSize: 6 },
-    columnStyles: { 0: { halign: 'left', cellWidth: 38, fontSize: 7 } },
-    didParseCell: (data) => {
-      if (data.section === 'body' && data.column.index > 0) {
-        const color = matrizColor[data.row.index]?.[data.column.index - 1];
-        if (color) data.cell.styles.fillColor = color;
-      }
-    },
-    didDrawCell: (data) => {
-      if (data.section !== 'body' || data.column.index === 0) return;
-      const m = marcas[data.row.index]?.[data.column.index - 1];
-      if (!m) return;
-      const { x, y, width: w, height: h } = data.cell;
-      if (m.contorno) { doc.setDrawColor(227,28,34); doc.setLineWidth(0.25); doc.rect(x + 0.4, y + 0.4, w - 0.8, h - 0.8, 'S'); }
-    }
-  });
-
-  // Leyenda adaptable: solo las secciones que realmente tienen algo, en 2 columnas balanceadas
-  let y = doc.lastAutoTable.finalY + 8;
-  if (y > 175) { doc.addPage(); y = 15; }
-  doc.setFontSize(11);
-  doc.setFont(undefined, 'bold');
-  doc.setTextColor(0);
-  doc.text('Asignaciones dentro de este periodo', 10, y);
-  y += 7;
-
-  const seccionesConDatos = secciones.filter(s => asignacionesPorSeccion[s.key].length);
-  const colX = [10, 148];       // página landscape carta = 279.4mm; cada columna cabe con margen de sobra
-  const colAncho = 122;         // ancho de texto disponible por columna
-  const colY = [y, y];
-  const maxY = 195;             // límite antes de saltar de página
-
-  const dibujarSeccion = (s, col) => {
-    if (colY[col] > maxY - 10) { doc.addPage(); colY[0] = 15; colY[1] = 15; }
-    doc.setFillColor(...s.color);
-    doc.rect(colX[col], colY[col]-3, 3, 3, 'F');
-    doc.setFontSize(9);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(0);
-    doc.text(s.label, colX[col]+5, colY[col]);
-    colY[col] += 5.5;
-    doc.setFontSize(7.5);
-    doc.setFont(undefined, 'normal');
-    asignacionesPorSeccion[s.key].forEach(entrada => {
-      if (typeof entrada === 'string') {          // ausencias: una línea por persona
-        doc.splitTextToSize(entrada, colAncho).forEach(l => {
-          if (colY[col] > maxY) { doc.addPage(); colY[col] = 15; }
-          doc.text(l, colX[col], colY[col]);
-          colY[col] += 4;
-        });
-        return;
-      }
-      // Proyecto: título en negritas y debajo las personas asignadas
-      doc.setFont(undefined, 'bold'); doc.setTextColor(0);
-      doc.splitTextToSize(entrada.titulo, colAncho).forEach(l => {
-        if (colY[col] > maxY) { doc.addPage(); colY[col] = 15; }
-        doc.text(l, colX[col], colY[col]);
-        colY[col] += 4;
-      });
-      doc.setFont(undefined, 'normal'); doc.setTextColor(90);
-      const etiqueta = entrada.personas.length > 1 ? `Personal (${entrada.personas.length}): ` : 'Personal: ';
-      doc.splitTextToSize(etiqueta + entrada.personas.join(', '), colAncho - 3).forEach(l => {
-        if (colY[col] > maxY) { doc.addPage(); colY[col] = 15; }
-        doc.text(l, colX[col] + 3, colY[col]);
-        colY[col] += 4;
-      });
-      doc.setTextColor(0);
-      colY[col] += 1.5;
-    });
-    colY[col] += 4;
-  };
-
-  // Siempre se agrega a la columna que en ese momento esté más corta, para que quede balanceado
-  seccionesConDatos.forEach(s => {
-    const col = colY[0] <= colY[1] ? 0 : 1;
-    dibujarSeccion(s, col);
-  });
-
-  doc.setFontSize(7);
-  doc.setTextColor(120);
-  const nombresTipoDia = { retraso: 'Rosa = retraso (en curso)', descanso: 'Gris azulado = descanso', standby: 'Ámbar = standby', pausa: 'Gris claro = en pausa' };
-  nombresTipoDia.tenue = 'Tono claro = día sin checada (proyecto finalizado)';
-  nombresTipoDia['no-usado'] = 'Contorno = planeado, ya no fue necesario';
-  const leyendaColores = [...seccionesConDatos.map(s => `${s.nombreColor} = ${s.label.toLowerCase()}`), ...[...tiposUsados].map(t => nombresTipoDia[t])].join(' · ');
-  if (leyendaColores) doc.text(leyendaColores, 10, doc.internal.pageSize.getHeight() - 7);
-
-  entregarPDF(doc, `Gantt General - ${today.toISOString().split('T')[0]}.pdf`);
-}
-
-async function exportarCalendarioEmpleadoPDF(empId, nombre, year, month) {
-  await loadEmpleados(); await loadProyectos(); await loadEquipos(); await loadVehiculos();
-  const emp = STATE.empleados.find(e => e.id === empId);
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
-  let y = 18;
-
-  doc.setFontSize(9);
-  doc.setTextColor(150);
-  doc.text('WORKSYNC', 14, y);
-  y += 9;
-  doc.setTextColor(0);
-  doc.setFontSize(17);
-  doc.setFont(undefined, 'bold');
-  doc.text(nombre, 14, y);
-  y += 7;
-  doc.setFontSize(10);
-  doc.setFont(undefined, 'normal');
-  doc.setTextColor(90);
-  const datosEmp = emp ? [emp.id, (emp.seniority||'').replace(/^./, c=>c.toUpperCase()), emp.ciudad||'—'].filter(Boolean).join('  ·  ') : '';
-  if (datosEmp) doc.text(datosEmp, 14, y);
-  doc.setTextColor(0);
-  y += 12;
-
-  const eventos = eventosProyectosPorDia(empId);
-  const primerDia = new Date(year, month, 1);
-  const diasEnMes = new Date(year, month+1, 0).getDate();
-  const diasResaltadosSet = new Set();
-  const diasAusenciaSet = new Set();
-  const proyectosDelMes = new Map();
-  const empPdf = (STATE.empleados||[]).find(x => x.id === empId) || { ausencias: [] };
-  const ausenciasDelMes = (empPdf.ausencias||[]).filter(a => fechaLocal(a.fecha_inicio) <= new Date(year, month, diasEnMes) && fechaLocal(a.fecha_fin) >= new Date(year, month, 1));
-  for (let d=1; d<=diasEnMes; d++) {
-    const fecha = new Date(year, month, d);
-    const key = isoLocal(fecha);
-    if (ausenciaEn(empPdf, fecha)) diasAusenciaSet.add(fecha.toDateString());
-    const evs = eventos[key] || [];
-    if (evs.length) {
-      diasResaltadosSet.add(fecha.toDateString());
-      evs.forEach(p => proyectosDelMes.set(p.id, p));
-    }
-  }
-
-  doc.setFontSize(9);
-  doc.setFont(undefined, 'bold');
-  doc.text('CALENDARIO', 14, y);
-  y += 6;
-  y = dibujarMesCalendarioPDF(doc, year, month, diasResaltadosSet, y, diasAusenciaSet);
-  y += 10;
-
-  // ── Ausencias del mes
-  if (ausenciasDelMes.length) {
-    doc.setFontSize(9); doc.setFont(undefined, 'bold'); doc.setTextColor(0);
-    doc.text(`AUSENCIAS ESTE MES (${ausenciasDelMes.length})`, 14, y); y += 6;
-    ausenciasDelMes.forEach(a => {
-      if (y > 260) { doc.addPage(); y = 18; }
-      doc.setFillColor(124, 92, 201); doc.rect(14, y - 3.2, 1.2, 4.2, 'F');
-      doc.setFontSize(9.5); doc.setFont(undefined, 'bold'); doc.setTextColor(20);
-      doc.text(tipoAusencia(a), 18, y);
-      doc.setFont(undefined, 'normal'); doc.setTextColor(90);
-      const nota = (a.motivo || '').split(' — ').slice(1).join(' — ');
-      doc.text(`${a.fecha_inicio} al ${a.fecha_fin}${nota ? ' · ' + nota : ''}`, 18 + doc.getTextWidth(tipoAusencia(a)) + 4, y);
-      y += 6;
-    });
-    doc.setTextColor(0);
-    y += 4;
-  }
-
-  // ── Proyectos del mes: fechas, compañeros, equipo y vehículo ──
-  const lista = Array.from(proyectosDelMes.values())
-    .sort((a,b) => String(a.fecha_inicio).localeCompare(String(b.fecha_inicio)));
-  const etiquetasEstado = {
-    asignado: 'Asignado', en_preparacion: 'En preparativos', en_espera_inicio: 'En espera de inicio',
-    en_progreso: 'En progreso', pausado: 'Pausado', cancelado: 'Cancelado', completado: 'Completado', pendiente_asignacion: 'Pendiente',
-  };
-  const fmtFecha = f => { if (!f) return '—'; const d = fechaLocal(f); return d.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}); };
-  const nombreEquipo = eq => eq.apodo ? `${eq.nombre} (${eq.apodo})` : eq.nombre;
-  const nombreVehiculo = v => [v.apodo || v.nombre, v.placas ? `placas ${v.placas}` : null].filter(Boolean).join(' · ');
-
-  if (y > 235) { doc.addPage(); y = 18; }
-  doc.setFontSize(9);
-  doc.setFont(undefined, 'bold');
-  doc.setTextColor(0);
-  doc.text(`PROYECTOS ASIGNADOS ESTE MES (${lista.length})`, 14, y);
-  y += 7;
-
-  if (lista.length === 0) {
-    doc.setFont(undefined, 'normal');
-    doc.setTextColor(120);
-    doc.text('Sin proyectos asignados en este mes.', 14, y);
-  } else {
-    const anchoTexto = 150;   // columna de valores
-    const xEtiqueta = 19, xValor = 46;
-    lista.forEach(p => {
-      const companeros = (p.tecnicos_asignados||[]).filter(id => id !== empId)
-        .map(id => STATE.empleados.find(e => e.id === id)).filter(Boolean)
-        .map(e => `${e.nombre} ${e.apellido}`);
-      const equipos = (p.equipo_asignado_ids||[]).map(id => (STATE.equipos||[]).find(x => x.id === id)).filter(Boolean).map(nombreEquipo);
-      const vehiculos = (p.vehiculo_asignado_ids||[]).map(id => (STATE.vehiculos||[]).find(x => x.id === id)).filter(Boolean).map(nombreVehiculo);
-
-      let fechas = `${fmtFecha(p.fecha_inicio)} al ${fmtFecha(p.fecha_fin_estimada)}`;
-      if (p.fecha_inicio_real) fechas += p.fecha_fin_real
-        ? `   (real: ${fmtFecha(p.fecha_inicio_real)} al ${fmtFecha(p.fecha_fin_real)})`
-        : `   (real: desde ${fmtFecha(p.fecha_inicio_real)}, en curso)`;
-
-      const filas = [
-        ['Fechas', fechas],
-        ['Compañeros', companeros.length ? companeros.join(', ') : 'Va solo(a) en este proyecto'],
-        ['Equipo', equipos.length ? equipos.join(', ') : (p.no_requiere_equipo ? 'No requiere equipo' : 'Sin equipo asignado')],
-        ['Vehículo', vehiculos.length ? vehiculos.join(', ') : (p.no_requiere_vehiculo ? 'No requiere vehículo' : 'Sin vehículo asignado')],
-      ].map(([et, val]) => [et, doc.splitTextToSize(val, anchoTexto)]);
-
-      // Alto del bloque para no partirlo entre páginas
-      const altoBloque = 12 + filas.reduce((acc, [,l]) => acc + l.length * 4.3 + 1.2, 0) + 3;
-      if (y + altoBloque > 265) { doc.addPage(); y = 18; }
-      const yIni = y;
-
-      // Encabezado del proyecto
-      doc.setFont(undefined, 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(0);
-      let tituloPry = p.nombre;
-      const lineasTitulo = doc.splitTextToSize(tituloPry, 135);
-      if (lineasTitulo.length > 1) tituloPry = lineasTitulo[0].replace(/\s+\S*$/, '') + '…';
-      doc.text(tituloPry, xEtiqueta, y + 4);
-      const estado = etiquetasEstado[estadoProyectoVisible(p)] || p.estado || '';
-      if (estado) {
-        doc.setFontSize(7.5);
-        doc.setTextColor(227,28,34);
-        doc.text(estado.toUpperCase(), 196, y + 4, { align: 'right' });
-      }
-      doc.setFont(undefined, 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(110);
-      doc.text(`${p.cliente||'—'}  ·  ${p.ciudad||'—'}`, xEtiqueta, y + 8.5);
-      y += 13;
-
-      // Detalle
-      doc.setFontSize(8.5);
-      filas.forEach(([et, lineas]) => {
-        doc.setTextColor(130); doc.text(et, xEtiqueta, y);
-        doc.setTextColor(20);  doc.text(lineas, xValor, y);
-        y += lineas.length * 4.3 + 1.2;
-      });
-
-      // Barra de acento a la izquierda y separador
-      doc.setFillColor(227,28,34);
-      doc.rect(14, yIni, 1.2, y - yIni - 1, 'F');
-      y += 3;
-      doc.setDrawColor(225);
-      doc.line(14, y - 1.5, 196, y - 1.5);
-      y += 3;
-    });
-  }
-
-  const mesLabel = primerDia.toLocaleDateString('es-MX',{month:'long',year:'numeric'});
-  entregarPDF(doc, `Calendario - ${nombre.replace(/[\\/:*?"<>|]/g,'-')} - ${mesLabel}.pdf`);
-}
 
 function dibujarMesCalendarioPDF(doc, year, month, diasResaltadosSet, startY, diasAusenciaSet = new Set()) {
   const primerDia = new Date(year, month, 1);
@@ -3161,125 +2796,6 @@ async function descargarKitDocumentos(proyectoId, nombreProyecto) {
   }
 }
 
-async function exportarGanttProyectoPDF(proyectoId) {
-  await loadEmpleados(); await loadEquipos();
-  const p = STATE.proyectos.find(x=>x.id===proyectoId);
-  if (!p) { toast('No se encontró el proyecto','error'); return; }
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
-  let y = 18;
-
-  doc.setFontSize(9);
-  doc.setTextColor(150);
-  doc.text('WORKSYNC', 14, y);
-  y += 9;
-  doc.setTextColor(0);
-  doc.setFontSize(17);
-  doc.setFont(undefined, 'bold');
-  doc.text(p.nombre, 14, y);
-  y += 7;
-  doc.setFontSize(10);
-  doc.setFont(undefined, 'normal');
-  doc.setTextColor(90);
-  doc.text(`${p.cliente||'—'}  ·  ${p.ciudad||'—'}`, 14, y);
-  doc.setTextColor(0);
-  y += 12;
-
-  // Calendario visual del rango del proyecto (estimado)
-  const inicio = fechaLocal(p.fecha_inicio);
-  const fin = fechaLocal(p.fecha_fin_estimada);
-  const duracionDias = Math.max(1, Math.round((fin - inicio) / 86400000) + 1);
-  const diasProyecto = Array.from({length: duracionDias}, (_,i) => { const d = new Date(inicio); d.setDate(d.getDate()+i); return d; });
-
-  doc.setFontSize(9);
-  doc.setFont(undefined, 'bold');
-  doc.text('CALENDARIO ESTIMADO', 14, y);
-  y += 6;
-
-  const diasProyectoSet = new Set(diasProyecto.map(d => d.toDateString()));
-  const meses = [];
-  let cursorMes = new Date(inicio.getFullYear(), inicio.getMonth(), 1);
-  const ultimoMes = new Date(fin.getFullYear(), fin.getMonth(), 1);
-  while (cursorMes <= ultimoMes && meses.length < 8) {
-    meses.push({ year: cursorMes.getFullYear(), month: cursorMes.getMonth() });
-    cursorMes = new Date(cursorMes.getFullYear(), cursorMes.getMonth()+1, 1);
-  }
-
-  meses.forEach((m, idx) => {
-    if (y > 220) { doc.addPage(); y = 18; }
-    y = dibujarMesCalendarioPDF(doc, m.year, m.month, diasProyectoSet, y);
-    y += idx < meses.length-1 ? 8 : 0;
-  });
-  y += 8;
-
-  doc.setFontSize(8.5);
-  doc.setTextColor(0);
-  doc.text(`Duración estimada: ${duracionDias} día(s)`, 14, y);
-  if (p.fecha_inicio_real || p.fecha_fin_real) {
-    y += 5;
-    doc.text(`Fechas reales: ${p.fecha_inicio_real||'—'} al ${p.fecha_fin_real||'en curso'}`, 14, y);
-  }
-  y += 10;
-
-  // Detalles del proyecto (solo lo relevante para el cliente)
-  doc.setFontSize(9);
-  doc.setFont(undefined, 'bold');
-  doc.text('DETALLES DEL PROYECTO', 14, y);
-  y += 6;
-  doc.setFont(undefined, 'normal');
-  doc.setFontSize(9);
-  const detalles = [
-    ['Personal requerido', `${(p.tecnicos_asignados||[]).length} / ${p.personal_requerido||1}`],
-    ['Equipo requerido', p.no_requiere_equipo ? 'Sin equipo requerido' : 'Sí'],
-  ];
-  detalles.forEach(([etiqueta, valor]) => {
-    doc.setTextColor(120); doc.text(etiqueta, 14, y);
-    doc.setTextColor(0); doc.text(String(valor), 70, y);
-    y += 5.5;
-  });
-  y += 4;
-
-  // Personal asignado
-  const personal = (p.tecnicos_asignados||[]).map(id => STATE.empleados.find(e=>e.id===id)).filter(Boolean);
-  doc.setFontSize(9);
-  doc.setFont(undefined, 'bold');
-  doc.text('PERSONAL ASIGNADO', 14, y);
-  y += 6;
-  doc.setFont(undefined, 'normal');
-  if (personal.length) {
-    personal.forEach(e => {
-      doc.text(`•  ${e.nombre} ${e.apellido}`, 16, y);
-      y += 5.5;
-    });
-  } else {
-    doc.setTextColor(150); doc.text('Sin personal asignado todavía.', 16, y); doc.setTextColor(0); y += 5.5;
-  }
-  y += 4;
-
-  // Equipo asignado
-  const equipoAsignado = (p.equipo_asignado_ids||[]).map(id => STATE.equipos.find(x=>x.id===id)).filter(Boolean);
-  if (!p.no_requiere_equipo) {
-    doc.setFontSize(9);
-    doc.setFont(undefined, 'bold');
-    doc.text('EQUIPO ASIGNADO', 14, y);
-    y += 6;
-    doc.setFont(undefined, 'normal');
-    if (equipoAsignado.length) {
-      equipoAsignado.forEach(eq => {
-        doc.text(`•  ${eq.nombre}${eq.apodo?' ("'+eq.apodo+'")':''} — N/S ${eq.numero_serie||'—'}`, 16, y);
-        y += 5.5;
-      });
-    } else {
-      doc.setTextColor(150); doc.text('Sin equipo asignado todavía.', 16, y); doc.setTextColor(0); y += 5.5;
-    }
-  }
-
-  doc.setFontSize(7.5);
-  doc.setTextColor(150);
-  doc.text(`Generado el ${new Date().toLocaleString('es-MX')}`, 14, 280);
-
-  entregarPDF(doc, `Gantt - ${p.nombre.replace(/[\\/:*?"<>|]/g,'-')} - ${new Date().toISOString().split('T')[0]}.pdf`);
-}
 
 // ─── SECCIÓN: EVALUAR ─────────────────────────────────────────────────────────
 async function renderEvaluar() {
@@ -5218,74 +4734,6 @@ async function generarMetricas() {
     </div>`).join('')}`;
 }
 
-function exportarMetricasPDF() {
-  const datos = STATE._ultimasMetricas || [];
-  if (!datos.length) { toast('No hay métricas generadas para exportar','error'); return; }
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  let y = 20;
-
-  doc.setFontSize(16);
-  doc.setFont(undefined, 'bold');
-  doc.text('Reporte de Métricas de Proyectos', 14, y);
-  y += 8;
-  doc.setFontSize(9);
-  doc.setFont(undefined, 'normal');
-  doc.setTextColor(120);
-  doc.text(`Generado el ${new Date().toLocaleString('es-MX')} — ${datos.length} proyecto(s)`, 14, y);
-  doc.setTextColor(0);
-  y += 10;
-
-  datos.forEach((p, idx) => {
-    if (y > 250) { doc.addPage(); y = 20; }
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text(`${idx+1}. ${p.nombre}`, 14, y); y += 6;
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(9);
-    doc.text(`Cliente: ${p.cliente||'—'}    Ciudad: ${p.ciudad||'—'}`, 14, y); y += 5;
-    doc.text(`Inicio estimado: ${p.fecha_inicio_estimada||'—'}    Inicio real: ${p.fecha_inicio_real||'—'}`, 14, y); y += 5;
-    doc.text(`Fin estimado: ${p.fecha_fin_estimada||'—'}    Fin real: ${p.fecha_fin_real||'—'}`, 14, y); y += 5;
-    const retrasoTxt = p.retraso_dias>0 ? `+${p.retraso_dias} día(s) de retraso` : p.retraso_dias<0 ? `${Math.abs(p.retraso_dias)} día(s) antes de lo estimado` : (p.retraso_dias===0?'A tiempo':'—');
-    doc.text(`Resultado: ${retrasoTxt}`, 14, y); y += 5;
-    doc.text(`Duración estimada: ${p.duracion_estimada_dias??'—'} día(s)    Duración real: ${p.duracion_real_dias??'—'} día(s)`, 14, y); y += 5;
-    const lineaPersonal = doc.splitTextToSize(`Personal asignado (${p.personal_asignado}): ${(p.personal_asignado_nombres||[]).join(', ') || '—'}`, 178);
-    doc.text(lineaPersonal, 14, y); y += 5 * lineaPersonal.length;
-    if ((p.equipo_usado||[]).length) {
-      const lineaEq = doc.splitTextToSize(`Equipo usado: ${p.equipo_usado.join(', ')}`, 178);
-      doc.text(lineaEq, 14, y); y += 5 * lineaEq.length;
-    }
-    if ((p.vehiculo_usado||[]).length) {
-      const lineaVeh = doc.splitTextToSize(`Vehículo usado: ${p.vehiculo_usado.join(', ')}`, 178);
-      doc.text(lineaVeh, 14, y); y += 5 * lineaVeh.length;
-    }
-    doc.text(`Incidencias: ${p.total_incidencias} (${p.incidencias_altas} alta(s))`, 14, y); y += 5;
-    doc.text(`Días trabajados (checador): ${p.asistencia?.dias_trabajados ?? 0}    Horas aprox.: ${p.asistencia?.horas_aprox ?? 0} h    Días sin checada: ${p.dias_faltantes ?? 0}`, 14, y); y += 5;
-    doc.text(`Descanso: ${p.dias_descanso ?? 0} día(s)-persona    Standby: ${p.dias_standby ?? 0} día(s)-persona    En pausa: ${p.dias_pausa ?? 0} día(s)`, 14, y); y += 5;
-    if (p.veces_reprogramado) { doc.text(`Reprogramado (acordado): ${p.veces_reprogramado} vez/veces — fechas originales ${p.inicio_original} al ${p.fin_original}`, 14, y); y += 5; }
-    y += 1;
-
-    if (p.incidencias.length) {
-      doc.setFont(undefined, 'italic');
-      doc.text('Incidencias registradas (posibles causas):', 14, y); y += 5;
-      doc.setFont(undefined, 'normal');
-      p.incidencias.forEach(i => {
-        if (y > 270) { doc.addPage(); y = 20; }
-        const linea = `• ${i.tipo} (${i.severidad}): ${i.descripcion||'sin descripción'}`;
-        const wrapped = doc.splitTextToSize(linea, 178);
-        doc.text(wrapped, 18, y);
-        y += wrapped.length * 4.5;
-      });
-      y += 2;
-    }
-    doc.setDrawColor(200);
-    doc.line(14, y, 196, y);
-    y += 8;
-  });
-
-  const nombreArchivo = datos.length === 1 ? datos[0].nombre.replace(/[\\/:*?"<>|]/g,'-') : `${datos.length} proyectos`;
-  entregarPDF(doc, `Metricas - ${nombreArchivo} - ${new Date().toISOString().split('T')[0]}.pdf`);
-}
 
 // ─── SECCIÓN: MIS ASIGNACIONES (TÉCNICO) ──────────────────────────────────────
 async function renderMisAsignaciones() {
@@ -7053,109 +6501,787 @@ async function compartirPDFPendiente() {
 }
 
 // ─── PDF INTERNO DE LA PROPUESTA DE FECHAS ──────────────────────────────────
-function exportarPropuestaPDF() {
+
+// ═════════════════════════════════════════════════════════════════════════════
+// PDFs WORKSYNC — PLANTILLA HOMOLOGADA
+// Encabezado minimalista (logo + datos del documento), Montserrat, secciones con
+// acento rojo, tarjetas de resumen y pie igual en todos (X / Y, quién y cuándo).
+// ═════════════════════════════════════════════════════════════════════════════
+const PDF_FUENTES_URL = 'https://cdn.jsdelivr.net/npm/@expo-google-fonts/montserrat@0.4.2/';
+const PDF_FUENTES = [['400Regular/Montserrat_400Regular.ttf', 'normal'], ['500Medium/Montserrat_500Medium.ttf', 'medium'],
+  ['600SemiBold/Montserrat_600SemiBold.ttf', 'semibold'], ['700Bold/Montserrat_700Bold.ttf', 'bold'], ['900Black/Montserrat_900Black.ttf', 'black']];
+const PDF_C = {
+  rojo: [227, 28, 34], tinta: [24, 24, 27], texto: [63, 63, 70], gris: [113, 113, 122], grisClaro: [161, 161, 170],
+  linea: [228, 228, 231], fondo: [244, 244, 245], blanco: [255, 255, 255], finde: [243, 243, 245],
+  verde: [21, 128, 61], verdeBg: [220, 252, 231], morado: [124, 92, 201], moradoBg: [237, 233, 254],
+  ambar: [180, 83, 9], ambarBg: [254, 243, 199], rojoBg: [254, 226, 226],
+};
+// Estados con colores apagados (en la familia de la plataforma)
+const PDF_EST = {
+  asignado:   { nombre: 'Asignado',        c: [86, 150, 112],  bg: [226, 239, 230] },
+  prep:       { nombre: 'En preparativos', c: [196, 146, 70],  bg: [246, 236, 218] },
+  progreso:   { nombre: 'En progreso',     c: [196, 86, 82],   bg: [246, 226, 225] },
+  pausa:      { nombre: 'En pausa',        c: [150, 150, 158], bg: [236, 236, 239] },
+  completado: { nombre: 'Completado',      c: [104, 128, 168], bg: [228, 233, 242] },
+  ausencia:   { nombre: 'Ausencia',        c: [138, 118, 186], bg: [236, 232, 246] },
+};
+function grupoEstadoPDF(p) {
+  const e = estadoProyectoVisible(p);
+  if (e === 'completado') return 'completado';
+  if (e === 'en_progreso') return 'progreso';
+  if (e === 'pausado') return 'pausa';
+  if (e === 'en_preparacion') return 'prep';
+  return 'asignado';
+}
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const fCorta = iso => { const d = typeof iso === 'string' ? fechaLocal(iso) : iso; return `${String(d.getDate()).padStart(2, '0')} ${MESES_CORTOS[d.getMonth()]}`; };
+const fLargaAnio = iso => { const d = typeof iso === 'string' ? fechaLocal(iso) : iso; return `${fCorta(d)} ${d.getFullYear()}`; };
+function rangoCorto(ini, fin) {
+  const a = typeof ini === 'string' ? fechaLocal(ini) : ini, b = typeof fin === 'string' ? fechaLocal(fin) : fin;
+  if (a.toDateString() === b.toDateString()) return fCorta(a);
+  if (a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear()) return `${String(a.getDate()).padStart(2, '0')} – ${fCorta(b)}`;
+  return `${fCorta(a)} – ${fCorta(b)}`;
+}
+const ahoraTexto = () => { const d = new Date(); return `${fLargaAnio(d)}, ${d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`; };
+
+// ── Recursos (se cargan una vez y se reutilizan) ──
+async function cargarFuentesPDF() {
+  if (window._fuentesPDF !== undefined) return window._fuentesPDF;
+  try {
+    const bin = async url => {
+      const r = await fetch(url); if (!r.ok) throw new Error(r.status);
+      const buf = new Uint8Array(await r.arrayBuffer()); let s = '';
+      for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
+      return btoa(s);
+    };
+    const datos = await Promise.all(PDF_FUENTES.map(([f]) => bin(PDF_FUENTES_URL + f)));
+    window._fuentesPDF = PDF_FUENTES.map(([f, estilo], i) => ({ archivo: f.split('/')[1], estilo, b64: datos[i] }));
+  } catch (e) { console.warn('Sin Montserrat para PDF, se usa Helvetica', e); window._fuentesPDF = null; }
+  return window._fuentesPDF;
+}
+async function cargarLogoPDF() {
+  if (window._logoPDF !== undefined) return window._logoPDF;
+  try {
+    const src = document.querySelector('img.brand-logo-light')?.src;
+    const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = src; });
+    const cv = document.createElement('canvas'); cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+    const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0);
+    const im = cx.getImageData(0, 0, cv.width, cv.height), px = im.data;
+    const [br, bg, bb] = [px[0], px[1], px[2]];          // color del fondo del logo
+    let x0 = cv.width, y0 = cv.height, x1 = 0, y1 = 0;
+    for (let i = 0; i < px.length; i += 4) {
+      const dist = Math.hypot(px[i] - br, px[i + 1] - bg, px[i + 2] - bb);
+      const a = Math.max(0, Math.min(255, (dist - 18) * 6));
+      px[i + 3] = a;
+      if (a > 40) { const p = i / 4, x = p % cv.width, y = (p / cv.width) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    }
+    cx.putImageData(im, 0, 0);
+    const out = document.createElement('canvas'); out.width = x1 - x0 + 9; out.height = y1 - y0 + 9;
+    out.getContext('2d').drawImage(cv, x0 - 4, y0 - 4, out.width, out.height, 0, 0, out.width, out.height);
+    window._logoPDF = { url: out.toDataURL('image/png'), ratio: out.height / out.width };
+  } catch (e) { window._logoPDF = null; }
+  return window._logoPDF;
+}
+async function fotoCircularPDF(url) {
+  if (!url) return null;
+  try {
+    const img = await new Promise((ok, no) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => ok(i); i.onerror = no; i.src = url; });
+    const S = 240, cv = document.createElement('canvas'); cv.width = cv.height = S;
+    const cx = cv.getContext('2d'); cx.beginPath(); cx.arc(S / 2, S / 2, S / 2, 0, Math.PI * 2); cx.clip();
+    const k = Math.max(S / img.naturalWidth, S / img.naturalHeight);
+    cx.drawImage(img, (S - img.naturalWidth * k) / 2, (S - img.naturalHeight * k) / 2, img.naturalWidth * k, img.naturalHeight * k);
+    return cv.toDataURL('image/png');
+  } catch (e) { return null; }
+}
+
+// ── Plantilla ──
+async function nuevaPlantillaPDF(orientacion = 'portrait') {
+  const [fuentes, logo] = await Promise.all([cargarFuentesPDF(), cargarLogoPDF()]);
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: orientacion, unit: 'mm', format: 'letter' });
+  if (fuentes) fuentes.forEach(f => { doc.addFileToVFS(f.archivo, f.b64); doc.addFont(f.archivo, 'Montserrat', f.estilo); });
+  const T = { doc, C: PDF_C, M: 16 };
+  T.medir = () => { T.W = doc.internal.pageSize.getWidth(); T.H = doc.internal.pageSize.getHeight(); };
+  T.medir();
+  T.font = (estilo, tam, color = PDF_C.tinta) => {
+    if (fuentes) doc.setFont('Montserrat', estilo);
+    else doc.setFont('helvetica', ['bold', 'black', 'semibold'].includes(estilo) ? 'bold' : 'normal');
+    doc.setFontSize(tam); doc.setTextColor(...color);
+  };
+  T.relleno = c => doc.setFillColor(...c);
+  T.trazo = (c, g = 0.2) => { doc.setDrawColor(...c); doc.setLineWidth(g); };
+  T.etiqueta = (t, x, y, color = PDF_C.gris, tam = 6.4) => { T.font('semibold', tam, color); doc.text(String(t).toUpperCase(), x, y, { charSpace: 0.45 }); };
+  T.encabezado = (tipoDoc, codigo, titulo, subtitulo) => {
+    const { W, M } = T;
+    if (logo) doc.addImage(logo.url, 'PNG', M, 9, 25, 25 * logo.ratio);
+    else { T.font('black', 12, PDF_C.tinta); doc.text('WORKSYNC', M, 18); }
+    if (titulo) {
+      T.trazo(PDF_C.linea, 0.3); doc.line(M + 30, 10, M + 30, 22.5);
+      let tam = 15; T.font('black', tam, PDF_C.tinta);
+      while (doc.getTextWidth(titulo) > W - M * 2 - 34.5 - 62 && tam > 10) { tam -= 0.5; T.font('black', tam, PDF_C.tinta); }
+      doc.text(titulo, M + 34.5, 16.6);
+      if (subtitulo) { T.font('normal', 8, PDF_C.gris); doc.text(subtitulo, M + 34.5, 21.6); }
+    }
+    T.font('semibold', 6.8, PDF_C.gris); doc.text(String(tipoDoc).toUpperCase(), W - M, 13, { align: 'right', charSpace: 0.45 });
+    T.font('semibold', 9.5, PDF_C.tinta); doc.text(codigo || '', W - M, 18.2, { align: 'right' });
+    T.font('normal', 6.8, PDF_C.grisClaro); doc.text(`Emitido ${fLargaAnio(new Date())}`, W - M, 22.2, { align: 'right' });
+    T.trazo(PDF_C.linea, 0.3); doc.line(M, 27.5, W - M, 27.5);
+    T.relleno(PDF_C.rojo); doc.rect(M, 27.1, 14, 0.8, 'F');
+  };
+  T.seccion = (titulo, y, extra) => {
+    const { W, M } = T;
+    T.relleno(PDF_C.rojo); doc.rect(M, y - 3.1, 1.3, 3.8, 'F');
+    T.font('bold', 8.2, PDF_C.tinta); doc.text(titulo, M + 3.6, y, { charSpace: 0.55 });
+    if (extra) { T.font('medium', 7.2, PDF_C.gris); doc.text(extra, W - M, y, { align: 'right' }); }
+    T.trazo(PDF_C.linea, 0.25); doc.line(M, y + 2.4, W - M, y + 2.4);
+    return y + 8;
+  };
+  T.anchoPastilla = t => { T.font('bold', 6.6); return doc.getTextWidth(t) + 0.45 * t.length + 6; };
+  T.pastilla = (texto, x, y, fg, bg) => {
+    const w = T.anchoPastilla(texto);
+    T.relleno(bg); doc.roundedRect(x, y - 3.9, w, 5.6, 2.8, 2.8, 'F');
+    T.font('bold', 6.6, fg); doc.text(texto, x + 3, y, { charSpace: 0.45 });
+    return x + w;
+  };
+  T.tarjetas = (y, datos, h = 21) => {
+    const { W, M } = T, gap = 4, w = (W - 2 * M - gap * (datos.length - 1)) / datos.length;
+    datos.forEach(([lab, val, sub, color], i) => {
+      const x = M + i * (w + gap);
+      T.relleno(PDF_C.fondo); doc.roundedRect(x, y, w, h, 2, 2, 'F');
+      T.relleno(color || PDF_C.tinta); doc.rect(x, y + 4, 0.9, h - 8, 'F');
+      T.etiqueta(lab, x + 4.5, y + 6.2);
+      let tam = 14; T.font('bold', tam, color || PDF_C.tinta);
+      while (doc.getTextWidth(String(val)) > w - 8 && tam > 6.5) { tam -= 0.5; T.font('bold', tam, color || PDF_C.tinta); }
+      doc.text(String(val), x + 4.5, y + 13.6);
+      T.font('normal', 6.8, PDF_C.gris); doc.text(String(sub || ''), x + 4.5, y + 17.8);
+    });
+    return y + h;
+  };
+  T.tarjetasCompactas = (y, datos) => {
+    const { W, M } = T, gap = 3.5, w = (W - 2 * M - gap * (datos.length - 1)) / datos.length, h = 13;
+    datos.forEach(([lab, val, sub, color], i) => {
+      const x = M + i * (w + gap);
+      T.relleno(PDF_C.fondo); doc.roundedRect(x, y, w, h, 1.6, 1.6, 'F');
+      T.relleno(color || PDF_C.grisClaro); doc.rect(x, y + 3, 0.7, h - 6, 'F');
+      T.etiqueta(lab, x + 3.6, y + 4.8, PDF_C.gris, 5.8);
+      T.font('bold', 11, PDF_C.tinta); doc.text(String(val), x + 3.6, y + 10.4);
+      const av = doc.getTextWidth(String(val));
+      T.font('normal', 6.6, PDF_C.gris); doc.text(String(sub || ''), x + 3.6 + av + 2, y + 10.2);
+    });
+    return y + h;
+  };
+  T.nuevaPagina = (orient) => { doc.addPage('letter', orient || orientacion); T.medir(); };
+  T.cabe = (y, alto) => y + alto <= T.H - 20;
+  // Pie en todas las páginas, con X / Y
+  T.cerrar = (nombreArchivo, paraCliente) => {
+    const total = doc.internal.getNumberOfPages();
+    for (let n = 1; n <= total; n++) {
+      doc.setPage(n); T.medir();
+      const { W, H, M } = T, y = H - 13;
+      T.trazo(PDF_C.linea, 0.25); doc.line(M, y - 4, W - M, y - 4);
+      T.font('bold', 7, PDF_C.tinta); doc.text('WORKSYNC', M, y);
+      T.font('normal', 7, PDF_C.gris); doc.text('·  Walross Tech & Innovation', M + doc.getTextWidth('WORKSYNC') + 3.6, y);
+      T.font('semibold', 7, PDF_C.tinta); doc.text(`${n} / ${total}`, W - M, y, { align: 'right' });
+      T.font('normal', 6.3, PDF_C.grisClaro);
+      doc.text(paraCliente
+        ? `Contacto: ${STATE.user?.nombre || 'Walross Tech & Innovation'}${STATE.user?.email ? '  ·  ' + STATE.user.email : ''}`
+        : `Generado por ${STATE.user?.nombre || '—'} · ${ahoraTexto()} · Documento interno, no compartir fuera de la empresa`, M, y + 4.2);
+    }
+    entregarPDF(doc, nombreArchivo);
+  };
+  return T;
+}
+const limpiarNombreArchivo = t => String(t || '').replace(/[\\/:*?"<>|]+/g, '-');
+const recortarTexto = (doc, t, ancho) => { let s = String(t); if (doc.getTextWidth(s) <= ancho) return s; while (s.length > 2 && doc.getTextWidth(s + '…') > ancho) s = s.slice(0, -1); return s + '…'; };
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 1. GANTT GENERAL — una sola hoja horizontal
+// ═════════════════════════════════════════════════════════════════════════════
+async function exportarGanttPDF() {
+  await Promise.all([loadEmpleados(), loadProyectos()]);
+  const T = await nuevaPlantillaPDF('landscape'), { doc, C, M } = T;
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const dias = Array.from({ length: 30 }, (_, i) => { const d = new Date(hoy); d.setDate(d.getDate() - 7 + i); return d; });
+  const HOY = 7;
+  const emps = [...(STATE.empleados || [])].sort((a, b) => {
+    const ca = estadoVisible(a) === 'en_proyecto' ? 0 : 1, cb = estadoVisible(b) === 'en_proyecto' ? 0 : 1;
+    return ca - cb || `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`, 'es');
+  });
+  // Barras por persona: días seguidos con el mismo proyecto (o ausencia) forman una barra
+  const proyectosPeriodo = new Map(), personasPorProyecto = new Map(), ausenciasPeriodo = [];
+  const filas = emps.map(e => {
+    const barras = []; let actual = null;
+    dias.forEach((d, i) => {
+      const aus = ausenciaEn(e, d), pry = aus ? null : proyectoEnDia(e.id, d);
+      const clave = aus ? 'aus:' + aus.fecha_inicio : pry ? pry.id : null;
+      if (actual && actual.clave === clave) { actual.b = i; return; }
+      actual = clave ? { clave, a: i, b: i, est: aus ? 'ausencia' : grupoEstadoPDF(pry), etq: aus ? tipoAusencia(aus) : pry.nombre, pry, aus } : null;
+      if (actual) barras.push(actual);
+    });
+    barras.forEach(br => {
+      if (br.pry) { proyectosPeriodo.set(br.pry.id, br.pry); if (!personasPorProyecto.has(br.pry.id)) personasPorProyecto.set(br.pry.id, new Set()); personasPorProyecto.get(br.pry.id).add(`${e.nombre} ${e.apellido}`); }
+      else if (br.aus && !ausenciasPeriodo.some(x => x.e === e && x.aus === br.aus)) ausenciasPeriodo.push({ e, aus: br.aus });
+    });
+    return { e, barras };
+  });
+  const programados = [...proyectosPeriodo.values()].filter(p => ['asignado', 'prep'].includes(grupoEstadoPDF(p))).length;
+  const enCampo = (STATE.proyectos || []).filter(p => estadoProyectoVisible(p) === 'en_progreso').length;
+  const libresHoy = emps.filter(e => !ausenciaEn(e, hoy) && !proyectoEnDia(e.id, hoy)).length;
+
+  T.encabezado('Calendario de disponibilidad', `${fCorta(dias[0]).toUpperCase()} – ${fLargaAnio(dias[29]).toUpperCase()}`,
+    'Disponibilidad del personal', `Próximos 30 días  ·  hoy ${hoy.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}`);
+  let y = 33;
+  T.relleno(C.fondo); doc.roundedRect(M, y, T.W - 2 * M, 8, 1.6, 1.6, 'F');
+  [[proyectosPeriodo.size, 'proyectos en el periodo', C.tinta], [programados, 'programados', PDF_EST.asignado.c],
+   [enCampo, 'en campo hoy', PDF_EST.progreso.c], [ausenciasPeriodo.length, ausenciasPeriodo.length === 1 ? 'ausencia' : 'ausencias', PDF_EST.ausencia.c],
+   [libresHoy, 'técnicos libres hoy', C.tinta]].reduce((xx, [n, t, c]) => {
+    T.relleno(c); doc.circle(xx, y + 4, 1, 'F');
+    T.font('bold', 8.6, C.tinta); doc.text(String(n), xx + 2.6, y + 5.2);
+    const an = doc.getTextWidth(String(n));
+    T.font('normal', 7.6, C.texto); doc.text(t, xx + 2.6 + an + 1.6, y + 5.2);
+    return xx + 2.6 + an + 1.6 + doc.getTextWidth(t) + 9;
+  }, M + 5);
+  y += 16;
+
+  // Bloques de la lista de asignaciones (se calculan antes para ajustar la rejilla a una sola hoja)
+  const orden = ['progreso', 'asignado', 'prep', 'pausa', 'completado'];
+  const grupos = orden.map(k => [k, [...proyectosPeriodo.values()].filter(p => grupoEstadoPDF(p) === k)
+      .sort((a, b) => a.fecha_inicio.localeCompare(b.fecha_inicio))
+      .map(p => {
+        let fechas = rangoCorto(p.fecha_inicio, p.fecha_fin_estimada);
+        if (p.fecha_fin_real && p.fecha_fin_real !== p.fecha_fin_estimada) fechas += `  ·  fin real ${fCorta(p.fecha_fin_real)}`;
+        return [p.nombre, fechas, [...personasPorProyecto.get(p.id)]];
+      })]).filter(([, it]) => it.length);
+  if (ausenciasPeriodo.length) grupos.push(['ausencia', ausenciasPeriodo.map(({ e, aus }) => [tipoAusencia(aus), rangoCorto(aus.fecha_inicio, aus.fecha_fin), [`${e.nombre} ${e.apellido}`]])]);
+  const ncol = 3, gapCol = 8, colW = (T.W - 2 * M - gapCol * (ncol - 1)) / ncol, colX = Array.from({ length: ncol }, (_, k) => M + k * (colW + gapCol));
+  const armarBloques = (esp) => {
+    const out = [];
+    grupos.forEach(([k, items]) => {
+      out.push({ tipo: 'grupo', k, n: items.length, alto: 5.6 * esp.f });
+      items.forEach(([nom, fechas, gente]) => {
+        T.font('medium', 6.4); const anchoF = doc.getTextWidth(fechas);
+        T.font('bold', 7.2); const lineas = doc.splitTextToSize(nom, colW - anchoF - 5).slice(0, 2);
+        out.push({ tipo: 'item', k, lineas, fechas, gente, alto: lineas.length * 3.4 + 1.1 + gente.length * esp.persona + esp.extra });
+      });
+    });
+    return out;
+  };
+  // Espacio disponible: de la franja de resumen al pie
+  const espacioTotal = (T.H - 21) - (y + 8) - 4.5 - 9 - 8 - 2;     // encabezados de rejilla, leyenda y título de sección
+  let esp = { f: 1, persona: 3.5, extra: 3.4 }, bloques = armarBloques(esp);
+  const porColumna = b => b.reduce((a, x) => a + x.alto, 0) / ncol * 1.12;      // reparto nunca es perfecto
+  let rh = Math.max(6, Math.min(9.6, (espacioTotal - porColumna(bloques)) / Math.max(1, filas.length)));
+  if (rh * filas.length + porColumna(bloques) > espacioTotal) {    // aún no cabe: lista más compacta
+    esp = { f: 0.9, persona: 3.1, extra: 1.8 }; bloques = armarBloques(esp);
+    rh = Math.max(5.6, Math.min(9.6, (espacioTotal - porColumna(bloques)) / Math.max(1, filas.length)));
+  }
+
+  // Rejilla (la altura de fila se ajusta para que todo quepa en una hoja)
+  const colNombre = 54, gx = M + colNombre, gw = T.W - M - gx, cw = gw / dias.length;
+  const filasAlto = rh * filas.length, letra = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+  dias.forEach((d, i) => {
+    if (i === 0 || d.getDate() === 1) {
+      const xx = gx + i * cw;
+      let tramo = 0; for (let k = i; k < dias.length && dias[k].getMonth() === d.getMonth(); k++) tramo++;
+      T.font('bold', 6.4, C.texto);
+      let mes = d.toLocaleDateString('es-MX', { month: 'long' }).toUpperCase();
+      if (doc.getTextWidth(mes) + mes.length * 0.4 > tramo * cw - 1.5) mes = mes.slice(0, 3);
+      if (doc.getTextWidth(mes) + mes.length * 0.4 <= tramo * cw - 1) doc.text(mes, xx + 0.8, y - 1.6, { charSpace: 0.4 });
+      if (i > 0) { T.trazo(C.grisClaro, 0.35); doc.line(xx, y - 4.4, xx, y + 8 + filasAlto); }
+    }
+  });
+  T.etiqueta('Técnico', M, y + 4.6);
+  dias.forEach((d, i) => {
+    const xx = gx + i * cw, fds = [0, 6].includes(d.getDay());
+    T.font(i === HOY ? 'bold' : 'semibold', 6.8, i === HOY ? C.rojo : C.tinta); doc.text(String(d.getDate()), xx + cw / 2, y + 3, { align: 'center' });
+    T.font('medium', 5.2, i === HOY ? C.rojo : C.grisClaro); doc.text(letra[d.getDay()], xx + cw / 2, y + 6.3, { align: 'center' });
+    if (fds) { T.relleno(C.finde); doc.rect(xx, y + 8, cw, filasAlto, 'F'); }
+  });
+  y += 8;
+  const usados = new Set();
+  filas.forEach(({ e, barras }, r) => {
+    const yy = y + r * rh;
+    T.trazo(C.linea, 0.2); doc.line(M, yy + rh, T.W - M, yy + rh);
+    T.font('semibold', rh < 7.5 ? 6.6 : 7.2, C.tinta); doc.text(recortarTexto(doc, `${e.nombre} ${e.apellido}`, colNombre - 3), M, yy + rh / 2 + 1.1);
+    barras.forEach(br => {
+      const st = PDF_EST[br.est], bx = gx + br.a * cw + 0.45, bw = (br.b - br.a + 1) * cw - 0.9;
+      usados.add(br.est);
+      T.relleno(st.c); doc.roundedRect(bx, yy + Math.min(1.8, rh * 0.2), bw, rh - 2 * Math.min(1.8, rh * 0.2), 1.2, 1.2, 'F');
+      T.font('semibold', 5.8, C.blanco);
+      const t = recortarTexto(doc, br.etq || '', bw - 3);
+      if (t.replace('…', '').length >= 3) doc.text(t, bx + 1.6, yy + rh / 2 + 1);
+    });
+  });
+  T.relleno(C.rojo); doc.rect(gx + HOY * cw + cw / 2 - 0.2, y - 0.8, 0.4, filasAlto + 0.8, 'F');
+  y += filasAlto + 4.5;
+  let lx = M;
+  ['asignado', 'prep', 'progreso', 'pausa', 'completado', 'ausencia'].filter(k => usados.has(k)).forEach(k => {
+    const st = PDF_EST[k]; T.relleno(st.c); doc.roundedRect(lx, y - 2.5, 4.4, 3, 0.7, 0.7, 'F');
+    T.font('medium', 6.6, C.texto); doc.text(st.nombre, lx + 5.8, y); lx += 5.8 + doc.getTextWidth(st.nombre) + 7;
+  });
+  T.relleno(C.finde); doc.rect(lx, y - 2.5, 4.4, 3, 'F'); T.font('medium', 6.6, C.texto); doc.text('Fin de semana', lx + 5.8, y); lx += 5.8 + doc.getTextWidth('Fin de semana') + 7;
+  T.relleno(C.rojo); doc.rect(lx, y - 3, 0.5, 4, 'F'); doc.text('Hoy', lx + 2.2, y);
+  y += 9;
+
+  // Asignaciones: por estado y proyecto, una persona por renglón, en 3 columnas tipo periódico
+  y = T.seccion('ASIGNACIONES DEL PERIODO', y);
+  const limite = T.H - 21, meta = bloques.reduce((a, b) => a + b.alto, 0) / ncol;
+  let col = 0, yIni = y, yy = y, acum = 0;
+  const encabezadoGrupo = (k, txt) => { const st = PDF_EST[k]; T.relleno(st.c); doc.circle(colX[col] + 1.2, yy - 1.1, 1.1, 'F'); T.font('bold', 6.6, C.texto); doc.text(txt, colX[col] + 3.6, yy, { charSpace: 0.4 }); yy += 5.6 * esp.f; acum += 5.6 * esp.f; };
+  bloques.forEach((b, n) => {
+    const altoEval = b.tipo === 'grupo' && bloques[n + 1] ? b.alto + bloques[n + 1].alto : b.alto;
+    const rebasaMeta = acum + altoEval > meta + 3 && !(b.tipo === 'item' && acum + b.alto <= meta + 8);
+    if ((col < ncol - 1 && rebasaMeta) || yy + altoEval > limite) {
+      col++; acum = 0; yy = yIni;
+      if (col >= ncol) { T.nuevaPagina(); T.encabezado('Calendario de disponibilidad', 'ASIGNACIONES (CONT.)', 'Disponibilidad del personal', 'continuación'); col = 0; yIni = yy = 38; }
+      if (b.tipo === 'item') encabezadoGrupo(b.k, `${PDF_EST[b.k].nombre.toUpperCase()} (CONT.)`);
+    }
+    const st = PDF_EST[b.k];
+    if (b.tipo === 'grupo') { encabezadoGrupo(b.k, `${st.nombre.toUpperCase()} · ${b.n}`); return; }
+    T.relleno(st.c); doc.rect(colX[col], yy - 3, 0.7, b.alto - esp.extra, 'F');
+    T.font('bold', 7.2, C.tinta); doc.text(b.lineas, colX[col] + 2.8, yy);
+    T.font('medium', 6.4, C.gris); doc.text(b.fechas, colX[col] + colW, yy, { align: 'right' });
+    const yp = yy + (b.lineas.length - 1) * 3.4 + 3.7;
+    b.gente.forEach((g, gi) => { T.font('normal', 6.6, C.texto); doc.text(g, colX[col] + 2.8, yp + gi * esp.persona); });
+    yy += b.alto; acum += b.alto;
+  });
+  if (!bloques.length) { T.font('normal', 8, C.gris); doc.text('Sin asignaciones en este periodo.', M, y); }
+  T.cerrar(`Disponibilidad - ${isoLocal(hoy)}.pdf`);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 2. CALENDARIO DEL TÉCNICO (mes)
+// ═════════════════════════════════════════════════════════════════════════════
+async function exportarCalendarioEmpleadoPDF(empId, nombre, year, month) {
+  await Promise.all([loadEmpleados(), loadProyectos(), loadEquipos(), loadVehiculos()]);
+  const e = (STATE.empleados || []).find(x => x.id === empId) || { id: empId, nombre, apellido: '', ausencias: [] };
+  const T = await nuevaPlantillaPDF('portrait'), { doc, C, M } = T;
+  const W = T.W, hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const eventos = eventosProyectosPorDia(empId);
+  const diasMes = new Date(year, month + 1, 0).getDate();
+  const nomMes = new Date(year, month, 1).toLocaleDateString('es-MX', { month: 'long' });
+  const nomMesC = nomMes.charAt(0).toUpperCase() + nomMes.slice(1);
+  let diasPry = 0, diasAus = 0; const pryMes = new Map(), ausMes = new Map();
+  for (let d = 1; d <= diasMes; d++) {
+    const f = new Date(year, month, d), aus = ausenciaEn(e, f), evs = eventos[isoLocal(f)] || [];
+    if (aus) { diasAus++; ausMes.set(aus.fecha_inicio + aus.fecha_fin, aus); }
+    else if (evs.length) diasPry++;
+    evs.forEach(p => pryMes.set(p.id, p));
+  }
+  const nomCompleto = `${e.nombre} ${e.apellido}`.trim() || nombre;
+  const sen = e.seniority ? e.seniority.charAt(0).toUpperCase() + e.seniority.slice(1) : '';
+  T.encabezado('Calendario del técnico', e.id, nomCompleto, [sen, 'Técnico de campo', e.ciudad].filter(Boolean).join('  ·  '));
+  let y = 34, x = M;
+  const ausHoy = ausenciaEn(e, hoy);
+  if (ausHoy) { y += 2; x = T.pastilla(`${tipoAusencia(ausHoy).toUpperCase()}`, M, y, PDF_EST.ausencia.c, PDF_EST.ausencia.bg); T.font('medium', 7.6, C.gris); doc.text(`hasta el ${fLargaAnio(ausHoy.fecha_fin)}`, x + 3.5, y); y += 6; }
+  y = T.tarjetas(y, [['Mes', nomMesC, String(year)], ['Días en proyecto', diasPry, `${pryMes.size} proyecto(s)`, PDF_EST.asignado.c],
+    ['Días de ausencia', diasAus, ausMes.size ? [...ausMes.values()].map(tipoAusencia).join(', ').toLowerCase() : 'ninguna', PDF_EST.ausencia.c],
+    ['Días libres', diasMes - diasPry - diasAus, 'disponible para asignar', C.tinta]]);
+  y += 9;
+  y = T.seccion(`${nomMes.toUpperCase()} ${year}`, y);
+  const cw = (W - 2 * M) / 7, ch = 17, sem = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
+  sem.forEach((s, i) => { T.font('semibold', 6.2, C.gris); doc.text(s, M + i * cw + cw / 2, y, { align: 'center', charSpace: 0.45 }); });
+  y += 3;
+  const primer = new Date(year, month, 1).getDay();
+  for (let d = 1; d <= diasMes; d++) {
+    const f = new Date(year, month, d), pos = primer + d - 1, fila = Math.floor(pos / 7), cl = pos % 7;
+    const xx = M + cl * cw, yy = y + fila * (ch + 1.4);
+    const aus = ausenciaEn(e, f), evs = eventos[isoLocal(f)] || [], pry = !aus && evs.length, esHoy = f.getTime() === hoy.getTime();
+    const st = aus ? PDF_EST.ausencia : pry ? PDF_EST[grupoEstadoPDF(evs[0])] : null;
+    T.relleno(st ? st.bg : C.fondo); doc.roundedRect(xx + 0.7, yy, cw - 1.4, ch, 1.6, 1.6, 'F');
+    if (st) { T.relleno(st.c); doc.rect(xx + 0.7, yy + ch - 1.2, cw - 1.4, 1.2, 'F'); }
+    if (esHoy) { T.trazo(C.rojo, 0.6); doc.roundedRect(xx + 0.7, yy, cw - 1.4, ch, 1.6, 1.6, 'S'); }
+    T.font('bold', 9, st ? st.c : C.tinta); doc.text(String(d), xx + 3.2, yy + 5.4);
+    if (aus) { T.font('medium', 5.8, st.c); doc.text(recortarTexto(doc, tipoAusencia(aus), cw - 5), xx + 3.2, yy + 11.6); }
+    else if (pry) { T.font('semibold', 5.6, st.c); doc.text(doc.splitTextToSize(evs[0].nombre, cw - 5).slice(0, 2), xx + 3.2, yy + 10.2); }
+    if (esHoy) { T.font('bold', 5.4, C.rojo); doc.text('HOY', xx + cw - 3.2, yy + 5.2, { align: 'right' }); }
+  }
+  y += Math.ceil((primer + diasMes) / 7) * (ch + 1.4) + 4;
+  [[PDF_EST.ausencia.c, 'Ausencia', diasAus], [PDF_EST.asignado.c, 'Proyecto asignado', diasPry], [C.linea, 'Libre', 1]].filter(z => z[2]).reduce((xx, [c, t]) => {
+    T.relleno(c); doc.roundedRect(xx, y - 2.6, 3.2, 3.2, 0.6, 0.6, 'F');
+    T.font('medium', 7, C.texto); doc.text(t, xx + 4.6, y); return xx + 4.6 + doc.getTextWidth(t) + 8;
+  }, M);
+  y += 10;
+  y = T.seccion('DETALLE DEL MES', y);
+  const filasDet = [
+    ...[...ausMes.values()].map(a => [PDF_EST.ausencia.c, PDF_EST.ausencia.bg, 'AUSENCIA', tipoAusencia(a), `${rangoCorto(a.fecha_inicio, a.fecha_fin)}${(a.motivo || '').split(' — ')[1] ? '  ·  ' + (a.motivo || '').split(' — ').slice(1).join(' — ') : ''}`]),
+    ...[...pryMes.values()].map(p => {
+      const comp = (p.tecnicos_asignados || []).filter(id => id !== empId).map(id => STATE.empleados.find(z => z.id === id)).filter(Boolean).map(z => `${z.nombre} ${z.apellido}`);
+      const eqs = (p.equipo_asignado_ids || []).map(id => (STATE.equipos || []).find(z => z.id === id)).filter(Boolean).map(z => z.apodo || z.nombre);
+      const vhs = (p.vehiculo_asignado_ids || []).map(id => (STATE.vehiculos || []).find(z => z.id === id)).filter(Boolean).map(z => z.apodo || z.nombre);
+      const stp = PDF_EST[grupoEstadoPDF(p)];
+      return [stp.c, stp.bg, 'PROYECTO', `${p.nombre}${p.cliente ? '  ·  ' + p.cliente : ''}`,
+        [rangoCorto(p.fecha_inicio, p.fecha_fin_estimada), p.ciudad, comp.length ? 'con ' + comp.join(', ') : '', [...eqs, ...vhs].join(', ')].filter(Boolean).join('  ·  ')];
+    }),
+  ];
+  if (!filasDet.length) { T.font('normal', 8, C.gris); doc.text('Sin proyectos ni ausencias en este mes.', M, y); }
+  filasDet.forEach(([c, bg, tag, tit, det]) => {
+    if (!T.cabe(y, 12)) { T.nuevaPagina(); T.encabezado('Calendario del técnico', e.id, nomCompleto, 'continuación'); y = 38; }
+    T.relleno(C.fondo); doc.roundedRect(M, y - 4.2, W - 2 * M, 10, 1.6, 1.6, 'F');
+    T.relleno(c); doc.rect(M, y - 4.2, 1, 10, 'F');
+    const xx = T.pastilla(tag, M + 4, y + 1.9, c, bg);
+    T.font('bold', 8.6, C.tinta); const titR = recortarTexto(doc, tit, (W - 2 * M) * 0.45); doc.text(titR, xx + 3, y + 1.9);
+    const at = doc.getTextWidth(titR);
+    T.font('normal', 7.4, C.gris); doc.text(recortarTexto(doc, det, W - M - 4 - (xx + 3 + at + 3)), xx + 3 + at + 3, y + 1.9);
+    y += 12;
+  });
+  T.cerrar(`Calendario - ${limpiarNombreArchivo(nomCompleto)} - ${nomMesC} ${year}.pdf`);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 3. PROYECTO — Programa de trabajo (cliente) o Ficha interna
+// ═════════════════════════════════════════════════════════════════════════════
+function elegirPDFProyecto(proyectoId) {
+  let ov = document.getElementById('selector-overlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; ov.style.zIndex = 1100; document.body.appendChild(ov); }
+  ov.className = 'modal-overlay open';
+  ov.onclick = ev => { if (ev.target === ov) cerrarSelectorTerminos(); };
+  ov.innerHTML = `
+    <div class="sel-card" style="max-width:420px;padding:18px">
+      <div style="font-weight:700;color:var(--text);font-size:14px;margin-bottom:4px">¿Qué documento necesitas?</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Ambos usan el formato oficial de WorkSync.</div>
+      <button class="btn btn-ghost" style="width:100%;min-height:52px;justify-content:flex-start;text-align:left;margin-bottom:8px" onclick="cerrarSelectorTerminos();ejecutarConCarga(this, () => exportarGanttProyectoPDF('${proyectoId}','cliente'))">
+        <i class="ti ti-file-text" aria-hidden="true" style="font-size:20px"></i><span><strong>Programa de trabajo</strong><br><span style="font-size:11px;color:var(--text3)">Para el cliente: fechas, personal, equipo y ubicación</span></span></button>
+      <button class="btn btn-ghost" style="width:100%;min-height:52px;justify-content:flex-start;text-align:left" onclick="cerrarSelectorTerminos();ejecutarConCarga(this, () => exportarGanttProyectoPDF('${proyectoId}','interno'))">
+        <i class="ti ti-lock" aria-hidden="true" style="font-size:20px"></i><span><strong>Ficha interna</strong><br><span style="font-size:11px;color:var(--text3)">Con criticidad, requisitos, reprogramaciones y contactos</span></span></button>
+    </div>`;
+}
+function vigenciaActivoPDF(u, clase) {
+  const docs = (u.documentos || []).filter(d => d.fecha_vencimiento);
+  const tipo = clase === 'equipo' ? 'calibracion' : 'seguro';
+  const d = docs.filter(x => x.tipo === tipo).sort((a, b) => b.fecha_vencimiento.localeCompare(a.fecha_vencimiento))[0];
+  const fecha = d ? d.fecha_vencimiento : (clase === 'equipo' ? u.proxima_calibracion : null);
+  if (!fecha) return null;
+  const vencido = fechaLocal(fecha) < new Date();
+  return { texto: `${clase === 'equipo' ? 'Calibración' : 'Seguro'} ${vencido ? 'vencido' : 'vigente hasta'} ${fLargaAnio(fecha)}`, vencido };
+}
+async function exportarGanttProyectoPDF(proyectoId, modo) {
+  if (!modo) { elegirPDFProyecto(proyectoId); return; }
+  await Promise.all([loadEmpleados(), loadProyectos(), loadEquipos(), loadVehiculos()]);
+  const p = STATE.proyectos.find(x => x.id === proyectoId);
+  if (!p) { toast('No se encontró el proyecto', 'error'); return; }
+  const cliente = modo === 'cliente';
+  const T = await nuevaPlantillaPDF('portrait'), { doc, C, M } = T, W = T.W;
+  const ini = fechaLocal(p.fecha_inicio), fin = fechaLocal(p.fecha_fin_estimada);
+  const dur = Math.round((fin - ini) / 86400000) + 1;
+  const personal = (p.tecnicos_asignados || []).map(id => STATE.empleados.find(e => e.id === id)).filter(Boolean);
+  const equipos = (p.equipo_asignado_ids || []).map(id => (STATE.equipos || []).find(z => z.id === id)).filter(Boolean);
+  const vehiculos = (p.vehiculo_asignado_ids || []).map(id => (STATE.vehiculos || []).find(z => z.id === id)).filter(Boolean);
+  const diaSem = d => ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'][d.getDay()];
+
+  const tipoDocP = cliente ? 'Programa de trabajo' : 'Ficha de proyecto · interna';
+  const subP = [p.cliente, p.ciudad].filter(Boolean).join('  ·  ');
+  T.encabezado(tipoDocP, p.id, p.nombre, subP);
+  const otraHoja = () => { T.nuevaPagina(); T.encabezado(tipoDocP, p.id, p.nombre, 'continuación'); return 38; };
+  let y = 34, x;
+  if (!cliente) {
+    y += 2;
+    const g = grupoEstadoPDF(p), st = PDF_EST[g];
+    x = T.pastilla(estadoProyectoVisible(p).replace(/_/g, ' ').toUpperCase(), M, y, st.c, st.bg);
+    T.font('medium', 7.6, C.gris); doc.text(`Criticidad ${String(p.criticidad || '').replace('tipo_', 'Tipo ').toUpperCase().replace('TIPO', 'Tipo')}  ·  Intensidad ${p.intensidad || '—'}`, x + 3.5, y);
+    y += 6;
+  }
+  const kFechas = [rangoCorto(ini, fin), `${ini.getFullYear()} · ${diaSem(ini)} a ${diaSem(fin)}`];
+  y = T.tarjetas(y, cliente
+    ? [['Fechas', ...kFechas], ['Días en sitio', `${dur} día${dur > 1 ? 's' : ''}`, 'programados'],
+       ['Personal', `${personal.length} técnico${personal.length === 1 ? '' : 's'}`, 'en sitio'], ['Sitio', p.ciudad || '—', p.cliente || '']]
+    : [['Fechas', ...kFechas], ['Duración', `${dur} día${dur > 1 ? 's' : ''}`, 'planeados'],
+       ['Personal', `${personal.length} / ${p.personal_requerido || 1}`, 'técnicos asignados', personal.length >= (p.personal_requerido || 1) ? PDF_EST.asignado.c : PDF_EST.prep.c],
+       ['Equipo y vehículo', `${equipos.length + vehiculos.length}`, 'unidades apartadas']]);
+  y += 5;
+  const repro = p.reprogramaciones_resumen || [];
+  if (!cliente && repro.length) {
+    T.relleno(PDF_EST.prep.bg); doc.roundedRect(M, y, W - 2 * M, 9, 1.5, 1.5, 'F');
+    T.relleno(PDF_EST.prep.c); doc.rect(M, y, 1, 9, 'F');
+    const t1 = `Reprogramado ${repro.length} ${repro.length === 1 ? 'vez' : 'veces'}`;
+    T.font('bold', 7.4, [150, 105, 40]); doc.text(t1, M + 4, y + 5.6);
+    const a1 = doc.getTextWidth(t1);
+    T.font('normal', 7.4, C.texto);
+    const ult = repro[repro.length - 1];
+    doc.text(recortarTexto(doc, `·  fechas originales ${rangoCorto(repro[0].inicio_anterior, repro[0].fin_anterior)} ${fechaLocal(repro[0].inicio_anterior).getFullYear()}${ult.motivo ? '  ·  último motivo: ' + ult.motivo : ''}`, W - 2 * M - a1 - 10), M + 4 + a1 + 2, y + 5.6);
+    y += 12;
+  }
+  y += 4;
+
+  // Línea de tiempo (hasta 31 días) — días del proyecto resaltados
+  y = T.seccion(cliente ? 'DÍAS PROGRAMADOS' : 'LÍNEA DE TIEMPO', y);
+  {
+    const total = Math.min(31, Math.max(12, dur + 6));
+    const desde = new Date(ini); desde.setDate(desde.getDate() - Math.max(0, Math.floor((total - dur) / 2)));
+    const dias = Array.from({ length: total }, (_, i) => { const d = new Date(desde); d.setDate(d.getDate() + i); return d; });
+    const ancho = (W - 2 * M) / total, letra = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+    dias.forEach((f, i) => {
+      const xx = M + i * ancho, fds = [0, 6].includes(f.getDay()), en = f >= ini && f <= fin, stl = PDF_EST.asignado;
+      T.relleno(en ? stl.bg : fds ? [236, 236, 238] : C.fondo); doc.rect(xx + 0.3, y, ancho - 0.6, 13, 'F');
+      if (en) { T.relleno(stl.c); doc.rect(xx + 0.3, y + 12, ancho - 0.6, 1, 'F'); }
+      T.font('semibold', total > 24 ? 6.4 : 7.6, en ? stl.c : C.tinta); doc.text(String(f.getDate()), xx + ancho / 2, y + 4.8, { align: 'center' });
+      T.font('medium', 5.6, en ? stl.c : C.gris); doc.text(letra[f.getDay()], xx + ancho / 2, y + 8.6, { align: 'center' });
+    });
+    T.font('normal', 7, C.gris);
+    doc.text(dur > total ? `Jornadas del ${diaSem(ini)} ${fLargaAnio(ini)} al ${diaSem(fin)} ${fLargaAnio(fin)} (${dur} días; se muestran los primeros ${total}).`
+      : `Jornadas en sitio del ${diaSem(ini)} ${ini.getDate()} al ${diaSem(fin)} ${fin.getDate()} de ${fin.toLocaleDateString('es-MX', { month: 'long' })} de ${fin.getFullYear()}.`, M, y + 19);
+  }
+  y += 28;
+
+  // Personal
+  y = T.seccion(cliente ? 'PERSONAL EN SITIO' : 'PERSONAL ASIGNADO', y, cliente ? '' : `${personal.length} de ${p.personal_requerido || 1} requerido`);
+  if (!personal.length) { T.font('normal', 8, C.gris); doc.text('Sin personal asignado todavía.', M, y); y += 8; }
+  const fotos = cliente ? [] : await Promise.all(personal.map(e => fotoCircularPDF(e.foto_perfil_url)));
+  const SIGLAS = ['RPAS', 'GWO', 'DC-3', 'LOTO', 'LOTTO', 'LIDAR', 'NDT', 'UAV', 'DJI', 'IRATA', 'EPP', 'STPS'];
+  const oracion = t => { const s2 = t.toLowerCase(); return (s2.charAt(0).toUpperCase() + s2.slice(1)).split(' ').map(w => SIGLAS.includes(w.toUpperCase()) ? w.toUpperCase() : w).join(' '); };
+  const habsTxt = (p.habilidades_requeridas_items || []).map(h => oracion(h.nombre)).slice(0, 2).join(' · ');
+  personal.forEach((e, i) => {
+    if (!T.cabe(y, 12)) { y = otraHoja(); }
+    const nom = `${e.nombre} ${e.apellido}`;
+    if (cliente) {
+      T.font('bold', 9.6, C.tinta); doc.text(nom, M, y + 1.4);
+      T.font('normal', 7.4, C.gris); doc.text(`Técnico de campo${habsTxt ? '  ·  ' + habsTxt : ''}`, M, y + 5.6);
+    } else {
+      if (fotos[i]) { doc.addImage(fotos[i], 'PNG', M, y - 3.2, 10.8, 10.8); T.trazo(C.linea, 0.4); doc.circle(M + 5.4, y + 2.2, 5.4, 'S'); }
+      else { T.relleno([82, 82, 91]); doc.circle(M + 5.4, y + 2.2, 5.4, 'F'); T.font('bold', 7.6, C.blanco); doc.text(((e.nombre || '')[0] || '') + ((e.apellido || '')[0] || ''), M + 5.4, y + 3.4, { align: 'center' }); }
+      T.font('bold', 9.6, C.tinta); doc.text(nom, M + 14, y + 1.4);
+      const sen = e.seniority ? e.seniority.charAt(0).toUpperCase() + e.seniority.slice(1) + '  ·  ' : '';
+      T.font('normal', 7.4, C.gris); doc.text(`${sen}Técnico de campo${e.ciudad ? '  ·  ' + e.ciudad : ''}`, M + 14, y + 5.6);
+      if (e.telefono) { T.font('semibold', 7.6, C.texto); doc.text(e.telefono, W - M, y + 1.4, { align: 'right' }); }
+      if (e.contacto_emergencia) { T.font('normal', 6.6, C.gris); doc.text(recortarTexto(doc, `Emergencia: ${e.contacto_emergencia}`, 70), W - M, y + 5.6, { align: 'right' }); }
+    }
+    y += cliente ? 11 : 14;
+  });
+  y += 2;
+
+  // Requisitos (solo interno)
+  if (!cliente && ((p.habilidades_requeridas_items || []).length || (p.certificados_requeridos_items || []).length)) {
+    if (!T.cabe(y, 30)) { y = otraHoja(); }
+    y = T.seccion('REQUISITOS', y);
+    const col2 = M + (W - 2 * M) / 2 + 4;
+    T.etiqueta('Habilidades · nivel mínimo', M, y); T.etiqueta('Certificados', col2, y);
+    y += 5.5;
+    const habs = p.habilidades_requeridas_items || [], certs = p.certificados_requeridos_items || [];
+    habs.forEach((h, i) => {
+      const yy = y + i * 9;
+      T.font('semibold', 7.8, C.tinta); doc.text(recortarTexto(doc, h.nombre, col2 - M - 8), M, yy);
+      for (let k = 0; k < 10; k++) { T.relleno(k < h.nivel ? [82, 82, 91] : C.linea); doc.roundedRect(M + k * 5.6, yy + 2, 4.8, 2.2, 0.6, 0.6, 'F'); }
+      T.font('bold', 7.4, C.texto); doc.text(`${h.nivel}/10`, M + 58, yy + 4);
+    });
+    certs.forEach((c, i) => {
+      const yy = y + i * 9;
+      T.relleno(PDF_EST.asignado.bg); doc.circle(col2 + 2.2, yy - 1.2, 2.2, 'F');
+      T.trazo(PDF_EST.asignado.c, 0.55); doc.lines([[0.9, 0.9], [1.7, -1.9]], col2 + 1.2, yy - 1.2, [1, 1], 'S');
+      T.font('semibold', 7.8, C.tinta); doc.text(recortarTexto(doc, c.nombre, W - M - col2 - 8), col2 + 6.5, yy);
+    });
+    y += Math.max(habs.length, certs.length, 1) * 9 + 4;
+  }
+
+  // Equipo y vehículo
+  if (equipos.length || vehiculos.length) {
+    if (!T.cabe(y, 12 + (equipos.length + vehiculos.length) * 12)) { y = otraHoja(); }
+    y = T.seccion(cliente ? 'EQUIPO Y VEHÍCULO' : 'EQUIPO Y VEHÍCULO APARTADOS', y);
+    const filas = [...equipos.map(u => ['equipo', u]), ...vehiculos.map(u => ['vehiculo', u])];
+    filas.forEach(([clase, u]) => {
+      T.relleno(C.fondo); doc.roundedRect(M, y - 4.2, W - 2 * M, 10, 1.6, 1.6, 'F');
+      const tipoTxt = (clase === 'equipo' ? etiquetaEquipo(u.tipo) : etiquetaVehiculo(u.tipo)).replace(/\s*\/\s*/g, ' ').toUpperCase();
+      let xx = T.pastilla(tipoTxt, M + 3, y + 1.9, C.texto, C.blanco);
+      const vig = vigenciaActivoPDF(u, clase);
+      if (cliente) {
+        T.font('semibold', 8.8, C.tinta); doc.text(u.nombre, xx + 3, y + 1.9);
+        const extra = clase === 'vehiculo' ? (u.placas ? `Placas ${u.placas}` : '') : (vig && !vig.vencido ? 'Calibración vigente' : '');
+        T.font('medium', 7.4, C.gris); doc.text(extra, W - M - 3, y + 1.9, { align: 'right' });
+      } else {
+        const ap = (u.apodo || u.nombre).toUpperCase();
+        T.font('bold', 9, C.tinta); doc.text(ap, xx + 3, y + 1.9);
+        xx += 3 + doc.getTextWidth(ap) + 2.5;
+        const ident = clase === 'equipo' ? (u.numero_serie ? `SN …${String(u.numero_serie).slice(-3)}` : 'sin serie') : (u.placas || 'sin placas');
+        T.font('normal', 7.6, C.gris); doc.text(`${u.apodo ? u.nombre + '  ·  ' : ''}${ident}`, xx, y + 1.9);
+        if (vig) { T.font('medium', 6.8, vig.vencido ? PDF_EST.progreso.c : PDF_EST.asignado.c); doc.text(vig.texto, W - M - 3, y + 1.9, { align: 'right' }); }
+      }
+      y += 12;
+    });
+    y += 3;
+  }
+
+  // Ubicación
+  if (!T.cabe(y, cliente ? 30 : 16)) { y = otraHoja(); }
+  y = T.seccion('UBICACIÓN', y);
+  T.font('semibold', 8.4, C.tinta); doc.text(p.ciudad || '—', M, y);
+  if (p.latitud != null && p.longitud != null) {
+    T.font('normal', 7.6, C.gris); doc.text(`${p.latitud}, ${p.longitud}`, M, y + 4.6);
+    T.font('semibold', 7.6, C.rojo); const lk = 'Abrir en Google Maps  →';
+    doc.textWithLink(lk, W - M - doc.getTextWidth(lk), y, { url: `https://maps.google.com/?q=${p.latitud},${p.longitud}` });
+  }
+  y += 14;
+  if (cliente) {
+    T.relleno(C.fondo); doc.roundedRect(M, y, W - 2 * M, 11, 1.6, 1.6, 'F');
+    T.font('normal', 7.2, C.texto);
+    doc.text('Las fechas pueden ajustarse por condiciones de clima o de acceso al sitio. Cualquier cambio se le notificará con anticipación.', M + 4, y + 6.6);
+  }
+  T.cerrar(`${cliente ? 'Programa de trabajo' : 'Ficha interna'} - ${limpiarNombreArchivo(p.nombre)}.pdf`, cliente);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 4. MÉTRICAS DE PROYECTOS
+// ═════════════════════════════════════════════════════════════════════════════
+async function exportarMetricasPDF() {
+  const datos = STATE._ultimasMetricas || [];
+  if (!datos.length) { toast('No hay métricas generadas para exportar', 'error'); return; }
+  const T = await nuevaPlantillaPDF('portrait'), { doc, C, M } = T, W = T.W;
+  const fechasTodas = datos.flatMap(p => [p.fecha_inicio_estimada, p.fecha_fin_estimada, p.fecha_inicio_real, p.fecha_fin_real]).filter(Boolean).sort();
+  const desde = fechasTodas[0], hasta = fechasTodas[fechasTodas.length - 1];
+  const sub = `${desde ? `Del ${fLargaAnio(desde)} al ${fLargaAnio(hasta)}  ·  ` : ''}${datos.length} proyecto${datos.length === 1 ? '' : 's'}`;
+  const codigo = desde ? `${MESES_CORTOS[fechaLocal(desde).getMonth()].toUpperCase()} – ${MESES_CORTOS[fechaLocal(hasta).getMonth()].toUpperCase()} ${fechaLocal(hasta).getFullYear()}` : '';
+  T.encabezado('Reporte de métricas', codigo, 'Métricas de proyectos', sub);
+  const conReal = datos.filter(p => p.retraso_dias != null);
+  const aTiempo = conReal.filter(p => p.retraso_dias <= 0).length, conRetraso = conReal.filter(p => p.retraso_dias > 0);
+  let y = 34;
+  y = T.tarjetasCompactas(y, [
+    ['Proyectos', datos.length, `${conReal.length} con fecha real`],
+    ['A tiempo', aTiempo, `de ${conReal.length}`, PDF_EST.asignado.c],
+    ['Con retraso', conRetraso.length, conRetraso.length ? `+${conRetraso.reduce((a, p) => a + p.retraso_dias, 0)} días en total` : 'ninguno', PDF_EST.progreso.c],
+    ['Días trabajados', datos.reduce((a, p) => a + (p.asistencia?.dias_trabajados || 0), 0), 'con checada'],
+  ]);
+  y += 8;
+  y = T.seccion('DETALLE POR PROYECTO', y);
+  datos.forEach(p => {
+    const inc = p.incidencias || [];
+    const alto = 60 + inc.length * 5.5;
+    if (y + alto > T.H - 18.5) { T.nuevaPagina(); T.encabezado('Reporte de métricas', codigo, 'Métricas de proyectos', 'continuación'); y = 36; }
+    const w = W - 2 * M;
+    T.relleno(C.fondo); doc.roundedRect(M, y, w, alto, 2, 2, 'F');
+    let yy = y + 8;
+    const r = p.retraso_dias;
+    const res = r == null ? ['EN CURSO', PDF_EST.pausa] : r > 0 ? [`+${r} DÍA${r === 1 ? '' : 'S'} DE RETRASO`, PDF_EST.progreso] : r < 0 ? [`${-r} DÍA${r === -1 ? '' : 'S'} ANTES`, PDF_EST.asignado] : ['A TIEMPO', PDF_EST.asignado];
+    const ap = T.anchoPastilla(res[0]);
+    T.font('bold', 11, C.tinta); doc.text(recortarTexto(doc, p.nombre, w - ap - 16), M + 5, yy);
+    T.pastilla(res[0], M + w - 5 - ap, yy - 0.2, res[1].c, res[1].bg);
+    yy += 4.8;
+    T.font('normal', 7.6, C.gris); doc.text(`${p.cliente || '—'}  ·  ${p.ciudad || '—'}`, M + 5, yy);
+    yy += 6;
+    // Estimado vs real sobre el mismo eje
+    const fs = [p.fecha_inicio_estimada, p.fecha_fin_estimada, p.fecha_inicio_real, p.fecha_fin_real].filter(Boolean).map(f => fechaLocal(f).getTime());
+    const e0 = Math.min(...fs), e1 = Math.max(...fs) + 86400000, tot = Math.max(1, e1 - e0);
+    const ex = M + 30, ew = w - 40;
+    [['Estimado', p.fecha_inicio_estimada, p.fecha_fin_estimada, [205, 205, 210]],
+     ['Real', p.fecha_inicio_real, p.fecha_fin_real, r != null && r > 0 ? PDF_EST.progreso.c : PDF_EST.asignado.c]].forEach(([lab, a, b, col], i) => {
+      const by = yy + i * 6.5;
+      T.etiqueta(lab, M + 5, by + 2.4, C.gris, 6);
+      T.relleno(C.blanco); doc.roundedRect(ex, by, ew, 3, 1, 1, 'F');
+      if (!a) { T.font('normal', 6.6, C.grisClaro); doc.text('sin registro', ex + 2, by + 2.4); return; }
+      const ta = fechaLocal(a).getTime(), tb = (b ? fechaLocal(b).getTime() : Date.now()) + 86400000;
+      const bx = ex + ew * (ta - e0) / tot, bw = Math.max(2.4, ew * (tb - ta) / tot);
+      T.relleno(col); doc.roundedRect(bx, by, bw, 3, 1, 1, 'F');
+      const txt = b ? rangoCorto(a, b) : `${fCorta(a)} – en curso`;
+      T.font('medium', 6.6, C.texto);
+      if (bx + bw + 2 + doc.getTextWidth(txt) > ex + ew) { T.font('semibold', 6.4, i === 0 ? C.texto : C.blanco); doc.text(txt, bx + bw - 2, by + 2.35, { align: 'right' }); }
+      else doc.text(txt, bx + bw + 2, by + 2.4);
+    });
+    yy += 16;
+    const ind = [['Duración', p.duracion_real_dias != null ? `${p.duracion_estimada_dias ?? '—'} → ${p.duracion_real_dias} días` : `${p.duracion_estimada_dias ?? '—'} días (est.)`], ['Días trabajados', p.asistencia?.dias_trabajados ?? 0],
+      ['Horas aprox.', `${p.asistencia?.horas_aprox ?? 0} h`], ['Sin checada', p.dias_faltantes ?? 0], ['Descanso', p.dias_descanso ?? 0],
+      ['Standby', p.dias_standby ?? 0], ['Reprogramado', p.veces_reprogramado ? `${p.veces_reprogramado} ${p.veces_reprogramado === 1 ? 'vez' : 'veces'}` : 'No'],
+      ['Incidencias', `${p.total_incidencias ?? inc.length}${p.incidencias_altas ? ` (${p.incidencias_altas} alta)` : ''}`]];
+    const iw = (w - 10) / 4;
+    ind.forEach(([lab, val], i) => {
+      const ix = M + 5 + (i % 4) * iw, iy = yy + Math.floor(i / 4) * 10;
+      T.etiqueta(lab, ix, iy, C.gris, 5.8); T.font('bold', 9.4, C.tinta); doc.text(String(val), ix, iy + 4.6);
+    });
+    yy += 21;
+    T.font('normal', 7.2, C.texto);
+    const recursos = [`Personal: ${(p.personal_asignado_nombres || []).join(', ') || '—'}`,
+      (p.equipo_usado || []).length && `Equipo: ${p.equipo_usado.join(', ')}`,
+      (p.vehiculo_usado || []).length && `Vehículo: ${p.vehiculo_usado.join(', ')}`].filter(Boolean).join('   ·   ');
+    doc.text(recortarTexto(doc, recursos, w - 10), M + 5, yy);
+    inc.forEach(i => {
+      yy += 5.5;
+      const sev = String(i.severidad || '').toUpperCase();
+      const st = ['ALTA', 'CRITICA', 'CRÍTICA'].includes(sev) ? PDF_EST.progreso : PDF_EST.prep;
+      const fx = T.pastilla(sev || '—', M + 5, yy, st.c, st.bg);
+      T.font('semibold', 7.4, C.tinta); const tp = String(i.tipo || ''); doc.text(tp, fx + 2.5, yy);
+      const at = doc.getTextWidth(tp);
+      T.font('normal', 7.2, C.gris); doc.text(recortarTexto(doc, i.descripcion || 'sin descripción', w - (fx - M) - at - 12), fx + 2.5 + at + 2.5, yy);
+    });
+    y += alto + 6;
+  });
+  const nombreArchivo = datos.length === 1 ? limpiarNombreArchivo(datos[0].nombre) : `${datos.length} proyectos`;
+  T.cerrar(`Metricas - ${nombreArchivo} - ${isoLocal(new Date())}.pdf`);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 5. PROPUESTA DE FECHAS (interna)
+// ═════════════════════════════════════════════════════════════════════════════
+async function exportarPropuestaPDF() {
   const r = STATE._busqueda; if (!r) return;
   const prm = r.params || {};
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
-  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), M = 14, ancho = W - 2 * M;
-  let y = 18;
-  const salto = (alto) => { if (y + alto > H - 18) { doc.addPage(); y = 18; } };
-  const fLarga = iso => fechaLocal(iso).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-  const txt = (t, x, size = 9, color = 20, bold = false) => { doc.setFontSize(size); doc.setTextColor(color); doc.setFont(undefined, bold ? 'bold' : 'normal'); doc.text(t, x, y); };
-  const parrafo = (t, x, w, size = 9, color = 60, interlinea = 4.2) => {
-    doc.setFontSize(size); doc.setTextColor(color); doc.setFont(undefined, 'normal');
-    const lineas = doc.splitTextToSize(t, w); salto(lineas.length * interlinea); doc.text(lineas, x, y); y += lineas.length * interlinea;
-  };
-  const titulo = t => { salto(14); y += 3; txt(t, M, 9, 0, true); y += 2; doc.setDrawColor(225); doc.line(M, y, W - M, y); y += 5; };
-
-  // Encabezado
-  txt('WORKSYNC · DOCUMENTO INTERNO', M, 8, 150);
-  doc.setTextColor(227, 28, 34); doc.setFontSize(8); doc.setFont(undefined, 'bold');
-  doc.text('PROPUESTA TENTATIVA', W - M, y, { align: 'right' });
-  y += 9;
+  const T = await nuevaPlantillaPDF('portrait'), { doc, C, M } = T, W = T.W;
   const nombre = document.getElementById('np-nombre')?.value.trim() || 'Proyecto sin nombre';
-  txt(nombre, M, 16, 0, true); y += 6.5;
   const cliente = document.getElementById('np-cliente')?.value.trim();
   const ciudad = document.getElementById('np-ciudad')?.value.trim(), estado = document.getElementById('np-estado')?.value;
-  txt([cliente || 'Cliente sin capturar', [ciudad, estado].filter(Boolean).join(', ')].filter(Boolean).join('  ·  '), M, 10, 90);
-  y += 9;
-
-  // Parámetros de búsqueda
-  titulo('PARÁMETROS DE LA BÚSQUEDA');
-  const critTxt = document.getElementById('np-crit')?.selectedOptions[0]?.textContent || '';
-  const intTxt = document.getElementById('np-intens')?.selectedOptions[0]?.textContent || '';
+  T.encabezado('Propuesta tentativa', 'BUSCADOR DE FECHAS', nombre, [cliente || 'Cliente sin capturar', [ciudad, estado].filter(Boolean).join(', ')].filter(Boolean).join('  ·  '));
+  let y = 36;
+  y = T.seccion('PARÁMETROS DE LA BÚSQUEDA', y);
   const filas = [
     ['Duración', `${r.duracion} día(s)`], ['Personal requerido', `${prm.personal_requerido || 1}`],
-    ['A partir de', fLarga(r.desde || prm.desde)], ['Terminar a más tardar', prm.hasta ? fLarga(prm.hasta) : 'Sin límite (busca 6 meses)'],
-    ['Criticidad / intensidad', `${critTxt} · ${intTxt}`],
+    ['A partir de', fLargaAnio(r.desde || prm.desde)], ['Terminar a más tardar', prm.hasta ? fLargaAnio(prm.hasta) : 'Sin límite (busca 6 meses)'],
     ['Habilidades', (prm.habilidades || []).map(h => `${h.nombre} (nivel ${h.nivel})`).join(', ') || 'Ninguna'],
     ['Certificados', (prm.certificados || []).join(', ') || 'Ninguno'],
     ['Equipo', prm.considerar_equipo === false ? 'No considerado' : ((prm.equipo || []).map(e => `${etiquetaEquipo(e.tipo)} × ${e.cantidad}`).join(', ') || 'No requiere')],
     ['Vehículos', prm.considerar_vehiculos === false ? 'No considerados' : ((prm.vehiculos || []).map(v => `${etiquetaVehiculo(v.tipo)} × ${v.cantidad}`).join(', ') || 'No requiere')],
   ];
   filas.forEach(([k, v]) => {
-    const lineas = doc.splitTextToSize(v, ancho - 48); salto(lineas.length * 4.4 + 1);
-    txt(k, M, 9, 120); doc.setTextColor(20); doc.text(lineas, M + 48, y); y += lineas.length * 4.4 + 1;
+    T.font('normal', 8, C.texto); const lineas = doc.splitTextToSize(v, W - 2 * M - 48);
+    T.etiqueta(k, M, y, C.gris, 6.2); T.font('normal', 8, C.tinta); doc.text(lineas, M + 48, y);
+    y += lineas.length * 4.2 + 1.4;
   });
-  if (r.modo === 'con_brecha') { y += 2; parrafo(`Nota: no hay fechas con personal que cumpla todos los requisitos hasta el ${r.busco_hasta}. Las opciones incluyen personas con brecha técnica (capacitable).`, M, ancho, 9, 150); }
-
-  // Bloque de una opción
-  const bloque = (o, etiqueta) => {
-    const personas = o.equipo_de_trabajo.map(p => {
+  if (r.modo === 'con_brecha') {
+    y += 2; T.relleno(PDF_EST.prep.bg); doc.roundedRect(M, y, W - 2 * M, 9, 1.5, 1.5, 'F'); T.relleno(PDF_EST.prep.c); doc.rect(M, y, 1, 9, 'F');
+    T.font('normal', 7.2, C.texto); doc.text(`No hay fechas con personal que cumpla todo hasta el ${fLargaAnio(r.busco_hasta)}; las opciones incluyen personas con brecha técnica (capacitable).`, M + 4, y + 5.6);
+    y += 12;
+  }
+  y += 4;
+  y = T.seccion('OPCIONES DE FECHAS', y);
+  if (!r.opciones.length) { T.font('normal', 8, C.gris); doc.text(doc.splitTextToSize(r.motivo || 'No se encontraron fechas.', W - 2 * M), M, y); y += 10; }
+  r.opciones.forEach((o, i) => {
+    const pers = o.equipo_de_trabajo.map(p => {
       const d = p.detalle || {};
       const falta = [...(d.habilidades || []).filter(h => !h.ok).map(h => h.tiene == null ? `${h.nombre} (no la tiene)` : `${h.nombre} (tiene ${h.tiene}, se pide ${h.requerido})`),
-                     ...(d.certificados || []).filter(c => !c.ok).map(c => `${c.nombre} (${c.motivo.toLowerCase()})`)];
-      return { linea: `${p.nombre} — ${Math.round(p.puntaje)} pts${d.recomendacion ? ' · ' + d.recomendacion : ''}`, falta };
+                     ...(d.certificados || []).filter(c => !c.ok).map(c => `${c.nombre} (${String(c.motivo).toLowerCase()})`)];
+      return { p, falta };
     });
     const activos = [...o.equipo.map(e => `${etiquetaEquipo(e.tipo)}: ${e.libres} libre(s) de ${e.requeridos}${e.sugeridos.length ? ' · ' + e.sugeridos.join(', ') : ''}`),
                      ...o.vehiculos.map(v => `${etiquetaVehiculo(v.tipo)}: ${v.libres} libre(s) de ${v.requeridos}${v.sugeridos.length ? ' · ' + v.sugeridos.join(', ') : ''}`)];
-    const alto = 14 + personas.reduce((a, p) => a + 5 + p.falta.length * 4, 0) + activos.length * 4.4 + 4;
-    salto(alto);
-    const y0 = y;
-    txt(`${etiqueta}  ${fLarga(o.inicio)} al ${fLarga(o.fin)}`, M + 5, 10.5, 0, true);
-    doc.setFontSize(8); doc.setTextColor(130); doc.setFont(undefined, 'normal');
-    doc.text(`${o.personas_que_cumplen} persona(s) cumplen todo · se necesitan ${o.personas_requeridas}`, W - M, y, { align: 'right' });
-    y += 6;
-    personas.forEach(p => {
-      if (p.falta.length) doc.setFillColor(217, 140, 0); else doc.setFillColor(34, 160, 80);
-      doc.circle(M + 6.2, y - 1.2, 1.1, 'F');
-      txt(p.linea, M + 10, 9.5, 20); y += 5;
-      p.falta.forEach(f => { doc.setFontSize(8.5); doc.setTextColor(180, 110, 0); doc.text(`Le falta: ${f}`, M + 14, y); y += 4; });
+    const alto = 10.5 + pers.reduce((a, x) => a + 5 + x.falta.length * 4, 0) + activos.length * 4.4;
+    if (!T.cabe(y, alto)) { T.nuevaPagina(); T.encabezado('Propuesta tentativa', 'BUSCADOR DE FECHAS', nombre, 'continuación'); y = 36; }
+    T.relleno(C.fondo); doc.roundedRect(M, y - 4, W - 2 * M, alto, 2, 2, 'F');
+    let xx = M + 5;
+    if (i === 0) xx = T.pastilla('MÁS PRÓXIMA', M + 5, y + 1.5, C.blanco, C.rojo) + 3;
+    T.font('bold', 10, C.tinta); doc.text(`${fLargaAnio(o.inicio)}  al  ${fLargaAnio(o.fin)}`, xx, y + 1.5);
+    T.font('normal', 7, C.gris); doc.text(`${o.personas_que_cumplen} persona(s) cumplen todo · se necesitan ${o.personas_requeridas}`, W - M - 5, y + 1.5, { align: 'right' });
+    let yy = y + 8;
+    pers.forEach(({ p, falta }) => {
+      T.relleno(falta.length ? PDF_EST.prep.c : PDF_EST.asignado.c); doc.circle(M + 6.2, yy - 1.2, 1.1, 'F');
+      T.font('semibold', 8.4, C.tinta); doc.text(p.nombre, M + 9.5, yy);
+      const an = doc.getTextWidth(p.nombre);
+      T.font('normal', 7.2, C.gris); doc.text(`${Math.round(p.puntaje)} pts${p.detalle?.recomendacion ? '  ·  ' + p.detalle.recomendacion : ''}`, M + 9.5 + an + 2.5, yy);
+      yy += 5;
+      falta.forEach(f => { T.font('normal', 7, [150, 105, 40]); doc.text(`Le falta: ${f}`, M + 12.5, yy - 0.6); yy += 4; });
     });
-    activos.forEach(a => { txt(a, M + 10, 8.5, 90); y += 4.4; });
-    y += 2;
-    doc.setFillColor(227, 28, 34); doc.rect(M, y0 - 4, 1.2, y - y0 + 1, 'F');
-    doc.setDrawColor(230); doc.line(M, y + 1, W - M, y + 1);
-    y += 6;
-  };
-
-  titulo('OPCIONES DE FECHAS');
-  if (!r.opciones.length) parrafo(r.motivo || 'No se encontraron fechas.', M, ancho);
-  r.opciones.forEach((o, i) => bloque(o, i === 0 ? 'MÁS PRÓXIMA ·' : `OPCIÓN ${i + 1} ·`));
-
+    activos.forEach(a => { T.font('normal', 7.2, C.texto); doc.text(a, M + 9.5, yy); yy += 4.4; });
+    y += alto + 5;
+  });
   if ((r.otras_personas || []).length) {
-    titulo('OTRAS PERSONAS QUE PODRÍAN');
+    if (!T.cabe(y, 16)) { T.nuevaPagina(); T.encabezado('Propuesta tentativa', 'BUSCADOR DE FECHAS', nombre, 'continuación'); y = 36; }
+    y = T.seccion('OTRAS PERSONAS QUE PODRÍAN', y);
     r.otras_personas.forEach(p => {
-      salto(6);
-      txt(p.nombre, M, 9.5, 20, true);
-      if (doc.getTextWidth(p.nombre) > 58) { y += 4.5; salto(5); }   // nombre largo: las fechas van debajo
-      doc.setFontSize(9); doc.setTextColor(90); doc.setFont(undefined, 'normal');
-      doc.text(p.opciones.map(o => `${fechaLocal(o.inicio).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })} – ${fechaLocal(o.fin).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}`).join('   ·   '), M + 62, y);
-      y += 5.5;
+      if (!T.cabe(y, 8)) { T.nuevaPagina(); T.encabezado('Propuesta tentativa', 'BUSCADOR DE FECHAS', nombre, 'continuación'); y = 36; }
+      T.font('bold', 8.2, C.tinta); doc.text(p.nombre, M, y);
+      T.font('normal', 7.6, C.gris); doc.text(p.opciones.map(o => rangoCorto(o.inicio, o.fin)).join('    ·    '), W - M, y, { align: 'right' });
+      y += 6.5;
     });
   }
-
-  // Pie en cada página
-  const total = doc.internal.getNumberOfPages();
-  const generado = `Generado por ${STATE.user?.nombre || '—'} el ${new Date().toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' })}`;
-  for (let pg = 1; pg <= total; pg++) {
-    doc.setPage(pg);
-    doc.setFontSize(7.5); doc.setTextColor(150); doc.setFont(undefined, 'normal');
-    doc.text('Uso interno. Fechas tentativas: la disponibilidad de personal, equipo y vehículos no queda reservada hasta crear y asignar el proyecto.', M, H - 10);
-    doc.text(`${generado}  ·  página ${pg} de ${total}`, M, H - 6);
+  y += 4;
+  if (T.cabe(y, 12)) {
+    T.relleno(C.fondo); doc.roundedRect(M, y, W - 2 * M, 10, 1.6, 1.6, 'F');
+    T.font('normal', 7, C.texto); doc.text('Fechas tentativas: la disponibilidad de personal, equipo y vehículos no queda reservada hasta crear y asignar el proyecto.', M + 4, y + 6.2);
   }
-  entregarPDF(doc, `Propuesta de fechas - ${nombre.replace(/[\\/:*?"<>|]/g, '-')} - ${isoLocal(new Date())}.pdf`);
+  T.cerrar(`Propuesta de fechas - ${limpiarNombreArchivo(nombre)} - ${isoLocal(new Date())}.pdf`);
 }
 
 // ─── AVISOS DE CONTROL (campana de administradores y directores) ────────────
