@@ -509,6 +509,9 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .cal-cell.empty{background:transparent}
 .cal-cell.hoy{outline:1.5px solid var(--red);color:var(--text)}
 .cal-cell.ocupado{background:var(--red-bg);color:var(--red-text);cursor:pointer;font-weight:600}
+.cal-cell.ausente{background:rgba(124,92,201,.22);color:#B9A4F0;font-weight:600}
+.cal-cell.ausente.ocupado{box-shadow:inset 0 0 0 2px var(--red)}
+.cal-aus{font-size:8.5px;font-weight:500;line-height:1;margin-top:2px;opacity:.9;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px}
 .cal-cell.ocupado.hoy{outline:1.5px solid var(--red-text)}
 .cal-dot{width:4px;height:4px;border-radius:50%;background:var(--red-text);position:absolute;bottom:4px}
 </style>
@@ -1190,19 +1193,23 @@ async function abrirCalendarioMensual(empId, nombre, offsetMeses) {
   const base = new Date(hoy.getFullYear(), hoy.getMonth() + STATE._cal_offset, 1);
   const year = base.getFullYear(), month = base.getMonth();
   const eventos = eventosProyectosPorDia(empId);
+  const emp = (STATE.empleados||[]).find(x => x.id === empId) || { ausencias: [] };
   const primerDia = new Date(year, month, 1);
   const diasEnMes = new Date(year, month+1, 0).getDate();
   const offset = primerDia.getDay();
+  let hayAusencia = false;
   let celdas = '';
   for (let i=0;i<offset;i++) celdas += `<div class="cal-cell empty"></div>`;
   for (let d=1; d<=diasEnMes; d++) {
     const fecha = new Date(year, month, d);
-    const key = fecha.toISOString().split('T')[0];
+    const key = isoLocal(fecha);   // fecha local (antes UTC: de noche se corría un día)
     const evs = eventos[key] || [];
+    const aus = ausenciaEn(emp, fecha);
+    if (aus) hayAusencia = true;
     const esHoy = fecha.toDateString() === hoy.toDateString();
-    const nombres = evs.map(p=>p.nombre).join(', ');
+    const titulo = [aus ? `${tipoAusencia(aus)} (${aus.fecha_inicio} al ${aus.fecha_fin})` : null, ...evs.map(p => p.nombre)].filter(Boolean).join(' · ');
     const click = evs.length ? ` onclick="verProyecto('${evs[0].id}')"` : '';
-    celdas += `<div class="cal-cell ${esHoy?'hoy':''} ${evs.length?'ocupado':''}" title="${nombres.replace(/"/g,'&quot;')}"${click}>${d}${evs.length?'<div class="cal-dot"></div>':''}</div>`;
+    celdas += `<div class="cal-cell ${esHoy?'hoy':''} ${evs.length?'ocupado':''} ${aus?'ausente':''}" title="${escHtml(titulo)}"${click}>${d}${aus ? `<div class="cal-aus">${escHtml(tipoAusencia(aus))}</div>` : ''}${evs.length?'<div class="cal-dot"></div>':''}</div>`;
   }
   const mesLabel = base.toLocaleDateString('es-MX',{month:'long',year:'numeric'});
   const puedeExportar = STATE.rol !== 'tecnico';
@@ -1217,7 +1224,10 @@ async function abrirCalendarioMensual(empId, nombre, offsetMeses) {
         ${['D','L','M','X','J','V','S'].map(w=>`<div class="cal-weekday">${w}</div>`).join('')}
         ${celdas}
       </div>
-      <div style="margin-top:10px;font-size:11px;color:var(--text3)"><span style="color:var(--red-text)">●</span> Días con proyecto asignado — toca un día para ver el detalle del proyecto.</div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text3);display:flex;flex-direction:column;gap:4px">
+        <div><span style="color:var(--red-text)">●</span> Días con proyecto asignado — toca un día para ver el detalle del proyecto.</div>
+        ${hayAusencia ? '<div><span style="color:#8B6FD6">●</span> Ausencia (vacaciones, permiso, incapacidad).</div>' : ''}
+      </div>
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>${puedeExportar?`<button class="btn btn-primary btn-sm" onclick="exportarCalendarioEmpleadoPDF('${empId}','${nombre.replace(/'/g,"\\'")}',${year},${month})"><i class="ti ti-file-download" aria-hidden="true"></i> Exportar PDF</button>`:''}`);
 }
@@ -2934,10 +2944,14 @@ async function exportarCalendarioEmpleadoPDF(empId, nombre, year, month) {
   const primerDia = new Date(year, month, 1);
   const diasEnMes = new Date(year, month+1, 0).getDate();
   const diasResaltadosSet = new Set();
+  const diasAusenciaSet = new Set();
   const proyectosDelMes = new Map();
+  const empPdf = (STATE.empleados||[]).find(x => x.id === empId) || { ausencias: [] };
+  const ausenciasDelMes = (empPdf.ausencias||[]).filter(a => fechaLocal(a.fecha_inicio) <= new Date(year, month, diasEnMes) && fechaLocal(a.fecha_fin) >= new Date(year, month, 1));
   for (let d=1; d<=diasEnMes; d++) {
     const fecha = new Date(year, month, d);
-    const key = fecha.toISOString().split('T')[0];
+    const key = isoLocal(fecha);
+    if (ausenciaEn(empPdf, fecha)) diasAusenciaSet.add(fecha.toDateString());
     const evs = eventos[key] || [];
     if (evs.length) {
       diasResaltadosSet.add(fecha.toDateString());
@@ -2949,8 +2963,26 @@ async function exportarCalendarioEmpleadoPDF(empId, nombre, year, month) {
   doc.setFont(undefined, 'bold');
   doc.text('CALENDARIO', 14, y);
   y += 6;
-  y = dibujarMesCalendarioPDF(doc, year, month, diasResaltadosSet, y);
+  y = dibujarMesCalendarioPDF(doc, year, month, diasResaltadosSet, y, diasAusenciaSet);
   y += 10;
+
+  // ── Ausencias del mes
+  if (ausenciasDelMes.length) {
+    doc.setFontSize(9); doc.setFont(undefined, 'bold'); doc.setTextColor(0);
+    doc.text(`AUSENCIAS ESTE MES (${ausenciasDelMes.length})`, 14, y); y += 6;
+    ausenciasDelMes.forEach(a => {
+      if (y > 260) { doc.addPage(); y = 18; }
+      doc.setFillColor(124, 92, 201); doc.rect(14, y - 3.2, 1.2, 4.2, 'F');
+      doc.setFontSize(9.5); doc.setFont(undefined, 'bold'); doc.setTextColor(20);
+      doc.text(tipoAusencia(a), 18, y);
+      doc.setFont(undefined, 'normal'); doc.setTextColor(90);
+      const nota = (a.motivo || '').split(' — ').slice(1).join(' — ');
+      doc.text(`${a.fecha_inicio} al ${a.fecha_fin}${nota ? ' · ' + nota : ''}`, 18 + doc.getTextWidth(tipoAusencia(a)) + 4, y);
+      y += 6;
+    });
+    doc.setTextColor(0);
+    y += 4;
+  }
 
   // ── Proyectos del mes: fechas, compañeros, equipo y vehículo ──
   const lista = Array.from(proyectosDelMes.values())
@@ -3043,7 +3075,7 @@ async function exportarCalendarioEmpleadoPDF(empId, nombre, year, month) {
   entregarPDF(doc, `Calendario - ${nombre.replace(/[\\/:*?"<>|]/g,'-')} - ${mesLabel}.pdf`);
 }
 
-function dibujarMesCalendarioPDF(doc, year, month, diasResaltadosSet, startY) {
+function dibujarMesCalendarioPDF(doc, year, month, diasResaltadosSet, startY, diasAusenciaSet = new Set()) {
   const primerDia = new Date(year, month, 1);
   const diasEnMes = new Date(year, month+1, 0).getDate();
   const offset = primerDia.getDay();
@@ -3076,7 +3108,11 @@ function dibujarMesCalendarioPDF(doc, year, month, diasResaltadosSet, startY) {
       const val = data.cell.raw;
       if (val === '') { data.cell.styles.fillColor = [255,255,255]; return; }
       const fechaCelda = new Date(year, month, parseInt(val)).toDateString();
-      if (diasResaltadosSet.has(fechaCelda)) {
+      if (diasAusenciaSet.has(fechaCelda)) {
+        data.cell.styles.fillColor = [124,92,201];
+        data.cell.styles.textColor = 255;
+        data.cell.styles.fontStyle = 'bold';
+      } else if (diasResaltadosSet.has(fechaCelda)) {
         data.cell.styles.fillColor = [227,28,34];
         data.cell.styles.textColor = 255;
         data.cell.styles.fontStyle = 'bold';
@@ -3086,7 +3122,18 @@ function dibujarMesCalendarioPDF(doc, year, month, diasResaltadosSet, startY) {
       }
     }
   });
-  return doc.lastAutoTable.finalY;
+  let yFin = doc.lastAutoTable.finalY;
+  // Leyenda (solo lo que aparece)
+  const leyenda = [];
+  if (diasResaltadosSet.size) leyenda.push([[227,28,34], 'Proyecto asignado']);
+  if (diasAusenciaSet.size) leyenda.push([[124,92,201], 'Ausencia']);
+  if (leyenda.length) {
+    yFin += 5; let x = 14;
+    doc.setFontSize(7.5); doc.setFont(undefined, 'normal'); doc.setTextColor(90);
+    leyenda.forEach(([c, t]) => { doc.setFillColor(...c); doc.rect(x, yFin - 2.6, 3, 3, 'F'); doc.text(t, x + 4.5, yFin); x += doc.getTextWidth(t) + 12; });
+    doc.setTextColor(0);
+  }
+  return yFin;
 }
 
 async function descargarKitDocumentos(proyectoId, nombreProyecto) {
