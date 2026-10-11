@@ -3668,10 +3668,10 @@ function verEquipo(id) {
       </div>
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>
-     <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => exportarFichaEquipoPDF('${eq.id}'), 'Generando…')" title="Ficha del equipo: datos, accesorios, números de serie y documentos"><i class="ti ti-file-type-pdf" aria-hidden="true"></i> Ficha PDF</button>
      <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarEdicionEquipo('${eq.id}'))"><i class="ti ti-check" aria-hidden="true"></i> Guardar cambios</button>
      ${eq.estado !== 'baja' ? `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => archivarEquipo('${eq.id}'))"><i class="ti ti-archive" aria-hidden="true"></i> Archivar</button>` : `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => reactivarEquipo('${eq.id}'))"><i class="ti ti-archive-off" aria-hidden="true"></i> Reactivar</button>`}
-     ${STATE.rol==='administrador' ? `<button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="eliminarEquipoConfirm('${eq.id}')"><i class="ti ti-trash" aria-hidden="true"></i> Eliminar</button>` : ''}`);
+     ${STATE.rol==='administrador' ? `<button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="eliminarEquipoConfirm('${eq.id}')"><i class="ti ti-trash" aria-hidden="true"></i> Eliminar</button>` : ''}`,
+    `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => exportarFichaEquipoPDF('${eq.id}'), 'Generando…')" title="Ficha del equipo: datos, accesorios, números de serie y documentos"><i class="ti ti-file-type-pdf" aria-hidden="true"></i> Ficha PDF</button>`);
 }
 
 async function guardarEdicionEquipo(id) {
@@ -4232,7 +4232,11 @@ function gruposAccesorios(eq) {
     g.items.push(a); g.piezas += a.cantidad || 1;
     if (a.estado === 'danado' || a.estado === 'faltante') g.problemas++;
   });
-  return [...m.values()];
+  // Siempre en orden alfabético (y las piezas de cada grupo por N/S) para ubicar todo rápido
+  const cmp = (a, b) => String(a || '').localeCompare(String(b || ''), 'es', { numeric: true, sensitivity: 'base' });
+  const grupos = [...m.values()].sort((a, b) => cmp(a.nombre, b.nombre));
+  grupos.forEach(g => g.items.sort((a, b) => (!a.numero_serie) - (!b.numero_serie) || cmp(a.numero_serie, b.numero_serie)));
+  return grupos;
 }
 function renderAccesoriosEquipo(eq) {
   const { lista, piezas, problemas } = resumenAccesorios(eq);
@@ -7300,14 +7304,12 @@ async function exportarFichaEquipoPDF(id) {
     ['Estado', estadoTxt, eq.proyecto_actual_nombre ? recortarTexto(doc, eq.proyecto_actual_nombre, 38) : 'ubicación base', estadoColor],
     ['Próx. calibración', calVal, calSub, calColor],
     ['Ubicación', ubic, eq.proyecto_actual_ciudad ? 'sitio del proyecto' : 'base', C.tinta],
-    ['Contenido', `${res.piezas}`, res.lista.length ? `pieza(s) · ${grupos.length} concepto(s)` : 'sin accesorios', res.problemas ? C.ambar : C.tinta],
   ], 20) + 9;
 
   // ── Datos generales (rejilla de 3 columnas)
   y = T.seccion('DATOS DEL EQUIPO', y);
   const datos = [['Tipo', etiquetaEquipo(eq.tipo)], ['Apodo', eq.apodo || '—'], ['Número de serie', eq.numero_serie || '—'],
     ['Estado', estadoTxt], ['Ubicación base', eq.ciudad_actual || '—'], ['Proyecto actual', eq.proyecto_actual_nombre || 'Ninguno']];
-  if (eq.latitud && eq.longitud) datos.push(['Coordenadas', `${(+eq.latitud).toFixed(5)}, ${(+eq.longitud).toFixed(5)}`]);
   const colW = (T.W - 2 * M) / 3;
   datos.forEach(([lab, val], k) => {
     const x = M + (k % 3) * colW, yy = y + Math.floor(k / 3) * 11;
