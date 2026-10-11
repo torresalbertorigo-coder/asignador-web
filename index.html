@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WorkSync — Integrated Workforce & Asset Optimizer</title>
+<!-- App instalable (PWA) -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0f1012">
+<link rel="icon" type="image/png" href="/icons/favicon.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="WorkSync">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -306,8 +315,13 @@ tbody tr:hover td{background:var(--surface2);color:var(--text)}
 tbody tr:hover .td-action i{color:var(--text2)}
 
 /* BADGES */
+#pwa-banner{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:9000;display:flex;align-items:center;gap:10px;padding:10px 10px 10px 12px;background:var(--surface);border:1px solid var(--border2);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);font-size:12px;color:var(--text2);animation:ws-panel-in .25s ease}
+#pwa-banner img{width:38px;height:38px;border-radius:9px;flex-shrink:0}
+#pwa-banner strong{display:block;color:var(--text);font-size:13px}
+#pwa-banner span{display:block;font-size:11px;color:var(--text3)}
+#pwa-banner .pwa-x{background:none;border:0;color:var(--text3);font-size:16px;padding:4px;cursor:pointer}
 .acc-fila{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
-.acc-fila.editando{background:var(--bg3, rgba(127,127,127,.08));margin:0 -8px;padding:7px 8px;border-radius:6px}
+.acc-fila.editando{background:var(--surface2);margin:0 -8px;padding:7px 8px;border-radius:6px}
 .acc-form{margin-top:12px;padding:12px;border:1px dashed var(--border2);border-radius:var(--radius)}
 .acc-form-grid{display:grid;grid-template-columns:minmax(0,2fr) 64px minmax(0,1.3fr) minmax(0,1.2fr);gap:8px}
 @media (max-width:768px){.acc-form-grid{grid-template-columns:minmax(0,1fr) 64px}.acc-form-grid #acc-serie,.acc-form-grid #acc-estado{grid-column:span 1}}
@@ -726,6 +740,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
                 <div class="user-menu-item" onclick="showSection('permisos');toggleUserMenu()" id="um-permisos" style="display:none"><i class="ti ti-key" aria-hidden="true"></i> Cuentas y permisos</div>
                 <div class="user-menu-item" onclick="iniciarTutorial()" id="um-tutorial" style="display:none"><i class="ti ti-school" aria-hidden="true"></i> Ver tutorial</div>
                 <div class="user-menu-item um-solo-escritorio" onclick="cambiarDisenoMenu();toggleUserMenu()"><i class="ti ti-layout-sidebar" aria-hidden="true" id="um-layout-icono"></i> <span id="um-layout-label">Usar menú lateral</span></div>
+                <div class="user-menu-item" onclick="toggleUserMenu();instalarApp()" id="um-instalar" style="display:none"><i class="ti ti-device-mobile-down" aria-hidden="true"></i> Instalar app</div>
                 <div class="user-menu-item user-menu-item-danger" onclick="doLogout()"><i class="ti ti-logout" aria-hidden="true"></i> Cerrar sesión</div>
               </div>
             </div>
@@ -882,6 +897,73 @@ function actualizarRelojBarra() {
   h.textContent = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
 }
 actualizarRelojBarra(); setInterval(actualizarRelojBarra, 20000);
+
+// ─── APP INSTALABLE (PWA) ───────────────────────────────────────────────────
+// Android/Chrome: el navegador avisa (beforeinstallprompt) y aquí se guarda para
+// lanzar su ventana nativa desde "Instalar app". iPhone no tiene ese aviso: se
+// explican los pasos de Safari. Ya instalada (standalone), la opción se oculta.
+const PWA = { aviso: null };
+function appInstalada() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+function esIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+function actualizarOpcionInstalar() {
+  const el = document.getElementById('um-instalar');
+  if (el) el.style.display = (!appInstalada() && (PWA.aviso || esIOS())) ? 'flex' : 'none';
+}
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  PWA.aviso = e;
+  actualizarOpcionInstalar();
+  ofrecerInstalacionUnaVez();
+});
+window.addEventListener('appinstalled', () => {
+  PWA.aviso = null;
+  actualizarOpcionInstalar();
+  document.getElementById('pwa-banner')?.remove();
+  toast('WorkSync quedó instalada en tu dispositivo');
+});
+async function instalarApp() {
+  document.getElementById('pwa-banner')?.remove();
+  if (PWA.aviso) {
+    PWA.aviso.prompt();
+    const r = await PWA.aviso.userChoice.catch(() => null);
+    if (r?.outcome === 'accepted') PWA.aviso = null;
+    actualizarOpcionInstalar();
+    return;
+  }
+  if (esIOS()) {
+    openPanel('Instalar WorkSync en iPhone', `
+      <div class="panel-section" style="font-size:13px;line-height:1.7;color:var(--text2)">
+        <ol style="padding-left:18px;margin:0">
+          <li>Abre esta página en <strong>Safari</strong> (en otros navegadores de iPhone no aparece la opción).</li>
+          <li>Toca el botón <strong>Compartir</strong> <i class="ti ti-share-2" aria-hidden="true"></i> en la barra de abajo.</li>
+          <li>Elige <strong>Agregar a inicio</strong> y confirma con <strong>Agregar</strong>.</li>
+        </ol>
+        <p style="margin-top:12px;font-size:12px;color:var(--text3)">Aparecerá el ícono de WorkSync en tu pantalla de inicio y se abrirá a pantalla completa.</p>
+      </div>`, `<button class="btn btn-primary btn-sm" onclick="closePanel(null,true)">Entendido</button>`);
+    return;
+  }
+  toast('Abre WorkSync en Chrome y usa el menú ⋮ → "Instalar app"');
+}
+// En celular, una sola vez por dispositivo: aviso discreto para instalar.
+function ofrecerInstalacionUnaVez() {
+  try { if (localStorage.getItem('ws_pwa_aviso') === '1') return; } catch (e) { return; }
+  if (appInstalada() || !STATE.token || window.innerWidth > 768 || document.getElementById('pwa-banner')) return;
+  if (!PWA.aviso && !esIOS()) return;
+  const b = document.createElement('div');
+  b.id = 'pwa-banner';
+  b.innerHTML = `<img src="/icons/icon-192.png" alt=""><div style="flex:1;min-width:0"><strong>Instala WorkSync</strong><span>Ábrela desde tu pantalla de inicio, como app.</span></div>
+    <button class="btn btn-primary btn-sm" onclick="instalarApp()">Instalar</button>
+    <button class="pwa-x" aria-label="Cerrar" onclick="this.parentElement.remove()"><i class="ti ti-x" aria-hidden="true"></i></button>`;
+  document.body.appendChild(b);
+  try { localStorage.setItem('ws_pwa_aviso', '1'); } catch (e) {}
+}
 // En pantallas medianas el menú muestra solo íconos: el nombre aparece al pasar el cursor
 new MutationObserver(() => document.querySelectorAll('#admin-nav .nav-item:not([title]), #tecnico-nav .nav-item:not([title])')
   .forEach(n => n.title = n.textContent.trim())).observe(document.body, { childList: true, subtree: true });
@@ -903,6 +985,8 @@ async function initApp() {
   document.getElementById('sb-avatar').textContent = av;
   document.getElementById('sb-name').textContent = STATE.user.nombre;
   document.getElementById('sb-rol').textContent = STATE.rol === 'administrador' ? 'Administrador' : STATE.rol === 'director_proyecto' ? 'Director de Proyecto' : 'Técnico de campo';
+  actualizarOpcionInstalar();
+  setTimeout(ofrecerInstalacionUnaVez, 4000);
   const umPerfil = document.getElementById('um-mi-perfil');
   if (umPerfil) umPerfil.style.display = STATE.user?.empleado_id ? 'flex' : 'none';
   const umTut = document.getElementById('um-tutorial');
