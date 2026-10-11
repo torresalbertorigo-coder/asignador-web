@@ -320,6 +320,10 @@ tbody tr:hover .td-action i{color:var(--text2)}
 #pwa-banner strong{display:block;color:var(--text);font-size:13px}
 #pwa-banner span{display:block;font-size:11px;color:var(--text3)}
 #pwa-banner .pwa-x{background:none;border:0;color:var(--text3);font-size:16px;padding:4px;cursor:pointer}
+.ns-aviso:empty{display:none}
+.ns-aviso{margin-top:6px;font-size:11.5px;color:var(--amber);line-height:1.5}
+.ns-aviso i{font-size:13px;vertical-align:-2px}
+.ns-aviso strong{color:var(--text)}
 .chk-sincal{display:flex;align-items:center;gap:7px;margin-top:8px;font-size:12px;color:var(--text2);cursor:pointer;user-select:none}
 .chk-sincal input{width:15px;height:15px;accent-color:var(--red);cursor:pointer}
 .field-input:disabled{opacity:.45;cursor:not-allowed}
@@ -3634,7 +3638,7 @@ function verEquipo(id) {
       <div class="field-row"><div class="field-group"><label class="field-label">TIPO</label><select class="field-select" id="ve-tipo" onchange="manejarTipoEquipoOtro(this)">${[...new Set([...Object.keys(EQ_TIPOS_BASE), ...(STATE.equipos||[]).map(x => x.tipo).filter(Boolean), eq.tipo].filter(t => t && t !== 'otro'))]
           .map(t => `<option value="${t}" ${eq.tipo===t?'selected':''}>${escHtml(etiquetaEquipo(t))}</option>`).join('')}<option value="otro" ${eq.tipo==='otro'?'selected':''}>Otro</option></select></div>
       <div class="field-group"><label class="field-label">ESTADO</label><select class="field-select" id="ve-estado"><option value="disponible" ${eq.estado==='disponible'?'selected':''}>Disponible</option><option value="en_uso" ${eq.estado==='en_uso'?'selected':''}>En uso</option><option value="mantenimiento" ${eq.estado==='mantenimiento'?'selected':''}>Mantenimiento</option><option value="baja" ${eq.estado==='baja'?'selected':''}>Dado de baja</option></select></div></div>
-      <div class="field-row"><div class="field-group"><label class="field-label">N° SERIE</label><input class="field-input" id="ve-serie" value="${eq.numero_serie||''}"></div><div class="field-group"><label class="field-label">APODO (OPCIONAL)</label><input class="field-input" id="ve-apodo" value="${eq.apodo||''}"></div></div>
+      <div class="field-row"><div class="field-group"><label class="field-label">N° SERIE</label><input class="field-input" id="ve-serie" value="${eq.numero_serie||''}" oninput="avisarSerieDuplicada('ve-serie', { excluir_equipo_id: '${eq.id}' })"><div class="ns-aviso" id="ve-serie-aviso"></div></div><div class="field-group"><label class="field-label">APODO (OPCIONAL)</label><input class="field-input" id="ve-apodo" value="${eq.apodo||''}"></div></div>
       <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD ACTUAL</label><input class="field-input" id="ve-ciudad" value="${eq.ciudad_actual||''}"></div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">COORDENADAS (OPCIONAL)</label><input class="field-input" id="ve-coords" placeholder="ej. 21.91114227818028, -102.2973348126625" value="${eq.latitud&&eq.longitud?`${eq.latitud}, ${eq.longitud}`:''}"></div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">PRÓX. CALIBRACIÓN</label><input class="field-input" id="ve-cal" type="date" value="${eq.sin_calibracion?'':(eq.proxima_calibracion||'')}" ${eq.sin_calibracion?'disabled':''}><label class="chk-sincal"><input type="checkbox" id="ve-sincal" ${eq.sin_calibracion?'checked':''} onchange="alternarSinCalibracion('ve')"> No requiere calibración</label></div></div>
@@ -3647,9 +3651,10 @@ function verEquipo(id) {
         <div class="acc-form-grid">
           <input class="field-input" id="acc-nombre" placeholder="${eq.tipo==='drone'?'Ej: Batería TB60':'Ej: Arnés, mosquetón, eslinga...'}" onkeydown="if(event.key==='Enter'){event.preventDefault();guardarAccesorio('${eq.id}')}">
           <input class="field-input" id="acc-cantidad" type="number" min="1" value="1" title="Cantidad">
-          <input class="field-input" id="acc-serie" placeholder="N/S (varios: sepáralos con coma)" onkeydown="if(event.key==='Enter'){event.preventDefault();guardarAccesorio('${eq.id}')}">
+          <input class="field-input" id="acc-serie" placeholder="N/S (varios: sepáralos con coma)" oninput="avisarSerieDuplicada('acc-serie', () => ({ excluir_accesorio_id: STATE._accEditando }))" onkeydown="if(event.key==='Enter'){event.preventDefault();guardarAccesorio('${eq.id}')}">
           <select class="field-select" id="acc-estado" title="Estado">${Object.entries(ACC_ESTADOS).map(([k,v])=>`<option value="${k}">${v.texto}</option>`).join('')}</select>
         </div>
+        <div class="ns-aviso" id="acc-serie-aviso"></div>
         <input class="field-input" id="acc-notas" placeholder="Notas (opcional)" style="margin-top:8px" onkeydown="if(event.key==='Enter'){event.preventDefault();guardarAccesorio('${eq.id}')}">
         <div style="display:flex;gap:8px;margin-top:8px">
           <button class="btn btn-primary btn-sm" id="acc-btn" onclick="ejecutarConCarga(this, () => guardarAccesorio('${eq.id}'))"><i class="ti ti-plus" aria-hidden="true"></i> Agregar</button>
@@ -3676,6 +3681,28 @@ function verEquipo(id) {
      ${eq.estado !== 'baja' ? `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => archivarEquipo('${eq.id}'))"><i class="ti ti-archive" aria-hidden="true"></i> Archivar</button>` : `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => reactivarEquipo('${eq.id}'))"><i class="ti ti-archive-off" aria-hidden="true"></i> Reactivar</button>`}
      ${STATE.rol==='administrador' ? `<button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="eliminarEquipoConfirm('${eq.id}')"><i class="ti ti-trash" aria-hidden="true"></i> Eliminar</button>` : ''}`,
     `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => exportarFichaEquipoPDF('${eq.id}'), 'Generando…')" title="Ficha del equipo: datos, accesorios, números de serie y documentos"><i class="ti ti-file-type-pdf" aria-hidden="true"></i> Ficha PDF</button>`);
+}
+
+// ─── N/S único en todo el sistema ───────────────────────────────────────────
+const separarSeries = t => [...new Set(String(t || '').split(/[,;\n]+/).map(x => x.trim()).filter(Boolean).map(x => x.toUpperCase()))];
+async function seriesDuplicadas(series, excluir = {}) {
+  if (!series.length) return [];
+  const sucio = STATE._panelDirty;   // consultar no cuenta como "guardar": conserva el aviso de cambios sin guardar
+  const r = await api('POST', '/equipos/verificar-series', { series, ...excluir }) || [];
+  STATE._panelDirty = sucio;
+  return r;
+}
+const _avisoSerieTimers = {};
+function avisarSerieDuplicada(inputId, excluir) {
+  clearTimeout(_avisoSerieTimers[inputId]);
+  _avisoSerieTimers[inputId] = setTimeout(async () => {
+    const el = document.getElementById(inputId), av = document.getElementById(inputId + '-aviso');
+    if (!el || !av) return;
+    const series = separarSeries(el.value);
+    const dup = await seriesDuplicadas(series, typeof excluir === 'function' ? excluir() : (excluir || {}));
+    if (separarSeries(el.value).join() !== series.join()) return;   // ya cambió mientras se consultaba
+    av.innerHTML = dup.map(d => `<div><i class="ti ti-alert-triangle" aria-hidden="true"></i> <span class="td-mono">${escHtml(d.numero_serie)}</span> ya está registrado en <strong>${escHtml(d.descripcion)}</strong></div>`).join('');
+  }, 450);
 }
 
 function alternarSinCalibracion(pref) {
@@ -3721,7 +3748,7 @@ function openNuevoEquipo() {
       <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE</label><input class="field-input" id="ne-nombre" placeholder="Ej: Drone DJI Mavic 3 Enterprise"></div></div>
       <div class="field-row">
         <div class="field-group"><label class="field-label">TIPO</label><select class="field-select" id="ne-tipo" onchange="manejarTipoEquipoOtro(this)"><option value="drone">Drone / RPAS</option><option value="camara">Cámara</option><option value="termografo">Cámara Termográfica</option><option value="escalada">Equipo de escalada</option><option value="medicion">Medición</option><option value="otro">Otro</option></select></div>
-        <div class="field-group"><label class="field-label">N° SERIE</label><input class="field-input" id="ne-serie" placeholder="Número de serie"></div>
+        <div class="field-group"><label class="field-label">N° SERIE</label><input class="field-input" id="ne-serie" placeholder="Número de serie" oninput="avisarSerieDuplicada('ne-serie')"><div class="ns-aviso" id="ne-serie-aviso"></div></div>
       </div>
       <div class="field-row"><div class="field-group"><label class="field-label">APODO (OPCIONAL)</label><input class="field-input" id="ne-apodo" placeholder="ej: El Rayo"></div></div>
       <div class="field-row">
@@ -4305,6 +4332,7 @@ function agregarOtroAccesorio(eqId, i) {
 }
 function limpiarFormAccesorio() {
   ['acc-nombre','acc-serie','acc-notas'].forEach(i => { const el = document.getElementById(i); if (el) el.value = ''; });
+  const avs = document.getElementById('acc-serie-aviso'); if (avs) avs.innerHTML = '';
   const c = document.getElementById('acc-cantidad'); if (c) c.value = 1;
   const e = document.getElementById('acc-estado'); if (e) e.value = 'ok';
   // después de que ejecutarConCarga restaure el botón
@@ -4346,7 +4374,17 @@ async function guardarAccesorio(eqId) {
   };
   const editando = STATE._accEditando;
   // Varios N/S separados por coma, punto y coma o renglón = una pieza por cada número de serie
-  const series = (datos.numero_serie || '').split(/[,;\n]+/).map(x => x.trim()).filter(Boolean);
+  let series = separarSeries(datos.numero_serie);
+  if (!editando && series.length > 1) {
+    const dup = await seriesDuplicadas(series);
+    if (dup.length) {
+      const libres = series.filter(x => !dup.some(d => d.numero_serie === x.replace(/\s+/g, ' ')));
+      const lista = dup.map(d => `• ${d.numero_serie} → ${d.descripcion}`).join('\n');
+      if (!libres.length) { alert(`Todos esos N/S ya están registrados:\n\n${lista}`); return false; }
+      if (!confirm(`Estos N/S ya están registrados y no se agregarán:\n\n${lista}\n\n¿Agregar ${libres.length === 1 ? 'el otro' : `los otros ${libres.length}`}?`)) return false;
+      series = libres;
+    }
+  }
   let r;
   if (!editando && series.length > 1) {
     for (const sn of series) {
