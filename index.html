@@ -3552,7 +3552,7 @@ async function loadEquipos(forzar) {
 
 async function renderEquipos() {
   const verArch = STATE._verArchivadosEq || false;
-  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-ghost btn-sm" onclick="toggleVerArchivadosEq()">${verArch?'<i class="ti ti-eye-off" aria-hidden="true"></i> Ocultar archivados':'<i class="ti ti-archive" aria-hidden="true"></i> Ver archivados'}</button><button class="btn btn-ghost btn-sm" onclick="loadEquipos(true).then(renderEquipos)"><i class="ti ti-refresh" aria-hidden="true"></i></button><button class="btn btn-primary btn-sm" onclick="openNuevoEquipo()"><i class="ti ti-plus" aria-hidden="true"></i> Nuevo equipo</button>`;
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-ghost btn-sm" onclick="toggleVerArchivadosEq()">${verArch?'<i class="ti ti-eye-off" aria-hidden="true"></i> Ocultar archivados':'<i class="ti ti-archive" aria-hidden="true"></i> Ver archivados'}</button><button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, exportarInventarioEquiposPDF, 'Generando…')" title="Reporte general: inventario, calibraciones por vencer, vencidas y sin calibración"><i class="ti ti-file-type-pdf" aria-hidden="true"></i> Inventario PDF</button><button class="btn btn-ghost btn-sm" onclick="loadEquipos(true).then(renderEquipos)"><i class="ti ti-refresh" aria-hidden="true"></i></button><button class="btn btn-primary btn-sm" onclick="openNuevoEquipo()"><i class="ti ti-plus" aria-hidden="true"></i> Nuevo equipo</button>`;
   if (verArch) {
     const d = await api('GET', '/equipos?solo_activos=false');
     if (d) STATE.equipos = d;
@@ -7388,6 +7388,127 @@ async function iconoPDF(clase, color = '#3f3f46', px = 128) {
 // ═════════════════════════════════════════════════════════════════════════════
 // FICHA DE EQUIPO — datos, contenido con íconos, números de serie y documentos
 // ═════════════════════════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════════════════════
+// INVENTARIO GENERAL DE EQUIPOS — inventario, por calibrarse, vencidos, sin calibración
+// ═════════════════════════════════════════════════════════════════════════════
+function estadoEquipoInfo(eq) {
+  if (eq.proyecto_actual_nombre) return { texto: 'En proyecto', c: PDF_EST.progreso.c };
+  return { disponible: { texto: 'En oficina', c: PDF_EST.asignado.c }, en_uso: { texto: 'En uso', c: PDF_EST.progreso.c },
+    mantenimiento: { texto: 'Mantenimiento', c: PDF_C.ambar }, baja: { texto: 'Dado de baja', c: PDF_C.gris } }[eq.estado] || { texto: eq.estado || '—', c: PDF_C.gris };
+}
+// Situación de calibración: vigente | porVencer (≤30 días) | vencida | sinFecha | sinCalibracion
+function calibracionEquipo(eq, hoy) {
+  if (eq.sin_calibracion) return { grupo: 'sinCalibracion', fecha: null, dias: null };
+  let fecha = eq.proxima_calibracion;
+  if (!fecha) {
+    const d = (eq.documentos || []).filter(x => x.tipo === 'calibracion' && x.fecha_vencimiento).sort((a, b) => b.fecha_vencimiento.localeCompare(a.fecha_vencimiento))[0];
+    fecha = d ? d.fecha_vencimiento : null;
+  }
+  if (!fecha) return { grupo: 'sinFecha', fecha: null, dias: null };
+  const dias = Math.round((fechaLocal(fecha) - hoy) / 86400000);
+  return { grupo: dias < 0 ? 'vencida' : dias <= 30 ? 'porVencer' : 'vigente', fecha, dias };
+}
+async function exportarInventarioEquiposPDF() {
+  await loadEquipos(true);
+  const equipos = (STATE.equipos || []).filter(e => e.estado !== 'baja');
+  if (!equipos.length) { toast('No hay equipos registrados', 'error'); return; }
+  const T = await nuevaPlantillaPDF('landscape'), { doc, C, M } = T;
+  const fuente = doc.getFontList()['Montserrat'] ? 'Montserrat' : 'helvetica';
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const cmp = (a, b) => String(a || '').localeCompare(String(b || ''), 'es', { numeric: true, sensitivity: 'base' });
+  const filas = equipos.map(eq => ({ eq, cal: calibracionEquipo(eq, hoy), est: estadoEquipoInfo(eq), tipo: etiquetaEquipo(eq.tipo),
+      ubic: eq.proyecto_actual_ciudad || eq.ciudad_actual || '—', piezas: resumenAccesorios(eq).piezas }))
+    .sort((a, b) => cmp(a.tipo, b.tipo) || cmp(a.eq.apodo || a.eq.nombre, b.eq.apodo || b.eq.nombre));
+  const de = g => filas.filter(f => f.cal.grupo === g);
+  const vig = de('vigente'), porV = de('porVencer').sort((a, b) => a.cal.dias - b.cal.dias),
+    venc = de('vencida').sort((a, b) => a.cal.dias - b.cal.dias), sinF = de('sinFecha'), sinC = de('sinCalibracion');
+
+  const tabla = (y, head, body, columnStyles, colorear) => {
+    doc.autoTable({
+      startY: y - 3, margin: { left: M, right: M, top: 20, bottom: 24 }, head: [head], body, theme: 'plain',
+      styles: { font: fuente, fontSize: 7.2, textColor: C.texto, cellPadding: { top: 1.5, bottom: 1.5, left: 2, right: 2 }, lineColor: C.linea, lineWidth: { bottom: 0.2 }, overflow: 'linebreak', valign: 'middle' },
+      headStyles: { font: fuente, fontStyle: 'bold', fontSize: 6.2, textColor: C.gris, fillColor: C.fondo, lineWidth: 0 },
+      columnStyles, didParseCell: d => { if (d.section === 'body' && colorear) colorear(d); },
+    });
+    return doc.lastAutoTable.finalY + 9;
+  };
+  const seccion = (titulo, y, extra, minimo = 26) => { if (!T.cabe(y, minimo)) { T.nuevaPagina(); y = 22; } return T.seccion(titulo, y, extra); };
+  const fechaTxt = f => f.cal.fecha ? fLargaAnio(f.cal.fecha) : '—';
+  const nombreEq = f => f.eq.nombre, apodo = f => f.eq.apodo || '—', ns = f => f.eq.numero_serie || '—';
+
+  T.encabezado('Inventario de equipos', `CORTE ${fLargaAnio(hoy).toUpperCase()}`, 'Inventario general de equipos',
+    `${equipos.length} equipo(s) activos  ·  no incluye equipo dado de baja`);
+  let y = T.tarjetas(33, [
+    ['Equipos', equipos.length, `${new Set(filas.map(f => f.tipo)).size} tipo(s)`, C.tinta],
+    ['Calibración vigente', vig.length, 'más de 30 días', PDF_EST.asignado.c],
+    ['Por calibrarse', porV.length, 'en los próximos 30 días', C.ambar],
+    ['Vencidas', venc.length, 'requieren calibración', C.rojo],
+    ['Sin calibración', sinC.length, sinF.length ? `+${sinF.length} sin fecha registrada` : 'no la requieren', C.grisClaro],
+  ], 20) + 9;
+
+  // ── Resumen por tipo
+  const tipos = [...new Set(filas.map(f => f.tipo))];
+  y = seccion('RESUMEN POR TIPO', y);
+  const n = (arr, fn) => { const k = arr.filter(fn).length; return k ? String(k) : '–'; };
+  y = tabla(y, ['Tipo', 'Equipos', 'En oficina', 'En proyecto', 'Mantenimiento', 'Vigentes', 'Por calibrarse', 'Vencidas', 'Sin calibración'],
+    tipos.map(t => { const fs = filas.filter(f => f.tipo === t); return [t, String(fs.length),
+      n(fs, f => !f.eq.proyecto_actual_nombre && f.eq.estado === 'disponible'), n(fs, f => !!f.eq.proyecto_actual_nombre),
+      n(fs, f => f.eq.estado === 'mantenimiento'), n(fs, f => f.cal.grupo === 'vigente'), n(fs, f => f.cal.grupo === 'porVencer'),
+      n(fs, f => f.cal.grupo === 'vencida'), n(fs, f => f.cal.grupo === 'sinCalibracion' || f.cal.grupo === 'sinFecha')]; }),
+    { 0: { fontStyle: 'bold', textColor: C.tinta, cellWidth: 62 }, ...Object.fromEntries([1,2,3,4,5,6,7,8].map(i => [i, { halign: 'center' }])) },
+    d => { const c = { 6: C.ambar, 7: C.rojo }[d.column.index]; if (c && d.cell.raw !== '–') { d.cell.styles.textColor = c; d.cell.styles.fontStyle = 'bold'; } });
+
+  // ── Inventario completo
+  y = seccion('INVENTARIO GENERAL', y, `${filas.length} equipo(s)`);
+  const calTexto = f => ({ vigente: fechaTxt(f), porVencer: `${fechaTxt(f)} · en ${f.cal.dias} d`, vencida: `${fechaTxt(f)} · vencida`,
+    sinFecha: 'Sin fecha registrada', sinCalibracion: 'No aplica' })[f.cal.grupo];
+  y = tabla(y, ['Tipo', 'Equipo', 'Apodo', 'N/S', 'Estado', 'Ubicación', 'Calibración', 'Accesorios'],
+    filas.map(f => [f.tipo, nombreEq(f), apodo(f), ns(f), f.est.texto, f.ubic, calTexto(f), f.piezas ? `${f.piezas} pza(s)` : '—']),
+    { 0: { cellWidth: 30 }, 1: { fontStyle: 'bold', textColor: C.tinta, cellWidth: 44 }, 2: { cellWidth: 28 }, 3: { font: 'courier', fontSize: 7.2, cellWidth: 36 },
+      4: { cellWidth: 25 }, 5: { cellWidth: 28 }, 6: { cellWidth: 36 }, 7: { halign: 'center' } },
+    d => {
+      const f = filas[d.row.index];
+      if (d.column.index === 4) { d.cell.styles.textColor = f.est.c; d.cell.styles.fontStyle = 'bold'; }
+      if (d.column.index === 6) {
+        const c = { porVencer: C.ambar, vencida: C.rojo, sinFecha: C.gris, sinCalibracion: C.grisClaro }[f.cal.grupo];
+        if (c) d.cell.styles.textColor = c;
+        if (f.cal.grupo === 'porVencer' || f.cal.grupo === 'vencida') d.cell.styles.fontStyle = 'bold';
+      }
+    });
+
+  const tablaCal = (y, lista, colDias, colorDias) => tabla(y, ['Equipo', 'Apodo', 'Tipo', 'N/S', 'Ubicación', 'Fecha de calibración', colDias],
+    lista.map(f => [nombreEq(f), apodo(f), f.tipo, ns(f), f.ubic, fechaTxt(f), colDias === 'Vence en' ? `${f.cal.dias} día(s)` : `hace ${-f.cal.dias} día(s)`]),
+    { 0: { fontStyle: 'bold', textColor: C.tinta, cellWidth: 48 }, 1: { cellWidth: 32 }, 2: { cellWidth: 34 }, 3: { font: 'courier', fontSize: 7.2, cellWidth: 40 }, 4: { cellWidth: 32 }, 5: { cellWidth: 32 } },
+    d => { if (d.column.index === 6) { d.cell.styles.textColor = colorDias; d.cell.styles.fontStyle = 'bold'; } });
+
+  // ── Por calibrarse
+  y = seccion('POR CALIBRARSE · PRÓXIMOS 30 DÍAS', y, `${porV.length} equipo(s)`, porV.length ? 26 : 14);
+  if (porV.length) y = tablaCal(y, porV, 'Vence en', C.ambar);
+  else { T.font('normal', 8, C.gris); doc.text('Ningún equipo vence en los próximos 30 días.', M, y); y += 9; }
+
+  // ── Vencidas
+  y = seccion('CALIBRACIÓN VENCIDA', y, `${venc.length} equipo(s)`, venc.length ? 26 : 14);
+  if (venc.length) y = tablaCal(y, venc, 'Venció', C.rojo);
+  else { T.font('normal', 8, C.gris); doc.text('No hay calibraciones vencidas.', M, y); y += 9; }
+
+  // ── Sin fecha registrada (requieren calibración pero no tienen fecha capturada)
+  if (sinF.length) {
+    y = seccion('SIN FECHA DE CALIBRACIÓN REGISTRADA', y, `${sinF.length} equipo(s) · capturar fecha o marcar "No requiere calibración"`);
+    y = tabla(y, ['Equipo', 'Apodo', 'Tipo', 'N/S', 'Ubicación', 'Estado'],
+      sinF.map(f => [nombreEq(f), apodo(f), f.tipo, ns(f), f.ubic, f.est.texto]),
+      { 0: { fontStyle: 'bold', textColor: C.tinta, cellWidth: 60 }, 1: { cellWidth: 36 }, 2: { cellWidth: 40 }, 3: { font: 'courier', fontSize: 7.2, cellWidth: 46 }, 4: { cellWidth: 40 } });
+  }
+
+  // ── Sin calibración
+  y = seccion('SIN CALIBRACIÓN', y, `${sinC.length} equipo(s) · no requieren calibración`, sinC.length ? 26 : 14);
+  if (sinC.length) y = tabla(y, ['Equipo', 'Apodo', 'Tipo', 'N/S', 'Ubicación', 'Estado'],
+    sinC.map(f => [nombreEq(f), apodo(f), f.tipo, ns(f), f.ubic, f.est.texto]),
+    { 0: { fontStyle: 'bold', textColor: C.tinta, cellWidth: 60 }, 1: { cellWidth: 36 }, 2: { cellWidth: 40 }, 3: { font: 'courier', fontSize: 7.2, cellWidth: 46 }, 4: { cellWidth: 40 } });
+  else { T.font('normal', 8, C.gris); doc.text('Todos los equipos requieren calibración.', M, y); }
+
+  T.cerrar(limpiarNombreArchivo(`Inventario de equipos - ${fLargaAnio(hoy)}.pdf`), false);
+}
+
 async function exportarFichaEquipoPDF(id) {
   const eq = (await refrescarEquipo(id)) || (STATE.equipos || []).find(e => e.id === id);
   if (!eq) { toast('No se encontró el equipo', 'error'); return; }
