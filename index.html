@@ -546,6 +546,23 @@ tbody tr:hover .td-action i{color:var(--text2)}
 
 /* EQUIPOS */
 .equipo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.eq-toolbar{display:flex;flex-direction:column;gap:10px;margin:4px 0 16px}
+.eq-buscar{max-width:none}
+.eq-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.eq-tabs::-webkit-scrollbar{display:none}
+.eq-tab{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;padding:7px 12px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--text2);font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:border-color .15s,color .15s}
+.eq-tab i{font-size:15px}
+.eq-tab span{font-family:var(--mono);font-size:11px;color:var(--text3);margin-left:2px}
+.eq-tab:hover{border-color:var(--border2);color:var(--text)}
+.eq-tab.activa{border-color:var(--red);color:var(--text);box-shadow:inset 0 0 0 1px var(--red)}
+.eq-tab.activa i{color:var(--red)}
+.eq-tab.vacia{opacity:.45}
+.eq-grupo-tit{display:flex;align-items:center;gap:8px;margin:18px 0 10px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text2)}
+.eq-grupo-tit:first-child{margin-top:0}
+.eq-grupo-tit i{font-size:15px;color:var(--red)}
+.eq-grupo-tit span{font-family:var(--mono);color:var(--text3);font-weight:600}
+.eq-grupo-tit::after{content:'';flex:1;height:1px;background:var(--border);margin-left:6px}
+.eq-coincide{margin-top:8px;padding:5px 8px;border-radius:6px;background:var(--surface2);font-size:11px;color:var(--amber)}
 .equipo-card{background:linear-gradient(to top, transparent 0%, var(--grad-fill-card) 100%) padding-box, linear-gradient(to top, transparent 0%, var(--border2) 100%) border-box;border:1px solid transparent;border-radius:var(--radius);padding:14px;cursor:pointer;transition:border-color .12s}
 .equipo-card:hover{border-color:var(--border2)}
 .equipo-card.selected{border-color:var(--red)}
@@ -999,11 +1016,22 @@ new MutationObserver(() => document.querySelectorAll('#admin-nav .nav-item:not([
 document.addEventListener('DOMContentLoaded', () => setLayoutMode(getLayoutMode()));
 setLayoutMode(getLayoutMode());
 
-function doLogout() {
+function doLogout(motivo) {
+  if (!STATE.token && motivo) return;   // ya se cerró (varias peticiones pueden llegar con 401 a la vez)
   Object.keys(localStorage).filter(k => k.startsWith('w_')).forEach(k => localStorage.removeItem(k));
   STATE = { token: null, user: null, rol: null, empleados: [], proyectos: [], equipos: [], incidencias: [], sesionEmp: null, modoTecnico: false };
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app').classList.remove('visible');
+  closePanelSilencioso?.();
+  const err = document.getElementById('login-error');
+  if (err) err.textContent = motivo === 'reemplazada' ? 'Tu sesión se cerró porque se inició sesión con tu cuenta en otro dispositivo.'
+    : motivo === 'expirada' ? 'Tu sesión expiró. Vuelve a entrar.' : '';
+}
+function closePanelSilencioso() { try { STATE._panelDirty = false; document.getElementById('panel-overlay')?.classList.remove('open'); } catch (e) {} }
+// La sesión se mantiene abierta: el servidor manda un token renovado una vez al día
+function aplicarTokenNuevo(yo) {
+  if (yo?.token && STATE.token) { STATE.token = yo.token; localStorage.setItem('w_token', yo.token); }
+  return yo;
 }
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
@@ -1022,7 +1050,7 @@ async function initApp() {
   if (umTut) umTut.style.display = STATE.user?.empleado_id ? 'flex' : 'none';
   if (localStorage.getItem('w_cambiar') === '1') mostrarCambioObligatorio();
   else if (typeof tutorialPrimeraVez === 'function') tutorialPrimeraVez();
-  api('GET', '/auth/auth/yo').then(yo => {
+  api('GET', '/auth/auth/yo').then(aplicarTokenNuevo).then(yo => {
     if (!yo) return;
     if (yo.debe_cambiar_password && !document.getElementById('cambio-obligatorio')) {
       localStorage.setItem('w_cambiar', '1');
@@ -1051,8 +1079,9 @@ async function initApp() {
   if (!STATE._pingVisible) {   // al volver a la pestaña/app: marca "en línea" sin esperar al siguiente ciclo
     STATE._pingVisible = true;
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && STATE.token) api('GET', '/auth/auth/yo');
+      if (document.visibilityState === 'visible' && STATE.token) api('GET', '/auth/auth/yo').then(aplicarTokenNuevo);
     });
+    setInterval(() => { if (STATE.token) api('GET', '/auth/auth/yo').then(aplicarTokenNuevo); }, 6 * 3600 * 1000);
   }
   if (STATE.rol === 'administrador' || STATE.rol === 'director_proyecto') {
     await loadEmpleados();
@@ -1339,7 +1368,12 @@ async function api(method, path, body) {
   if (body) opts.body = JSON.stringify(body);
   try {
     const r = await fetch(API + path, opts);
-    if (r.status === 401) { doLogout(); return null; }
+    if (r.status === 401) {
+      let motivo = '';
+      try { motivo = (await r.json()).detail || ''; } catch (e) {}
+      doLogout(motivo === 'sesion_reemplazada' ? 'reemplazada' : 'expirada');
+      return null;
+    }
     if (r.ok && method !== 'GET') STATE._panelDirty = false;
     if (!r.ok && method !== 'GET') {
       // Antes se descartaba en silencio: el usuario no veía por qué no se guardaba nada
@@ -3583,8 +3617,18 @@ async function renderEquipos() {
       <div class="stat-card c-amber"><div class="stat-lbl">EN MANTENIMIENTO</div><div class="stat-val">${mant}</div><div class="stat-sub">fuera de servicio</div></div>
       <div class="stat-card"><div class="stat-lbl">EN USO</div><div class="stat-val">${equipos.filter(e=>e.proyecto_actual_nombre).length}</div><div class="stat-sub">asignados a proyecto</div></div>
     </div>
-    <div class="equipo-grid">
-      ${equipos.length ? equipos.map(eq=>{
+    <div class="eq-toolbar">
+      <div class="search-box eq-buscar"><i class="ti ti-search" aria-hidden="true"></i><input class="field-input" id="eq-buscar" placeholder="Buscar por apodo, nombre, tipo, N/S, ciudad, accesorio…" value="${escHtml(STATE._eqBuscar || '')}" oninput="STATE._eqBuscar=this.value;pintarListaEquipos()"></div>
+      <div class="eq-tabs" id="eq-tabs"></div>
+    </div>
+    <div id="eq-lista"></div>`);
+  STATE._eqIconMap = iconMap;
+  pintarListaEquipos();
+}
+
+// ─── Organización de Equipos: pestañas por tipo + buscador ──────────────────
+function tarjetaEquipoHTML(eq, coincidencia) {
+  const iconMap = STATE._eqIconMap || new Proxy({}, { get: (_, k) => 'ti-' + iconoEquipo(k) });
         const estadoMostrar = eq.proyecto_actual_nombre ? 'en_proyecto' : (eq.estado==='mantenimiento' ? 'mantenimiento' : eq.estado==='baja' ? 'baja' : eq.estado==='archivado' ? 'archivado' : 'oficina');
         let calColor = 'var(--text)', calTexto = eq.proxima_calibracion || '—';
         if (eq.sin_calibracion) { calColor = 'var(--text3)'; calTexto = 'Sin calibración'; }
@@ -3607,11 +3651,44 @@ async function renderEquipos() {
         <div class="eq-row"><span>Ubicación</span><strong>${eq.proyecto_actual_ciudad || eq.ciudad_actual || '—'}</strong></div>
         ${eq.proyecto_actual_nombre ? `<div class="eq-row"><span>En proyecto</span><strong>${eq.proyecto_actual_nombre}</strong></div>` : ''}
         <div class="eq-row"><span>${eq.sin_calibracion ? 'Calibración' : 'Próx. calibración'}</span><strong style="color:${calColor}${eq.sin_calibracion ? ';font-weight:500' : ''}">${calTexto}</strong></div>
+        ${coincidencia ? `<div class="eq-coincide"><i class="ti ti-search" aria-hidden="true"></i> ${coincidencia}</div>` : ''}
         ${(() => { const r = resumenAccesorios(eq); if (!r.lista.length) return ''; const gs = gruposAccesorios(eq);
           return `<div class="eq-acc-mini">${gs.slice(0, 5).map(g => `<span title="${escHtml(g.nombre)}">${htmlIconoAcc(g.icono)}${g.piezas}</span>`).join('')}${gs.length > 5 ? `<span>+${gs.length - 5}</span>` : ''}${r.problemas ? `<span style="color:var(--amber)" title="${r.problemas} accesorio(s) dañado(s) o faltante(s)"><i class="ti ti-alert-triangle" aria-hidden="true"></i></span>` : ''}</div>`; })()}
       </div>`;
-      }).join('') : '<div class="empty-state" style="grid-column:1/-1"><i class="ti ti-tool" aria-hidden="true"></i><p>Aún no hay equipo registrado</p></div>'}
-    </div>`);
+}
+const normBusq = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+// Regresa null si no coincide; '' si coincide en datos del equipo; o el texto de la coincidencia en un accesorio
+function coincideEquipo(eq, q) {
+  if (!q) return '';
+  const campos = [eq.nombre, eq.apodo, eq.tipo, etiquetaEquipo(eq.tipo), eq.numero_serie, eq.ciudad_actual, eq.proyecto_actual_nombre, eq.proyecto_actual_ciudad, eq.notas];
+  if (campos.some(c => normBusq(c).includes(q))) return '';
+  const acc = (eq.accesorios || []).find(a => normBusq(a.nombre).includes(q) || normBusq(a.numero_serie).includes(q));
+  if (acc) return `${escHtml(acc.nombre)}${acc.numero_serie ? ` · <span class="td-mono">${escHtml(acc.numero_serie)}</span>` : ''}`;
+  return null;
+}
+function pintarListaEquipos() {
+  const cont = document.getElementById('eq-lista'), tabsEl = document.getElementById('eq-tabs');
+  if (!cont) return;
+  const equipos = STATE.equipos || [];
+  const q = normBusq((STATE._eqBuscar || '').trim());
+  const cmp = (a, b) => String(a || '').localeCompare(String(b || ''), 'es', { numeric: true, sensitivity: 'base' });
+  // Coincidencias del buscador (aplica a todas las pestañas, y los contadores lo reflejan)
+  const encontrados = equipos.map(eq => ({ eq, c: coincideEquipo(eq, q) })).filter(x => x.c !== null);
+  const tipos = [...new Set(equipos.map(e => e.tipo || 'otro'))].sort((a, b) => cmp(etiquetaEquipo(a), etiquetaEquipo(b)));
+  if (STATE._eqTipo && !tipos.includes(STATE._eqTipo)) STATE._eqTipo = '';
+  const tipoSel = STATE._eqTipo || '';
+  const cuenta = t => encontrados.filter(x => !t || (x.eq.tipo || 'otro') === t).length;
+  if (tabsEl) tabsEl.innerHTML = [['', 'Todos', 'ti-layout-grid'], ...tipos.map(t => [t, etiquetaEquipo(t), 'ti-' + iconoEquipo(t)])]
+    .map(([t, lab, ic]) => `<button type="button" class="eq-tab${tipoSel === t ? ' activa' : ''}${q && !cuenta(t) ? ' vacia' : ''}" onclick="STATE._eqTipo='${t}';pintarListaEquipos()"><i class="ti ${ic}" aria-hidden="true"></i>${escHtml(lab)}<span>${cuenta(t)}</span></button>`).join('');
+  const visibles = encontrados.filter(x => !tipoSel || (x.eq.tipo || 'otro') === tipoSel);
+  if (!equipos.length) { cont.innerHTML = '<div class="empty-state"><i class="ti ti-tool" aria-hidden="true"></i><p>Aún no hay equipo registrado</p></div>'; return; }
+  if (!visibles.length) { cont.innerHTML = `<div class="empty-state"><i class="ti ti-search-off" aria-hidden="true"></i><p>Sin resultados${q ? ` para “${escHtml(STATE._eqBuscar.trim())}”` : ''}</p></div>`; return; }
+  // Agrupado por tipo (en "Todos") y ordenado por apodo dentro de cada grupo
+  const grupos = (tipoSel ? [tipoSel] : tipos).map(t => [t, visibles.filter(x => (x.eq.tipo || 'otro') === t)
+    .sort((a, b) => cmp(a.eq.apodo || a.eq.nombre, b.eq.apodo || b.eq.nombre))]).filter(([, l]) => l.length);
+  cont.innerHTML = grupos.map(([t, l]) => `
+    ${tipoSel ? '' : `<div class="eq-grupo-tit"><i class="ti ti-${iconoEquipo(t)}" aria-hidden="true"></i>${escHtml(etiquetaEquipo(t))}<span>${l.length}</span></div>`}
+    <div class="equipo-grid">${l.map(x => tarjetaEquipoHTML(x.eq, x.c)).join('')}</div>`).join('');
 }
 
 async function archivarEquipo(id) {
