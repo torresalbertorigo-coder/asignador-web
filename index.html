@@ -320,6 +320,9 @@ tbody tr:hover .td-action i{color:var(--text2)}
 #pwa-banner strong{display:block;color:var(--text);font-size:13px}
 #pwa-banner span{display:block;font-size:11px;color:var(--text3)}
 #pwa-banner .pwa-x{background:none;border:0;color:var(--text3);font-size:16px;padding:4px;cursor:pointer}
+.chk-sincal{display:flex;align-items:center;gap:7px;margin-top:8px;font-size:12px;color:var(--text2);cursor:pointer;user-select:none}
+.chk-sincal input{width:15px;height:15px;accent-color:var(--red);cursor:pointer}
+.field-input:disabled{opacity:.45;cursor:not-allowed}
 .acc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
 .acc-tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px 11px;border:1px solid var(--border);border-radius:12px;background:var(--surface2);color:var(--text);font:inherit;text-align:center;cursor:pointer;transition:border-color .15s,transform .15s}
 .acc-tile:hover{border-color:var(--border2);transform:translateY(-1px)}
@@ -3561,7 +3564,8 @@ async function renderEquipos() {
       ${equipos.length ? equipos.map(eq=>{
         const estadoMostrar = eq.proyecto_actual_nombre ? 'en_proyecto' : (eq.estado==='mantenimiento' ? 'mantenimiento' : eq.estado==='baja' ? 'baja' : eq.estado==='archivado' ? 'archivado' : 'oficina');
         let calColor = 'var(--text)', calTexto = eq.proxima_calibracion || '—';
-        if (eq.proxima_calibracion) {
+        if (eq.sin_calibracion) { calColor = 'var(--text3)'; calTexto = 'Sin calibración'; }
+        else if (eq.proxima_calibracion) {
           const diasCal = Math.ceil((fechaLocal(eq.proxima_calibracion) - new Date()) / 86400000);
           if (diasCal < 0) { calColor = 'var(--red-text)'; calTexto = eq.proxima_calibracion + ' (vencida)'; }
           else if (diasCal <= 30) { calColor = 'var(--amber)'; calTexto = eq.proxima_calibracion + ' (' + diasCal + 'd)'; }
@@ -3579,7 +3583,7 @@ async function renderEquipos() {
         <div class="eq-row"><span>Serie</span><strong>${eq.numero_serie||'—'}</strong></div>
         <div class="eq-row"><span>Ubicación</span><strong>${eq.proyecto_actual_ciudad || eq.ciudad_actual || '—'}</strong></div>
         ${eq.proyecto_actual_nombre ? `<div class="eq-row"><span>En proyecto</span><strong>${eq.proyecto_actual_nombre}</strong></div>` : ''}
-        <div class="eq-row"><span>Próx. calibración</span><strong style="color:${calColor}">${calTexto}</strong></div>
+        <div class="eq-row"><span>${eq.sin_calibracion ? 'Calibración' : 'Próx. calibración'}</span><strong style="color:${calColor}${eq.sin_calibracion ? ';font-weight:500' : ''}">${calTexto}</strong></div>
         ${(() => { const r = resumenAccesorios(eq); if (!r.lista.length) return ''; const gs = gruposAccesorios(eq);
           return `<div class="eq-acc-mini">${gs.slice(0, 5).map(g => `<span title="${escHtml(g.nombre)}"><i class="ti ${g.icono}" aria-hidden="true"></i>${g.piezas}</span>`).join('')}${gs.length > 5 ? `<span>+${gs.length - 5}</span>` : ''}${r.problemas ? `<span style="color:var(--amber)" title="${r.problemas} accesorio(s) dañado(s) o faltante(s)"><i class="ti ti-alert-triangle" aria-hidden="true"></i></span>` : ''}</div>`; })()}
       </div>`;
@@ -3633,7 +3637,7 @@ function verEquipo(id) {
       <div class="field-row"><div class="field-group"><label class="field-label">N° SERIE</label><input class="field-input" id="ve-serie" value="${eq.numero_serie||''}"></div><div class="field-group"><label class="field-label">APODO (OPCIONAL)</label><input class="field-input" id="ve-apodo" value="${eq.apodo||''}"></div></div>
       <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD ACTUAL</label><input class="field-input" id="ve-ciudad" value="${eq.ciudad_actual||''}"></div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">COORDENADAS (OPCIONAL)</label><input class="field-input" id="ve-coords" placeholder="ej. 21.91114227818028, -102.2973348126625" value="${eq.latitud&&eq.longitud?`${eq.latitud}, ${eq.longitud}`:''}"></div></div>
-      <div class="field-row full"><div class="field-group"><label class="field-label">PRÓX. CALIBRACIÓN</label><input class="field-input" id="ve-cal" type="date" value="${eq.proxima_calibracion||''}"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">PRÓX. CALIBRACIÓN</label><input class="field-input" id="ve-cal" type="date" value="${eq.sin_calibracion?'':(eq.proxima_calibracion||'')}" ${eq.sin_calibracion?'disabled':''}><label class="chk-sincal"><input type="checkbox" id="ve-sincal" ${eq.sin_calibracion?'checked':''} onchange="alternarSinCalibracion('ve')"> No requiere calibración</label></div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">NOTAS</label><textarea class="field-input" id="ve-notas" rows="3">${eq.notas||''}</textarea></div></div>
     </div>
     <div class="panel-section">
@@ -3674,6 +3678,13 @@ function verEquipo(id) {
     `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => exportarFichaEquipoPDF('${eq.id}'), 'Generando…')" title="Ficha del equipo: datos, accesorios, números de serie y documentos"><i class="ti ti-file-type-pdf" aria-hidden="true"></i> Ficha PDF</button>`);
 }
 
+function alternarSinCalibracion(pref) {
+  const on = document.getElementById(pref + '-sincal')?.checked, f = document.getElementById(pref + '-cal');
+  if (!f) return;
+  if (on) { f.dataset.previa = f.value; f.value = ''; } else if (f.dataset.previa) f.value = f.dataset.previa;
+  f.disabled = !!on;
+}
+
 async function guardarEdicionEquipo(id) {
   // Si dejaste un documento capturado en "Agregar documento", también se sube
   if (document.getElementById('ed-archivo')?.files?.[0] || document.getElementById('ed-vence')?.value) {
@@ -3690,7 +3701,8 @@ async function guardarEdicionEquipo(id) {
     numero_serie: document.getElementById('ve-serie')?.value.trim(),
     apodo: document.getElementById('ve-apodo')?.value.trim(),
     ciudad_actual: document.getElementById('ve-ciudad')?.value.trim(),
-    proxima_calibracion: document.getElementById('ve-cal')?.value || null,
+    sin_calibracion: !!document.getElementById('ve-sincal')?.checked,
+    proxima_calibracion: document.getElementById('ve-sincal')?.checked ? null : (document.getElementById('ve-cal')?.value || null),
     notas: document.getElementById('ve-notas')?.value.trim()
   };
   if (coordsParseadas) { datos.latitud = coordsParseadas.lat; datos.longitud = coordsParseadas.lon; }
@@ -3714,7 +3726,7 @@ function openNuevoEquipo() {
       <div class="field-row"><div class="field-group"><label class="field-label">APODO (OPCIONAL)</label><input class="field-input" id="ne-apodo" placeholder="ej: El Rayo"></div></div>
       <div class="field-row">
         <div class="field-group"><label class="field-label">CIUDAD ACTUAL</label><input class="field-input" id="ne-ciudad" placeholder="Ciudad"></div>
-        <div class="field-group"><label class="field-label">PRÓX. CALIBRACIÓN</label><input class="field-input" id="ne-cal" type="date"></div>
+        <div class="field-group"><label class="field-label">PRÓX. CALIBRACIÓN</label><input class="field-input" id="ne-cal" type="date"><label class="chk-sincal"><input type="checkbox" id="ne-sincal"  onchange="alternarSinCalibracion('ne')"> No requiere calibración</label></div>
       </div>
       <div class="field-row full"><div class="field-group"><label class="field-label">COORDENADAS (OPCIONAL)</label><input class="field-input" id="ne-coords" placeholder="ej. 21.91114227818028, -102.2973348126625"></div></div>
       <p style="font-size:11px;color:var(--text3);margin-top:-6px;margin-bottom:10px">Ubicación base, para cuando el equipo no esté asignado a ningún proyecto. Pega el par de números de Google Maps, o déjalo vacío para calcularlo por ciudad.</p>
@@ -3730,7 +3742,8 @@ async function guardarNuevoEquipo() {
   const apodo  = document.getElementById('ne-apodo')?.value.trim();
   const ciudad = document.getElementById('ne-ciudad')?.value.trim();
   const coordsParseadas = parsearCoordenadas(document.getElementById('ne-coords')?.value.trim());
-  const cal    = document.getElementById('ne-cal')?.value || null;
+  const sinCal = !!document.getElementById('ne-sincal')?.checked;
+  const cal    = sinCal ? null : (document.getElementById('ne-cal')?.value || null);
   const notas  = document.getElementById('ne-notas')?.value.trim();
   if (!nombre) { toast('El nombre del equipo es obligatorio','error'); return; }
   const id_eq = `EQP-${Date.now().toString(36).toUpperCase()}`;
@@ -3738,7 +3751,7 @@ async function guardarNuevoEquipo() {
     id: id_eq, nombre, tipo, numero_serie: serie || null, apodo: apodo || null,
     estado: 'disponible', ciudad_actual: ciudad || null,
     latitud: coordsParseadas?coordsParseadas.lat:null, longitud: coordsParseadas?coordsParseadas.lon:null,
-    proxima_calibracion: cal, notas
+    proxima_calibracion: cal, sin_calibracion: sinCal, notas
   });
   if (!r) { toast('Error al registrar el equipo','error'); return; }
   closePanel(null, true);
@@ -7288,7 +7301,8 @@ async function exportarFichaEquipoPDF(id) {
     : { disponible: 'En oficina', en_uso: 'En uso', mantenimiento: 'Mantenimiento', baja: 'Dado de baja' }[eq.estado] || (eq.estado || '—');
   const estadoColor = eq.proyecto_actual_nombre ? PDF_EST.progreso.c : eq.estado === 'mantenimiento' ? C.ambar : eq.estado === 'baja' ? C.gris : PDF_EST.asignado.c;
   let calVal = '—', calSub = 'sin fecha registrada', calColor = C.grisClaro;
-  if (eq.proxima_calibracion) {
+  if (eq.sin_calibracion) { calVal = 'No aplica'; calSub = 'equipo sin calibración'; calColor = C.grisClaro; }
+  else if (eq.proxima_calibracion) {
     const dias = Math.round((fechaLocal(eq.proxima_calibracion) - hoy) / 86400000);
     calVal = fLargaAnio(eq.proxima_calibracion);
     calSub = dias < 0 ? `vencida hace ${-dias} día(s)` : dias === 0 ? 'vence hoy' : `en ${dias} día(s)`;
@@ -7302,7 +7316,7 @@ async function exportarFichaEquipoPDF(id) {
   let y = 33;
   y = T.tarjetas(y, [
     ['Estado', estadoTxt, eq.proyecto_actual_nombre ? recortarTexto(doc, eq.proyecto_actual_nombre, 38) : 'ubicación base', estadoColor],
-    ['Próx. calibración', calVal, calSub, calColor],
+    [eq.sin_calibracion ? 'Calibración' : 'Próx. calibración', calVal, calSub, calColor],
     ['Ubicación', ubic, eq.proyecto_actual_ciudad ? 'sitio del proyecto' : 'base', C.tinta],
   ], 20) + 9;
 
@@ -7660,6 +7674,7 @@ function vigenciaActivoPDF(u, clase) {
   const docs = (u.documentos || []).filter(d => d.fecha_vencimiento);
   const tipo = clase === 'equipo' ? 'calibracion' : 'seguro';
   const d = docs.filter(x => x.tipo === tipo).sort((a, b) => b.fecha_vencimiento.localeCompare(a.fecha_vencimiento))[0];
+  if (clase === 'equipo' && u.sin_calibracion) return null;
   const fecha = d ? d.fecha_vencimiento : (clase === 'equipo' ? u.proxima_calibracion : null);
   if (!fecha) return null;
   const vencido = fechaLocal(fecha) < new Date();
