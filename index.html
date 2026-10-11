@@ -320,11 +320,29 @@ tbody tr:hover .td-action i{color:var(--text2)}
 #pwa-banner strong{display:block;color:var(--text);font-size:13px}
 #pwa-banner span{display:block;font-size:11px;color:var(--text3)}
 #pwa-banner .pwa-x{background:none;border:0;color:var(--text3);font-size:16px;padding:4px;cursor:pointer}
+.acc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.acc-tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px 11px;border:1px solid var(--border);border-radius:12px;background:var(--surface2);color:var(--text);font:inherit;text-align:center;cursor:pointer;transition:border-color .15s,transform .15s}
+.acc-tile:hover{border-color:var(--border2);transform:translateY(-1px)}
+.acc-tile.sel{border-color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+.acc-ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border)}
+.acc-ico i{font-size:24px;color:var(--text)}
+.acc-tile.sel .acc-ico i{color:var(--red)}
+.acc-n{position:absolute;top:7px;right:8px;font-size:11px;font-weight:800;color:var(--text);font-family:var(--mono)}
+.acc-warn{position:absolute;top:7px;left:8px;font-size:13px;color:var(--amber)}
+.acc-nom{font-size:10.5px;font-weight:600;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.acc-detalle{margin-top:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface2)}
+.acc-detalle-head{display:flex;align-items:center;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--border);font-size:12px}
+.acc-detalle-head i{font-size:18px;color:var(--red)}
+.acc-detalle-head span{color:var(--text3);font-size:11px}
+.acc-detalle .acc-fila:last-child{border-bottom:0}
+.eq-acc-mini{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text2);font-family:var(--mono)}
+.eq-acc-mini span{display:inline-flex;align-items:center;gap:3px}
+.eq-acc-mini i{font-size:15px;color:var(--text3)}
 .acc-fila{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
 .acc-fila.editando{background:var(--surface2);margin:0 -8px;padding:7px 8px;border-radius:6px}
 .acc-form{margin-top:12px;padding:12px;border:1px dashed var(--border2);border-radius:var(--radius)}
 .acc-form-grid{display:grid;grid-template-columns:minmax(0,2fr) 64px minmax(0,1.3fr) minmax(0,1.2fr);gap:8px}
-@media (max-width:768px){.acc-form-grid{grid-template-columns:minmax(0,1fr) 64px}.acc-form-grid #acc-serie,.acc-form-grid #acc-estado{grid-column:span 1}}
+@media (max-width:768px){.acc-form-grid{grid-template-columns:minmax(0,1fr) 64px}.acc-form-grid #acc-serie,.acc-form-grid #acc-estado{grid-column:1 / -1}.acc-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.acc-tile{padding:13px 4px 9px;gap:5px}.acc-ico{width:38px;height:38px;border-radius:10px}.acc-ico i{font-size:21px}.acc-nom{font-size:9.5px}}
 .ult-vez{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:500;color:var(--text3);letter-spacing:0;white-space:nowrap}
 .ult-vez.en-linea{color:var(--green);font-weight:600}
 .ult-punto{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px color-mix(in srgb, var(--green) 22%, transparent)}
@@ -3562,7 +3580,8 @@ async function renderEquipos() {
         <div class="eq-row"><span>Ubicación</span><strong>${eq.proyecto_actual_ciudad || eq.ciudad_actual || '—'}</strong></div>
         ${eq.proyecto_actual_nombre ? `<div class="eq-row"><span>En proyecto</span><strong>${eq.proyecto_actual_nombre}</strong></div>` : ''}
         <div class="eq-row"><span>Próx. calibración</span><strong style="color:${calColor}">${calTexto}</strong></div>
-        ${(() => { const r = resumenAccesorios(eq); return r.lista.length ? `<div class="eq-row"><span>Contenido</span><strong>${r.piezas} pieza(s)${r.problemas ? ` <span style="color:var(--amber)" title="${r.problemas} accesorio(s) dañado(s) o faltante(s)"><i class="ti ti-alert-triangle" aria-hidden="true"></i></span>` : ''}</strong></div>` : ''; })()}
+        ${(() => { const r = resumenAccesorios(eq); if (!r.lista.length) return ''; const gs = gruposAccesorios(eq);
+          return `<div class="eq-acc-mini">${gs.slice(0, 5).map(g => `<span title="${escHtml(g.nombre)}"><i class="ti ${g.icono}" aria-hidden="true"></i>${g.piezas}</span>`).join('')}${gs.length > 5 ? `<span>+${gs.length - 5}</span>` : ''}${r.problemas ? `<span style="color:var(--amber)" title="${r.problemas} accesorio(s) dañado(s) o faltante(s)"><i class="ti ti-alert-triangle" aria-hidden="true"></i></span>` : ''}</div>`; })()}
       </div>`;
       }).join('') : '<div class="empty-state" style="grid-column:1/-1"><i class="ti ti-tool" aria-hidden="true"></i><p>Aún no hay equipo registrado</p></div>'}
     </div>`);
@@ -3604,6 +3623,7 @@ function verEquipo(id) {
   const eq = (STATE.equipos||[]).find(e=>e.id===id);
   if (!eq) return;
   STATE._accEditando = null;
+  STATE._accGrupo = null;
   openPanel(eq.nombre, `
     <div class="panel-section">
       <div class="panel-section-title">DATOS DEL EQUIPO</div>
@@ -3623,7 +3643,7 @@ function verEquipo(id) {
         <div class="acc-form-grid">
           <input class="field-input" id="acc-nombre" placeholder="${eq.tipo==='drone'?'Ej: Batería TB60':'Ej: Arnés, mosquetón, eslinga...'}" onkeydown="if(event.key==='Enter'){event.preventDefault();guardarAccesorio('${eq.id}')}">
           <input class="field-input" id="acc-cantidad" type="number" min="1" value="1" title="Cantidad">
-          <input class="field-input" id="acc-serie" placeholder="N/S (opcional)" onkeydown="if(event.key==='Enter'){event.preventDefault();guardarAccesorio('${eq.id}')}">
+          <input class="field-input" id="acc-serie" placeholder="N/S (varios: sepáralos con coma)" onkeydown="if(event.key==='Enter'){event.preventDefault();guardarAccesorio('${eq.id}')}">
           <select class="field-select" id="acc-estado" title="Estado">${Object.entries(ACC_ESTADOS).map(([k,v])=>`<option value="${k}">${v.texto}</option>`).join('')}</select>
         </div>
         <input class="field-input" id="acc-notas" placeholder="Notas (opcional)" style="margin-top:8px" onkeydown="if(event.key==='Enter'){event.preventDefault();guardarAccesorio('${eq.id}')}">
@@ -3648,6 +3668,7 @@ function verEquipo(id) {
       </div>
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>
+     <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => exportarFichaEquipoPDF('${eq.id}'), 'Generando…')" title="Ficha del equipo: datos, accesorios, números de serie y documentos"><i class="ti ti-file-type-pdf" aria-hidden="true"></i> Ficha PDF</button>
      <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarEdicionEquipo('${eq.id}'))"><i class="ti ti-check" aria-hidden="true"></i> Guardar cambios</button>
      ${eq.estado !== 'baja' ? `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => archivarEquipo('${eq.id}'))"><i class="ti ti-archive" aria-hidden="true"></i> Archivar</button>` : `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => reactivarEquipo('${eq.id}'))"><i class="ti ti-archive-off" aria-hidden="true"></i> Reactivar</button>`}
      ${STATE.rol==='administrador' ? `<button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="eliminarEquipoConfirm('${eq.id}')"><i class="ti ti-trash" aria-hidden="true"></i> Eliminar</button>` : ''}`);
@@ -4166,24 +4187,104 @@ function resumenAccesorios(eq) {
   const problemas = lista.filter(x => x.estado === 'danado' || x.estado === 'faltante').length;
   return { lista, piezas, problemas };
 }
+// Ícono por palabra clave del nombre (el orden importa: "cargador de batería" es cargador)
+const normAcc = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/\s+/g, ' ').trim();
+const ACC_ICONOS = [
+  [/\bHUB\b|CARGADOR|CHARG|ESTACION DE CARGA/, 'ti-battery-charging'],
+  [/BATER|BATT|\bPILA/, 'ti-battery-3'],
+  [/ELIMINADOR|FUENTE DE PODER|ADAPTADOR|CORRIENTE|INVERSOR/, 'ti-plug'],
+  [/\bRC\b|CONTROL|MANDO/, 'ti-device-gamepad-2'],
+  [/RTK|GNSS|\bGPS\b/, 'ti-satellite'],
+  [/ANTENA|ANTENNA|REPETIDOR/, 'ti-antenna'],
+  [/HELICE|PROPELA|PROPELLER/, 'ti-propeller'],
+  [/TERMO|TERMIC|THERMAL|RADIOMETR/, 'ti-temperature'],
+  [/GIMBAL|CAMARA|CAMERA|ZENMUSE|LENTE DE/, 'ti-camera'],
+  [/MICRO ?SD|TARJETA|MEMORIA|\bSD\b|\bSSD\b/, 'ti-device-sd-card'],
+  [/TABLET|IPAD/, 'ti-device-tablet'],
+  [/CELULAR|TELEFONO|SMARTPHONE/, 'ti-device-mobile'],
+  [/LAPTOP|COMPUTADORA/, 'ti-device-laptop'],
+  [/CABLE|\bUSB\b/, 'ti-usb'],
+  [/MALETA|ESTUCHE|\bCASE\b|MOCHILA|BOLSA|PELICAN/, 'ti-briefcase'],
+  [/FILTRO|\bND\d*\b/, 'ti-filter'],
+  [/ARNES/, 'ti-shield-check'],
+  [/MOSQUET|GRILLETE|CONECTOR/, 'ti-link'],
+  [/ESLINGA|CUERDA|LINEA DE VIDA|LIFELINE/, 'ti-link-plus'],
+  [/ANCLAJE|ANCLA/, 'ti-anchor'],
+  [/CASCO/, 'ti-helmet'],
+  [/GUANTE/, 'ti-hand-stop'],
+  [/LENTES|GAFAS|GOGGLE/, 'ti-eyeglass'],
+  [/DESCENSOR|ASCENSOR|POLEA|BLOQUEADOR|ROPE ?GRAB/, 'ti-tools'],
+  [/MEDIDOR|MULTIMETRO|PINZA|AMPERIMETRO|FLEXOMETRO/, 'ti-ruler-measure'],
+  [/DRON|DRONE|AERONAVE/, 'ti-drone'],
+];
+function iconoAccesorio(nombre) {
+  const n = normAcc(nombre);
+  for (const [re, ic] of ACC_ICONOS) if (re.test(n)) return ic;
+  return 'ti-box';
+}
+// Agrupa por nombre (sin importar mayúsculas/acentos): 7 baterías = un mosaico "×7"
+function gruposAccesorios(eq) {
+  const m = new Map();
+  (eq.accesorios || []).forEach(a => {
+    const k = normAcc(a.nombre);
+    if (!m.has(k)) m.set(k, { clave: k, nombre: a.nombre, icono: iconoAccesorio(a.nombre), items: [], piezas: 0, problemas: 0 });
+    const g = m.get(k);
+    g.items.push(a); g.piezas += a.cantidad || 1;
+    if (a.estado === 'danado' || a.estado === 'faltante') g.problemas++;
+  });
+  return [...m.values()];
+}
 function renderAccesoriosEquipo(eq) {
   const { lista, piezas, problemas } = resumenAccesorios(eq);
-  if (!lista.length) return `<div style="font-size:12px;color:var(--text3);margin-bottom:8px">Sin accesorios registrados. Agrega lo que trae este equipo (${eq.tipo==='drone'?'baterías con su N/S, control, hélices, cargador…':'arnés, mosquetones, eslingas, descensor…'}).</div>`;
-  return `<div style="font-size:11px;color:var(--text3);margin-bottom:4px">${lista.length} concepto(s) · ${piezas} pieza(s)${problemas ? ` · <span style="color:var(--amber);font-weight:600">${problemas} con observación</span>` : ''}</div>` +
-    lista.map(a => {
-      const est = ACC_ESTADOS[a.estado] || ACC_ESTADOS.ok;
-      return `<div class="acc-fila${STATE._accEditando===a.id?' editando':''}">
-        <div style="min-width:0;flex:1">
-          <div style="color:var(--text);font-weight:600;font-size:12px">${escHtml(a.nombre)}${(a.cantidad||1) > 1 ? ` <span style="color:var(--text3);font-weight:500">×${a.cantidad}</span>` : ''}</div>
-          <div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis">${a.numero_serie ? `<span class="td-mono">N/S ${escHtml(a.numero_serie)}</span>` : ''}${a.numero_serie && a.notas ? ' · ' : ''}${a.notas ? escHtml(a.notas) : ''}</div>
-        </div>
-        ${a.estado !== 'ok' ? `<span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:${est.color}">${est.corto}</span>` : ''}
-        <div style="display:flex;gap:4px;flex-shrink:0">
-          <button class="btn btn-ghost btn-sm" onclick="editarAccesorio('${eq.id}',${a.id})" title="Editar"><i class="ti ti-pencil" aria-hidden="true"></i></button>
-          <button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="ejecutarConCarga(this, () => eliminarAccesorio('${eq.id}',${a.id}))" title="Quitar"><i class="ti ti-trash" aria-hidden="true"></i></button>
-        </div>
-      </div>`;
-    }).join('');
+  if (!lista.length) return `<div style="font-size:12px;color:var(--text3);margin-bottom:8px">Sin accesorios registrados. Agrega lo que trae este equipo (${eq.tipo==='drone'?'baterías con su N/S, control, RTK, hub de carga…':'arnés, mosquetones, eslingas, descensor…'}).</div>`;
+  const grupos = gruposAccesorios(eq);
+  if (STATE._accGrupo && !grupos.some(g => g.clave === STATE._accGrupo)) STATE._accGrupo = null;
+  const sel = grupos.find(g => g.clave === STATE._accGrupo);
+  return `<div style="font-size:11px;color:var(--text3);margin-bottom:10px">${grupos.length} concepto(s) · ${piezas} pieza(s)${problemas ? ` · <span style="color:var(--amber);font-weight:600">${problemas} con observación</span>` : ''} · toca uno para ver sus números de serie</div>
+    <div class="acc-grid">${grupos.map((g, i) => `
+      <button type="button" class="acc-tile${sel === g ? ' sel' : ''}" onclick="seleccionarGrupoAcc('${eq.id}', ${i})" title="${escHtml(g.nombre)}">
+        ${g.problemas ? '<i class="ti ti-alert-triangle acc-warn" aria-hidden="true"></i>' : ''}
+        <span class="acc-n">×${g.piezas}</span>
+        <span class="acc-ico"><i class="ti ${g.icono}" aria-hidden="true"></i></span>
+        <span class="acc-nom">${escHtml(g.nombre)}</span>
+      </button>`).join('')}
+    </div>
+    ${sel ? `<div class="acc-detalle">
+      <div class="acc-detalle-head">
+        <i class="ti ${sel.icono}" aria-hidden="true"></i>
+        <strong>${escHtml(sel.nombre)}</strong><span>${sel.piezas} pieza(s)</span>
+        <button type="button" class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="agregarOtroAccesorio('${eq.id}', ${grupos.indexOf(sel)})"><i class="ti ti-plus" aria-hidden="true"></i> Agregar otra</button>
+      </div>
+      ${sel.items.map(a => {
+        const est = ACC_ESTADOS[a.estado] || ACC_ESTADOS.ok;
+        return `<div class="acc-fila${STATE._accEditando===a.id?' editando':''}">
+          <div style="min-width:0;flex:1">
+            <div style="font-size:12px;color:var(--text)">${a.numero_serie ? `<span class="td-mono">N/S ${escHtml(a.numero_serie)}</span>` : '<span style="color:var(--text3)">Sin N/S</span>'}${(a.cantidad||1) > 1 ? ` <span style="color:var(--text3)">· ×${a.cantidad}</span>` : ''}</div>
+            ${a.notas ? `<div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis">${escHtml(a.notas)}</div>` : ''}
+          </div>
+          ${a.estado !== 'ok' ? `<span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:${est.color}">${est.corto}</span>` : ''}
+          <div style="display:flex;gap:4px;flex-shrink:0">
+            <button class="btn btn-ghost btn-sm" onclick="editarAccesorio('${eq.id}',${a.id})" title="Editar"><i class="ti ti-pencil" aria-hidden="true"></i></button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="ejecutarConCarga(this, () => eliminarAccesorio('${eq.id}',${a.id}))" title="Quitar"><i class="ti ti-trash" aria-hidden="true"></i></button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>` : ''}`;
+}
+function seleccionarGrupoAcc(eqId, i) {
+  const eq = (STATE.equipos||[]).find(e => e.id === eqId); if (!eq) return;
+  const g = gruposAccesorios(eq)[i]; if (!g) return;
+  STATE._accGrupo = STATE._accGrupo === g.clave ? null : g.clave;
+  document.getElementById('ve-acc-list').innerHTML = renderAccesoriosEquipo(eq);
+}
+function agregarOtroAccesorio(eqId, i) {
+  const eq = (STATE.equipos||[]).find(e => e.id === eqId); if (!eq) return;
+  const g = gruposAccesorios(eq)[i]; if (!g) return;
+  STATE._accEditando = null; limpiarFormAccesorio();
+  const n = document.getElementById('acc-nombre'); if (!n) return;
+  n.value = g.items[0].nombre;
+  const sr = document.getElementById('acc-serie'); sr?.focus();
+  sr?.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
 function limpiarFormAccesorio() {
   ['acc-nombre','acc-serie','acc-notas'].forEach(i => { const el = document.getElementById(i); if (el) el.value = ''; });
@@ -4198,6 +4299,7 @@ function editarAccesorio(eqId, accId) {
   const a = (eq?.accesorios||[]).find(x => x.id === accId);
   if (!a) return;
   STATE._accEditando = accId;
+  STATE._accGrupo = normAcc(a.nombre);
   document.getElementById('acc-nombre').value = a.nombre || '';
   document.getElementById('acc-cantidad').value = a.cantidad || 1;
   document.getElementById('acc-serie').value = a.numero_serie || '';
@@ -4207,6 +4309,7 @@ function editarAccesorio(eqId, accId) {
   document.getElementById('acc-cancelar').style.display = '';
   document.getElementById('ve-acc-list').innerHTML = renderAccesoriosEquipo(eq);
   document.getElementById('acc-nombre').focus();
+  document.getElementById('acc-nombre').scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
 function cancelarEdicionAccesorio() {
   STATE._accEditando = null;
@@ -4225,17 +4328,28 @@ async function guardarAccesorio(eqId) {
     notas: document.getElementById('acc-notas')?.value.trim() || null,
   };
   const editando = STATE._accEditando;
-  const r = editando
-    ? await api('PUT', `/equipos/${eqId}/accesorios/${editando}`, datos)
-    : await api('POST', `/equipos/${eqId}/accesorios`, datos);
-  if (!r) return false;
+  // Varios N/S separados por coma, punto y coma o renglón = una pieza por cada número de serie
+  const series = (datos.numero_serie || '').split(/[,;\n]+/).map(x => x.trim()).filter(Boolean);
+  let r;
+  if (!editando && series.length > 1) {
+    for (const sn of series) {
+      r = await api('POST', `/equipos/${eqId}/accesorios`, { ...datos, cantidad: 1, numero_serie: sn });
+      if (!r) break;
+    }
+  } else {
+    r = editando
+      ? await api('PUT', `/equipos/${eqId}/accesorios/${editando}`, datos)
+      : await api('POST', `/equipos/${eqId}/accesorios`, datos);
+  }
+  STATE._accGrupo = normAcc(nombre);
+  if (!r) { const eqP = await refrescarEquipo(eqId); const l = document.getElementById('ve-acc-list'); if (eqP && l) l.innerHTML = renderAccesoriosEquipo(eqP); return false; }
   STATE._accEditando = null;
   const eq = await refrescarEquipo(eqId);
   const lista = document.getElementById('ve-acc-list');
   if (eq && lista) lista.innerHTML = renderAccesoriosEquipo(eq);
   limpiarFormAccesorio();
   document.getElementById('acc-nombre')?.focus();
-  toast(editando ? 'Accesorio actualizado' : 'Accesorio agregado');
+  toast(editando ? 'Accesorio actualizado' : series.length > 1 ? `${series.length} piezas agregadas` : 'Accesorio agregado');
   return true;
 }
 async function eliminarAccesorio(eqId, accId) {
@@ -7136,6 +7250,157 @@ async function nuevaPlantillaPDF(orientacion = 'portrait') {
 }
 const limpiarNombreArchivo = t => String(t || '').replace(/[\\/:*?"<>|]+/g, '-');
 const recortarTexto = (doc, t, ancho) => { let s = String(t); if (doc.getTextWidth(s) <= ancho) return s; while (s.length > 2 && doc.getTextWidth(s + '…') > ancho) s = s.slice(0, -1); return s + '…'; };
+
+// Ícono de Tabler (la misma fuente de la plataforma) dibujado en PNG para el PDF
+async function iconoPDF(clase, color = '#3f3f46', px = 128) {
+  try {
+    await document.fonts.load(`${px}px "tabler-icons"`);
+    const el = document.createElement('i'); el.className = 'ti ' + clase; el.style.cssText = 'position:absolute;left:-9999px;top:0';
+    document.body.appendChild(el);
+    let ch = getComputedStyle(el, '::before').content; el.remove();
+    ch = (ch || '').replace(/^["']|["']$/g, '');
+    if (!ch || ch === 'none') return null;
+    const cv = document.createElement('canvas'); cv.width = cv.height = px;
+    const cx = cv.getContext('2d');
+    cx.font = `${Math.round(px * 0.78)}px "tabler-icons"`; cx.fillStyle = color;
+    cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(ch, px / 2, px / 2);
+    return cv.toDataURL('image/png');
+  } catch (e) { return null; }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// FICHA DE EQUIPO — datos, contenido con íconos, números de serie y documentos
+// ═════════════════════════════════════════════════════════════════════════════
+async function exportarFichaEquipoPDF(id) {
+  const eq = (await refrescarEquipo(id)) || (STATE.equipos || []).find(e => e.id === id);
+  if (!eq) { toast('No se encontró el equipo', 'error'); return; }
+  const T = await nuevaPlantillaPDF('portrait'), { doc, C, M } = T;
+  const conMontserrat = !!doc.getFontList()['Montserrat'];
+  const fuenteTabla = conMontserrat ? 'Montserrat' : 'helvetica';
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+
+  // Estado y calibración
+  const estadoTxt = eq.proyecto_actual_nombre ? 'En proyecto'
+    : { disponible: 'En oficina', en_uso: 'En uso', mantenimiento: 'Mantenimiento', baja: 'Dado de baja' }[eq.estado] || (eq.estado || '—');
+  const estadoColor = eq.proyecto_actual_nombre ? PDF_EST.progreso.c : eq.estado === 'mantenimiento' ? C.ambar : eq.estado === 'baja' ? C.gris : PDF_EST.asignado.c;
+  let calVal = '—', calSub = 'sin fecha registrada', calColor = C.grisClaro;
+  if (eq.proxima_calibracion) {
+    const dias = Math.round((fechaLocal(eq.proxima_calibracion) - hoy) / 86400000);
+    calVal = fLargaAnio(eq.proxima_calibracion);
+    calSub = dias < 0 ? `vencida hace ${-dias} día(s)` : dias === 0 ? 'vence hoy' : `en ${dias} día(s)`;
+    calColor = dias < 0 ? C.rojo : dias <= 30 ? C.ambar : PDF_EST.asignado.c;
+  }
+  const grupos = gruposAccesorios(eq), res = resumenAccesorios(eq);
+  const ubic = eq.proyecto_actual_ciudad || eq.ciudad_actual || '—';
+
+  T.encabezado('Ficha de equipo', eq.apodo ? eq.apodo.toUpperCase() : (eq.numero_serie ? 'N/S ' + eq.numero_serie : eq.id),
+    eq.nombre, [etiquetaEquipo(eq.tipo), eq.numero_serie ? `N/S ${eq.numero_serie}` : null].filter(Boolean).join('  ·  '));
+  let y = 33;
+  y = T.tarjetas(y, [
+    ['Estado', estadoTxt, eq.proyecto_actual_nombre ? recortarTexto(doc, eq.proyecto_actual_nombre, 38) : 'ubicación base', estadoColor],
+    ['Próx. calibración', calVal, calSub, calColor],
+    ['Ubicación', ubic, eq.proyecto_actual_ciudad ? 'sitio del proyecto' : 'base', C.tinta],
+    ['Contenido', `${res.piezas}`, res.lista.length ? `pieza(s) · ${grupos.length} concepto(s)` : 'sin accesorios', res.problemas ? C.ambar : C.tinta],
+  ], 20) + 9;
+
+  // ── Datos generales (rejilla de 3 columnas)
+  y = T.seccion('DATOS DEL EQUIPO', y);
+  const datos = [['Tipo', etiquetaEquipo(eq.tipo)], ['Apodo', eq.apodo || '—'], ['Número de serie', eq.numero_serie || '—'],
+    ['Estado', estadoTxt], ['Ubicación base', eq.ciudad_actual || '—'], ['Proyecto actual', eq.proyecto_actual_nombre || 'Ninguno']];
+  if (eq.latitud && eq.longitud) datos.push(['Coordenadas', `${(+eq.latitud).toFixed(5)}, ${(+eq.longitud).toFixed(5)}`]);
+  const colW = (T.W - 2 * M) / 3;
+  datos.forEach(([lab, val], k) => {
+    const x = M + (k % 3) * colW, yy = y + Math.floor(k / 3) * 11;
+    T.etiqueta(lab, x, yy);
+    T.font('semibold', 8.6, C.tinta); doc.text(recortarTexto(doc, val, colW - 4), x, yy + 4.6);
+  });
+  y += Math.ceil(datos.length / 3) * 11;
+  if ((eq.notas || '').trim()) {
+    T.etiqueta('Notas', M, y);
+    T.font('normal', 8, C.texto);
+    const ln = doc.splitTextToSize(eq.notas.trim(), T.W - 2 * M).slice(0, 4);
+    doc.text(ln, M, y + 4.6); y += 4.6 + ln.length * 3.6;
+  }
+  y += 5;
+
+  // ── Contenido en mosaicos con ícono y cantidad
+  if (grupos.length) {
+    const porFila = 5, gap = 3.5, tw = (T.W - 2 * M - gap * (porFila - 1)) / porFila, th = 21;
+    const filasTiles = Math.ceil(grupos.length / porFila);
+    if (!T.cabe(y, 10 + Math.min(filasTiles, 2) * (th + gap))) { T.nuevaPagina(); y = 22; }
+    y = T.seccion('CONTENIDO / ACCESORIOS', y, `${grupos.length} concepto(s)  ·  ${res.piezas} pieza(s)`);
+    const iconos = await Promise.all(grupos.map(g => iconoPDF(g.icono, '#27272a')));
+    for (let k = 0; k < grupos.length; k++) {
+      const g = grupos[k], col = k % porFila;
+      if (col === 0 && k > 0) y += th + gap;
+      if (col === 0 && !T.cabe(y, th)) { T.nuevaPagina(); y = 22; }
+      const x = M + col * (tw + gap);
+      T.relleno(C.fondo); doc.roundedRect(x, y, tw, th, 2, 2, 'F');
+      if (g.problemas) { T.relleno(C.ambar); doc.circle(x + 3.4, y + 3.4, 0.9, 'F'); }
+      T.font('black', 9.5, C.tinta); doc.text(`×${g.piezas}`, x + tw - 2.6, y + 5, { align: 'right' });
+      if (iconos[k]) doc.addImage(iconos[k], 'PNG', x + tw / 2 - 4.1, y + 2.6, 8.2, 8.2);
+      T.font('bold', 6.6, C.tinta);
+      const ln = doc.splitTextToSize(g.nombre.toUpperCase(), tw - 4).slice(0, 2);
+      doc.text(ln, x + tw / 2, y + 14.4, { align: 'center' });
+    }
+    y += th + 9;
+
+    // ── Números de serie y estado de cada pieza
+    if (!T.cabe(y, 30)) { T.nuevaPagina(); y = 22; }
+    y = T.seccion('NÚMEROS DE SERIE Y ESTADO', y, `${res.lista.length} registro(s)`);
+    const filas = [];
+    grupos.forEach(g => g.items.forEach(a => filas.push([g.nombre.toUpperCase(), a.numero_serie || '—', String(a.cantidad || 1),
+      (ACC_ESTADOS[a.estado] || ACC_ESTADOS.ok).texto, a.notas || ''])));
+    doc.autoTable({
+      startY: y - 3, margin: { left: M, right: M, top: 20, bottom: 24 },
+      head: [['Concepto', 'N/S', 'Cant.', 'Estado', 'Notas']], body: filas, theme: 'plain',
+      styles: { font: fuenteTabla, fontSize: 7.4, textColor: C.texto, cellPadding: { top: 1.35, bottom: 1.35, left: 2.2, right: 2.2 }, lineColor: C.linea, lineWidth: { bottom: 0.2 } },
+      headStyles: { font: fuenteTabla, fontStyle: conMontserrat ? 'bold' : 'bold', fontSize: 6.4, textColor: C.gris, fillColor: C.fondo, lineWidth: 0 },
+      columnStyles: { 0: { fontStyle: 'bold', textColor: C.tinta, cellWidth: 48 }, 1: { font: 'courier', fontSize: 7.6, cellWidth: 52 }, 2: { halign: 'center', cellWidth: 13 }, 3: { cellWidth: 26 } },
+      didParseCell: d => {
+        if (d.section === 'body' && d.column.index === 3) {
+          const t = d.cell.raw; d.cell.styles.fontStyle = 'bold';
+          d.cell.styles.textColor = t === ACC_ESTADOS.ok.texto ? PDF_EST.asignado.c : t === ACC_ESTADOS.faltante.texto ? C.rojo : C.ambar;
+        }
+      },
+    });
+    y = doc.lastAutoTable.finalY + 10;
+  }
+
+  // ── Documentos del equipo
+  const docs = eq.documentos || [];
+  if (!T.cabe(y, 26)) { T.nuevaPagina(); y = 22; }
+  y = T.seccion('DOCUMENTOS', y, docs.length ? `${docs.length} registrado(s)` : '');
+  if (!docs.length) {
+    T.font('normal', 8, C.gris); doc.text('Sin documentos registrados.', M, y); y += 6;
+  } else {
+    const filasD = docs.map(d => {
+      let vig = 'Sin vigencia';
+      if (d.fecha_vencimiento) {
+        const dd = Math.round((fechaLocal(d.fecha_vencimiento) - hoy) / 86400000);
+        vig = `${fLargaAnio(d.fecha_vencimiento)} · ${dd < 0 ? 'vencido' : dd <= 30 ? `vence en ${dd} d` : 'vigente'}`;
+      }
+      return [d.nombre, EQ_DOC_TIPOS[d.tipo] || d.tipo, vig, d.ruta_archivo ? 'Sí' : 'No'];
+    });
+    doc.autoTable({
+      startY: y - 3, margin: { left: M, right: M, top: 20, bottom: 24 },
+      head: [['Documento', 'Tipo', 'Vigencia', 'Archivo']], body: filasD, theme: 'plain',
+      styles: { font: fuenteTabla, fontSize: 7.4, textColor: C.texto, cellPadding: { top: 1.35, bottom: 1.35, left: 2.2, right: 2.2 }, lineColor: C.linea, lineWidth: { bottom: 0.2 } },
+      headStyles: { font: fuenteTabla, fontStyle: 'bold', fontSize: 6.4, textColor: C.gris, fillColor: C.fondo, lineWidth: 0 },
+      columnStyles: { 0: { fontStyle: 'bold', textColor: C.tinta }, 1: { cellWidth: 30 }, 2: { cellWidth: 52 }, 3: { halign: 'center', cellWidth: 16 } },
+      didParseCell: d => {
+        if (d.section === 'body' && d.column.index === 2) {
+          const t = String(d.cell.raw);
+          if (t.includes('vencido')) { d.cell.styles.textColor = C.rojo; d.cell.styles.fontStyle = 'bold'; }
+          else if (t.includes('vence en')) { d.cell.styles.textColor = C.ambar; d.cell.styles.fontStyle = 'bold'; }
+        }
+      },
+    });
+  }
+
+  const nombre = limpiarNombreArchivo(`Ficha de equipo - ${etiquetaEquipo(eq.tipo)} - ${eq.apodo || eq.nombre}${eq.numero_serie ? ' - ' + eq.numero_serie : ''}.pdf`);
+  T.cerrar(nombre, false);
+}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // 1. GANTT GENERAL — una sola hoja horizontal
