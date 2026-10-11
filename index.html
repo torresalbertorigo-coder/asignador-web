@@ -546,6 +546,18 @@ tbody tr:hover .td-action i{color:var(--text2)}
 
 /* EQUIPOS */
 .equipo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.srv-activo{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid var(--amber-border);background:var(--amber-bg);border-radius:10px}
+.srv-activo > i{font-size:22px;color:var(--amber);margin-top:1px}
+.srv-hist{margin-top:12px;font-size:12px}
+.srv-hist summary{cursor:pointer;color:var(--text2);font-weight:600;font-size:11px;letter-spacing:.04em;text-transform:uppercase;padding:4px 0}
+.srv-fila{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border)}
+.srv-fila > i{font-size:16px;color:var(--text3);margin-top:1px}
+.srv-tipos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.srv-tipos input{display:none}
+.srv-tipos span{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 6px;border:1px solid var(--border);border-radius:10px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;background:var(--surface2)}
+.srv-tipos span i{font-size:20px}
+.srv-tipos input:checked + span{border-color:var(--red);color:var(--text);box-shadow:inset 0 0 0 1px var(--red)}
+.srv-tipos input:checked + span i{color:var(--red)}
 .eq-toolbar{display:flex;flex-direction:column;gap:10px;margin:4px 0 16px}
 .eq-buscar{max-width:none}
 .eq-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
@@ -2590,11 +2602,12 @@ function opcionesPorTipo(candidatos, tiposPedidos, etiquetaTipo, etiqueta) {
   // Solo los tipos que pide el proyecto (si no pide ninguno, todos), agrupados por tipo
   const filtrados = tiposPedidos.length ? candidatos.filter(c => tiposPedidos.includes(c.tipo)) : candidatos;
   const tipos = [...new Set(filtrados.map(c => c.tipo))];
-  const ordenDisp = (a, b) => (!!a.ya_asignado_aqui - !!b.ya_asignado_aqui) || (b.disponible - a.disponible) || String(a.apodo || a.nombre).localeCompare(String(b.apodo || b.nombre), 'es');
+  const ordenDisp = (a, b) => (!!a.ya_asignado_aqui - !!b.ya_asignado_aqui) || (!!a.en_servicio - !!b.en_servicio) || (b.disponible - a.disponible)
+    || (!!a.aviso_calibracion - !!b.aviso_calibracion) || String(a.apodo || a.nombre).localeCompare(String(b.apodo || b.nombre), 'es');
   return {
     total: filtrados.length,
     html: tipos.map(t => `<optgroup label="${escHtml(etiquetaTipo(t))}">${filtrados.filter(c => c.tipo === t).sort(ordenDisp).map(c =>
-      `<option value="${c.id}" data-disponible="${c.disponible}" data-conflicto="${escHtml(c.conflicto_con || '')}" ${c.ya_asignado_aqui ? 'disabled' : ''}>${escHtml(etiqueta(c))} — ${c.ya_asignado_aqui ? 'ya apartado aquí' : c.disponible ? 'disponible' : 'ocupado en "' + escHtml(c.conflicto_con) + '"'}</option>`).join('')}</optgroup>`).join(''),
+      `<option value="${c.id}" data-disponible="${c.disponible}" data-conflicto="${escHtml(c.conflicto_con || '')}" data-aviso="${escHtml(c.aviso_calibracion || '')}" data-nombre="${escHtml(c.apodo || c.nombre)}" ${c.ya_asignado_aqui || c.en_servicio ? 'disabled' : ''}>${c.aviso_calibracion && !c.ya_asignado_aqui && !c.en_servicio ? '⚠ ' : ''}${escHtml(etiqueta(c))} — ${c.ya_asignado_aqui ? 'ya apartado aquí' : c.en_servicio ? escHtml(c.en_servicio) : c.conflicto_con ? 'ocupado en "' + escHtml(c.conflicto_con) + '"' : c.aviso_calibracion ? escHtml(c.aviso_calibracion.toLowerCase()) : 'disponible'}</option>`).join('')}</optgroup>`).join(''),
   };
 }
 async function abrirAsignacionEquipo(proyectoId, reemplazarId) {
@@ -2622,9 +2635,12 @@ async function confirmarAsignacionEquipo(proyectoId) {
   const equipoId = sel?.value;
   if (!equipoId) return;
   const opt = sel.selectedOptions[0];
-  if (opt && opt.dataset.disponible === 'false') {
+  if (opt && opt.dataset.disponible === 'false' && opt.dataset.conflicto) {
     const seguro = confirm(`Este equipo ya está en uso en "${opt.dataset.conflicto}" durante fechas que se encimarían con este proyecto. ¿Asignarlo de todas formas?`);
     if (!seguro) return;
+  }
+  if (opt && opt.dataset.aviso) {
+    if (!confirm(`${opt.dataset.nombre}: ${opt.dataset.aviso}.\n\n¿Asignarlo de todos modos?`)) return;
   }
   const r = await api('POST', `/proyectos/proyectos/${proyectoId}/asignar-equipo/${equipoId}`);
   if (!r) { toast('Error al asignar el equipo','error'); return; }
@@ -3637,10 +3653,11 @@ function tarjetaEquipoHTML(eq, coincidencia) {
           if (diasCal < 0) { calColor = 'var(--red-text)'; calTexto = eq.proxima_calibracion + ' (vencida)'; }
           else if (diasCal <= 30) { calColor = 'var(--amber)'; calTexto = eq.proxima_calibracion + ' (' + diasCal + 'd)'; }
         }
+        const srv = servicioActivo(eq);
         return `<div class="equipo-card" onclick="verEquipo('${eq.id}')">
         <div class="eq-head">
           <div class="eq-icon"><i class="ti ${iconMap[eq.tipo]||'ti-tool'}" aria-hidden="true"></i></div>
-          ${badge(estadoMostrar)}
+          ${srv ? `<span class="badge badge-mant">${SERV_TIPOS[srv.tipo]?.insignia || 'EN SERVICIO'}</span>` : badge(estadoMostrar)}
         </div>
         <div class="eq-name">${eq.nombre}</div>
         <div style="display:flex;justify-content:space-between;align-items:center">
@@ -3648,7 +3665,9 @@ function tarjetaEquipoHTML(eq, coincidencia) {
           ${eq.apodo ? `<div style="font-size:12px;font-weight:600;color:var(--text2);font-style:italic">${eq.apodo}</div>` : ''}
         </div>
         <div class="eq-row"><span>Serie</span><strong>${eq.numero_serie||'—'}</strong></div>
-        <div class="eq-row"><span>Ubicación</span><strong>${eq.proyecto_actual_ciudad || eq.ciudad_actual || '—'}</strong></div>
+        ${srv ? `<div class="eq-row"><span>${escHtml(srv.proveedor ? 'En ' + srv.proveedor : 'Fuera desde')}</span><strong>${srv.proveedor ? '' : fCorta(srv.fecha_salida)}</strong></div>
+        <div class="eq-row"><span>Regresa</span><strong style="color:${srv.fecha_regreso_estimada && fechaLocal(srv.fecha_regreso_estimada) < new Date(new Date().toDateString()) ? 'var(--red-text)' : 'var(--amber)'}">${srv.fecha_regreso_estimada ? fCorta(srv.fecha_regreso_estimada) + (fechaLocal(srv.fecha_regreso_estimada) < new Date(new Date().toDateString()) ? ' (atrasado)' : '') : 'sin fecha'}</strong></div>`
+        : `<div class="eq-row"><span>Ubicación</span><strong>${eq.proyecto_actual_ciudad || eq.ciudad_actual || '—'}</strong></div>`}
         ${eq.proyecto_actual_nombre ? `<div class="eq-row"><span>En proyecto</span><strong>${eq.proyecto_actual_nombre}</strong></div>` : ''}
         <div class="eq-row"><span>${eq.sin_calibracion ? 'Calibración' : 'Próx. calibración'}</span><strong style="color:${calColor}${eq.sin_calibracion ? ';font-weight:500' : ''}">${calTexto}</strong></div>
         ${coincidencia ? `<div class="eq-coincide"><i class="ti ti-search" aria-hidden="true"></i> ${coincidencia}</div>` : ''}
@@ -3728,12 +3747,17 @@ function verEquipo(id) {
   if (!eq) return;
   STATE._accEditando = null;
   STATE._accGrupo = null;
+  const srvAct = servicioActivo(eq);
   openPanel(eq.nombre, `
+    <div class="panel-section">
+      <div class="panel-section-title">CALIBRACIÓN Y MANTENIMIENTO</div>
+      ${htmlServicioEquipo(eq)}
+    </div>
     <div class="panel-section">
       <div class="panel-section-title">DATOS DEL EQUIPO</div>
       <div class="field-row"><div class="field-group"><label class="field-label">TIPO</label><select class="field-select" id="ve-tipo" onchange="manejarTipoEquipoOtro(this)">${[...new Set([...Object.keys(EQ_TIPOS_BASE), ...(STATE.equipos||[]).map(x => x.tipo).filter(Boolean), eq.tipo].filter(t => t && t !== 'otro'))]
           .map(t => `<option value="${t}" ${eq.tipo===t?'selected':''}>${escHtml(etiquetaEquipo(t))}</option>`).join('')}<option value="otro" ${eq.tipo==='otro'?'selected':''}>Otro</option></select></div>
-      <div class="field-group"><label class="field-label">ESTADO</label><select class="field-select" id="ve-estado"><option value="disponible" ${eq.estado==='disponible'?'selected':''}>Disponible</option><option value="en_uso" ${eq.estado==='en_uso'?'selected':''}>En uso</option><option value="mantenimiento" ${eq.estado==='mantenimiento'?'selected':''}>Mantenimiento</option><option value="baja" ${eq.estado==='baja'?'selected':''}>Dado de baja</option></select></div></div>
+      <div class="field-group"><label class="field-label">ESTADO</label><select class="field-select" id="ve-estado" ${servicioActivo(eq) ? 'disabled title="Está fuera por servicio: se libera al recibirlo"' : ''}><option value="disponible" ${eq.estado==='disponible'?'selected':''}>Disponible</option><option value="en_uso" ${eq.estado==='en_uso'?'selected':''}>En uso</option><option value="mantenimiento" ${eq.estado==='mantenimiento'?'selected':''}>Mantenimiento</option><option value="baja" ${eq.estado==='baja'?'selected':''}>Dado de baja</option></select></div></div>
       <div class="field-row"><div class="field-group"><label class="field-label">N° SERIE</label><input class="field-input" id="ve-serie" value="${eq.numero_serie||''}" oninput="avisarSerieDuplicada('ve-serie', { excluir_equipo_id: '${eq.id}' })"><div class="ns-aviso" id="ve-serie-aviso"></div></div><div class="field-group"><label class="field-label">APODO (OPCIONAL)</label><input class="field-input" id="ve-apodo" value="${eq.apodo||''}"></div></div>
       <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD ACTUAL</label><input class="field-input" id="ve-ciudad" value="${eq.ciudad_actual||''}"></div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">COORDENADAS (OPCIONAL)</label><input class="field-input" id="ve-coords" placeholder="ej. 21.91114227818028, -102.2973348126625" value="${eq.latitud&&eq.longitud?`${eq.latitud}, ${eq.longitud}`:''}"></div></div>
@@ -3801,6 +3825,145 @@ function avisarSerieDuplicada(inputId, excluir) {
   }, 450);
 }
 
+// ─── Servicios: calibración, mantenimiento y reparación ─────────────────────
+const SERV_TIPOS = {
+  calibracion:   { texto: 'Calibración',   estado: 'En calibración',   insignia: 'EN CALIBRACIÓN',   icono: 'ti-ruler-measure' },
+  mantenimiento: { texto: 'Mantenimiento', estado: 'En mantenimiento', insignia: 'EN MANTENIMIENTO', icono: 'ti-tool' },
+  reparacion:    { texto: 'Reparación',    estado: 'En reparación',    insignia: 'EN REPARACIÓN',    icono: 'ti-hammer' },
+};
+const servicioActivo = eq => (eq?.servicios || []).find(x => !x.fecha_regreso_real) || null;
+function htmlServicioEquipo(eq) {
+  const act = servicioActivo(eq), T = act ? SERV_TIPOS[act.tipo] || SERV_TIPOS.mantenimiento : null;
+  const hoy = new Date(new Date().toDateString());
+  const atrasado = act?.fecha_regreso_estimada && fechaLocal(act.fecha_regreso_estimada) < hoy;
+  const hist = (eq.servicios || []).filter(x => x.fecha_regreso_real);
+  return `${act ? `<div class="srv-activo">
+      <i class="ti ${T.icono}" aria-hidden="true"></i>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;color:var(--text);font-size:13px">${T.estado}${act.proveedor ? ` · ${escHtml(act.proveedor)}` : ''}</div>
+        <div style="font-size:11.5px;color:var(--text2);margin-top:2px">Salió el ${fLargaAnio(act.fecha_salida)} · ${act.fecha_regreso_estimada ? `regreso estimado <strong style="color:${atrasado ? 'var(--red-text)' : 'var(--text)'}">${fLargaAnio(act.fecha_regreso_estimada)}${atrasado ? ' (atrasado)' : ''}</strong>` : 'sin fecha de regreso'}</div>
+        ${act.notas ? `<div style="font-size:11.5px;color:var(--text3);margin-top:3px">${escHtml(act.notas)}</div>` : ''}
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">No se puede asignar a proyectos en esas fechas.</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn btn-primary btn-sm" onclick="abrirRecepcionServicio('${eq.id}')"><i class="ti ti-package-import" aria-hidden="true"></i> Recibir de ${T.texto.toLowerCase()}</button>
+      <button class="btn btn-ghost btn-sm" onclick="abrirEnvioServicio('${eq.id}', true)"><i class="ti ti-calendar-event" aria-hidden="true"></i> Cambiar regreso</button>
+      <button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="ejecutarConCarga(this, () => cancelarServicioEquipo('${eq.id}', ${act.id}))"><i class="ti ti-x" aria-hidden="true"></i> Cancelar envío</button>
+    </div>`
+  : `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div style="font-size:12px;color:var(--text2);flex:1;min-width:200px">Cuando el equipo salga a calibración, mantenimiento o reparación, regístralo aquí: queda bloqueado para proyectos hasta su regreso.</div>
+      <button class="btn btn-ghost btn-sm" onclick="abrirEnvioServicio('${eq.id}')"><i class="ti ti-truck-delivery" aria-hidden="true"></i> Enviar a servicio</button>
+    </div>`}
+  ${hist.length ? `<details class="srv-hist"${act ? '' : ' open'}><summary>Historial (${hist.length})</summary>${hist.map(x => `
+    <div class="srv-fila">
+      <i class="ti ${(SERV_TIPOS[x.tipo] || SERV_TIPOS.mantenimiento).icono}" aria-hidden="true"></i>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;color:var(--text);font-weight:600">${(SERV_TIPOS[x.tipo] || SERV_TIPOS.mantenimiento).texto}${x.proveedor ? ` · ${escHtml(x.proveedor)}` : ''}</div>
+        <div style="font-size:11px;color:var(--text3)">${rangoCorto(x.fecha_salida, x.fecha_regreso_real)} ${fechaLocal(x.fecha_regreso_real).getFullYear()}${x.resultado ? ` · ${escHtml(x.resultado)}` : ''}</div>
+      </div>
+    </div>`).join('')}</details>` : ''}`;
+}
+function abrirModalServicio(titulo, icono, cuerpo, botones) {
+  let ov = document.getElementById('selector-overlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; ov.style.zIndex = 1100; document.body.appendChild(ov); }
+  ov.className = 'modal-overlay open';
+  ov.onclick = e => { if (e.target === ov) cerrarSelectorTerminos(); };
+  ov.innerHTML = `<div class="sel-card" style="max-width:480px">
+    <div class="sel-head"><div style="font-weight:700;font-size:14px;color:var(--text)"><i class="ti ${icono}" aria-hidden="true"></i> ${titulo}</div>
+      <button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()"><i class="ti ti-x" aria-hidden="true"></i></button></div>
+    <div style="padding:0 18px 16px;overflow:auto">${cuerpo}
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">${botones}</div></div></div>`;
+  sinAutollenado(ov);
+}
+function abrirEnvioServicio(eqId, soloRegreso) {
+  const eq = (STATE.equipos || []).find(e => e.id === eqId); if (!eq) return;
+  const act = servicioActivo(eq);
+  if (soloRegreso && act) {
+    abrirModalServicio('Cambiar regreso estimado', 'ti-calendar-event', `
+      <div class="field-row"><div class="field-group"><label class="field-label">LABORATORIO / TALLER</label><input class="field-input" id="srv-prov" value="${escHtml(act.proveedor || '')}"></div>
+      <div class="field-group"><label class="field-label">REGRESO ESTIMADO</label><input class="field-input" type="date" id="srv-regreso" value="${act.fecha_regreso_estimada || ''}"></div></div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">NOTAS</label><textarea class="field-input" id="srv-notas" rows="2">${escHtml(act.notas || '')}</textarea></div></div>`,
+      `<button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarCambioServicio('${eqId}', ${act.id}))"><i class="ti ti-check" aria-hidden="true"></i> Guardar</button>`);
+    return;
+  }
+  const sugerido = eq.sin_calibracion ? 'mantenimiento' : 'calibracion';
+  abrirModalServicio(`Enviar a servicio · ${escHtml(eq.apodo || eq.nombre)}`, 'ti-truck-delivery', `
+    <div class="field-label" style="margin-bottom:6px">TIPO</div>
+    <div class="srv-tipos">${Object.entries(SERV_TIPOS).map(([k, v]) => `<label><input type="radio" name="srv-tipo" value="${k}" ${k === sugerido ? 'checked' : ''}><span><i class="ti ${v.icono}" aria-hidden="true"></i>${v.texto}</span></label>`).join('')}</div>
+    <div class="field-row full" style="margin-top:12px"><div class="field-group"><label class="field-label">LABORATORIO / TALLER</label><input class="field-input" id="srv-prov" placeholder="Ej: Laboratorio de metrología, DJI Care, taller…"></div></div>
+    <div class="field-row"><div class="field-group"><label class="field-label">FECHA DE SALIDA</label><input class="field-input" type="date" id="srv-salida" value="${isoLocal(new Date())}"></div>
+    <div class="field-group"><label class="field-label">REGRESO ESTIMADO</label><input class="field-input" type="date" id="srv-regreso"></div></div>
+    <div class="field-row full"><div class="field-group"><label class="field-label">NOTAS (OPCIONAL)</label><textarea class="field-input" id="srv-notas" rows="2" placeholder="Folio, motivo, falla reportada…"></textarea></div></div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => enviarAServicio('${eqId}'))"><i class="ti ti-truck-delivery" aria-hidden="true"></i> Registrar salida</button>`);
+}
+async function enviarAServicio(eqId) {
+  const tipo = document.querySelector('input[name="srv-tipo"]:checked')?.value || 'calibracion';
+  const salida = document.getElementById('srv-salida')?.value, regreso = document.getElementById('srv-regreso')?.value || null;
+  if (!salida) { toast('Indica la fecha de salida', 'error'); return; }
+  if (regreso && regreso < salida) { toast('El regreso no puede ser antes de la salida', 'error'); return; }
+  // ¿Está apartado en algún proyecto de esas fechas?
+  const conf = await api('GET', `/equipos/${eqId}/conflictos-servicio?desde=${salida}${regreso ? '&hasta=' + regreso : ''}`) || [];
+  if (conf.length && !confirm(`Este equipo está apartado en:\n\n${conf.map(c => `• ${c.nombre} (${rangoCorto(c.fecha_inicio, c.fecha_fin)})`).join('\n')}\n\nAl mandarlo a servicio tendrás que cambiarlo por otra unidad en ese proyecto. ¿Registrar la salida de todos modos?`)) return;
+  const r = await api('POST', `/equipos/${eqId}/servicios`, { tipo, proveedor: document.getElementById('srv-prov')?.value.trim() || null,
+    fecha_salida: salida, fecha_regreso_estimada: regreso, notas: document.getElementById('srv-notas')?.value.trim() || null });
+  if (!r) return;
+  cerrarSelectorTerminos();
+  toast(`Salida a ${SERV_TIPOS[tipo].texto.toLowerCase()} registrada`);
+  await refrescarEquipo(eqId); STATE._alertasCalCargadasEn = 0;
+  verEquipo(eqId); renderEquipos();
+}
+async function guardarCambioServicio(eqId, sid) {
+  const regreso = document.getElementById('srv-regreso')?.value || null;
+  const r = await api('PUT', `/equipos/${eqId}/servicios/${sid}`, { proveedor: document.getElementById('srv-prov')?.value || '',
+    fecha_regreso_estimada: regreso, notas: document.getElementById('srv-notas')?.value || '' });
+  if (!r) return;
+  cerrarSelectorTerminos(); toast('Servicio actualizado');
+  await refrescarEquipo(eqId); verEquipo(eqId); renderEquipos();
+}
+function abrirRecepcionServicio(eqId) {
+  const eq = (STATE.equipos || []).find(e => e.id === eqId); const act = servicioActivo(eq); if (!act) return;
+  const esCal = act.tipo === 'calibracion';
+  const prox = new Date(); prox.setFullYear(prox.getFullYear() + 1);
+  abrirModalServicio(`Recibir de ${SERV_TIPOS[act.tipo].texto.toLowerCase()} · ${escHtml(eq.apodo || eq.nombre)}`, 'ti-package-import', `
+    <div class="field-row"><div class="field-group"><label class="field-label">FECHA DE REGRESO</label><input class="field-input" type="date" id="srv-real" value="${isoLocal(new Date())}"></div>
+    ${esCal ? `<div class="field-group"><label class="field-label">NUEVA PRÓX. CALIBRACIÓN</label><input class="field-input" type="date" id="srv-prox" value="${isoLocal(prox)}"></div>` : ''}</div>
+    ${esCal ? `<div class="field-row full"><div class="field-group"><label class="field-label">CERTIFICADO NUEVO (PDF O IMAGEN)</label><input class="field-input" type="file" id="srv-cert" accept=".pdf,.jpg,.jpeg,.png">
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Reemplaza al certificado de calibración actual del equipo (o se agrega si no había).</div></div></div>` : ''}
+    <div class="field-row full"><div class="field-group"><label class="field-label">RESULTADO / OBSERVACIONES</label><textarea class="field-input" id="srv-resultado" rows="2" placeholder="${esCal ? 'Ej: Calibrado sin ajustes, certificado 2026-1234' : 'Ej: Cambio de motor 3, sin falla'}"></textarea></div></div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => recibirDeServicio('${eqId}', ${act.id}, ${esCal}))"><i class="ti ti-check" aria-hidden="true"></i> Recibir y dejar disponible</button>`);
+}
+async function recibirDeServicio(eqId, sid, esCal) {
+  const real = document.getElementById('srv-real')?.value;
+  if (!real) { toast('Indica la fecha de regreso', 'error'); return; }
+  const prox = esCal ? (document.getElementById('srv-prox')?.value || null) : null;
+  const file = esCal ? document.getElementById('srv-cert')?.files?.[0] : null;
+  // Certificado: reemplaza el de calibración vigente o se agrega uno nuevo
+  if (file) {
+    const ruta = await subirArchivoVehiculo(file, `calibracion-${Date.now()}`, `equipos/${eqId}`);
+    if (!ruta) { toast('No se pudo subir el certificado. Revisa tu conexión e intenta de nuevo.', 'error'); return; }
+    const eq = (STATE.equipos || []).find(e => e.id === eqId);
+    const previo = (eq?.documentos || []).filter(d => d.tipo === 'calibracion').sort((a, b) => String(b.fecha_vencimiento || '').localeCompare(String(a.fecha_vencimiento || '')))[0];
+    const ok = previo
+      ? await api('PUT', `/equipos/${eqId}/documentos/${previo.id}?ruta_archivo=${encodeURIComponent(ruta)}${prox ? '&fecha_vencimiento=' + prox : ''}`)
+      : await api('POST', `/equipos/${eqId}/documentos`, { tipo: 'calibracion', nombre: 'CERTIFICADO DE CALIBRACIÓN', fecha_vencimiento: prox, ruta_archivo: ruta });
+    if (!ok) return;
+  }
+  const r = await api('POST', `/equipos/${eqId}/servicios/${sid}/recibir`, { fecha_regreso_real: real,
+    resultado: document.getElementById('srv-resultado')?.value.trim() || null, nueva_proxima_calibracion: prox });
+  if (!r) return;
+  cerrarSelectorTerminos(); toast('Equipo recibido y disponible');
+  await refrescarEquipo(eqId); STATE._alertasCalCargadasEn = 0;
+  verEquipo(eqId); renderEquipos();
+}
+async function cancelarServicioEquipo(eqId, sid) {
+  if (!confirm('¿Cancelar este envío? Úsalo solo si se registró por error: se borra y el equipo vuelve a estar disponible.')) return;
+  const r = await api('DELETE', `/equipos/${eqId}/servicios/${sid}`);
+  if (!r) return;
+  toast('Envío cancelado');
+  await refrescarEquipo(eqId); verEquipo(eqId); renderEquipos();
+}
+
 function alternarSinCalibracion(pref) {
   const on = document.getElementById(pref + '-sincal')?.checked, f = document.getElementById(pref + '-cal');
   if (!f) return;
@@ -3818,9 +3981,10 @@ async function guardarEdicionEquipo(id) {
     if (!(await guardarAccesorio(id))) return;
   }
   const coordsParseadas = parsearCoordenadas(document.getElementById('ve-coords')?.value.trim());
+  const selEstado = document.getElementById('ve-estado');
   const datos = {
     tipo: document.getElementById('ve-tipo')?.value,
-    estado: document.getElementById('ve-estado')?.value,
+    ...(selEstado && !selEstado.disabled ? { estado: selEstado.value } : {}),
     numero_serie: document.getElementById('ve-serie')?.value.trim(),
     apodo: document.getElementById('ve-apodo')?.value.trim(),
     ciudad_actual: document.getElementById('ve-ciudad')?.value.trim(),
@@ -7469,6 +7633,8 @@ async function iconoPDF(clase, color = '#3f3f46', px = 128) {
 // INVENTARIO GENERAL DE EQUIPOS — inventario, por calibrarse, vencidos, sin calibración
 // ═════════════════════════════════════════════════════════════════════════════
 function estadoEquipoInfo(eq) {
+  const srv = servicioActivo(eq);
+  if (srv) return { texto: (SERV_TIPOS[srv.tipo] || SERV_TIPOS.mantenimiento).estado, c: PDF_C.ambar, srv };
   if (eq.proyecto_actual_nombre) return { texto: 'En proyecto', c: PDF_EST.progreso.c };
   return { disponible: { texto: 'En oficina', c: PDF_EST.asignado.c }, en_uso: { texto: 'En uso', c: PDF_EST.progreso.c },
     mantenimiento: { texto: 'Mantenimiento', c: PDF_C.ambar }, baja: { texto: 'Dado de baja', c: PDF_C.gris } }[eq.estado] || { texto: eq.estado || '—', c: PDF_C.gris };
@@ -7540,7 +7706,9 @@ async function exportarInventarioEquiposPDF() {
 
   // ── Tabla maestra: un renglón por equipo, con ubicación y calibración unificadas
   y = T.seccion('INVENTARIO GENERAL', y, `${filas.length} equipo(s)`);
-  const ubicacion = f => f.eq.proyecto_actual_nombre
+  const ubicacion = f => f.est.srv
+    ? `${f.est.texto}${f.est.srv.fecha_regreso_estimada ? ' · regresa ' + fCorta(f.est.srv.fecha_regreso_estimada) : ''}${f.est.srv.proveedor ? ' · ' + f.est.srv.proveedor : ''}`
+    : f.eq.proyecto_actual_nombre
     ? `${f.eq.proyecto_actual_nombre}${f.eq.proyecto_actual_ciudad ? ' · ' + f.eq.proyecto_actual_ciudad : ''}`
     : `${f.eq.estado === 'mantenimiento' ? 'Mant.' : 'Oficina'}${f.eq.ciudad_actual ? ' · ' + f.eq.ciudad_actual : ''}`;
   const calTexto = f => {
@@ -7564,7 +7732,7 @@ async function exportarInventarioEquiposPDF() {
     didParseCell: d => {
       if (d.section !== 'body') return;
       const f = filas[d.row.index];
-      if (d.column.index === 4 && (f.eq.proyecto_actual_nombre || f.eq.estado === 'mantenimiento')) d.cell.styles.textColor = f.est.c;
+      if (d.column.index === 4 && (f.est.srv || f.eq.proyecto_actual_nombre || f.eq.estado === 'mantenimiento')) d.cell.styles.textColor = f.est.c;
       if (d.column.index === 5) {
         const c = { vigente: PDF_EST.asignado.c, porVencer: C.ambar, vencida: C.rojo, sinFecha: C.gris, sinCalibracion: C.grisClaro }[f.cal.grupo];
         d.cell.styles.textColor = c;
@@ -7585,9 +7753,10 @@ async function exportarFichaEquipoPDF(id) {
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
 
   // Estado y calibración
-  const estadoTxt = eq.proyecto_actual_nombre ? 'En proyecto'
+  const srvF = servicioActivo(eq);
+  const estadoTxt = srvF ? (SERV_TIPOS[srvF.tipo] || SERV_TIPOS.mantenimiento).estado : eq.proyecto_actual_nombre ? 'En proyecto'
     : { disponible: 'En oficina', en_uso: 'En uso', mantenimiento: 'Mantenimiento', baja: 'Dado de baja' }[eq.estado] || (eq.estado || '—');
-  const estadoColor = eq.proyecto_actual_nombre ? PDF_EST.progreso.c : eq.estado === 'mantenimiento' ? C.ambar : eq.estado === 'baja' ? C.gris : PDF_EST.asignado.c;
+  const estadoColor = srvF ? C.ambar : eq.proyecto_actual_nombre ? PDF_EST.progreso.c : eq.estado === 'mantenimiento' ? C.ambar : eq.estado === 'baja' ? C.gris : PDF_EST.asignado.c;
   let calVal = '—', calSub = 'sin fecha registrada', calColor = C.grisClaro;
   if (eq.sin_calibracion) { calVal = 'No aplica'; calSub = 'equipo sin calibración'; calColor = C.grisClaro; }
   else if (eq.proxima_calibracion) {
@@ -7603,7 +7772,8 @@ async function exportarFichaEquipoPDF(id) {
     eq.nombre, [etiquetaEquipo(eq.tipo), eq.numero_serie ? `N/S ${eq.numero_serie}` : null].filter(Boolean).join('  ·  '));
   let y = 33;
   y = T.tarjetas(y, [
-    ['Estado', estadoTxt, eq.proyecto_actual_nombre ? recortarTexto(doc, eq.proyecto_actual_nombre, 38) : 'ubicación base', estadoColor],
+    ['Estado', estadoTxt, srvF ? (srvF.fecha_regreso_estimada ? `regresa ${fLargaAnio(srvF.fecha_regreso_estimada)}` : 'sin fecha de regreso')
+      : eq.proyecto_actual_nombre ? recortarTexto(doc, eq.proyecto_actual_nombre, 38) : 'ubicación base', estadoColor],
     [eq.sin_calibracion ? 'Calibración' : 'Próx. calibración', calVal, calSub, calColor],
     ['Ubicación', ubic, eq.proyecto_actual_ciudad ? 'sitio del proyecto' : 'base', C.tinta],
   ], 20) + 9;
@@ -7667,6 +7837,24 @@ async function exportarFichaEquipoPDF(id) {
           d.cell.styles.textColor = t === ACC_ESTADOS.ok.texto ? PDF_EST.asignado.c : t === ACC_ESTADOS.faltante.texto ? C.rojo : C.ambar;
         }
       },
+    });
+    y = doc.lastAutoTable.finalY + 10;
+  }
+
+  // ── Historial de servicios (calibración, mantenimiento, reparación)
+  const servs = eq.servicios || [];
+  if (servs.length) {
+    if (!T.cabe(y, 26)) { T.nuevaPagina(); y = 22; }
+    y = T.seccion('CALIBRACIONES Y MANTENIMIENTOS', y, `${servs.length} registro(s)`);
+    doc.autoTable({
+      startY: y - 3, margin: { left: M, right: M, top: 20, bottom: 24 }, theme: 'plain',
+      head: [['Tipo', 'Laboratorio / taller', 'Salida', 'Regreso', 'Resultado']],
+      body: servs.map(x => [(SERV_TIPOS[x.tipo] || SERV_TIPOS.mantenimiento).texto, x.proveedor || '—', fLargaAnio(x.fecha_salida),
+        x.fecha_regreso_real ? fLargaAnio(x.fecha_regreso_real) : `En curso${x.fecha_regreso_estimada ? ' · est. ' + fLargaAnio(x.fecha_regreso_estimada) : ''}`, x.resultado || x.notas || '']),
+      styles: { font: fuenteTabla, fontSize: 7.4, textColor: C.texto, cellPadding: { top: 1.35, bottom: 1.35, left: 2.2, right: 2.2 }, lineColor: C.linea, lineWidth: { bottom: 0.2 } },
+      headStyles: { font: fuenteTabla, fontStyle: 'bold', fontSize: 6.4, textColor: C.gris, fillColor: C.fondo, lineWidth: 0 },
+      columnStyles: { 0: { fontStyle: 'bold', textColor: C.tinta, cellWidth: 26 }, 1: { cellWidth: 40 }, 2: { cellWidth: 24 }, 3: { cellWidth: 34 } },
+      didParseCell: d => { if (d.section === 'body' && d.column.index === 3 && String(d.cell.raw).startsWith('En curso')) { d.cell.styles.textColor = C.ambar; d.cell.styles.fontStyle = 'bold'; } },
     });
     y = doc.lastAutoTable.finalY + 10;
   }
