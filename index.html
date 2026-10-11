@@ -306,6 +306,14 @@ tbody tr:hover td{background:var(--surface2);color:var(--text)}
 tbody tr:hover .td-action i{color:var(--text2)}
 
 /* BADGES */
+.acc-fila{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
+.acc-fila.editando{background:var(--bg3, rgba(127,127,127,.08));margin:0 -8px;padding:7px 8px;border-radius:6px}
+.acc-form{margin-top:12px;padding:12px;border:1px dashed var(--border2);border-radius:var(--radius)}
+.acc-form-grid{display:grid;grid-template-columns:minmax(0,2fr) 64px minmax(0,1.3fr) minmax(0,1.2fr);gap:8px}
+@media (max-width:768px){.acc-form-grid{grid-template-columns:minmax(0,1fr) 64px}.acc-form-grid #acc-serie,.acc-form-grid #acc-estado{grid-column:span 1}}
+.ult-vez{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:500;color:var(--text3);letter-spacing:0;white-space:nowrap}
+.ult-vez.en-linea{color:var(--green);font-weight:600}
+.ult-punto{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px color-mix(in srgb, var(--green) 22%, transparent)}
 .badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:2px;font-size:10px;font-weight:700;letter-spacing:.05em}
 .badge-libre{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
 .badge-asig{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
@@ -927,6 +935,12 @@ async function initApp() {
   cargarNotificaciones();
   if (STATE._notifInterval) clearInterval(STATE._notifInterval);
   STATE._notifInterval = setInterval(cargarNotificaciones, 60000);
+  if (!STATE._pingVisible) {   // al volver a la pestaña/app: marca "en línea" sin esperar al siguiente ciclo
+    STATE._pingVisible = true;
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && STATE.token) api('GET', '/auth/auth/yo');
+    });
+  }
   if (STATE.rol === 'administrador' || STATE.rol === 'director_proyecto') {
     await loadEmpleados();
     showSection('mapa');
@@ -1207,7 +1221,8 @@ function cerrarSidebarMovil() {
 
 // ─── API HELPERS ──────────────────────────────────────────────────────────────
 async function api(method, path, body) {
-  const opts = { method, headers: { 'Authorization': `Bearer ${STATE.token}`, 'Content-Type': 'application/json' } };
+  const opts = { method, headers: { 'Authorization': `Bearer ${STATE.token}`, 'Content-Type': 'application/json',
+    'X-Visible': document.visibilityState === 'hidden' ? '0' : '1' } };   // pestaña en segundo plano = no cuenta como "en línea"
   if (body) opts.body = JSON.stringify(body);
   try {
     const r = await fetch(API + path, opts);
@@ -1609,6 +1624,39 @@ document.addEventListener('change', (e) => {
 });
 
 // ─── SECCIÓN: EMPLEADOS ───────────────────────────────────────────────────────
+// ─── "ÚLTIMA VEZ" (como WhatsApp) ────────────────────────────────────────────
+// El servidor guarda la hora en UTC; aquí se muestra en la hora local de quien consulta.
+async function cargarConexiones(forzar) {
+  if (STATE.rol !== 'administrador' && STATE.rol !== 'director_proyecto') return;
+  if (!forzar && STATE._conexCargadasEn && Date.now() - STATE._conexCargadasEn < 30000) return;
+  const filas = await api('GET', '/auth/auth/conexiones');
+  if (!filas) return;
+  STATE.conexEmp = {}; STATE.conexUsr = {};
+  filas.forEach(f => { STATE.conexUsr[f.usuario_id] = f.ultima_conexion; if (f.empleado_id) STATE.conexEmp[f.empleado_id] = f.ultima_conexion; });
+  STATE._conexCargadasEn = Date.now();
+}
+function textoUltimaVez(iso) {
+  if (!iso) return { enLinea: false, texto: 'Sin conexiones registradas' };
+  const d = new Date(iso);
+  const min = (Date.now() - d) / 60000;
+  if (min < 3) return { enLinea: true, texto: 'En línea' };
+  const hora = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const dia = new Date(d); dia.setHours(0,0,0,0);
+  const dif = Math.round((hoy - dia) / 86400000);
+  if (min < 60) return { enLinea: false, texto: `Últ. vez hace ${Math.round(min)} min` };
+  if (dif === 0) return { enLinea: false, texto: `Últ. vez hoy ${hora}` };
+  if (dif === 1) return { enLinea: false, texto: `Últ. vez ayer ${hora}` };
+  if (dif < 7) return { enLinea: false, texto: `Últ. vez ${d.toLocaleDateString('es-MX', { weekday: 'long' })} ${hora}` };
+  return { enLinea: false, texto: `Últ. vez ${d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: dia.getFullYear() !== hoy.getFullYear() ? 'numeric' : undefined })}` };
+}
+// iso === undefined → la persona no tiene cuenta de acceso
+function htmlUltimaVez(iso, sinCuentaTexto) {
+  if (iso === undefined) return sinCuentaTexto ? `<span class="ult-vez">${sinCuentaTexto}</span>` : '';
+  const u = textoUltimaVez(iso);
+  return `<span class="ult-vez${u.enLinea ? ' en-linea' : ''}" title="${iso ? new Date(iso).toLocaleString('es-MX') : ''}">${u.enLinea ? '<span class="ult-punto"></span>' : ''}${u.texto}</span>`;
+}
+
 async function renderEmpleados() {
   const verArch = STATE._verArchivados || false;
   document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-ghost btn-sm" onclick="toggleVerArchivados()">${verArch?'<i class="ti ti-eye-off" aria-hidden="true"></i> Ocultar archivados':'<i class="ti ti-archive" aria-hidden="true"></i> Ver archivados'}</button><button class="btn btn-ghost btn-sm" onclick="loadEmpleados(true).then(renderEmpleados)"><i class="ti ti-refresh" aria-hidden="true"></i></button><button class="btn btn-primary btn-sm" onclick="openNuevoTecnico()"><i class="ti ti-plus" aria-hidden="true"></i> Nuevo miembro</button>`;
@@ -1619,6 +1667,8 @@ async function renderEmpleados() {
   } else {
     await loadEmpleados();
   }
+  await cargarConexiones();
+  const conex = STATE.conexEmp || {};
   const emps = STATE.empleados;
   const total = emps.length;
   const libres = emps.filter(e=>estadoVisible(e)==='libre').length;
@@ -1712,7 +1762,7 @@ async function renderEmpleados() {
         <tbody>
           ${filtrados.map(e=>`<tr onclick="verEmpleado('${e.id}')" style="cursor:pointer">
             <td class="td-mono">${e.id}</td>
-            <td class="td-name">${e.nombre} ${e.apellido}${e.tipo_contrato==='temporal'?' <span style="font-size:9px;font-weight:700;color:var(--amber);border:1px solid var(--amber-border);background:var(--amber-bg);padding:1px 5px;border-radius:2px;margin-left:4px">TEMPORAL</span>':''}</td>
+            <td class="td-name">${e.nombre} ${e.apellido}${e.tipo_contrato==='temporal'?' <span style="font-size:9px;font-weight:700;color:var(--amber);border:1px solid var(--amber-border);background:var(--amber-bg);padding:1px 5px;border-radius:2px;margin-left:4px">TEMPORAL</span>':''}${e.id in conex ? `<div>${htmlUltimaVez(conex[e.id])}</div>` : ''}</td>
             <td>${(e.seniority||'').replace('_',' ')}</td>
             <td>${e.estado_perfil && e.estado_perfil!=='activo' ? badge(e.estado_perfil) : badge(estadoVisible(e))}</td>
             <td>${fatiga(e.indice_fatiga)}</td>
@@ -1777,6 +1827,7 @@ function verEmpleado(id, tab) {
         <div><span style="color:var(--text3);font-size:10px">TELÉFONO</span><div style="margin-top:2px;color:var(--text)">${escHtml(e.telefono||'—')} <a href="#" onclick="event.preventDefault();editarContacto('${e.id}', false)" style="color:var(--blue);text-decoration:none;font-size:11px">editar</a></div></div>
         <div><span style="color:var(--text3);font-size:10px">CONTACTO DE EMERGENCIA</span><div style="margin-top:2px;color:var(--text)">${escHtml(e.contacto_emergencia||'—')}</div></div>
         <div><span style="color:var(--text3);font-size:10px">CORREO</span><div style="margin-top:2px;color:var(--text);word-break:break-all">${e.email_contacto||'—'}</div></div>
+        ${['administrador','director_proyecto'].includes(STATE.rol) ? `<div><span style="color:var(--text3);font-size:10px">ÚLTIMA CONEXIÓN</span><div style="margin-top:3px" id="ve-ultvez">${STATE.conexEmp ? htmlUltimaVez(STATE.conexEmp[e.id], 'Sin cuenta de acceso') : '…'}</div></div>` : ''}
       </div>
     </div>`;
   const hoyLocal = new Date(); hoyLocal.setHours(0,0,0,0);
@@ -1815,6 +1866,12 @@ function verEmpleado(id, tab) {
      ${e.estado_perfil !== 'archivado' ? `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => archivarEmpleado('${e.id}'))"><i class="ti ti-archive" aria-hidden="true"></i> Archivar</button>` : `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => reactivarEmpleado('${e.id}'))"><i class="ti ti-archive-off" aria-hidden="true"></i> Reactivar</button>`}
      <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => restablecerPassword('${e.id}'))" title="Genera una contraseña temporal nueva"><i class="ti ti-key" aria-hidden="true"></i> Restablecer contraseña</button>
      ${STATE.rol==='administrador' ? `<button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="eliminarEmpleadoConfirm('${e.id}')"><i class="ti ti-trash" aria-hidden="true"></i> Eliminar</button>` : ''}`);
+  if (tab === 'info' && ['administrador','director_proyecto'].includes(STATE.rol)) {
+    cargarConexiones().then(() => {
+      const el = document.getElementById('ve-ultvez');
+      if (el && STATE.conexEmp) el.innerHTML = htmlUltimaVez(STATE.conexEmp[e.id], 'Sin cuenta de acceso');
+    });
+  }
 }
 
 function contenidoAusencias(e) {
@@ -3421,6 +3478,7 @@ async function renderEquipos() {
         <div class="eq-row"><span>Ubicación</span><strong>${eq.proyecto_actual_ciudad || eq.ciudad_actual || '—'}</strong></div>
         ${eq.proyecto_actual_nombre ? `<div class="eq-row"><span>En proyecto</span><strong>${eq.proyecto_actual_nombre}</strong></div>` : ''}
         <div class="eq-row"><span>Próx. calibración</span><strong style="color:${calColor}">${calTexto}</strong></div>
+        ${(() => { const r = resumenAccesorios(eq); return r.lista.length ? `<div class="eq-row"><span>Contenido</span><strong>${r.piezas} pieza(s)${r.problemas ? ` <span style="color:var(--amber)" title="${r.problemas} accesorio(s) dañado(s) o faltante(s)"><i class="ti ti-alert-triangle" aria-hidden="true"></i></span>` : ''}</strong></div>` : ''; })()}
       </div>`;
       }).join('') : '<div class="empty-state" style="grid-column:1/-1"><i class="ti ti-tool" aria-hidden="true"></i><p>Aún no hay equipo registrado</p></div>'}
     </div>`);
@@ -3461,6 +3519,7 @@ async function eliminarEquipoConfirm(id) {
 function verEquipo(id) {
   const eq = (STATE.equipos||[]).find(e=>e.id===id);
   if (!eq) return;
+  STATE._accEditando = null;
   openPanel(eq.nombre, `
     <div class="panel-section">
       <div class="panel-section-title">DATOS DEL EQUIPO</div>
@@ -3472,6 +3531,23 @@ function verEquipo(id) {
       <div class="field-row full"><div class="field-group"><label class="field-label">COORDENADAS (OPCIONAL)</label><input class="field-input" id="ve-coords" placeholder="ej. 21.91114227818028, -102.2973348126625" value="${eq.latitud&&eq.longitud?`${eq.latitud}, ${eq.longitud}`:''}"></div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">PRÓX. CALIBRACIÓN</label><input class="field-input" id="ve-cal" type="date" value="${eq.proxima_calibracion||''}"></div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">NOTAS</label><textarea class="field-input" id="ve-notas" rows="3">${eq.notas||''}</textarea></div></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title" style="display:flex;align-items:center;gap:8px">CONTENIDO / ACCESORIOS <span style="font-weight:500;letter-spacing:0;text-transform:none;color:var(--text3)">· solo inventario, no cuenta para requisitos</span></div>
+      <div id="ve-acc-list">${renderAccesoriosEquipo(eq)}</div>
+      <div class="acc-form">
+        <div class="acc-form-grid">
+          <input class="field-input" id="acc-nombre" placeholder="${eq.tipo==='drone'?'Ej: Batería TB60':'Ej: Arnés, mosquetón, eslinga...'}" onkeydown="if(event.key==='Enter'){event.preventDefault();guardarAccesorio('${eq.id}')}">
+          <input class="field-input" id="acc-cantidad" type="number" min="1" value="1" title="Cantidad">
+          <input class="field-input" id="acc-serie" placeholder="N/S (opcional)" onkeydown="if(event.key==='Enter'){event.preventDefault();guardarAccesorio('${eq.id}')}">
+          <select class="field-select" id="acc-estado" title="Estado">${Object.entries(ACC_ESTADOS).map(([k,v])=>`<option value="${k}">${v.texto}</option>`).join('')}</select>
+        </div>
+        <input class="field-input" id="acc-notas" placeholder="Notas (opcional)" style="margin-top:8px" onkeydown="if(event.key==='Enter'){event.preventDefault();guardarAccesorio('${eq.id}')}">
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn btn-primary btn-sm" id="acc-btn" onclick="ejecutarConCarga(this, () => guardarAccesorio('${eq.id}'))"><i class="ti ti-plus" aria-hidden="true"></i> Agregar</button>
+          <button class="btn btn-ghost btn-sm" id="acc-cancelar" style="display:none" onclick="cancelarEdicionAccesorio()">Cancelar edición</button>
+        </div>
+      </div>
     </div>
     <div class="panel-section">
       <div class="panel-section-title">DOCUMENTOS</div>
@@ -3497,6 +3573,10 @@ async function guardarEdicionEquipo(id) {
   // Si dejaste un documento capturado en "Agregar documento", también se sube
   if (document.getElementById('ed-archivo')?.files?.[0] || document.getElementById('ed-vence')?.value) {
     await agregarDocumentoEquipo(id);
+  }
+  // Igual con un accesorio que quedó escrito sin darle "Agregar"
+  if (document.getElementById('acc-nombre')?.value.trim()) {
+    if (!(await guardarAccesorio(id))) return;
   }
   const coordsParseadas = parsearCoordenadas(document.getElementById('ve-coords')?.value.trim());
   const datos = {
@@ -3988,6 +4068,103 @@ function renderDocsEquipo(eq) {
       </div>
     </div>`;
   }).join('');
+}
+
+// ─── Accesorios / contenido del equipo (solo inventario) ─────────────────────
+const ACC_ESTADOS = {
+  ok:       { texto: 'En buen estado', corto: 'OK',       color: 'var(--green)' },
+  danado:   { texto: 'Dañado',         corto: 'DAÑADO',   color: 'var(--amber)' },
+  faltante: { texto: 'Faltante',       corto: 'FALTANTE', color: 'var(--red-text)' },
+};
+function resumenAccesorios(eq) {
+  const lista = eq.accesorios || [];
+  const piezas = lista.reduce((a, x) => a + (x.cantidad || 1), 0);
+  const problemas = lista.filter(x => x.estado === 'danado' || x.estado === 'faltante').length;
+  return { lista, piezas, problemas };
+}
+function renderAccesoriosEquipo(eq) {
+  const { lista, piezas, problemas } = resumenAccesorios(eq);
+  if (!lista.length) return `<div style="font-size:12px;color:var(--text3);margin-bottom:8px">Sin accesorios registrados. Agrega lo que trae este equipo (${eq.tipo==='drone'?'baterías con su N/S, control, hélices, cargador…':'arnés, mosquetones, eslingas, descensor…'}).</div>`;
+  return `<div style="font-size:11px;color:var(--text3);margin-bottom:4px">${lista.length} concepto(s) · ${piezas} pieza(s)${problemas ? ` · <span style="color:var(--amber);font-weight:600">${problemas} con observación</span>` : ''}</div>` +
+    lista.map(a => {
+      const est = ACC_ESTADOS[a.estado] || ACC_ESTADOS.ok;
+      return `<div class="acc-fila${STATE._accEditando===a.id?' editando':''}">
+        <div style="min-width:0;flex:1">
+          <div style="color:var(--text);font-weight:600;font-size:12px">${escHtml(a.nombre)}${(a.cantidad||1) > 1 ? ` <span style="color:var(--text3);font-weight:500">×${a.cantidad}</span>` : ''}</div>
+          <div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis">${a.numero_serie ? `<span class="td-mono">N/S ${escHtml(a.numero_serie)}</span>` : ''}${a.numero_serie && a.notas ? ' · ' : ''}${a.notas ? escHtml(a.notas) : ''}</div>
+        </div>
+        ${a.estado !== 'ok' ? `<span style="font-size:9.5px;font-weight:700;letter-spacing:.05em;color:${est.color}">${est.corto}</span>` : ''}
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="btn btn-ghost btn-sm" onclick="editarAccesorio('${eq.id}',${a.id})" title="Editar"><i class="ti ti-pencil" aria-hidden="true"></i></button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="ejecutarConCarga(this, () => eliminarAccesorio('${eq.id}',${a.id}))" title="Quitar"><i class="ti ti-trash" aria-hidden="true"></i></button>
+        </div>
+      </div>`;
+    }).join('');
+}
+function limpiarFormAccesorio() {
+  ['acc-nombre','acc-serie','acc-notas'].forEach(i => { const el = document.getElementById(i); if (el) el.value = ''; });
+  const c = document.getElementById('acc-cantidad'); if (c) c.value = 1;
+  const e = document.getElementById('acc-estado'); if (e) e.value = 'ok';
+  // después de que ejecutarConCarga restaure el botón
+  setTimeout(() => { const b = document.getElementById('acc-btn'); if (b && !STATE._accEditando) b.innerHTML = '<i class="ti ti-plus" aria-hidden="true"></i> Agregar'; }, 0);
+  const x = document.getElementById('acc-cancelar'); if (x) x.style.display = 'none';
+}
+function editarAccesorio(eqId, accId) {
+  const eq = (STATE.equipos||[]).find(e => e.id === eqId);
+  const a = (eq?.accesorios||[]).find(x => x.id === accId);
+  if (!a) return;
+  STATE._accEditando = accId;
+  document.getElementById('acc-nombre').value = a.nombre || '';
+  document.getElementById('acc-cantidad').value = a.cantidad || 1;
+  document.getElementById('acc-serie').value = a.numero_serie || '';
+  document.getElementById('acc-estado').value = a.estado || 'ok';
+  document.getElementById('acc-notas').value = a.notas || '';
+  document.getElementById('acc-btn').innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Guardar accesorio';
+  document.getElementById('acc-cancelar').style.display = '';
+  document.getElementById('ve-acc-list').innerHTML = renderAccesoriosEquipo(eq);
+  document.getElementById('acc-nombre').focus();
+}
+function cancelarEdicionAccesorio() {
+  STATE._accEditando = null;
+  limpiarFormAccesorio();
+  const lista = document.getElementById('ve-acc-list');
+  if (lista) lista.querySelectorAll('.acc-fila.editando').forEach(f => f.classList.remove('editando'));
+}
+async function guardarAccesorio(eqId) {
+  const nombre = document.getElementById('acc-nombre')?.value.trim();
+  if (!nombre) { toast('Escribe el nombre del accesorio', 'error'); document.getElementById('acc-nombre')?.focus(); return false; }
+  const cantidad = Math.max(1, parseInt(document.getElementById('acc-cantidad')?.value, 10) || 1);
+  const datos = {
+    nombre, cantidad,
+    numero_serie: document.getElementById('acc-serie')?.value.trim() || null,
+    estado: document.getElementById('acc-estado')?.value || 'ok',
+    notas: document.getElementById('acc-notas')?.value.trim() || null,
+  };
+  const editando = STATE._accEditando;
+  const r = editando
+    ? await api('PUT', `/equipos/${eqId}/accesorios/${editando}`, datos)
+    : await api('POST', `/equipos/${eqId}/accesorios`, datos);
+  if (!r) return false;
+  STATE._accEditando = null;
+  const eq = await refrescarEquipo(eqId);
+  const lista = document.getElementById('ve-acc-list');
+  if (eq && lista) lista.innerHTML = renderAccesoriosEquipo(eq);
+  limpiarFormAccesorio();
+  document.getElementById('acc-nombre')?.focus();
+  toast(editando ? 'Accesorio actualizado' : 'Accesorio agregado');
+  return true;
+}
+async function eliminarAccesorio(eqId, accId) {
+  const eq0 = (STATE.equipos||[]).find(e => e.id === eqId);
+  const a = (eq0?.accesorios||[]).find(x => x.id === accId);
+  if (!confirm(`¿Quitar "${a?.nombre || 'este accesorio'}" del inventario de este equipo?`)) return;
+  const r = await api('DELETE', `/equipos/${eqId}/accesorios/${accId}`);
+  if (!r) return;
+  if (STATE._accEditando === accId) { STATE._accEditando = null; limpiarFormAccesorio(); }
+  const eq = await refrescarEquipo(eqId);
+  const lista = document.getElementById('ve-acc-list');
+  if (eq && lista) lista.innerHTML = renderAccesoriosEquipo(eq);
+  toast('Accesorio quitado');
 }
 
 async function refrescarEquipo(id) {
@@ -4809,6 +4986,7 @@ async function exportarExcelDatos() {
 // ─── SECCIÓN: PERMISOS DE EXPORTACIÓN (solo administrador) ───────────────────
 async function renderPermisos() {
   const usuarios = await api('GET', '/auth/auth/usuarios') || [];
+  STATE._conexCargadasEn = 0;   // la lista de cuentas ya trae la última conexión fresca
   const etiquetaRol = { administrador: 'Administrador', director_proyecto: 'Director de Proyecto', tecnico: 'Técnico de campo' };
   const orden = { administrador: 0, director_proyecto: 1, tecnico: 2 };
   const lista = usuarios.slice().sort((a,b) => (orden[a.rol]-orden[b.rol]) || a.nombre.localeCompare(b.nombre,'es'));
@@ -4827,6 +5005,7 @@ async function renderPermisos() {
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;color:var(--text);font-weight:600">${escHtml(u.nombre)}</div>
             <div style="font-size:11px;color:var(--text3)">${escHtml(u.email)} · ${etiquetaRol[u.rol] || u.rol}${u.empleado_id ? '' : ' · solo gestión'}${u.activo ? '' : ' · desactivada'}</div>
+            <div style="margin-top:2px">${htmlUltimaVez(u.ultima_conexion ?? null)}</div>
           </div>
           ${esAdmin ? `<span class="badge badge-libre">SIEMPRE</span>`
             : !aplica ? `<span style="font-size:11px;color:var(--text3)">No aplica</span>`
@@ -5884,7 +6063,7 @@ async function renderChecador() {
 
 async function checarAhora(tipo) {
   const proyectoId = document.getElementById('chk-proyecto')?.value || null;
-  const r = await api('POST', '/checador', { tipo, proyecto_id: proyectoId });   // sin hora: la pone el servidor
+  const r = await api('POST', '/checador', { tipo, proyecto_id: proyectoId, tz_offset_min: new Date().getTimezoneOffset() });   // sin hora: el servidor pone la hora local del celular
   if (!r) return;
   toast(`${tipo === 'entrada' ? 'Entrada' : 'Salida'} registrada · ${new Date(r.fecha_hora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`);
   renderChecador();
@@ -5895,7 +6074,7 @@ async function checarManual(tipo) {
   const proyectoId = document.getElementById('chk-proyecto')?.value || null;
   if (!fechaHora) { toast('Indica la fecha y hora real', 'error'); return; }
   if (!motivo) { toast('Escribe el motivo del registro manual', 'error'); return; }
-  const r = await api('POST', '/checador', { tipo, fecha_hora: fechaHora, proyecto_id: proyectoId, motivo_manual: motivo });
+  const r = await api('POST', '/checador', { tipo, fecha_hora: fechaHora, proyecto_id: proyectoId, motivo_manual: motivo, tz_offset_min: new Date().getTimezoneOffset() });
   if (!r) return;
   toast(`${tipo === 'entrada' ? 'Entrada' : 'Salida'} manual registrada`);
   renderChecador();
@@ -5904,7 +6083,7 @@ async function marcarEntrada() {
   const fechaHora = document.getElementById('chk-fecha-hora')?.value;
   const proyectoId = document.getElementById('chk-proyecto')?.value || null;
   if (!fechaHora) { toast('Elige la fecha y hora','error'); return; }
-  const r = await api('POST', '/checador', { tipo: 'entrada', fecha_hora: fechaHora, proyecto_id: proyectoId });
+  const r = await api('POST', '/checador', { tipo: 'entrada', fecha_hora: fechaHora, proyecto_id: proyectoId, tz_offset_min: new Date().getTimezoneOffset() });
   if (!r) { toast('Error al registrar la entrada','error'); return; }
   toast('Entrada registrada');
   renderChecador();
@@ -5913,7 +6092,7 @@ async function marcarSalida() {
   const fechaHora = document.getElementById('chk-fecha-hora')?.value;
   const proyectoId = document.getElementById('chk-proyecto')?.value || null;
   if (!fechaHora) { toast('Elige la fecha y hora','error'); return; }
-  const r = await api('POST', '/checador', { tipo: 'salida', fecha_hora: fechaHora, proyecto_id: proyectoId });
+  const r = await api('POST', '/checador', { tipo: 'salida', fecha_hora: fechaHora, proyecto_id: proyectoId, tz_offset_min: new Date().getTimezoneOffset() });
   if (!r) { toast('Error al registrar la salida','error'); return; }
   toast('Salida registrada');
   renderChecador();
