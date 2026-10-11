@@ -4261,12 +4261,18 @@ const ACC_SVG = {
   crawler: '<rect x="2" y="13.5" width="20" height="7" rx="3.5"/><circle cx="5.5" cy="17" r="1.4"/><circle cx="12" cy="17" r="1.4"/><circle cx="18.5" cy="17" r="1.4"/><path d="M5 13.5v-3A1.5 1.5 0 0 1 6.5 9h9"/><path d="M15.5 9V6.5"/><rect x="13.5" y="3" width="6.5" height="3.5" rx="1.2"/><path d="M20 4.75h1.5"/>',
   carrete: '<circle cx="9" cy="11" r="7"/><circle cx="9" cy="11" r="2"/><path d="M9 6.5a4.5 4.5 0 0 1 4.5 4.5"/><path d="M16 11h2.5a2 2 0 0 1 2 2v8"/><path d="M5 17.2L3.5 21h11L13 17.2"/>',
   antitrauma: '<rect x="6.5" y="2" width="11" height="5" rx="1.6"/><path d="M9 7v8.5M15 7v8.5"/><path d="M9 15.5c0 5 6 5 6 0"/><rect x="10.3" y="10" width="3.4" height="2.4" rx=".6"/><path d="M9 11.2h1.3M13.7 11.2H15"/>',
+  careta: '<path d="M5.5 7.5a6.5 4.5 0 0 1 13 0"/><path d="M3.5 7.5h17v5.5a8.5 8.5 0 0 1-17 0z"/><path d="M9.5 11.2v.6M14.5 11.2v.6"/><path d="M10.3 15.5c1 .7 2.4 .7 3.4 0"/>',
+  pantalon: '<path d="M6.5 2.5h11l1.5 19h-4.8L12 9.5 9.8 21.5H5z"/><path d="M6.3 5.5h11.4"/>',
+  chamarra: '<path d="M8.5 3L4.2 5.2 2.5 12.5l3 .8V21h13v-7.7l3-.8-1.7-7.3L15.5 3"/><path d="M8.5 3c1 1.6 2.1 2.3 3.5 2.3S14.5 4.6 15.5 3"/><path d="M12 5.3V21"/><path d="M5.5 13.3V9M18.5 13.3V9"/>',
   descensor: '<path d="M9.5 1.5V4"/><rect x="6.5" y="4" width="9" height="15" rx="4.5"/><circle cx="11" cy="10" r="2"/><path d="M15.5 9.5l4-4.5"/><circle cx="20" cy="4.5" r=".8"/><path d="M11 19v3.5"/>',
 };
 const svgAcc = (k, extra = '') => `<svg class="acc-svg" ${extra} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ACC_SVG[k] || ''}</svg>`;
 // Ícono de accesorio como HTML: de Tabler ("ti-…") o propio ("svg:…")
 const htmlIconoAcc = ic => ic.startsWith('svg:') ? svgAcc(ic.slice(4)) : `<i class="ti ${ic}" aria-hidden="true"></i>`;
 const ACC_ICONOS = [
+  [/CARETA|PROTECTOR FACIAL|VISOR/, 'svg:careta'],
+  [/PANTALON/, 'svg:pantalon'],
+  [/CHAMARRA|CHAQUETA|CAMISOLA|OVEROL|CHALECO/, 'svg:chamarra'],
   [/ANTITRAUMA|TRAUMA/, 'svg:antitrauma'],
   [/CARRETE|BOBINA|TETHER|ENROLLADOR/, 'svg:carrete'],
   [/CRAWLER|\bROBOT\b|\bROV\b|ORUGA/, 'svg:crawler'],
