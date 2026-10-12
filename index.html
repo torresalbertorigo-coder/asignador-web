@@ -573,6 +573,12 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .srv-tipos span i{font-size:20px}
 .srv-tipos input:checked + span{border-color:var(--red);color:var(--text);box-shadow:inset 0 0 0 1px var(--red)}
 .srv-tipos input:checked + span i{color:var(--red)}
+.stats-grid.eq-stats{grid-template-columns:repeat(6,minmax(0,1fr))}
+@media (max-width:768px){.stats-grid.eq-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.eq-stats .stat-card.filtrable{cursor:pointer;transition:border-color .15s,box-shadow .15s,opacity .15s}
+.eq-stats .stat-card.filtrable:hover{border-color:var(--border2)}
+.eq-stats .stat-card.activo{border-color:var(--red)!important;box-shadow:inset 0 0 0 1px var(--red)}
+.eq-stats:has(.stat-card.activo:not([data-k=""])) .stat-card:not(.activo){opacity:.6}
 .eq-toolbar{display:flex;flex-direction:column;gap:10px;margin:4px 0 16px}
 .eq-buscar{max-width:none}
 .eq-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
@@ -3643,11 +3649,9 @@ async function renderEquipos() {
       <strong>${calVencidos ? `${calVencidos} calibración(es) vencida(s)` : ''}${calVencidos && calPorVencer ? ' y ' : ''}${calPorVencer ? `${calPorVencer} por vencer en los próximos 30 días` : ''}</strong>
       <span style="margin-left:auto;color:var(--text3)">Ver detalle →</span>
     </div>` : ''}
-    <div class="stats-grid">
-      <div class="stat-card c-red"><div class="stat-lbl">TOTAL EQUIPOS</div><div class="stat-val">${equipos.length}</div><div class="stat-sub">en inventario</div></div>
-      <div class="stat-card c-green"><div class="stat-lbl">DISPONIBLES</div><div class="stat-val">${disp}</div><div class="stat-sub">listos para uso</div></div>
-      <div class="stat-card c-amber"><div class="stat-lbl">EN MANTENIMIENTO</div><div class="stat-val">${mant}</div><div class="stat-sub">fuera de servicio</div></div>
-      <div class="stat-card"><div class="stat-lbl">EN USO</div><div class="stat-val">${equipos.filter(e=>e.proyecto_actual_nombre).length}</div><div class="stat-sub">asignados a proyecto</div></div>
+    <div class="stats-grid eq-stats" id="eq-stats">
+      ${EQ_FILTROS_ESTADO.map(f => `<div class="stat-card filtrable ${f.clase}${f.k && STATE._eqEstado === f.k ? ' activo' : ''}" data-k="${f.k}" onclick="filtrarEquiposPorEstado('${f.k}')" title="${f.k ? 'Mostrar solo: ' + f.lbl.toLowerCase() : 'Mostrar todos'}">
+        <div class="stat-lbl">${f.lbl}</div><div class="stat-val">${equipos.filter(f.fn).length}</div><div class="stat-sub">${f.sub}</div></div>`).join('')}
     </div>
     <div class="eq-toolbar">
       <div class="search-box eq-buscar"><i class="ti ti-search" aria-hidden="true"></i><input class="field-input" id="eq-buscar" placeholder="Buscar por apodo, nombre, tipo, N/S, ciudad, accesorio…" value="${escHtml(STATE._eqBuscar || '')}" oninput="STATE._eqBuscar=this.value;pintarListaEquipos()"></div>
@@ -3701,6 +3705,20 @@ function coincideEquipo(eq, q) {
   if (acc) return `${escHtml(acc.nombre)}${acc.numero_serie ? ` · <span class="td-mono">${escHtml(acc.numero_serie)}</span>` : ''}`;
   return null;
 }
+// Tarjetas de resumen que también sirven de filtro (se combinan con pestañas de tipo y buscador)
+const EQ_FILTROS_ESTADO = [
+  { k: '',            lbl: 'TOTAL EQUIPOS', sub: 'en inventario',            clase: 'c-red',   fn: () => true },
+  { k: 'disponibles', lbl: 'DISPONIBLES',   sub: 'listos para uso',          clase: 'c-green', fn: eq => eq.estado === 'disponible' && !eq.proyecto_actual_nombre && !servicioActivo(eq) },
+  { k: 'servicio',    lbl: 'EN SERVICIO',   sub: 'calibración / mantenimiento', clase: 'c-amber', fn: eq => !!servicioActivo(eq) || eq.estado === 'mantenimiento' },
+  { k: 'uso',         lbl: 'EN USO',        sub: 'asignados a proyecto',     clase: '',        fn: eq => !!eq.proyecto_actual_nombre },
+  { k: 'porvencer',   lbl: 'POR VENCER',    sub: 'calibración en 30 días',   clase: 'c-amber', fn: eq => calibracionEquipo(eq, new Date(new Date().toDateString())).grupo === 'porVencer' },
+  { k: 'vencidos',    lbl: 'VENCIDOS',      sub: 'calibración vencida',      clase: 'c-red',   fn: eq => calibracionEquipo(eq, new Date(new Date().toDateString())).grupo === 'vencida' },
+];
+function filtrarEquiposPorEstado(k) {
+  STATE._eqEstado = (STATE._eqEstado || '') === k ? '' : k;   // tocar el activo lo quita
+  document.querySelectorAll('#eq-stats .stat-card').forEach(c => c.classList.toggle('activo', !!c.dataset.k && c.dataset.k === STATE._eqEstado));
+  pintarListaEquipos();
+}
 function pintarListaEquipos() {
   const cont = document.getElementById('eq-lista'), tabsEl = document.getElementById('eq-tabs');
   if (!cont) return;
@@ -3708,7 +3726,8 @@ function pintarListaEquipos() {
   const q = normBusq((STATE._eqBuscar || '').trim());
   const cmp = (a, b) => String(a || '').localeCompare(String(b || ''), 'es', { numeric: true, sensitivity: 'base' });
   // Coincidencias del buscador (aplica a todas las pestañas, y los contadores lo reflejan)
-  const encontrados = equipos.map(eq => ({ eq, c: coincideEquipo(eq, q) })).filter(x => x.c !== null);
+  const filtroEst = EQ_FILTROS_ESTADO.find(f => f.k === (STATE._eqEstado || '')) || EQ_FILTROS_ESTADO[0];
+  const encontrados = equipos.filter(filtroEst.fn).map(eq => ({ eq, c: coincideEquipo(eq, q) })).filter(x => x.c !== null);
   const tipos = [...new Set(equipos.map(e => e.tipo || 'otro'))].sort((a, b) => cmp(etiquetaEquipo(a), etiquetaEquipo(b)));
   if (STATE._eqTipo && !tipos.includes(STATE._eqTipo)) STATE._eqTipo = '';
   const tipoSel = STATE._eqTipo || '';
@@ -3717,7 +3736,7 @@ function pintarListaEquipos() {
     .map(([t, lab, ic]) => `<button type="button" class="eq-tab${tipoSel === t ? ' activa' : ''}${q && !cuenta(t) ? ' vacia' : ''}" onclick="STATE._eqTipo='${t}';pintarListaEquipos()"><i class="ti ${ic}" aria-hidden="true"></i>${escHtml(lab)}<span>${cuenta(t)}</span></button>`).join('');
   const visibles = encontrados.filter(x => !tipoSel || (x.eq.tipo || 'otro') === tipoSel);
   if (!equipos.length) { cont.innerHTML = '<div class="empty-state"><i class="ti ti-tool" aria-hidden="true"></i><p>Aún no hay equipo registrado</p></div>'; return; }
-  if (!visibles.length) { cont.innerHTML = `<div class="empty-state"><i class="ti ti-search-off" aria-hidden="true"></i><p>Sin resultados${q ? ` para “${escHtml(STATE._eqBuscar.trim())}”` : ''}</p></div>`; return; }
+  if (!visibles.length) { cont.innerHTML = `<div class="empty-state"><i class="ti ti-search-off" aria-hidden="true"></i><p>Sin resultados${q ? ` para “${escHtml(STATE._eqBuscar.trim())}”` : ''}${filtroEst.k ? ` en “${filtroEst.lbl.toLowerCase()}”` : ''}</p>${filtroEst.k ? `<button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="filtrarEquiposPorEstado('')">Ver todos</button>` : ''}</div>`; return; }
   // Agrupado por tipo (en "Todos") y ordenado por apodo dentro de cada grupo
   const grupos = (tipoSel ? [tipoSel] : tipos).map(t => [t, visibles.filter(x => (x.eq.tipo || 'otro') === t)
     .sort((a, b) => cmp(a.eq.apodo || a.eq.nombre, b.eq.apodo || b.eq.nombre))]).filter(([, l]) => l.length);
