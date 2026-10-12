@@ -368,7 +368,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .panel-tab.active{color:var(--text);border-bottom-color:var(--red)}
 .badge-orange{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border)}
 .badge-gray{background:var(--gray-bg);color:var(--gray);border:1px solid var(--gray-border)}
-.map-container{height:calc(100vh - 175px);min-height:420px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
+.map-container{height:calc(100vh - 175px);min-height:0;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
 .marker-pulso{animation:pulsoMapa 2.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center;filter:blur(2.5px)}
 .marker-suave{animation:latidoMapa 2.2s ease-in-out infinite;filter:blur(1.2px)}
 @keyframes latidoMapa{
@@ -386,20 +386,21 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .leaflet-control-zoom a{background:var(--surface)!important;color:var(--text)!important;border-color:var(--border)!important}
 .leaflet-control-attribution{background:rgba(0,0,0,.4)!important;color:var(--text3)!important}
 .leaflet-control-attribution a{color:var(--text2)!important}
-.mapa-leyenda{background:color-mix(in srgb, var(--surface) 88%, transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--border2);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.3);color:var(--text);font-family:var(--sans);min-width:190px;max-width:250px;overflow:hidden;margin:0 0 14px 12px!important}
-.mapa-leyenda .ley-head{display:flex;align-items:center;gap:7px;width:100%;padding:9px 12px;background:none;border:0;color:var(--text2);font:inherit;font-size:11px;font-weight:700;letter-spacing:.03em;cursor:pointer;text-align:left}
-.mapa-leyenda .ley-head i{font-size:14px}
-.mapa-leyenda .ley-flecha{margin-left:auto;color:var(--text3)}
-.mapa-leyenda .ley-cuerpo{padding:2px 12px 10px;max-height:46vh;overflow:auto}
+.mapa-leyenda{background:color-mix(in srgb, var(--surface) 52%, transparent);backdrop-filter:blur(8px) saturate(1.2);-webkit-backdrop-filter:blur(8px) saturate(1.2);border:1px solid color-mix(in srgb, var(--border2) 55%, transparent);border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.18);color:var(--text);font-family:var(--sans);min-width:150px;max-width:220px;overflow:hidden;margin:0 0 14px 12px!important}
+.mapa-leyenda .ley-head{display:flex;align-items:center;gap:6px;width:100%;padding:7px 10px;background:none;border:0;color:var(--text3);font:inherit;font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;cursor:pointer;text-align:left}
+.mapa-leyenda .ley-head i{font-size:12px}
+.mapa-leyenda .ley-head > i:first-child{display:none}
+.mapa-leyenda .ley-flecha{margin-left:auto;opacity:.7}
+.mapa-leyenda .ley-cuerpo{padding:0 10px 8px;max-height:46vh;overflow:auto}
 .mapa-leyenda.plegada .ley-cuerpo{display:none}
-.mapa-leyenda .ley-grupo + .ley-grupo{margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
-.mapa-leyenda .ley-tit{display:flex;align-items:center;gap:5px;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:4px}
-.mapa-leyenda .ley-tit i{font-size:12px}
-.mapa-leyenda .ley-item{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:11.5px}
-.mapa-leyenda .ley-punto{width:10px;height:10px;border-radius:50%;border:1.5px solid #fff;flex-shrink:0;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
-.mapa-leyenda .ley-txt{flex:1;color:var(--text)}
-.mapa-leyenda .ley-n{font-family:var(--mono);font-size:10.5px;color:var(--text3)}
-@media (max-width:768px){.mapa-leyenda{min-width:0;max-width:200px;margin:0 0 10px 8px!important}.mapa-leyenda .ley-item{font-size:11px}}
+.mapa-leyenda .ley-grupo + .ley-grupo{margin-top:6px;padding-top:6px;border-top:1px solid color-mix(in srgb, var(--border) 60%, transparent)}
+.mapa-leyenda .ley-tit{font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:2px;opacity:.85}
+.mapa-leyenda .ley-tit i{display:none}
+.mapa-leyenda .ley-item{display:flex;align-items:center;gap:7px;padding:2px 0;font-size:11px}
+.mapa-leyenda .ley-punto{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.mapa-leyenda .ley-txt{flex:1;color:var(--text2)}
+.mapa-leyenda .ley-n{font-family:var(--mono);font-size:10px;color:var(--text3)}
+@media (max-width:768px){.mapa-leyenda{max-width:180px;margin:0 0 10px 8px!important}}
 .mapa-tooltip{background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--border2)!important;font-size:10px!important;font-weight:600;padding:2px 6px!important;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .mapa-tooltip::before{border-top-color:var(--border2)!important}
 .badge-prog{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
@@ -5253,10 +5254,25 @@ async function renderMapa() {
   setTimeout(inicializarMapa, 30);
 }
 
+// El mapa ocupa exactamente el alto que queda en pantalla: sin barra de desplazamiento
+function ajustarAlturaMapa() {
+  const cont = document.getElementById('map-container');
+  if (!cont || !cont.isConnected) return;
+  const scroller = document.getElementById('main-content');
+  if (scroller) scroller.scrollTop = 0;
+  const padInf = scroller ? parseFloat(getComputedStyle(scroller).paddingBottom) || 0 : 0;
+  const limite = scroller ? Math.min(window.innerHeight, scroller.getBoundingClientRect().bottom) : window.innerHeight;
+  const alto = Math.max(260, Math.floor(limite - cont.getBoundingClientRect().top - padInf - 2));
+  cont.style.height = alto + 'px';
+  if (MAPA_LEAFLET) MAPA_LEAFLET.invalidateSize();
+}
+window.addEventListener('resize', () => { if (document.getElementById('map-container')) ajustarAlturaMapa(); });
+
 function inicializarMapa() {
   const cont = document.getElementById('map-container');
   if (!cont || typeof L === 'undefined') return;
   if (MAPA_LEAFLET) { MAPA_LEAFLET.remove(); MAPA_LEAFLET = null; }
+  ajustarAlturaMapa();
   MAPA_LEAFLET = L.map('map-container', { zoomControl: true }).setView([23.6345, -102.5528], 5);
   MAPA_LEYENDA = L.control({ position: 'bottomleft' });
   MAPA_LEYENDA.onAdd = () => {
@@ -5456,6 +5472,7 @@ function actualizarMapa() {
   const conteo = document.getElementById('mapa-conteo');
   if (conteo) conteo.textContent = `${n} punto(s) en el mapa`;
   pintarLeyendaMapa(leyenda);
+  ajustarAlturaMapa();   // los filtros pueden cambiar de alto (p. ej. al mostrar fechas)
 }
 
 function pintarLeyendaMapa(leyenda) {
@@ -5467,7 +5484,7 @@ function pintarLeyendaMapa(leyenda) {
   try { plegada = localStorage.getItem('ws_leyenda_plegada') === '1'; } catch (e) {}
   const icono = { 'Proyectos': 'ti-folder', 'Personal': 'ti-users', 'Equipo': 'ti-tool', 'Vehículos': 'ti-car' };
   div.classList.toggle('plegada', plegada);
-  div.innerHTML = `<button type="button" class="ley-head" onclick="plegarLeyendaMapa()"><i class="ti ti-info-circle" aria-hidden="true"></i>Qué significa cada color<i class="ti ti-chevron-${plegada ? 'up' : 'down'} ley-flecha" aria-hidden="true"></i></button>
+  div.innerHTML = `<button type="button" class="ley-head" onclick="plegarLeyendaMapa()"><i class="ti ti-info-circle" aria-hidden="true"></i>Simbología<i class="ti ti-chevron-${plegada ? 'up' : 'down'} ley-flecha" aria-hidden="true"></i></button>
     <div class="ley-cuerpo">${[...leyenda.entries()].map(([grupo, colores]) => `
       <div class="ley-grupo"><div class="ley-tit"><i class="ti ${icono[grupo] || 'ti-point'}" aria-hidden="true"></i>${grupo}</div>
       ${[...colores.entries()].sort((a, b) => b[1].n - a[1].n).map(([color, it]) => `
