@@ -386,6 +386,20 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .leaflet-control-zoom a{background:var(--surface)!important;color:var(--text)!important;border-color:var(--border)!important}
 .leaflet-control-attribution{background:rgba(0,0,0,.4)!important;color:var(--text3)!important}
 .leaflet-control-attribution a{color:var(--text2)!important}
+.mapa-leyenda{background:color-mix(in srgb, var(--surface) 88%, transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--border2);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.3);color:var(--text);font-family:var(--sans);min-width:190px;max-width:250px;overflow:hidden;margin:0 0 14px 12px!important}
+.mapa-leyenda .ley-head{display:flex;align-items:center;gap:7px;width:100%;padding:9px 12px;background:none;border:0;color:var(--text2);font:inherit;font-size:11px;font-weight:700;letter-spacing:.03em;cursor:pointer;text-align:left}
+.mapa-leyenda .ley-head i{font-size:14px}
+.mapa-leyenda .ley-flecha{margin-left:auto;color:var(--text3)}
+.mapa-leyenda .ley-cuerpo{padding:2px 12px 10px;max-height:46vh;overflow:auto}
+.mapa-leyenda.plegada .ley-cuerpo{display:none}
+.mapa-leyenda .ley-grupo + .ley-grupo{margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.mapa-leyenda .ley-tit{display:flex;align-items:center;gap:5px;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:4px}
+.mapa-leyenda .ley-tit i{font-size:12px}
+.mapa-leyenda .ley-item{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:11.5px}
+.mapa-leyenda .ley-punto{width:10px;height:10px;border-radius:50%;border:1.5px solid #fff;flex-shrink:0;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
+.mapa-leyenda .ley-txt{flex:1;color:var(--text)}
+.mapa-leyenda .ley-n{font-family:var(--mono);font-size:10.5px;color:var(--text3)}
+@media (max-width:768px){.mapa-leyenda{min-width:0;max-width:200px;margin:0 0 10px 8px!important}.mapa-leyenda .ley-item{font-size:11px}}
 .mapa-tooltip{background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--border2)!important;font-size:10px!important;font-weight:600;padding:2px 6px!important;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .mapa-tooltip::before{border-top-color:var(--border2)!important}
 .badge-prog{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
@@ -870,6 +884,7 @@ let STATE = { token: null, user: null, rol: null, empleados: [], proyectos: [], 
 let MAPA_LEAFLET = null;
 let MAPA_TILE_LAYER = null;
 let MAPA_MARKERS = [];
+let MAPA_LEYENDA = null;   // control de Leaflet con la leyenda dinámica
 
 // ─── TEMA (claro/oscuro) ──────────────────────────────────────────────────────
 function aplicarTema(tema) {
@@ -1036,7 +1051,7 @@ function doLogout(motivo) {
   document.getElementById('app').classList.remove('visible');
   closePanelSilencioso?.();
   const err = document.getElementById('login-error');
-  if (err) err.textContent = motivo === 'reemplazada' ? 'Tu sesión se cerró porque se inició sesión con tu cuenta en otro dispositivo.'
+  if (err) err.textContent = motivo === 'reemplazada' ? 'Tu sesión se cerró: tu cuenta se abrió en un 4.º dispositivo y esta era la sesión más antigua (máximo 3 a la vez).'
     : motivo === 'expirada' ? 'Tu sesión expiró. Vuelve a entrar.' : '';
 }
 function closePanelSilencioso() { try { STATE._panelDirty = false; document.getElementById('panel-overlay')?.classList.remove('open'); } catch (e) {} }
@@ -5243,6 +5258,13 @@ function inicializarMapa() {
   if (!cont || typeof L === 'undefined') return;
   if (MAPA_LEAFLET) { MAPA_LEAFLET.remove(); MAPA_LEAFLET = null; }
   MAPA_LEAFLET = L.map('map-container', { zoomControl: true }).setView([23.6345, -102.5528], 5);
+  MAPA_LEYENDA = L.control({ position: 'bottomleft' });
+  MAPA_LEYENDA.onAdd = () => {
+    const div = L.DomUtil.create('div', 'mapa-leyenda');
+    L.DomEvent.disableClickPropagation(div); L.DomEvent.disableScrollPropagation(div);
+    return div;
+  };
+  MAPA_LEYENDA.addTo(MAPA_LEAFLET);
   aplicarTileMapa();
   actualizarMapa();
 }
@@ -5306,6 +5328,14 @@ function actualizarMapa() {
   if (!MAPA_LEAFLET) return;
   MAPA_MARKERS.forEach(m => MAPA_LEAFLET.removeLayer(m));
   MAPA_MARKERS = [];
+  // Leyenda: solo lo que de verdad quedó pintado en el mapa (grupo → color → significado y conteo)
+  const leyenda = new Map();
+  const anotar = (grupo, color, texto) => {
+    if (!leyenda.has(grupo)) leyenda.set(grupo, new Map());
+    const g = leyenda.get(grupo);
+    if (!g.has(color)) g.set(color, { textos: new Set(), n: 0 });
+    const it = g.get(color); it.textos.add(texto); it.n++;
+  };
 
   const verProy = document.getElementById('mapa-f-proyectos')?.checked;
   const verPers = document.getElementById('mapa-f-personal')?.checked;
@@ -5346,6 +5376,7 @@ function actualizarMapa() {
       if (busqueda && !p.nombre.toLowerCase().includes(busqueda)) return;
       const estadoVis = estadoProyectoVisible(p);
       const color = coloresProyecto[estadoVis] || '#6b7280';
+      anotar('Proyectos', color, etiquetasEstadoPry[estadoVis] || 'Otro');
       const anillo = L.circleMarker([p.latitud, p.longitud], { radius: 8, className: 'marker-pulso', color: 'transparent', weight: 0, fillColor: color, fillOpacity: .6, interactive: false }).addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(anillo);
       const m = L.circleMarker([p.latitud, p.longitud], { radius: 8, className: 'marker-suave', color: '#fff', weight: 1.5, fillColor: color, fillOpacity: 0.9 })
@@ -5368,6 +5399,9 @@ function actualizarMapa() {
       if (!lat || !lon) return;
       const coloresPersonal = { libre:'#22c55e', asignado:'#22c55e', en_preparacion:'#f59e0b', en_espera_inicio:'#f97316', en_proyecto:'#E31C22' };
       const color = enSitio ? '#E31C22' : (coloresPersonal[estadoVisible(e)] || '#6b7280');
+      const estE = estadoVisible(e);
+      anotar('Personal', color, enSitio ? 'En sitio (proyecto iniciado)'
+        : ({ libre: 'Disponible', asignado: 'Asignado, en base', en_preparacion: 'En preparativos', en_espera_inicio: 'Por iniciar', en_proyecto: 'En proyecto' }[estE] || 'Otro'));
       const anillo = L.circleMarker([lat, lon], { radius: 6, className: 'marker-pulso', color: 'transparent', weight: 0, fillColor: color, fillOpacity: .6, interactive: false }).addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(anillo);
       const m = L.circleMarker([lat, lon], { radius: 6, className: 'marker-suave', color: '#fff', weight: 1.5, fillColor: color, fillOpacity: 0.9 })
@@ -5387,6 +5421,7 @@ function actualizarMapa() {
       }
       if (!lat || !lon) return;
       const colorEq = enSitio?'#E31C22':'#a78bfa';
+      anotar('Equipo', colorEq, enSitio ? 'En sitio (proyecto iniciado)' : 'En oficina / base');
       const anillo = L.circleMarker([lat, lon], { radius: 5, className: 'marker-pulso', color: 'transparent', weight: 0, fillColor: colorEq, fillOpacity: .6, interactive: false }).addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(anillo);
       const m = L.circleMarker([lat, lon], { radius: 5, className: 'marker-suave', color: '#fff', weight: 1.5, fillColor: colorEq, fillOpacity: 0.9 })
@@ -5407,6 +5442,7 @@ function actualizarMapa() {
       }
       if (!lat || !lon) return;
       const colorVeh = enSitio ? '#E31C22' : '#14b8a6';
+      anotar('Vehículos', colorVeh, enSitio ? 'En sitio (proyecto iniciado)' : 'En oficina / base');
       const anillo = L.circleMarker([lat, lon], { radius: 5, className: 'marker-pulso', color: 'transparent', weight: 0, fillColor: colorVeh, fillOpacity: .6, interactive: false }).addTo(MAPA_LEAFLET);
       MAPA_MARKERS.push(anillo);
       const m = L.circleMarker([lat, lon], { radius: 5, className: 'marker-suave', color: '#fff', weight: 1.5, fillColor: colorVeh, fillOpacity: 0.9 })
@@ -5419,6 +5455,31 @@ function actualizarMapa() {
 
   const conteo = document.getElementById('mapa-conteo');
   if (conteo) conteo.textContent = `${n} punto(s) en el mapa`;
+  pintarLeyendaMapa(leyenda);
+}
+
+function pintarLeyendaMapa(leyenda) {
+  const div = MAPA_LEYENDA?.getContainer?.();
+  if (!div) return;
+  if (!leyenda.size) { div.style.display = 'none'; return; }
+  div.style.display = '';
+  let plegada = false;
+  try { plegada = localStorage.getItem('ws_leyenda_plegada') === '1'; } catch (e) {}
+  const icono = { 'Proyectos': 'ti-folder', 'Personal': 'ti-users', 'Equipo': 'ti-tool', 'Vehículos': 'ti-car' };
+  div.classList.toggle('plegada', plegada);
+  div.innerHTML = `<button type="button" class="ley-head" onclick="plegarLeyendaMapa()"><i class="ti ti-info-circle" aria-hidden="true"></i>Qué significa cada color<i class="ti ti-chevron-${plegada ? 'up' : 'down'} ley-flecha" aria-hidden="true"></i></button>
+    <div class="ley-cuerpo">${[...leyenda.entries()].map(([grupo, colores]) => `
+      <div class="ley-grupo"><div class="ley-tit"><i class="ti ${icono[grupo] || 'ti-point'}" aria-hidden="true"></i>${grupo}</div>
+      ${[...colores.entries()].sort((a, b) => b[1].n - a[1].n).map(([color, it]) => `
+        <div class="ley-item"><span class="ley-punto" style="background:${color}"></span><span class="ley-txt">${[...it.textos].join(' / ')}</span><span class="ley-n">${it.n}</span></div>`).join('')}
+      </div>`).join('')}</div>`;
+}
+function plegarLeyendaMapa() {
+  const div = MAPA_LEYENDA?.getContainer?.(); if (!div) return;
+  const plegada = !div.classList.contains('plegada');
+  try { localStorage.setItem('ws_leyenda_plegada', plegada ? '1' : '0'); } catch (e) {}
+  div.classList.toggle('plegada', plegada);
+  const f = div.querySelector('.ley-flecha'); if (f) f.className = `ti ti-chevron-${plegada ? 'up' : 'down'} ley-flecha`;
 }
 
 // ─── SECCIÓN: MÉTRICAS DE PROYECTOS ───────────────────────────────────────────
