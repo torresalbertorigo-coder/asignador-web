@@ -579,6 +579,8 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .eq-stats .stat-card.filtrable:hover{border-color:var(--border2)}
 .eq-stats .stat-card.activo{border-color:var(--red)!important;box-shadow:inset 0 0 0 1px var(--red)}
 .eq-stats:has(.stat-card.activo:not([data-k=""])) .stat-card:not(.activo){opacity:.6}
+.ti-spin{display:inline-block;animation:ti-girar 1s linear infinite}
+@keyframes ti-girar{to{transform:rotate(360deg)}}
 .eq-toolbar{display:flex;flex-direction:column;gap:10px;margin:4px 0 16px}
 .eq-buscar{max-width:none}
 .eq-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
@@ -7468,39 +7470,113 @@ Esta fecha es tentativa y está sujeta a confirmación. La disponibilidad de per
   copiarTexto(texto, 'Propuesta copiada');
 }
 
-// ─── ENTREGAR PDF: en celular, compartir (WhatsApp, correo…) o descargar ────
+// ─── ENTREGAR PDF: como PDF o como imagen (JPG), en celular y en computadora ─
 // Los celulares solo dejan abrir el menú de compartir justo después de un toque,
-// y armar el PDF tarda un momento: por eso se pregunta con dos botones.
+// y armar el PDF/las imágenes tarda un momento: por eso se pregunta con botones,
+// y las imágenes se preparan en segundo plano en cuanto aparece la ventanita.
+const PDFJS_URL = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/';
+function cargarPdfJs() {
+  if (window._pdfjsCarga) return window._pdfjsCarga;
+  window._pdfjsCarga = new Promise((ok, no) => {
+    if (window.pdfjsLib) return ok(window.pdfjsLib);
+    const sc = document.createElement('script');
+    sc.src = PDFJS_URL + 'pdf.min.js';
+    sc.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_URL + 'pdf.worker.min.js'; ok(window.pdfjsLib); };
+    sc.onerror = () => { window._pdfjsCarga = null; no(new Error('No se pudo cargar el convertidor de PDF')); };
+    document.head.appendChild(sc);
+  });
+  return window._pdfjsCarga;
+}
+// Cada hoja del PDF -> un canvas con fondo blanco (≈ 220 ppp para que se lea al hacer zoom)
+async function pdfACanvases(doc) {
+  const pdfjs = await cargarPdfJs();
+  const pdf = await pdfjs.getDocument({ data: new Uint8Array(doc.output('arraybuffer')) }).promise;
+  const hojas = [];
+  for (let n = 1; n <= pdf.numPages; n++) {
+    const pag = await pdf.getPage(n);
+    const vp = pag.getViewport({ scale: 3 });
+    const cv = document.createElement('canvas'); cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+    const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height);
+    await pag.render({ canvasContext: cx, viewport: vp }).promise;
+    hojas.push(cv);
+  }
+  return hojas;
+}
+const canvasAJpg = cv => new Promise(ok => cv.toBlob(b => ok(b), 'image/jpeg', 0.9));
+// Varias hojas en una sola imagen (para descargar en computadora): una debajo de otra
+function unirCanvases(hojas) {
+  if (hojas.length === 1) return hojas[0];
+  const sep = 24, w = Math.max(...hojas.map(c => c.width)), h = hojas.reduce((a, c) => a + c.height, 0) + sep * (hojas.length - 1);
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const cx = cv.getContext('2d'); cx.fillStyle = '#e4e4e7'; cx.fillRect(0, 0, w, h);
+  let y = 0; hojas.forEach(c => { cx.drawImage(c, Math.round((w - c.width) / 2), y); y += c.height + sep; });
+  return cv;
+}
+function descargarBlob(blob, nombre) {
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
 function entregarPDF(doc, nombre) {
   let archivo = null;
   try { archivo = new File([doc.output('blob')], nombre, { type: 'application/pdf' }); } catch (e) {}
   const esCel = window.matchMedia('(pointer:coarse)').matches || window.innerWidth <= 768;
   const puedeCompartir = esCel && archivo && navigator.canShare && navigator.canShare({ files: [archivo] });
-  if (!puedeCompartir) { doc.save(nombre); return; }
-  STATE._pdfPendiente = { doc, nombre, archivo };
+  const base = nombre.replace(/\.pdf$/i, '');
+  const p = STATE._pdfPendiente = { doc, nombre, archivo, base, esCel: !!puedeCompartir, imagenes: null };
+  // Las imágenes se preparan desde ya, para que el botón comparta al instante
+  p.preparando = pdfACanvases(doc).then(async hojas => {
+    const blobs = await Promise.all(hojas.map(canvasAJpg));
+    p.imagenes = blobs.map((b, i) => new File([b], `${base}${blobs.length > 1 ? ` - hoja ${i + 1}` : ''}.jpg`, { type: 'image/jpeg' }));
+    p.imagenUnida = blobs.length > 1 ? await canvasAJpg(unirCanvases(hojas)) : blobs[0];
+    p.hojas = blobs.length;
+    const b = document.getElementById('btn-pdf-img');
+    if (b && STATE._pdfPendiente === p) { b.disabled = false; b.innerHTML = b.dataset.txt + (p.hojas > 1 ? ` <span style="opacity:.6;font-weight:500">(${p.hojas} hojas)</span>` : ''); }
+  }).catch(e => {
+    console.warn(e);
+    const b = document.getElementById('btn-pdf-img');
+    if (b && STATE._pdfPendiente === p) b.innerHTML = '<i class="ti ti-photo-off" aria-hidden="true"></i> No se pudo preparar la imagen';
+  });
   let ov = document.getElementById('selector-overlay');
   if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; ov.style.zIndex = 1100; document.body.appendChild(ov); }
   ov.className = 'modal-overlay open';
   ov.onclick = e => { if (e.target === ov) cerrarSelectorTerminos(); };
+  const txtImg = puedeCompartir ? '<i class="ti ti-photo-share" aria-hidden="true"></i> Compartir como imagen' : '<i class="ti ti-photo-down" aria-hidden="true"></i> Descargar como imagen (JPG)';
   ov.innerHTML = `
     <div class="sel-card" style="max-width:380px;padding:18px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
         <i class="ti ti-file-type-pdf" aria-hidden="true" style="font-size:26px;color:var(--red)"></i>
-        <div style="min-width:0"><div style="font-weight:700;color:var(--text);font-size:14px">PDF listo</div>
-          <div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(nombre)}</div></div>
+        <div style="min-width:0;flex:1"><div style="font-weight:700;color:var(--text);font-size:14px">Documento listo</div>
+          <div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(base)}</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button>
       </div>
-      <button class="btn btn-primary" style="width:100%;margin-top:12px;min-height:44px" onclick="compartirPDFPendiente()"><i class="ti ti-share" aria-hidden="true"></i> Compartir (WhatsApp, correo…)</button>
-      <button class="btn btn-ghost" style="width:100%;margin-top:8px;min-height:44px" onclick="STATE._pdfPendiente.doc.save(STATE._pdfPendiente.nombre);cerrarSelectorTerminos()"><i class="ti ti-download" aria-hidden="true"></i> Descargar al celular</button>
+      ${puedeCompartir
+        ? `<button class="btn btn-primary" style="width:100%;margin-top:12px;min-height:44px" onclick="compartirPDFPendiente()"><i class="ti ti-share" aria-hidden="true"></i> Compartir PDF (WhatsApp, correo…)</button>`
+        : `<button class="btn btn-primary" style="width:100%;margin-top:12px;min-height:44px" onclick="STATE._pdfPendiente.doc.save(STATE._pdfPendiente.nombre);cerrarSelectorTerminos()"><i class="ti ti-download" aria-hidden="true"></i> Descargar PDF</button>`}
+      <button class="btn btn-ghost" id="btn-pdf-img" data-txt='${txtImg}' style="width:100%;margin-top:8px;min-height:44px" disabled onclick="entregarImagenesPendientes()"><i class="ti ti-loader-2 ti-spin" aria-hidden="true"></i> Preparando imagen…</button>
+      ${puedeCompartir ? `<button class="btn btn-ghost" style="width:100%;margin-top:8px;min-height:44px" onclick="STATE._pdfPendiente.doc.save(STATE._pdfPendiente.nombre);cerrarSelectorTerminos()"><i class="ti ti-download" aria-hidden="true"></i> Descargar PDF al celular</button>` : ''}
+      <div style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.45">La imagen se ve directo en WhatsApp. Si tiene letra pequeña, envíala en HD. Para imprimir o archivar, mejor el PDF.</div>
     </div>`;
 }
 async function compartirPDFPendiente() {
   const p = STATE._pdfPendiente; if (!p) return;
   try {
-    await navigator.share({ files: [p.archivo], title: p.nombre.replace(/\.pdf$/, '') });
+    await navigator.share({ files: [p.archivo], title: p.base });
     cerrarSelectorTerminos();
   } catch (e) {
     if (e?.name !== 'AbortError') { p.doc.save(p.nombre); cerrarSelectorTerminos(); }   // si no se pudo compartir, se descarga
   }
+}
+async function entregarImagenesPendientes() {
+  const p = STATE._pdfPendiente; if (!p) return;
+  if (!p.imagenes) { await p.preparando; if (!p.imagenes) { toast('No se pudo convertir a imagen. Usa el PDF.', 'error'); return; } }
+  if (p.esCel && navigator.canShare && navigator.canShare({ files: p.imagenes })) {
+    try { await navigator.share({ files: p.imagenes, title: p.base }); cerrarSelectorTerminos(); return; }
+    catch (e) { if (e?.name === 'AbortError') return; }
+  }
+  // Computadora (o si el celular no dejó compartir): una sola imagen con todas las hojas
+  descargarBlob(p.imagenUnida, `${p.base}.jpg`);
+  cerrarSelectorTerminos();
 }
 
 // ─── PDF INTERNO DE LA PROPUESTA DE FECHAS ──────────────────────────────────
