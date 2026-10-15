@@ -5697,30 +5697,33 @@ async function generarMetricas() {
   STATE._ultimasMetricas = datos;
 
   if (datos.length === 0) {
-    cont.innerHTML = '<div class="empty-state"><i class="ti ti-chart-bar" aria-hidden="true"></i><p>Sin proyectos finalizados en ese criterio</p><span>Las métricas solo aplican a proyectos ya finalizados</span></div>';
+    cont.innerHTML = '<div class="empty-state"><i class="ti ti-chart-bar" aria-hidden="true"></i><p>Sin proyectos en ese criterio</p><span>Entran los proyectos finalizados y los en curso que estuvieron en campo dentro del rango</span></div>';
     return;
   }
 
-  const retrasoTexto = r => r===null||r===undefined ? '—' : r>0 ? `+${r} día(s) de retraso` : r<0 ? `${Math.abs(r)} día(s) antes de lo estimado` : 'A tiempo';
-  const retrasoColor = r => r===null||r===undefined ? 'var(--text3)' : r>0 ? 'var(--red-text)' : r<0 ? 'var(--green)' : 'var(--text2)';
+  const retrasoTexto = (r, p) => p?.en_curso ? (p.retraso_actual ? `En curso · +${p.retraso_actual} día(s) de retraso` : 'En curso · en tiempo')
+    : r===null||r===undefined ? '—' : r>0 ? `+${r} día(s) de retraso` : r<0 ? `${Math.abs(r)} día(s) antes de lo estimado` : 'A tiempo';
+  const retrasoColor = (r, p) => p?.en_curso ? (p.retraso_actual ? 'var(--red-text)' : 'var(--amber)')
+    : r===null||r===undefined ? 'var(--text3)' : r>0 ? 'var(--red-text)' : r<0 ? 'var(--green)' : 'var(--text2)';
+  const nCurso = datos.filter(p => p.en_curso).length;
 
   cont.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <span style="font-size:12px;color:var(--text3)">${datos.length} proyecto(s) en el resultado</span>
+      <span style="font-size:12px;color:var(--text3)">${datos.length} proyecto(s) en el resultado · ${datos.length - nCurso} finalizado(s) · ${nCurso} en curso</span>
       <button class="btn btn-primary btn-sm" onclick="exportarMetricasPDF()"><i class="ti ti-file-download" aria-hidden="true"></i> Exportar a PDF</button>
     </div>
     ${datos.map(p=>`<div class="table-section" style="margin-bottom:12px;padding:16px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
         <div><div style="font-size:14px;font-weight:600;color:var(--text)">${p.nombre}</div><div style="font-size:12px;color:var(--text2)">${p.cliente||'—'} · ${p.ciudad||'—'}</div></div>
-        <span style="font-weight:600;font-size:12px;color:${retrasoColor(p.retraso_dias)}">${retrasoTexto(p.retraso_dias)}</span>
+        <span style="font-weight:600;font-size:12px;color:${retrasoColor(p.retraso_dias, p)}">${retrasoTexto(p.retraso_dias, p)}</span>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;font-size:12px;margin-bottom:10px">
         <div><span style="color:var(--text3)">Inicio estimado</span><div class="td-mono" style="color:var(--text)">${p.fecha_inicio_estimada||'—'}</div></div>
         <div><span style="color:var(--text3)">Inicio real</span><div class="td-mono" style="color:var(--text)">${p.fecha_inicio_real||'—'}</div></div>
         <div><span style="color:var(--text3)">Fin estimado</span><div class="td-mono" style="color:var(--text)">${p.fecha_fin_estimada||'—'}</div></div>
-        <div><span style="color:var(--text3)">Fin real</span><div class="td-mono" style="color:var(--text)">${p.fecha_fin_real||'—'}</div></div>
+        <div><span style="color:var(--text3)">Fin real</span><div class="td-mono" style="color:${p.en_curso ? 'var(--amber)' : 'var(--text)'}">${p.fecha_fin_real || (p.en_curso ? 'en curso' : '—')}</div></div>
         <div><span style="color:var(--text3)">Duración estimada</span><div style="color:var(--text)">${p.duracion_estimada_dias??'—'} día(s)</div></div>
-        <div><span style="color:var(--text3)">Duración real</span><div style="color:var(--text)">${p.duracion_real_dias??'—'} día(s)</div></div>
+        <div><span style="color:var(--text3)">${p.en_curso ? 'Días en campo (hasta hoy)' : 'Duración real'}</span><div style="color:var(--text)">${p.en_curso ? (p.dias_transcurridos ?? '—') : (p.duracion_real_dias ?? '—')} día(s)</div></div>
         <div><span style="color:var(--text3)">Personal asignado (${p.personal_asignado})</span><div style="color:var(--text)">${(p.personal_asignado_nombres||[]).join(', ') || '—'}</div></div>
         <div><span style="color:var(--text3)">Equipo usado</span><div style="color:var(--text)">${(p.equipo_usado||[]).join(', ') || '—'}</div></div>
         <div><span style="color:var(--text3)">Vehículo usado</span><div style="color:var(--text)">${(p.vehiculo_usado||[]).join(', ') || '—'}</div></div>
@@ -8507,7 +8510,7 @@ async function exportarMetricasPDF() {
   const aTiempo = conReal.filter(p => p.retraso_dias <= 0).length, conRetraso = conReal.filter(p => p.retraso_dias > 0);
   let y = 34;
   y = T.tarjetasCompactas(y, [
-    ['Proyectos', datos.length, `${conReal.length} con fecha real`],
+    ['Proyectos', datos.length, `${conReal.length} finalizado(s) · ${datos.length - conReal.length} en curso`],
     ['A tiempo', aTiempo, `de ${conReal.length}`, PDF_EST.asignado.c],
     ['Con retraso', conRetraso.length, conRetraso.length ? `+${conRetraso.reduce((a, p) => a + p.retraso_dias, 0)} días en total` : 'ninguno', PDF_EST.progreso.c],
     ['Días trabajados', datos.reduce((a, p) => a + (p.asistencia?.dias_trabajados || 0), 0), 'con checada'],
@@ -8522,7 +8525,7 @@ async function exportarMetricasPDF() {
     T.relleno(C.fondo); doc.roundedRect(M, y, w, alto, 2, 2, 'F');
     let yy = y + 8;
     const r = p.retraso_dias;
-    const res = r == null ? ['EN CURSO', PDF_EST.pausa] : r > 0 ? [`+${r} DÍA${r === 1 ? '' : 'S'} DE RETRASO`, PDF_EST.progreso] : r < 0 ? [`${-r} DÍA${r === -1 ? '' : 'S'} ANTES`, PDF_EST.asignado] : ['A TIEMPO', PDF_EST.asignado];
+    const res = r == null ? (p.retraso_actual ? [`EN CURSO · +${p.retraso_actual} DÍA${p.retraso_actual === 1 ? '' : 'S'}`, PDF_EST.progreso] : ['EN CURSO', PDF_EST.prep]) : r > 0 ? [`+${r} DÍA${r === 1 ? '' : 'S'} DE RETRASO`, PDF_EST.progreso] : r < 0 ? [`${-r} DÍA${r === -1 ? '' : 'S'} ANTES`, PDF_EST.asignado] : ['A TIEMPO', PDF_EST.asignado];
     const ap = T.anchoPastilla(res[0]);
     T.font('bold', 11, C.tinta); doc.text(recortarTexto(doc, p.nombre, w - ap - 16), M + 5, yy);
     T.pastilla(res[0], M + w - 5 - ap, yy - 0.2, res[1].c, res[1].bg);
@@ -8548,7 +8551,8 @@ async function exportarMetricasPDF() {
       else doc.text(txt, bx + bw + 2, by + 2.4);
     });
     yy += 16;
-    const ind = [['Duración', p.duracion_real_dias != null ? `${p.duracion_estimada_dias ?? '—'} → ${p.duracion_real_dias} días` : `${p.duracion_estimada_dias ?? '—'} días (est.)`], ['Días trabajados', p.asistencia?.dias_trabajados ?? 0],
+    const ind = [['Duración', p.duracion_real_dias != null ? `${p.duracion_estimada_dias ?? '—'} → ${p.duracion_real_dias} días`
+        : p.en_curso && p.dias_transcurridos ? `${p.duracion_estimada_dias ?? '—'} est. · ${p.dias_transcurridos} a hoy` : `${p.duracion_estimada_dias ?? '—'} días (est.)`], ['Días trabajados', p.asistencia?.dias_trabajados ?? 0],
       ['Horas aprox.', `${p.asistencia?.horas_aprox ?? 0} h`], ['Sin checada', p.dias_faltantes ?? 0], ['Descanso', p.dias_descanso ?? 0],
       ['Standby', p.dias_standby ?? 0], ['Reprogramado', p.veces_reprogramado ? `${p.veces_reprogramado} ${p.veces_reprogramado === 1 ? 'vez' : 'veces'}` : 'No'],
       ['Incidencias', `${p.total_incidencias ?? inc.length}${p.incidencias_altas ? ` (${p.incidencias_altas} alta)` : ''}`]];
