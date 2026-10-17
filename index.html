@@ -406,11 +406,32 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .ti-ws-confinado{--ws-ic:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M4.5 7v10.5c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5V7%22/%3E%3Cellipse cx=%2212%22 cy=%227%22 rx=%227.5%22 ry=%222.5%22/%3E%3Cpath d=%22M10 2.5v14M14 2.5v14M10 5h4M10 9.5h4M10 13h4%22/%3E%3C/svg%3E")}
 .ti-ws-ergonomia{--ws-ic:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Ccircle cx=%226.5%22 cy=%224%22 r=%222%22/%3E%3Cpath d=%22M6.5 7v7h5v6.5M6.5 10h6M12.5 11.5h9M19.5 11.5v9%22/%3E%3Crect x=%2215.5%22 y=%224%22 width=%225%22 height=%224%22 rx=%22.6%22/%3E%3Cpath d=%22M18 8v3.5%22/%3E%3Cpath d=%22M4 16h5.5M6.5 16v4.5%22/%3E%3C/svg%3E")}
 .mk-panel{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
-.mk-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.mk-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.mk-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:12px;color:var(--text3)}
+.mk-sec{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:11.5px;color:var(--text3);padding:0 2px}
+.mk-sec b{color:var(--text);font-weight:600}
+.mk-ok-msg{font-size:12.5px;color:var(--green);display:flex;align-items:center;gap:6px}
+.mk-alerta strong{color:var(--text);font-weight:600}
+.mp-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px}
+.mp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+.mp-nombre{font-size:14px;font-weight:700;color:var(--text)}
+.mp-cli{font-size:12px;color:var(--text2);margin-top:2px}
+.mp-pill{display:inline-flex;align-items:center;gap:5px;flex-shrink:0;font-size:11px;font-weight:700;padding:4px 10px;border:1px solid;border-radius:999px;white-space:nowrap}
+.mp-fila{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:10px 0;border-top:1px solid var(--border)}
+.mp-lab{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3)}
+.mp-val{font-size:15px;font-weight:700;margin:3px 0 1px}
+.mp-det{font-size:11.5px;color:var(--text3)}
+.mp-badges{display:flex;flex-wrap:wrap;gap:6px;padding-top:10px;border-top:1px solid var(--border)}
+.mp-badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;color:var(--b);background:color-mix(in srgb, var(--b) 14%, transparent)}
+.mp-rec{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--text2);margin-top:10px}
+.mp-rec b{color:var(--text3);font-weight:600}
+.mp-inc{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--text2)}
+.mp-inc .mp-lab{margin-bottom:6px}.mp-inc div{padding:2px 0}.mp-inc strong{color:var(--text)}.mp-inc span{color:var(--text3)}
+@media (max-width:700px){.mp-fila{grid-template-columns:1fr 1fr}.mp-head{flex-direction:column}}
 .mk-tile{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px 14px;overflow:hidden}
 .mk-tile::before{content:'';position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--mk-c)}
-.mk-ok{--mk-c:var(--green)}.mk-warn{--mk-c:var(--amber)}.mk-bad{--mk-c:var(--red-text)}.mk-na{--mk-c:var(--text3)}
-.mk-lab{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)}
+.mk-neutro{--mk-c:var(--text)}.mk-ok{--mk-c:var(--green)}.mk-warn{--mk-c:var(--amber)}.mk-bad{--mk-c:var(--red-text)}.mk-na{--mk-c:var(--text3)}
+.mk-lab{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);min-height:2.6em;line-height:1.3}
 .mk-val{font-size:24px;font-weight:700;color:var(--mk-c);margin:4px 0 2px;font-variant-numeric:tabular-nums}
 .mk-sub{font-size:11px;color:var(--text2);line-height:1.35}
 .mk-track{height:4px;border-radius:2px;background:var(--surface2);margin-top:8px;overflow:hidden}
@@ -440,7 +461,8 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .mk-cumpl{display:flex;align-items:center;gap:8px;min-width:120px}.mk-cumpl .mk-track{flex:1;margin:0}
 .mk-sep{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin:4px 0 10px;display:flex;align-items:center;gap:8px}
 .mk-sep::after{content:'';flex:1;height:1px;background:var(--border)}
-@media (max-width:1000px){.mk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mk-dos{grid-template-columns:1fr}}
+@media (max-width:1100px){.mk-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.mk-dos{grid-template-columns:1fr}}
+@media (max-width:640px){.mk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:480px){.mk-val{font-size:20px}.mk-tile{padding:10px 12px 12px}}
 .mapa-tooltip{background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--border2)!important;font-size:10px!important;font-weight:600;padding:2px 6px!important;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .mapa-tooltip::before{border-top-color:var(--border2)!important}
@@ -5719,93 +5741,129 @@ function aplicarRangoMetricas(dias) {
   document.getElementById('met-proyecto').value = '';
 }
 
-// ─── KPIs de métricas: un solo cálculo para pantalla y PDF ──────────────────
+// ─── MÉTRICAS: un solo cálculo para pantalla y PDF ───────────────────────────
+const plural = (n, s, p) => `${n} ${n === 1 ? s : (p || s + 's')}`;
 // semáforo: 'ok' | 'warn' | 'bad' | 'na'. alto=true → más es mejor.
 function semaforoKpi(v, verde, ambar, alto = true) {
   if (v == null || isNaN(v)) return 'na';
   return alto ? (v >= verde ? 'ok' : v >= ambar ? 'warn' : 'bad') : (v <= verde ? 'ok' : v <= ambar ? 'warn' : 'bad');
+}
+// Checada con la fórmula única: completas ÷ días laborables proyectados.
+// Viene del backend (p.checada); si el backend aún no la manda, se arma igual aquí.
+function checadaDe(p) {
+  if (p.checada) return p.checada;
+  const a = p.asistencia || {}, trab = a.dias_trabajados || 0, inc = (a.dias_sin_salida || 0) + (a.dias_sin_entrada || 0);
+  const sinReg = p.dias_faltantes || 0, proy = trab + sinReg, comp = Math.max(0, trab - inc);
+  return { dias_proyectados: proy, dias_completos: comp, dias_incompletos: inc, dias_sin_registro: sinReg, cumplimiento: proy ? Math.round(comp * 100 / proy) : null };
+}
+// Todo lo que se muestra de un proyecto, ya redactado (pantalla y PDF usan lo mismo)
+function infoProyectoMetricas(p) {
+  const r = p.retraso_dias;
+  const est = p.duracion_estimada_dias != null ? plural(p.duracion_estimada_dias, 'día') : '—';
+  const estRango = p.fecha_inicio_estimada && p.fecha_fin_estimada ? rangoCorto(p.fecha_inicio_estimada, p.fecha_fin_estimada) : 'sin fechas planeadas';
+  let real, realRango;
+  if (p.fecha_fin_real) { real = p.duracion_real_dias != null ? plural(p.duracion_real_dias, 'día') : '—'; realRango = rangoCorto(p.fecha_inicio_real, p.fecha_fin_real); }
+  else {
+    real = p.dias_transcurridos != null ? `${plural(p.dias_transcurridos, 'día')} en campo` : '—';
+    realRango = p.pausado ? `${fCorta(p.fecha_inicio_real)} – en pausa desde el ${fCorta(p.pausado_desde || p.fecha_inicio_real)}` : `desde el ${fCorta(p.fecha_inicio_real)} · sigue en curso`;
+  }
+  let desv, desvDet, desvSem;
+  if (p.pausado) { desv = 'En pausa'; desvDet = 'no acumula retraso mientras está pausado'; desvSem = 'pausa'; }
+  else if (r != null) { desv = r > 0 ? `+${plural(r, 'día')} de retraso` : r < 0 ? `${plural(-r, 'día')} antes` : 'A tiempo'; desvDet = 'contra la fecha de fin estimada'; desvSem = r > 0 ? 'bad' : 'ok'; }
+  else if (p.retraso_actual > 0) { desv = `+${plural(p.retraso_actual, 'día')} de retraso`; desvDet = 'ya pasó su fecha de fin y sigue en curso'; desvSem = 'bad'; }
+  else { desv = 'En tiempo'; desvDet = 'sigue en curso dentro de su fecha'; desvSem = 'ok'; }
+  const estado = p.pausado ? [`Pausado desde el ${fCorta(p.pausado_desde || p.fecha_inicio_real)}`, 'pausa']
+    : r != null ? (r > 0 ? ['Finalizado con retraso', 'bad'] : ['Finalizado a tiempo', 'ok'])
+    : p.retraso_actual > 0 ? ['En curso · con retraso', 'bad'] : ['En curso', 'curso'];
+  const ch = checadaDe(p), trab = p.asistencia?.dias_trabajados || 0, horas = p.asistencia?.horas_aprox || 0, activo = !p.fecha_fin_real;
+  const cumpl = ch.cumplimiento == null ? (activo ? 'Sin registros aún' : 'Sin registros') : `${ch.cumplimiento} %`;
+  const cumplDet = ch.dias_proyectados ? `${ch.dias_completos} de ${plural(ch.dias_proyectados, 'día laborable', 'días laborables')} con checada completa` : 'aún no hay días laborables que medir';
+  const horasTxt = horas > 0 ? `${horas} h` : (activo ? 'Sin horas registradas aún' : 'Sin horas registradas');
+  const horasDet = trab ? `${plural(trab, 'día')} con registro${horas > 0 && ch.dias_completos ? ` · ${Math.round(horas / ch.dias_completos * 10) / 10} h por jornada` : ''}` : (activo ? 'sin checadas todavía' : 'sin checadas');
+  const insignias = [];
+  insignias.push(p.total_incidencias ? [`${plural(p.total_incidencias, 'incidencia')}${p.incidencias_altas ? ` · ${p.incidencias_altas} alta${p.incidencias_altas === 1 ? '' : 's'}` : ''}`, p.incidencias_altas ? 'bad' : 'warn'] : ['Sin incidencias', 'ok']);
+  if (ch.dias_incompletos) insignias.push([plural(ch.dias_incompletos, 'checada incompleta', 'checadas incompletas'), 'warn']);
+  if (p.veces_reprogramado) insignias.push([`Reprogramado ${plural(p.veces_reprogramado, 'vez', 'veces')}`, 'warn']);
+  if (p.dias_pausa) insignias.push([`En pausa ${plural(p.dias_pausa, 'día')}`, 'pausa']);
+  if (p.dias_descanso) insignias.push([`Descanso: ${plural(p.dias_descanso, 'día-persona', 'días-persona')}`, 'desc']);
+  if (p.dias_standby) insignias.push([`Standby: ${plural(p.dias_standby, 'día-persona', 'días-persona')}`, 'warn']);
+  return { est, estRango, real, realRango, desv, desvDet, desvSem, estado, ch, cumpl, cumplDet, cumplSem: semaforoKpi(ch.cumplimiento, 90, 70),
+    sinReg: plural(ch.dias_sin_registro, 'día'), sinRegSem: ch.dias_sin_registro ? 'bad' : 'ok', horasTxt, horasDet, insignias };
 }
 function calcularKpisMetricas(datos) {
   const suma = (arr, f) => arr.reduce((a, p) => a + (Number(f(p)) || 0), 0);
   const pct = (a, b) => b ? Math.round(a * 100 / b) : null;
   const fin = datos.filter(p => p.retraso_dias != null);
   const finATiempo = fin.filter(p => p.retraso_dias <= 0), finRetraso = fin.filter(p => p.retraso_dias > 0);
-  const activos = datos.filter(p => p.en_curso && !p.pausado);
+  const activos = datos.filter(p => !p.fecha_fin_real && !p.pausado);
   const atrasados = activos.filter(p => p.retraso_actual > 0), pausados = datos.filter(p => p.pausado);
-  const conRetraso = [...finRetraso.map(p => p.retraso_dias), ...atrasados.map(p => p.retraso_actual)];
-  const conInicio = datos.filter(p => p.fecha_inicio_real && p.fecha_inicio_estimada);
-  const inicioPuntual = conInicio.filter(p => p.fecha_inicio_real <= p.fecha_inicio_estimada).length;
+  const nRetraso = finRetraso.length + atrasados.length, baseRetraso = fin.length + activos.length;
   const conDur = fin.filter(p => p.duracion_estimada_dias && p.duracion_real_dias);
-  const durEst = suma(conDur, p => p.duracion_estimada_dias), durReal = suma(conDur, p => p.duracion_real_dias);
-  const trab = suma(datos, p => p.asistencia?.dias_trabajados), falt = suma(datos, p => p.dias_faltantes);
-  const tieneDetalle = datos.some(p => p.asistencia && 'dias_completos' in p.asistencia);
-  const compl = suma(datos, p => p.asistencia?.dias_completos), sinSal = suma(datos, p => p.asistencia?.dias_sin_salida), sinEnt = suma(datos, p => p.asistencia?.dias_sin_entrada);
-  const horas = suma(datos, p => p.asistencia?.horas_aprox);
-  const reprog = datos.filter(p => p.veces_reprogramado > 0);
+  const desvProm = conDur.length ? Math.round(conDur.reduce((a, p) => a + (p.duracion_real_dias - p.duracion_estimada_dias), 0) / conDur.length * 10) / 10 : null;
+  const chs = datos.map(checadaDe);
+  const comp = suma(chs, c => c.dias_completos), proy = suma(chs, c => c.dias_proyectados), incomp = suma(chs, c => c.dias_incompletos), sinReg = suma(chs, c => c.dias_sin_registro);
+  const cumpl = pct(comp, proy);
+  const horas = Math.round(suma(datos, p => p.asistencia?.horas_aprox) * 10) / 10;
+  const conInicio = datos.filter(p => p.fecha_inicio_real && p.fecha_inicio_estimada);
+  const inicioOk = conInicio.filter(p => p.fecha_inicio_real <= p.fecha_inicio_estimada).length;
+  const reprog = datos.filter(p => p.veces_reprogramado > 0).length;
   const inc = suma(datos, p => p.total_incidencias), incAltas = suma(datos, p => p.incidencias_altas);
-  const desc = suma(datos, p => p.dias_descanso), stby = suma(datos, p => p.dias_standby);
-  const k = {
-    n: datos.length, fin: fin.length,
-    aTiempo: { v: pct(finATiempo.length, fin.length), n: finATiempo.length, de: fin.length },
-    retraso: { v: pct(conRetraso.length, fin.length + activos.length), n: conRetraso.length, de: fin.length + activos.length,
-      prom: conRetraso.length ? Math.round(conRetraso.reduce((a, b) => a + b, 0) / conRetraso.length * 10) / 10 : null, ahora: atrasados.length },
-    inicio: { v: pct(inicioPuntual, conInicio.length), n: inicioPuntual, de: conInicio.length },
-    desviacion: { v: durEst ? Math.round((durReal / durEst - 1) * 100) : null, est: durEst, real: durReal },
-    checada: { v: pct(trab, trab + falt), trab, falt },
-    completas: { v: tieneDetalle ? pct(compl, compl + sinSal + sinEnt) : null, compl, sinSal, sinEnt },
-    horas: Math.round(horas * 10) / 10, horasJornada: compl ? Math.round(horas / compl * 10) / 10 : null,
-    reprog: { v: pct(reprog.length, datos.length), n: reprog.length, veces: suma(reprog, p => p.veces_reprogramado) },
-    incidencias: { n: inc, altas: incAltas, tasa: trab ? Math.round(inc * 1000 / trab) / 10 : null },
-    estados: [
-      ['A tiempo', finATiempo.length, 'ok'], ['Con retraso', finRetraso.length, 'bad'],
-      ['En curso, en tiempo', activos.length - atrasados.length, 'curso'], ['En curso, atrasado', atrasados.length, 'warn'],
-      ['En pausa', pausados.length, 'pausa'],
-    ],
-    tiempo: [['Trabajados', trab, 'ok'], ['Sin checada', falt, 'bad'], ['Descanso', desc, 'desc'], ['Standby', stby, 'warn']],
-  };
-  k.sem = {
-    aTiempo: semaforoKpi(k.aTiempo.v, 85, 60), retraso: semaforoKpi(k.retraso.v, 15, 40, false), inicio: semaforoKpi(k.inicio.v, 85, 60),
-    desviacion: semaforoKpi(k.desviacion.v, 5, 20, false), checada: semaforoKpi(k.checada.v, 90, 70), completas: semaforoKpi(k.completas.v, 90, 70),
-    reprog: semaforoKpi(k.reprog.v, 20, 50, false), incidencias: inc === 0 ? 'ok' : incAltas ? 'bad' : 'warn',
-  };
-  // Tarjetas (mismo orden en pantalla y PDF): [etiqueta, valor, detalle, semáforo, % para la barrita]
-  const P = v => v == null ? '—' : `${v} %`;
+  const partes = [[fin.length, 'finalizado'], [activos.length, 'en curso', 'en curso'], [pausados.length, 'en pausa', 'en pausa']]
+    .filter(([n]) => n).map(([n, s, pl]) => plural(n, s, pl)).join(' · ');
+  const k = { n: datos.length, horas, horasJornada: comp && horas ? Math.round(horas / comp * 10) / 10 : null };
+  // Bloque superior: 5 KPIs clave → [etiqueta, valor, detalle, semáforo, % para la barrita]
   k.tarjetas = [
-    ['A tiempo', P(k.aTiempo.v), k.fin ? `${k.aTiempo.n} de ${k.fin} finalizado(s)` : 'sin finalizados aún', k.sem.aTiempo, k.aTiempo.v],
-    ['Con retraso', P(k.retraso.v), k.retraso.n ? `${k.retraso.n} proyecto(s) · prom. +${k.retraso.prom} día(s)` : 'ninguno', k.sem.retraso, k.retraso.v],
-    ['Inicio puntual', P(k.inicio.v), `${k.inicio.n} de ${k.inicio.de} arrancaron a tiempo`, k.sem.inicio, k.inicio.v],
-    ['Desviación de duración', k.desviacion.v == null ? '—' : `${k.desviacion.v > 0 ? '+' : ''}${k.desviacion.v} %`,
-      k.desviacion.est ? `${k.desviacion.real} días reales vs ${k.desviacion.est} est.` : 'sin finalizados aún', k.sem.desviacion, null],
-    ['Cumplimiento de checada', P(k.checada.v), k.checada.falt ? `${k.checada.falt} día(s) sin checada` : 'sin faltantes', k.sem.checada, k.checada.v],
-    ['Checadas completas', P(k.completas.v), k.completas.v == null ? 'sin datos' : (k.completas.sinSal + k.completas.sinEnt) ? `${k.completas.sinSal} sin salida · ${k.completas.sinEnt} sin entrada` : 'entrada y salida', k.sem.completas, k.completas.v],
-    ['Reprogramados', P(k.reprog.v), k.reprog.n ? `${k.reprog.n} proyecto(s) · ${k.reprog.veces} cambio(s)` : 'ninguno', k.sem.reprog, k.reprog.v],
-    ['Incidencias', String(k.incidencias.n), k.incidencias.n ? `${k.incidencias.altas} alta(s)${k.incidencias.tasa != null ? ` · ${k.incidencias.tasa} por 100 días-persona` : ''}` : 'ninguna', k.sem.incidencias, null],
+    ['Total de proyectos', String(datos.length), partes, 'neutro', null],
+    ['A tiempo', cumplOrDash(pct(finATiempo.length, fin.length)), fin.length ? `${finATiempo.length} de ${plural(fin.length, 'finalizado')}` : 'sin proyectos finalizados', semaforoKpi(pct(finATiempo.length, fin.length), 85, 60), pct(finATiempo.length, fin.length)],
+    ['Con retraso', cumplOrDash(pct(nRetraso, baseRetraso)), baseRetraso ? `${nRetraso} de ${baseRetraso} (finalizados o en curso)` : 'sin proyectos que medir', semaforoKpi(pct(nRetraso, baseRetraso), 15, 40, false), pct(nRetraso, baseRetraso)],
+    ['Desviación promedio de duración', desvProm == null ? '—' : `${desvProm > 0 ? '+' : ''}${desvProm} ${Math.abs(desvProm) === 1 ? 'día' : 'días'}`,
+      conDur.length ? `real vs. estimada · ${plural(conDur.length, 'finalizado')}` : 'sin proyectos finalizados', semaforoKpi(desvProm, 0.5, 2, false), null],
+    ['Cumplimiento de checadas', cumplOrDash(cumpl), proy ? `${comp} de ${plural(proy, 'día laborable', 'días laborables')} completos` : 'sin días laborables que medir', semaforoKpi(cumpl, 90, 70), cumpl],
   ];
-  // Alertas: lo que más conviene atender, máx. 3
+  // Indicadores secundarios (una línea discreta)
+  k.secundarios = [
+    ['Inicio puntual', conInicio.length ? `${pct(inicioOk, conInicio.length)} % (${inicioOk} de ${conInicio.length})` : '—'],
+    ['Reprogramados', `${reprog} de ${datos.length}`],
+    ['Incidencias', inc ? `${inc}${incAltas ? ` (${incAltas} alta${incAltas === 1 ? '' : 's'})` : ''}` : 'Ninguna'],
+    ['Días sin registro de checada', plural(sinReg, 'día')],
+    ['Horas registradas', `${horas} h`],
+  ];
+  k.estados = [
+    ['Finalizado a tiempo', finATiempo.length, 'ok'], ['Finalizado con retraso', finRetraso.length, 'bad'],
+    ['En curso, en tiempo', activos.length - atrasados.length, 'curso'], ['En curso, con retraso', atrasados.length, 'warn'],
+    ['En pausa', pausados.length, 'pausa'],
+  ];
+  // Uso del tiempo en días-persona: días laborables proyectados + descanso y standby
+  k.tiempo = [
+    ['Checada completa', comp, 'ok'], ['Checada incompleta', incomp, 'warn'], ['Sin registro de checada', sinReg, 'bad'],
+    ['Descanso', suma(datos, p => p.dias_descanso), 'desc'], ['Standby', suma(datos, p => p.dias_standby), 'pausa'],
+  ];
+  // Atender primero: mayor retraso y más días sin registro de checada acumulados
   k.alertas = datos.map(p => {
-    const t = [], a = p.asistencia || {};
+    const ch = checadaDe(p), it = [];
     let peso = 0;
-    if (p.retraso_actual > 0) { t.push(`+${p.retraso_actual} día(s) de retraso, sigue en curso`); peso += 30 + p.retraso_actual; }
-    else if (p.retraso_dias > 0) { t.push(`terminó +${p.retraso_dias} día(s) tarde`); peso += 20 + p.retraso_dias; }
-    if (p.dias_faltantes > 0) { t.push(`${p.dias_faltantes} día(s) sin checada`); peso += 10 + p.dias_faltantes * 2; }
-    if (a.dias_sin_salida > 0) { t.push(`${a.dias_sin_salida} sin checada de salida`); peso += 5 + a.dias_sin_salida; }
-    if (p.incidencias_altas > 0) { t.push(`${p.incidencias_altas} incidencia(s) alta(s)`); peso += 25; }
-    if (p.veces_reprogramado >= 3) { t.push(`reprogramado ${p.veces_reprogramado} veces`); peso += 4 + p.veces_reprogramado; }
-    return { nombre: p.nombre, textos: t, peso, grave: p.retraso_actual > 0 || p.incidencias_altas > 0 };
+    if (p.retraso_actual > 0) { it.push(['Retraso', `+${plural(p.retraso_actual, 'día')} (sigue en curso)`]); peso += 30 + p.retraso_actual * 3; }
+    else if (p.retraso_dias > 0) { it.push(['Retraso', `terminó +${plural(p.retraso_dias, 'día')} tarde`]); peso += 20 + p.retraso_dias * 3; }
+    if (ch.dias_sin_registro) { it.push(['Sin registro de checada', plural(ch.dias_sin_registro, 'día')]); peso += 10 + ch.dias_sin_registro * 2; }
+    if (ch.dias_incompletos) { it.push(['Checadas incompletas', String(ch.dias_incompletos)]); peso += 3 + ch.dias_incompletos; }
+    if (p.incidencias_altas) { it.push(['Incidencias altas', String(p.incidencias_altas)]); peso += 25; }
+    return { nombre: p.nombre, it, peso, grave: p.retraso_actual > 0 || p.retraso_dias > 0 || p.incidencias_altas > 0 };
   }).filter(x => x.peso).sort((a, b) => b.peso - a.peso).slice(0, 3);
-  // Por técnico (solo pantalla)
+  // Por técnico (solo en pantalla)
   const tec = new Map();
   datos.forEach(p => (p.por_tecnico || []).forEach(t => {
-    const r = tec.get(t.empleado_id) || { nombre: t.nombre, proyectos: 0, trab: 0, falt: 0, compl: 0, sinSal: 0, horas: 0 };
-    r.proyectos++; r.trab += t.dias_trabajados || 0; r.falt += t.dias_faltantes || 0; r.compl += t.dias_completos || 0;
-    r.sinSal += (t.dias_sin_salida || 0) + (t.dias_sin_entrada || 0); r.horas += t.horas_aprox || 0;
+    const c = t.dias_proyectados != null ? t : checadaDe({ asistencia: t, dias_faltantes: t.dias_faltantes });
+    const r = tec.get(t.empleado_id) || { nombre: t.nombre, proyectos: 0, proy: 0, comp: 0, inc: 0, sinReg: 0, horas: 0 };
+    r.proyectos++; r.proy += c.dias_proyectados || 0; r.comp += c.dias_completos || 0; r.inc += c.dias_incompletos || 0;
+    r.sinReg += c.dias_sin_registro || 0; r.horas += t.horas_aprox || 0;
     tec.set(t.empleado_id, r);
   }));
-  k.tecnicos = [...tec.values()].map(r => ({ ...r, horas: Math.round(r.horas * 10) / 10, pct: pct(r.trab, r.trab + r.falt) }))
-    .sort((a, b) => (a.pct ?? 101) - (b.pct ?? 101) || b.falt - a.falt);
+  k.tecnicos = [...tec.values()].map(r => ({ ...r, horas: Math.round(r.horas * 10) / 10, pct: pct(r.comp, r.proy) }))
+    .sort((a, b) => (a.pct ?? 101) - (b.pct ?? 101) || b.sinReg - a.sinReg);
   return k;
 }
-const KPI_COLOR = { ok: 'var(--green)', warn: 'var(--amber)', bad: 'var(--red-text)', na: 'var(--text3)', curso: '#60a5fa', pausa: 'var(--text3)', desc: '#a78bfa' };
+function cumplOrDash(v) { return v == null ? '—' : `${v} %`; }
+const KPI_COLOR = { ok: 'var(--green)', warn: 'var(--amber)', bad: 'var(--red-text)', na: 'var(--text3)', neutro: 'var(--text)', curso: '#60a5fa', pausa: 'var(--text3)', desc: '#a78bfa' };
 function htmlBarraApilada(items) {
   const tot = items.reduce((a, [, n]) => a + n, 0);
   if (!tot) return '<div class="mk-vacio">Sin datos en el periodo</div>';
@@ -5819,18 +5877,35 @@ function htmlKpisMetricas(datos) {
       <div class="mk-tile mk-${sem}"><div class="mk-lab">${lab}</div><div class="mk-val">${val}</div><div class="mk-sub">${sub}</div>
         ${barra != null ? `<div class="mk-track"><span style="width:${Math.max(0, Math.min(100, barra))}%"></span></div>` : ''}</div>`).join('')}
     </div>
+    <div class="mk-sec">${k.secundarios.map(([l, v]) => `<span>${l}: <b>${v}</b></span>`).join('')}</div>
     <div class="mk-dos">
       <div class="mk-caja"><div class="mk-tit">Estado de los proyectos</div>${htmlBarraApilada(k.estados)}</div>
-      <div class="mk-caja"><div class="mk-tit">Uso del tiempo <span>días-persona · ${k.horas} h registradas${k.horasJornada ? ` · ${k.horasJornada} h por jornada` : ''}</span></div>${htmlBarraApilada(k.tiempo)}</div>
+      <div class="mk-caja"><div class="mk-tit">Uso del tiempo <span>días-persona · ${k.horas} h registradas${k.horasJornada ? ` · ${k.horasJornada} h por jornada completa` : ''}</span></div>${htmlBarraApilada(k.tiempo)}</div>
     </div>
-    ${k.alertas.length ? `<div class="mk-caja"><div class="mk-tit">Atender primero</div>${k.alertas.map(a => `
+    <div class="mk-caja"><div class="mk-tit">Atender primero</div>${k.alertas.length ? k.alertas.map(a => `
       <div class="mk-alerta"><i class="ti ${a.grave ? 'ti-alert-triangle' : 'ti-alert-circle'}" style="color:${a.grave ? 'var(--red-text)' : 'var(--amber)'}" aria-hidden="true"></i>
-        <b>${escHtml(a.nombre)}</b><span>${a.textos.join(' · ')}</span></div>`).join('')}</div>` : ''}
-    ${k.tecnicos.length ? `<details class="mk-caja mk-tec"><summary class="mk-tit">Checadas por técnico <span>${k.tecnicos.length} persona(s) · solo en pantalla</span></summary>
-      <div style="overflow-x:auto"><table class="mk-tabla"><thead><tr><th>Técnico</th><th>Proyectos</th><th>Días checados</th><th>Sin checada</th><th>Incompletas</th><th>Horas</th><th>Cumplimiento</th></tr></thead><tbody>
-      ${k.tecnicos.map(t => `<tr><td>${escHtml(t.nombre)}</td><td>${t.proyectos}</td><td>${t.trab}</td><td style="color:${t.falt ? 'var(--red-text)' : ''}">${t.falt}</td><td style="color:${t.sinSal ? 'var(--amber)' : ''}">${t.sinSal}</td><td>${t.horas} h</td>
-        <td><div class="mk-cumpl"><div class="mk-track"><span style="width:${t.pct ?? 0}%;background:${KPI_COLOR[semaforoKpi(t.pct, 90, 70)]}"></span></div><b style="color:${KPI_COLOR[semaforoKpi(t.pct, 90, 70)]}">${t.pct == null ? '—' : t.pct + ' %'}</b></div></td></tr>`).join('')}
+        <b>${escHtml(a.nombre)}</b><span>${a.it.map(([l, v]) => `${l}: <strong>${v}</strong>`).join(' · ')}</span></div>`).join('')
+      : '<div class="mk-ok-msg"><i class="ti ti-circle-check" aria-hidden="true"></i> Sin alertas: ningún proyecto con retraso ni días sin registro de checada.</div>'}</div>
+    ${k.tecnicos.length ? `<details class="mk-caja mk-tec"><summary class="mk-tit">Checadas por técnico <span>${plural(k.tecnicos.length, 'persona')} · solo en pantalla</span></summary>
+      <div style="overflow-x:auto"><table class="mk-tabla"><thead><tr><th>Técnico</th><th>Proyectos</th><th>Días laborables</th><th>Completas</th><th>Incompletas</th><th>Sin registro</th><th>Horas</th><th>Cumplimiento</th></tr></thead><tbody>
+      ${k.tecnicos.map(t => { const c = KPI_COLOR[semaforoKpi(t.pct, 90, 70)]; return `<tr><td>${escHtml(t.nombre)}</td><td>${t.proyectos}</td><td>${t.proy}</td><td>${t.comp}</td><td style="color:${t.inc ? 'var(--amber)' : ''}">${t.inc}</td><td style="color:${t.sinReg ? 'var(--red-text)' : ''}">${t.sinReg}</td><td>${t.horas} h</td>
+        <td><div class="mk-cumpl"><div class="mk-track"><span style="width:${t.pct ?? 0}%;background:${c}"></span></div><b style="color:${c}">${t.pct == null ? '—' : t.pct + ' %'}</b></div></td></tr>`; }).join('')}
       </tbody></table></div></details>` : ''}
+  </div>`;
+}
+function htmlProyectoMetricas(p) {
+  const f = infoProyectoMetricas(p), C = KPI_COLOR;
+  const dato = (lab, val, det, sem) => `<div class="mp-dato"><div class="mp-lab">${lab}</div><div class="mp-val" style="color:${sem ? C[sem] : 'var(--text)'}">${val}</div><div class="mp-det">${det}</div></div>`;
+  const recursos = [['Personal', p.personal_asignado_nombres], ['Equipo', p.equipo_usado], ['Vehículo', p.vehiculo_usado]].filter(([, l]) => (l || []).length);
+  return `<div class="mp-card">
+    <div class="mp-head"><div><div class="mp-nombre">${escHtml(p.nombre)}</div><div class="mp-cli">${escHtml(p.cliente || '—')} · ${escHtml(p.ciudad || '—')}</div></div>
+      <span class="mp-pill" style="color:${C[f.estado[1]]};border-color:${C[f.estado[1]]}">${p.pausado ? '<i class="ti ti-player-pause" aria-hidden="true"></i>' : ''}${f.estado[0]}</span></div>
+    <div class="mp-fila">${dato('Duración estimada', f.est, f.estRango)}${dato('Duración real', f.real, f.realRango)}${dato('Desviación', f.desv, f.desvDet, f.desvSem)}</div>
+    <div class="mp-fila">${dato('Cumplimiento de checada', f.cumpl, f.cumplDet, f.ch.cumplimiento == null ? 'na' : f.cumplSem)}${dato('Días sin registro de checada', f.sinReg, f.ch.dias_sin_registro ? 'días laborables sin entrada registrada' : 'todos los días con registro', f.sinRegSem)}${dato('Horas registradas', f.horasTxt, f.horasDet, (p.asistencia?.horas_aprox || 0) > 0 ? null : 'na')}</div>
+    <div class="mp-badges">${f.insignias.map(([t, s]) => `<span class="mp-badge" style="--b:${C[s]}">${t}</span>`).join('')}</div>
+    ${recursos.length ? `<div class="mp-rec">${recursos.map(([l, v]) => `<span><b>${l}:</b> ${v.map(escHtml).join(', ')}</span>`).join('')}</div>` : ''}
+    ${(p.incidencias || []).length ? `<div class="mp-inc"><div class="mp-lab">Incidencias registradas (posibles causas)</div>
+      ${p.incidencias.map(i => `<div>• <strong>${escHtml(i.tipo)}</strong> (${escHtml(i.severidad)}) — ${escHtml(i.descripcion || 'sin descripción')} <span>${fCorta((i.fecha || '').split('T')[0] || isoLocal(new Date()))}</span></div>`).join('')}</div>` : ''}
   </div>`;
 }
 
@@ -5851,55 +5926,21 @@ async function generarMetricas() {
   const cont = document.getElementById('metricas-resultado');
   if (!datos) { cont.innerHTML = '<div class="empty-state"><i class="ti ti-alert-circle" aria-hidden="true"></i><p>Error al generar el reporte</p></div>'; return; }
   STATE._ultimasMetricas = datos;
+  STATE._metricasRango = proyectoId ? null : { desde: desde || null, hasta: hasta || null };
 
   if (datos.length === 0) {
     cont.innerHTML = '<div class="empty-state"><i class="ti ti-chart-bar" aria-hidden="true"></i><p>Sin proyectos en ese criterio</p><span>Entran los proyectos finalizados y los en curso que estuvieron en campo dentro del rango</span></div>';
     return;
   }
 
-  const pausaTxt = p => `Pausado${p.pausado_desde ? ` desde el ${fCorta(p.pausado_desde)}` : ''}`;
-  const retrasoTexto = (r, p) => p?.pausado ? pausaTxt(p) : p?.en_curso ? (p.retraso_actual ? `En curso · +${p.retraso_actual} día(s) de retraso` : 'En curso · en tiempo')
-    : r===null||r===undefined ? '—' : r>0 ? `+${r} día(s) de retraso` : r<0 ? `${Math.abs(r)} día(s) antes de lo estimado` : 'A tiempo';
-  const retrasoColor = (r, p) => p?.pausado ? 'var(--text2)' : p?.en_curso ? (p.retraso_actual ? 'var(--red-text)' : 'var(--amber)')
-    : r===null||r===undefined ? 'var(--text3)' : r>0 ? 'var(--red-text)' : r<0 ? 'var(--green)' : 'var(--text2)';
-  const nCurso = datos.filter(p => p.en_curso && !p.pausado).length, nPausa = datos.filter(p => p.pausado).length;
-
   cont.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <span style="font-size:12px;color:var(--text3)">${datos.length} proyecto(s) en el resultado · ${datos.length - nCurso - nPausa} finalizado(s) · ${nCurso} en curso${nPausa ? ` · ${nPausa} pausado(s)` : ''}</span>
+    <div class="mk-top">
+      <span>${plural(datos.length, 'proyecto')} en el resultado</span>
       <button class="btn btn-primary btn-sm" onclick="exportarMetricasPDF()"><i class="ti ti-file-download" aria-hidden="true"></i> Exportar a PDF</button>
     </div>
     ${htmlKpisMetricas(datos)}
     <div class="mk-sep">Detalle por proyecto</div>
-    ${datos.map(p=>`<div class="table-section" style="margin-bottom:12px;padding:16px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-        <div><div style="font-size:14px;font-weight:600;color:var(--text)">${p.nombre}</div><div style="font-size:12px;color:var(--text2)">${p.cliente||'—'} · ${p.ciudad||'—'}</div></div>
-        <span style="font-weight:600;font-size:12px;color:${retrasoColor(p.retraso_dias, p)}">${p.pausado ? '<i class="ti ti-player-pause" aria-hidden="true"></i> ' : ''}${retrasoTexto(p.retraso_dias, p)}</span>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;font-size:12px;margin-bottom:10px">
-        <div><span style="color:var(--text3)">Inicio estimado</span><div class="td-mono" style="color:var(--text)">${p.fecha_inicio_estimada||'—'}</div></div>
-        <div><span style="color:var(--text3)">Inicio real</span><div class="td-mono" style="color:var(--text)">${p.fecha_inicio_real||'—'}</div></div>
-        <div><span style="color:var(--text3)">Fin estimado</span><div class="td-mono" style="color:var(--text)">${p.fecha_fin_estimada||'—'}</div></div>
-        <div><span style="color:var(--text3)">Fin real</span><div class="td-mono" style="color:${p.pausado ? 'var(--text2)' : p.en_curso ? 'var(--amber)' : 'var(--text)'}">${p.fecha_fin_real || (p.pausado ? 'pausado' : p.en_curso ? 'en curso' : '—')}</div></div>
-        <div><span style="color:var(--text3)">Duración estimada</span><div style="color:var(--text)">${p.duracion_estimada_dias??'—'} día(s)</div></div>
-        <div><span style="color:var(--text3)">${p.en_curso ? (p.dias_pausa ? 'Días en campo (sin contar pausas)' : 'Días en campo (hasta hoy)') : 'Duración real'}</span><div style="color:var(--text)">${p.en_curso ? (p.dias_transcurridos ?? '—') : (p.duracion_real_dias ?? '—')} día(s)</div></div>
-        <div><span style="color:var(--text3)">Personal asignado (${p.personal_asignado})</span><div style="color:var(--text)">${(p.personal_asignado_nombres||[]).join(', ') || '—'}</div></div>
-        <div><span style="color:var(--text3)">Equipo usado</span><div style="color:var(--text)">${(p.equipo_usado||[]).join(', ') || '—'}</div></div>
-        <div><span style="color:var(--text3)">Vehículo usado</span><div style="color:var(--text)">${(p.vehiculo_usado||[]).join(', ') || '—'}</div></div>
-        <div><span style="color:var(--text3)">Incidencias</span><div style="color:var(--text)">${p.total_incidencias} (${p.incidencias_altas} alta(s))</div></div>
-        <div><span style="color:var(--text3)">Días trabajados (checador)</span><div style="color:var(--text)">${p.asistencia?.dias_trabajados ?? 0}</div></div>
-        <div><span style="color:var(--text3)">Horas aprox. trabajadas</span><div style="color:var(--text)">${p.asistencia?.horas_aprox ?? 0} h</div></div>
-        <div><span style="color:var(--text3)">Días sin checada</span><div style="color:${p.dias_faltantes?'var(--amber)':'var(--text)'}">${p.dias_faltantes ?? 0}${(() => { const t = p.asistencia?.dias_trabajados || 0, f = p.dias_faltantes || 0; return t + f ? ` <span style="color:var(--text3)">· ${Math.round(t * 100 / (t + f))} % cumplimiento</span>` : ''; })()}</div></div>
-        ${p.asistencia?.dias_sin_salida ? `<div><span style="color:var(--text3)">Checadas sin salida</span><div style="color:var(--amber)">${p.asistencia.dias_sin_salida}</div></div>` : ''}
-        <div><span style="color:var(--text3)">Descanso / standby (días-persona)</span><div style="color:var(--text)">${p.dias_descanso ?? 0} / ${p.dias_standby ?? 0}</div></div>
-        ${p.veces_reprogramado ? `<div><span style="color:var(--text3)">Reprogramado (acordado)</span><div style="color:var(--text)">${p.veces_reprogramado} vez/veces · original ${p.inicio_original} al ${p.fin_original}</div></div>` : ''}
-        <div><span style="color:var(--text3)">Días en pausa</span><div style="color:${p.dias_pausa?'var(--orange)':'var(--text)'}">${p.dias_pausa ?? 0}</div></div>
-      </div>
-      ${p.incidencias.length ? `<div style="border-top:1px solid var(--border);padding-top:8px">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">POSIBLES CAUSAS (INCIDENCIAS REGISTRADAS)</div>
-        ${p.incidencias.map(i=>`<div style="font-size:12px;color:var(--text2);padding:3px 0">• <strong style="color:var(--text)">${i.tipo}</strong> (${i.severidad}) — ${i.descripcion||'sin descripción'} <span style="color:var(--text3)">[${(i.fecha||'').split('T')[0]}]</span></div>`).join('')}
-      </div>` : '<div style="font-size:12px;color:var(--text3)">Sin incidencias registradas durante este proyecto.</div>'}
-    </div>`).join('')}`;
+    ${datos.map(htmlProyectoMetricas).join('')}`;
 }
 
 
@@ -7868,7 +7909,7 @@ async function nuevaPlantillaPDF(orientacion = 'portrait') {
     }
     T.font('semibold', 6.8, PDF_C.gris); doc.text(String(tipoDoc).toUpperCase(), W - M, 13, { align: 'right', charSpace: 0.45 });
     T.font('semibold', 9.5, PDF_C.tinta); doc.text(codigo || '', W - M, 18.2, { align: 'right' });
-    T.font('normal', 6.8, PDF_C.grisClaro); doc.text(`Emitido ${fLargaAnio(new Date())}`, W - M, 22.2, { align: 'right' });
+    T.font('normal', 6.8, PDF_C.grisClaro); doc.text(`Emitido el ${fLargaAnio(new Date())}`, W - M, 22.2, { align: 'right' });
     T.trazo(PDF_C.linea, 0.3); doc.line(M, 27.5, W - M, 27.5);
     T.relleno(PDF_C.rojo); doc.rect(M, 27.1, 14, 0.8, 'F');
   };
@@ -8663,131 +8704,190 @@ async function exportarMetricasPDF() {
   const datos = STATE._ultimasMetricas || [];
   if (!datos.length) { toast('No hay métricas generadas para exportar', 'error'); return; }
   const T = await nuevaPlantillaPDF('portrait'), { doc, C, M } = T, W = T.W;
+  // Periodo: el rango que se pidió; si no se pidió, el que abarcan los proyectos
   const fechasTodas = datos.flatMap(p => [p.fecha_inicio_estimada, p.fecha_fin_estimada, p.fecha_inicio_real, p.fecha_fin_real]).filter(Boolean).sort();
-  const desde = fechasTodas[0], hasta = fechasTodas[fechasTodas.length - 1];
-  const sub = `${desde ? `Del ${fLargaAnio(desde)} al ${fLargaAnio(hasta)}  ·  ` : ''}${datos.length} proyecto${datos.length === 1 ? '' : 's'}`;
-  const codigo = desde ? `${MESES_CORTOS[fechaLocal(desde).getMonth()].toUpperCase()} – ${MESES_CORTOS[fechaLocal(hasta).getMonth()].toUpperCase()} ${fechaLocal(hasta).getFullYear()}` : '';
+  const rg = STATE._metricasRango || {};
+  const desde = rg.desde || fechasTodas[0], hasta = rg.hasta || fechasTodas[fechasTodas.length - 1];
+  const sub = `${desde ? `Del ${fLargaAnio(desde)} al ${fLargaAnio(hasta)}  ·  ` : ''}${plural(datos.length, 'proyecto')}`;
+  const mesA = desde ? MESES_CORTOS[fechaLocal(desde).getMonth()].toUpperCase() : '', mesB = hasta ? MESES_CORTOS[fechaLocal(hasta).getMonth()].toUpperCase() : '';
+  const codigo = desde ? `${mesA === mesB ? mesA : `${mesA} – ${mesB}`} ${fechaLocal(hasta).getFullYear()}` : '';
   T.encabezado('Reporte de métricas', codigo, 'Métricas de proyectos', sub);
   const k = calcularKpisMetricas(datos);
-  const SEM = { ok: PDF_EST.asignado.c, warn: C.ambar, bad: PDF_EST.progreso.c, na: C.grisClaro, curso: [96, 140, 200], pausa: PDF_EST.pausa.c, desc: PDF_EST.ausencia.c };
+  const SEM = { ok: PDF_EST.asignado.c, warn: C.ambar, bad: PDF_EST.progreso.c, na: C.grisClaro, neutro: C.tinta, curso: [96, 140, 200], pausa: PDF_EST.pausa.c, desc: PDF_EST.ausencia.c };
+  const SEM_BG = { ok: PDF_EST.asignado.bg, warn: C.ambarBg, bad: PDF_EST.progreso.bg, na: C.fondo, curso: [226, 234, 246], pausa: PDF_EST.pausa.bg, desc: PDF_EST.ausencia.bg };
+
+  // ── BLOQUE SUPERIOR: KPIs clave (5 tarjetas)
   let y = 33;
-  // KPIs: 2 filas de 4, con barrita de avance donde aplica
-  const gap = 3.5, tw = (W - 2 * M - gap * 3) / 4, th = 21;
-  k.tarjetas.forEach(([lab, val, sub, sem, barra], i) => {
-    const x = M + (i % 4) * (tw + gap), ty = y + Math.floor(i / 4) * (th + gap), col = SEM[sem];
-    T.relleno(C.fondo); doc.roundedRect(x, ty, tw, th, 1.8, 1.8, 'F');
-    T.relleno(col); doc.rect(x, ty + 3.5, 0.8, th - 7, 'F');
-    T.etiqueta(recortarTexto(doc, lab, tw - 7), x + 4, ty + 5.4, C.gris, 5.4);
-    T.font('bold', 14, col); doc.text(String(val), x + 4, ty + 12.2);
-    T.font('normal', 5.9, C.gris); doc.text(recortarTexto(doc, sub, tw - 7), x + 4, ty + 16.2);
+  const gap = 3, tw = (W - 2 * M - gap * 4) / 5, th = 25;
+  k.tarjetas.forEach(([lab, val, det, sem, barra], i) => {
+    const x = M + i * (tw + gap), col = SEM[sem];
+    T.relleno(C.fondo); doc.roundedRect(x, y, tw, th, 1.8, 1.8, 'F');
+    T.relleno(col); doc.rect(x, y + 3.5, 0.8, th - 7, 'F');
+    // etiqueta en hasta 2 renglones
+    T.font('semibold', 5.3, C.gris);
+    const lineas = doc.splitTextToSize(lab.toUpperCase(), tw - 12).slice(0, 2);
+    lineas.forEach((l, j) => doc.text(l, x + 3.6, y + 5 + j * 2.6, { charSpace: 0.3 }));
+    let tam = 15; T.font('bold', tam, col);
+    while (doc.getTextWidth(val) > tw - 6.5 && tam > 9) { tam -= 0.5; T.font('bold', tam, col); }
+    doc.text(val, x + 3.6, y + 14.6);
+    T.font('normal', 5.6, C.gris);
+    doc.splitTextToSize(det, tw - 6.5).slice(0, 2).forEach((l, j) => doc.text(l, x + 3.6, y + 18.4 + j * 2.4));
     if (barra != null) {
-      T.relleno(C.linea); doc.roundedRect(x + 4, ty + 18, tw - 8, 1, 0.5, 0.5, 'F');
-      if (barra > 0) { T.relleno(col); doc.roundedRect(x + 4, ty + 18, Math.max(1, (tw - 8) * Math.min(100, barra) / 100), 1, 0.5, 0.5, 'F'); }
+      T.relleno(C.linea); doc.roundedRect(x + 3.6, y + th - 2.6, tw - 7.2, 0.9, 0.45, 0.45, 'F');
+      if (barra > 0) { T.relleno(col); doc.roundedRect(x + 3.6, y + th - 2.6, Math.max(0.9, (tw - 7.2) * Math.min(100, barra) / 100), 0.9, 0.45, 0.45, 'F'); }
     }
   });
-  y += 2 * th + gap + 9;
-  // Barras apiladas con leyenda
+  y += th + 5;
+  // Indicadores secundarios en una línea
+  let sx = M;
+  k.secundarios.forEach(([l, v], i) => {
+    T.font('normal', 6.6, C.gris); doc.text(`${l}: `, sx, y); sx += doc.getTextWidth(`${l}: `);
+    T.font('semibold', 6.6, C.tinta); doc.text(v, sx, y); sx += doc.getTextWidth(v);
+    if (i < k.secundarios.length - 1) { T.font('normal', 6.6, C.grisClaro); doc.text('   ·   ', sx, y); sx += doc.getTextWidth('   ·   '); }
+  });
+  y += 10;
+
+  // ── BLOQUE CENTRAL: estado de los proyectos y uso del tiempo
   const apilada = (titulo, extra, items) => {
     y = T.seccion(titulo, y, extra);
     const tot = items.reduce((a, [, n]) => a + n, 0), bw = W - 2 * M;
-    if (!tot) { T.font('normal', 7, C.grisClaro); doc.text('Sin datos en el periodo', M, y + 1); y += 8; return; }
+    if (!tot) { T.font('normal', 7, C.grisClaro); doc.text('Sin datos en el periodo', M, y + 1); y += 9; return; }
     let x = M; const vis = items.filter(([, n]) => n);
     vis.forEach(([, n, c], i) => {
       const w = bw * n / tot - (i < vis.length - 1 ? 0.8 : 0);
-      T.relleno(SEM[c]); doc.roundedRect(x, y - 2, Math.max(0.8, w), 3.6, 0.8, 0.8, 'F'); x += bw * n / tot;
+      T.relleno(SEM[c]); doc.roundedRect(x, y - 2, Math.max(0.8, w), 4, 0.8, 0.8, 'F'); x += bw * n / tot;
     });
-    let lx = M; const ly = y + 6.4;
-    vis.forEach(([lab, n, c]) => {
-      T.relleno(SEM[c]); doc.circle(lx + 1.1, ly - 1, 1.1, 'F');
-      T.font('medium', 7, C.texto); doc.text(lab, lx + 3.4, ly);
-      let ax = lx + 3.4 + doc.getTextWidth(lab) + 1.6;
-      T.font('bold', 7, C.tinta); doc.text(String(n), ax, ly); ax += doc.getTextWidth(String(n)) + 1.2;
-      T.font('normal', 6.4, C.grisClaro); const pc = `${Math.round(n * 100 / tot)} %`; doc.text(pc, ax, ly);
-      lx = ax + doc.getTextWidth(pc) + 6;
+    // Leyenda en columnas: color · etiqueta · número · %
+    const cw = bw / Math.min(5, vis.length), ly = y + 7.2;
+    vis.forEach(([lab, n, c], i) => {
+      const lx = M + (i % 5) * cw, yy = ly + Math.floor(i / 5) * 8;
+      T.relleno(SEM[c]); doc.circle(lx + 1.1, yy - 1, 1.1, 'F');
+      T.font('medium', 6.4, C.texto); doc.text(recortarTexto(doc, lab, cw - 5), lx + 3.4, yy);
+      T.font('bold', 9, C.tinta); doc.text(String(n), lx + 3.4, yy + 4.4);
+      const aw = doc.getTextWidth(String(n));
+      T.font('normal', 6.4, C.grisClaro); doc.text(`${Math.round(n * 100 / tot)} %`, lx + 3.4 + aw + 1.6, yy + 4.4);
     });
-    y += 15;
+    y = ly + Math.ceil(vis.length / 5) * 8 + 5;
   };
-  apilada('ESTADO DE LOS PROYECTOS', `${datos.length} proyecto(s)`, k.estados);
-  apilada('USO DEL TIEMPO', `días-persona · ${k.horas} h registradas${k.horasJornada ? ` · ${k.horasJornada} h por jornada` : ''}`, k.tiempo);
-  // Alertas
-  if (k.alertas.length) {
-    y = T.seccion('ATENDER PRIMERO', y);
-    k.alertas.forEach(a => {
-      T.relleno(a.grave ? PDF_EST.progreso.c : C.ambar); doc.circle(M + 1.2, y - 1, 1.1, 'F');
-      T.font('bold', 7.6, C.tinta); doc.text(a.nombre, M + 4, y);
-      const nx = M + 4 + doc.getTextWidth(a.nombre) + 3;
-      T.font('normal', 7.2, C.gris); doc.text(recortarTexto(doc, a.textos.join('  ·  '), W - M - nx), nx, y);
-      y += 5.6;
-    });
-    y += 4;
+  apilada('ESTADO DE LOS PROYECTOS', plural(datos.length, 'proyecto'), k.estados);
+  apilada('USO DEL TIEMPO', `días-persona  ·  ${k.horas} h registradas${k.horasJornada ? `  ·  ${k.horasJornada} h por jornada completa` : ''}`, k.tiempo);
+
+  // ── BLOQUE INFERIOR: alertas operativas
+  y = T.seccion('ATENDER PRIMERO', y + 1);
+  if (!k.alertas.length) {
+    T.relleno(PDF_EST.asignado.bg); doc.roundedRect(M, y - 4, W - 2 * M, 9, 1.6, 1.6, 'F');
+    T.font('semibold', 7.4, PDF_EST.asignado.c); doc.text('Sin alertas: ningún proyecto con retraso ni días sin registro de checada.', M + 4, y + 1.6);
+    y += 10;
   }
-  y = T.seccion('DETALLE POR PROYECTO', y);
+  k.alertas.forEach(a => {
+    const h = 12.5, col = a.grave ? PDF_EST.progreso : { c: C.ambar, bg: C.ambarBg };
+    T.relleno(C.fondo); doc.roundedRect(M, y - 4, W - 2 * M, h, 1.6, 1.6, 'F');
+    T.relleno(col.c); doc.rect(M, y - 1, 0.9, h - 6, 'F');
+    T.font('bold', 8, C.tinta); doc.text(recortarTexto(doc, a.nombre, W - 2 * M - 10), M + 4.5, y + 0.6);
+    let ax = M + 4.5;
+    a.it.forEach(([l, v], i) => {
+      T.font('normal', 6.8, C.gris); doc.text(`${l}: `, ax, y + 5.4); ax += doc.getTextWidth(`${l}: `);
+      T.font('bold', 6.8, l === 'Retraso' || l === 'Incidencias altas' ? col.c : C.texto); doc.text(v, ax, y + 5.4); ax += doc.getTextWidth(v);
+      if (i < a.it.length - 1) { T.font('normal', 6.8, C.grisClaro); doc.text('   ·   ', ax, y + 5.4); ax += doc.getTextWidth('   ·   '); }
+    });
+    y += h + 3;
+  });
+
+  // ── DETALLE POR PROYECTO (desde la página 2)
+  T.nuevaPagina(); T.encabezado('Reporte de métricas', codigo, 'Métricas de proyectos', 'Detalle por proyecto');
+  y = 36;
+  y = T.seccion('DETALLE POR PROYECTO', y, plural(datos.length, 'proyecto'));
+  const w = W - 2 * M, cw3 = (w - 10) / 3;
   datos.forEach(p => {
-    const inc = p.incidencias || [];
-    const alto = 60 + inc.length * 5.5;
-    if (y + alto > T.H - 18.5) { T.nuevaPagina(); T.encabezado('Reporte de métricas', codigo, 'Métricas de proyectos', 'continuación'); y = 36; }
-    const w = W - 2 * M;
+    const f = infoProyectoMetricas(p), inc = p.incidencias || [];
+    // insignias en renglones
+    T.font('semibold', 6.2);
+    const anchoIns = f.insignias.map(([t]) => doc.getTextWidth(t) + 6);
+    let filasIns = 1, acc = 0;
+    anchoIns.forEach(a => { if (acc + a > w - 10) { filasIns++; acc = 0; } acc += a + 2; });
+    const recursos = [['Personal', p.personal_asignado_nombres], ['Equipo', p.equipo_usado], ['Vehículo', p.vehiculo_usado]].filter(([, l]) => (l || []).length);
+    const alto = 60 + filasIns * 6.5 + (recursos.length ? 6 : 0) + (inc.length ? 9 + inc.length * 5.6 : 0);
+    if (y + alto > T.H - 18.5) { T.nuevaPagina(); T.encabezado('Reporte de métricas', codigo, 'Métricas de proyectos', 'Detalle por proyecto (continuación)'); y = 36; }
     T.relleno(C.fondo); doc.roundedRect(M, y, w, alto, 2, 2, 'F');
     let yy = y + 8;
-    const r = p.retraso_dias;
-    const res = p.pausado ? [`PAUSADO${p.pausado_desde ? ` · DESDE ${fCorta(p.pausado_desde).toUpperCase()}` : ''}`, PDF_EST.pausa] : r == null ? (p.retraso_actual ? [`EN CURSO · +${p.retraso_actual} DÍA${p.retraso_actual === 1 ? '' : 'S'}`, PDF_EST.progreso] : ['EN CURSO', PDF_EST.prep]) : r > 0 ? [`+${r} DÍA${r === 1 ? '' : 'S'} DE RETRASO`, PDF_EST.progreso] : r < 0 ? [`${-r} DÍA${r === -1 ? '' : 'S'} ANTES`, PDF_EST.asignado] : ['A TIEMPO', PDF_EST.asignado];
-    const ap = T.anchoPastilla(res[0]);
+    // Encabezado: nombre + estado
+    const est = f.estado[0].toUpperCase(), ap = T.anchoPastilla(est);
     T.font('bold', 11, C.tinta); doc.text(recortarTexto(doc, p.nombre, w - ap - 16), M + 5, yy);
-    T.pastilla(res[0], M + w - 5 - ap, yy - 0.2, res[1].c, res[1].bg);
+    T.pastilla(est, M + w - 5 - ap, yy - 0.2, SEM[f.estado[1]], SEM_BG[f.estado[1]]);
     yy += 4.8;
-    T.font('normal', 7.6, C.gris); doc.text(`${p.cliente || '—'}  ·  ${p.ciudad || '—'}`, M + 5, yy);
-    yy += 6;
-    // Estimado vs real sobre el mismo eje
-    // Fin de la barra real: fin real, o el día en que se pausó, o hoy si sigue en curso
+    T.font('normal', 7.4, C.gris); doc.text(`${p.cliente || '—'}  ·  ${p.ciudad || '—'}`, M + 5, yy);
+    yy += 6.5;
+    // Línea de tiempo: estimado vs real (la barra real termina en el fin real, el día de la pausa o hoy)
     const finReal = p.fecha_fin_real || (p.pausado ? (p.pausado_desde || null) : null);
     const hoyMs = new Date(new Date().setHours(0, 0, 0, 0)).getTime();
-    const fs = [p.fecha_inicio_estimada, p.fecha_fin_estimada, p.fecha_inicio_real, finReal].filter(Boolean).map(f => fechaLocal(f).getTime());
-    if (p.en_curso && !p.pausado && p.fecha_inicio_real) fs.push(hoyMs);
+    const fs = [p.fecha_inicio_estimada, p.fecha_fin_estimada, p.fecha_inicio_real, finReal].filter(Boolean).map(d => fechaLocal(d).getTime());
+    if (!p.fecha_fin_real && !p.pausado && p.fecha_inicio_real) fs.push(hoyMs);
     const e0 = Math.min(...fs), e1 = Math.max(...fs) + 86400000, tot = Math.max(1, e1 - e0);
-    const ex = M + 30, ew = w - 40;
-    [['Estimado', p.fecha_inicio_estimada, p.fecha_fin_estimada, [205, 205, 210]],
-     ['Real', p.fecha_inicio_real, finReal, p.pausado ? PDF_EST.pausa.c : (r != null && r > 0) || p.retraso_actual ? PDF_EST.progreso.c : PDF_EST.asignado.c]].forEach(([lab, a, b, col], i) => {
-      const by = yy + i * 6.5;
-      T.etiqueta(lab, M + 5, by + 2.4, C.gris, 6);
+    const ex = M + 24, ew = w - 29;
+    [['Estimado', p.fecha_inicio_estimada, p.fecha_fin_estimada, [205, 205, 210], f.estRango],
+     ['Real', p.fecha_inicio_real, finReal, SEM[f.desvSem === 'bad' ? 'bad' : f.desvSem === 'pausa' ? 'pausa' : 'ok'], f.realRango]].forEach(([lab, a, b, col, txt], i) => {
+      const by = yy + i * 6;
+      T.etiqueta(lab, M + 5, by + 2.4, C.gris, 5.8);
       T.relleno(C.blanco); doc.roundedRect(ex, by, ew, 3, 1, 1, 'F');
-      if (!a) { T.font('normal', 6.6, C.grisClaro); doc.text('sin registro', ex + 2, by + 2.4); return; }
+      if (!a) { T.font('normal', 6.4, C.grisClaro); doc.text('sin registro', ex + 2, by + 2.4); return; }
       const ta = fechaLocal(a).getTime(), tb = (b ? fechaLocal(b).getTime() : hoyMs) + 86400000;
       const bx = ex + ew * (ta - e0) / tot, bw = Math.max(2.4, ew * (tb - ta) / tot);
       T.relleno(col); doc.roundedRect(bx, by, bw, 3, 1, 1, 'F');
-      const txt = i === 1 && p.pausado ? `${fCorta(a)} – en pausa desde ${fCorta(p.pausado_desde || a)}` : b ? rangoCorto(a, b) : `${fCorta(a)} – en curso`;
-      T.font('medium', 6.6, C.texto);
-      if (bx + bw + 2 + doc.getTextWidth(txt) > ex + ew) { T.font('semibold', 6.4, i === 0 ? C.texto : C.blanco); doc.text(txt, bx + bw - 2, by + 2.35, { align: 'right' }); }
-      else doc.text(txt, bx + bw + 2, by + 2.4);
+      T.font('medium', 6.2, C.texto);
+      const tw2 = doc.getTextWidth(txt);
+      if (bx + bw + 2 + tw2 <= ex + ew) doc.text(txt, bx + bw + 2, by + 2.4);
+      else if (bw > tw2 + 4) { T.font('semibold', 6.2, i === 0 ? C.texto : C.blanco); doc.text(txt, bx + bw - 2, by + 2.35, { align: 'right' }); }
+      else doc.text(txt, Math.max(ex + 1, bx - 2 - tw2), by + 2.4);
     });
-    yy += 16;
-    const ind = [['Duración', p.duracion_real_dias != null ? `${p.duracion_estimada_dias ?? '—'} → ${p.duracion_real_dias} días`
-        : p.en_curso && p.dias_transcurridos != null ? `${p.duracion_estimada_dias ?? '—'} est. · ${p.dias_transcurridos} en campo` : `${p.duracion_estimada_dias ?? '—'} días (est.)`], ['Días trabajados', p.asistencia?.dias_trabajados ?? 0],
-      ['Horas aprox.', `${p.asistencia?.horas_aprox ?? 0} h`], ['Sin checada', (() => { const t = p.asistencia?.dias_trabajados || 0, f = p.dias_faltantes || 0; return `${f}${t + f ? ` · ${Math.round(t * 100 / (t + f))} % cumpl.` : ''}`; })()], ['Descanso', p.dias_descanso ?? 0],
-      [p.dias_pausa ? 'Standby · pausa' : 'Standby', p.dias_pausa ? `${p.dias_standby ?? 0} · ${p.dias_pausa}` : (p.dias_standby ?? 0)], ['Reprogramado', p.veces_reprogramado ? `${p.veces_reprogramado} ${p.veces_reprogramado === 1 ? 'vez' : 'veces'}` : 'No'],
-      ['Incidencias', `${p.total_incidencias ?? inc.length}${p.incidencias_altas ? ` (${p.incidencias_altas} alta)` : ''}`]];
-    const iw = (w - 10) / 4;
-    ind.forEach(([lab, val], i) => {
-      const ix = M + 5 + (i % 4) * iw, iy = yy + Math.floor(i / 4) * 10;
-      T.etiqueta(lab, ix, iy, C.gris, 5.8); T.font('bold', 9.4, C.tinta); doc.text(String(val), ix, iy + 4.6);
+    yy += 15;
+    // Fila de duración y fila de checadas: 3 datos cada una
+    const dato = (i, lab, val, det, sem, fila) => {
+      const dx = M + 5 + i * cw3, dy = yy + fila * 14;
+      T.etiqueta(lab, dx, dy, C.gris, 5.6);
+      let tm = 9.6; T.font('bold', tm, sem ? SEM[sem] : C.tinta);
+      while (doc.getTextWidth(val) > cw3 - 4 && tm > 7) { tm -= 0.4; T.font('bold', tm, sem ? SEM[sem] : C.tinta); }
+      doc.text(val, dx, dy + 4.6);
+      T.font('normal', 6, C.gris); doc.text(recortarTexto(doc, det, cw3 - 4), dx, dy + 8.2);
+    };
+    dato(0, 'Duración estimada', f.est, f.estRango, null, 0);
+    dato(1, 'Duración real', f.real, f.realRango, null, 0);
+    dato(2, 'Desviación', f.desv, f.desvDet, f.desvSem, 0);
+    dato(0, 'Cumplimiento de checada', f.cumpl, f.cumplDet, f.ch.cumplimiento == null ? 'na' : f.cumplSem, 1);
+    dato(1, 'Días sin registro de checada', f.sinReg, f.ch.dias_sin_registro ? 'días laborables sin entrada' : 'todos los días con registro', f.sinRegSem, 1);
+    dato(2, 'Horas registradas', f.horasTxt, f.horasDet, (p.asistencia?.horas_aprox || 0) > 0 ? null : 'na', 1);
+    yy += 28 + 2;
+    // Insignias de estado (solo lo que aporta información)
+    let ix = M + 5;
+    f.insignias.forEach(([t, s], i) => {
+      if (ix + anchoIns[i] > M + w - 5) { ix = M + 5; yy += 6.5; }
+      T.relleno(SEM_BG[s] || C.fondo); doc.roundedRect(ix, yy - 3.6, anchoIns[i], 5, 2.5, 2.5, 'F');
+      T.font('semibold', 6.2, SEM[s]); doc.text(t, ix + 3, yy + 0.1);
+      ix += anchoIns[i] + 2;
     });
-    yy += 21;
-    T.font('normal', 7.2, C.texto);
-    const recursos = [`Personal: ${(p.personal_asignado_nombres || []).join(', ') || '—'}`,
-      (p.equipo_usado || []).length && `Equipo: ${p.equipo_usado.join(', ')}`,
-      (p.vehiculo_usado || []).length && `Vehículo: ${p.vehiculo_usado.join(', ')}`].filter(Boolean).join('   ·   ');
-    doc.text(recortarTexto(doc, recursos, w - 10), M + 5, yy);
-    inc.forEach(i => {
-      yy += 5.5;
-      const sev = String(i.severidad || '').toUpperCase();
-      const st = ['ALTA', 'CRITICA', 'CRÍTICA'].includes(sev) ? PDF_EST.progreso : PDF_EST.prep;
-      const fx = T.pastilla(sev || '—', M + 5, yy, st.c, st.bg);
-      T.font('semibold', 7.4, C.tinta); const tp = String(i.tipo || ''); doc.text(tp, fx + 2.5, yy);
-      const at = doc.getTextWidth(tp);
-      T.font('normal', 7.2, C.gris); doc.text(recortarTexto(doc, i.descripcion || 'sin descripción', w - (fx - M) - at - 12), fx + 2.5 + at + 2.5, yy);
-    });
-    y += alto + 6;
+    yy += 6.5;
+    if (recursos.length) {
+      let rx = M + 5;
+      recursos.forEach(([l, v], i) => {
+        T.font('semibold', 6.8, C.tinta); doc.text(`${l}: `, rx, yy); rx += doc.getTextWidth(`${l}: `);
+        T.font('normal', 6.8, C.texto); const t = recortarTexto(doc, v.join(', '), M + w - 5 - rx); doc.text(t, rx, yy); rx += doc.getTextWidth(t) + 5;
+      });
+      yy += 6;
+    }
+    if (inc.length) {
+      T.etiqueta('Incidencias registradas', M + 5, yy, C.gris, 5.6); yy += 1.2;
+      inc.forEach(i => {
+        yy += 5.6;
+        const sev = String(i.severidad || '').toUpperCase();
+        const st = ['ALTA', 'CRITICA', 'CRÍTICA'].includes(sev) ? PDF_EST.progreso : PDF_EST.prep;
+        const fx = T.pastilla(sev || '—', M + 5, yy, st.c, st.bg);
+        T.font('semibold', 7, C.tinta); const tp = String(i.tipo || ''); doc.text(tp, fx + 2.5, yy);
+        const at = doc.getTextWidth(tp);
+        T.font('normal', 6.8, C.gris); doc.text(recortarTexto(doc, i.descripcion || 'sin descripción', w - (fx - M) - at - 12), fx + 2.5 + at + 2.5, yy);
+      });
+    }
+    y += alto + 5;
   });
-  const nombreArchivo = datos.length === 1 ? limpiarNombreArchivo(datos[0].nombre) : `${datos.length} proyectos`;
+  const nombreArchivo = datos.length === 1 ? limpiarNombreArchivo(datos[0].nombre) : plural(datos.length, 'proyecto');
   T.cerrar(`Metricas - ${nombreArchivo} - ${isoLocal(new Date())}.pdf`);
 }
 
