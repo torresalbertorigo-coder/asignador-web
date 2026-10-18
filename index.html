@@ -512,7 +512,8 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .wa-fab{position:fixed;right:22px;bottom:26px;z-index:400;width:56px;height:56px;border-radius:50%;border:0;background:#25D366;color:#fff;font-size:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(0,0,0,.35);cursor:pointer;transition:transform .15s}
 .wa-fab:hover{transform:scale(1.06)}
 .wa-fab{display:none}
-@media (max-width:768px){.wa-fab{display:flex;bottom:20px;right:16px}.btn-wa-top{display:none}}
+.btn-wa-movil{display:none}
+@media (max-width:768px){.btn-wa-top{display:none}.btn-wa-movil{display:flex;justify-content:center;width:100%;margin-bottom:10px;position:relative;z-index:30;min-height:38px;font-size:13px}}
 .wa-ico{width:34px;height:34px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;font-size:19px}
 .wa-fondo{background:#0B141A;border-radius:12px;padding:14px;background-image:radial-gradient(rgba(255,255,255,.03) 1px,transparent 1px);background-size:14px 14px}
 :root[data-theme="light"] .wa-fondo{background-color:#EFEAE2;background-image:radial-gradient(rgba(0,0,0,.04) 1px,transparent 1px)}
@@ -782,6 +783,14 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .gantt-dias th.hoy b,.gantt-dias th.hoy span{color:#fff}
 .gantt-esq{left:0;z-index:5!important;min-width:170px;text-align:left!important;padding-left:12px!important}
 .gantt-table tbody .gantt-name{position:sticky;left:0;z-index:2;min-width:170px;max-width:200px;overflow:hidden;text-overflow:ellipsis;box-shadow:1px 0 0 var(--border)}
+@media (max-width:768px){
+  .gantt-table tbody .gantt-name,.gantt-esq{min-width:112px!important;max-width:112px;font-size:11px!important;padding:6px 8px!important;white-space:normal;line-height:1.2}
+  .gantt-mes span{left:116px}
+  .gantt-barra{padding:10px}
+  .gantt-nav .btn{padding:6px 9px}
+  .gantt-rango-txt{width:100%;margin:4px 0 0;font-size:12.5px}
+  .gantt-wrap{max-height:none}
+}
 .gantt-table th{background:var(--surface2);font-size:10px;color:var(--text3);padding:6px 8px;border:1px solid var(--border);letter-spacing:.08em;font-weight:600;white-space:nowrap}
 .gantt-table td{border:1px solid var(--border);padding:0;height:32px}
 .gantt-name{padding:6px 12px;background:var(--surface);font-size:12px;color:var(--text);min-width:140px;white-space:nowrap}
@@ -3505,26 +3514,29 @@ function leyendaGantt(usados) {
 // Se pinta el rango visible + el mismo tanto antes y después, para poder deslizar
 // hacia semanas pasadas o futuras; los botones mueven el rango y recentran.
 const GANTT_ANCHO = { 7: 64, 30: 30, 60: 22 };   // ancho mínimo por día; se estira para que quepa justo el rango
+const esCelular = () => window.innerWidth <= 768;
+const rangoGantt = () => STATE._ganttRango || (esCelular() ? 7 : 30);   // celular: 7 días por defecto
 function anchoDiaGantt(n) {
-  const disp = (document.getElementById('main-content')?.clientWidth || 1200) - 60 - 172;
-  return Math.max({ 7: 44, 30: 24, 60: 16 }[n], Math.floor(disp / n));
+  const cel = esCelular();
+  const disp = (document.getElementById('main-content')?.clientWidth || 1200) - (cel ? 34 : 60) - (cel ? 112 : 172);
+  return Math.max({ 7: cel ? 32 : 44, 30: 24, 60: 16 }[n], Math.floor(disp / n));
 }
 const GANTT_ANTES = { 7: 1, 30: 7, 60: 14 };   // días antes de hoy al iniciar en "Hoy"
 function moverGantt(dir) {
-  const n = STATE._ganttRango || 30;
+  const n = rangoGantt();
   if (dir === 0) STATE._ganttInicio = null;
   else { const d = ganttInicioVista(); d.setDate(d.getDate() + dir * (n === 7 ? 7 : Math.round(n / 2))); STATE._ganttInicio = isoLocal(d); }
   renderGantt();
 }
 function ganttInicioVista() {
-  const n = STATE._ganttRango || 30;
+  const n = rangoGantt();
   if (STATE._ganttInicio) return fechaLocal(STATE._ganttInicio);
   const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - GANTT_ANTES[n]); return d;
 }
 function cambiarRangoGantt(n) { STATE._ganttRango = n; STATE._ganttInicio = null; renderGantt(); }
 async function renderGantt() {
   await loadEmpleados(); await loadProyectos();
-  const n = STATE._ganttRango || 30, cw = anchoDiaGantt(n);
+  const n = rangoGantt(), cw = anchoDiaGantt(n);
   STATE._ganttCw = cw;
   const inicio = ganttInicioVista();
   const desde = new Date(inicio); desde.setDate(desde.getDate() - n);
@@ -6073,8 +6085,8 @@ async function renderMapa() {
     document.getElementById('topbar-actions').insertAdjacentHTML('afterbegin', `<button class="btn btn-sm btn-wa btn-wa-top" onclick="abrirReporteWhatsApp()" title="Resumen del día para compartir por WhatsApp">💬 ¿Qué tenemos hoy?</button>`);
   }
   html(`
-    ${['administrador', 'director_proyecto'].includes(STATE.rol) ? `<button class="wa-fab" onclick="abrirReporteWhatsApp()" aria-label="¿Qué tenemos hoy?"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></button>` : ''}
     <div class="mapa-barra">
+      ${['administrador', 'director_proyecto'].includes(STATE.rol) ? `<button class="btn btn-sm btn-wa btn-wa-movil" onclick="abrirReporteWhatsApp()">💬 ¿Qué tenemos hoy?</button>` : ''}
       <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="mapa-f-proyectos" checked onchange="actualizarMapa()"> Proyectos</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="mapa-f-personal" onchange="actualizarMapa()"> Personal</label>
