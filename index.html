@@ -106,6 +106,15 @@ a{text-decoration:none;color:inherit}
 :root[data-theme="light"] .brand-logo-light{display:block}
 .sidebar-brand{background:#0f1010}
 :root[data-theme="light"] .sidebar-brand{background:#ecebe6}
+/* Modo claro: los paneles/modales llevan fondo sólido (el degradado a transparente dejaba la parte de abajo gris y con poco contraste) */
+:root[data-theme="light"] .panel-side{background:linear-gradient(to top, var(--surface) 0%, var(--grad-fill-panel) 100%) padding-box, linear-gradient(to top, var(--border) 0%, var(--border2) 100%) border-box;box-shadow:0 20px 60px rgba(0,0,0,.18)}
+:root[data-theme="light"] .sel-card{box-shadow:0 20px 60px rgba(0,0,0,.18)}
+:root[data-theme="light"] .cal-cell.ocupado{background:#FDE2E4;color:#B91C1C}
+:root[data-theme="light"] .cal-cell.ausente{background:#EDE7FB;color:#6D4FC2}
+:root[data-theme="light"] .cv-tl-bar{background-color:color-mix(in srgb,var(--green) 62%,transparent)}
+:root[data-theme="light"] .ag-c{background:#ECECEF}
+:root[data-theme="light"] .cv-req.ok{background:color-mix(in srgb,var(--green) 9%,#fff)}
+:root[data-theme="light"] .equipo-card{background:linear-gradient(to top, var(--surface) 0%, var(--grad-fill-card) 100%);border:1px solid var(--border)}
 .user-av{width:28px;height:28px;border-radius:3px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;font-family:var(--mono);flex-shrink:0}
 .user-nm{font-size:12px;font-weight:600;color:var(--text);line-height:1.2}
 .user-rol{font-size:10px;color:var(--text3)}
@@ -1962,7 +1971,7 @@ function textoRetrasoInicio(p) {
 
 function badge(val) {
   const map = { libre:'badge-libre LIBRE', asignado:'badge-libre ASIGNADO', en_proyecto:'badge-proy EN PROYECTO',
-    mantenimiento:'badge-mant CALIBRACIÓN', pendiente_asignacion:'badge-pend PENDIENTE', en_progreso:'badge-proy EN PROG.',
+    mantenimiento:'badge-mant MANTENIMIENTO', pendiente_asignacion:'badge-pend PENDIENTE', en_progreso:'badge-proy EN PROG.',
     pausado:'badge-orange PAUSADO', completado:'badge-libre COMPLETADO', cancelado:'badge-gray CANCELADO',
     en_preparacion:'badge-mant EN PREPARACIÓN', oficina:'badge-libre OFICINA', baja:'badge-proy BAJA',
     en_espera_inicio:'badge-orange EN ESPERA DE INICIO',
