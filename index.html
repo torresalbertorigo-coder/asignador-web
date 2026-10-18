@@ -405,6 +405,68 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .ti-ws-ga25{--ws-ic:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M7 3h10M7 3v5M17 3v5M7 5.5h10M5.5 8h13%22/%3E%3Cpath d=%22M10.8 8v9M13.2 8v9M10.8 11h2.4M10.8 14h2.4%22/%3E%3Crect x=%225%22 y=%2217%22 width=%2214%22 height=%222.5%22 rx=%22.8%22/%3E%3Cpath d=%22M5.5 19.5L3 21.5M18.5 19.5l2.5 2M1.8 21.5h2.4M19.8 21.5h2.4%22/%3E%3C/svg%3E")}
 .ti-ws-confinado{--ws-ic:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M4.5 7v10.5c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5V7%22/%3E%3Cellipse cx=%2212%22 cy=%227%22 rx=%227.5%22 ry=%222.5%22/%3E%3Cpath d=%22M10 2.5v14M14 2.5v14M10 5h4M10 9.5h4M10 13h4%22/%3E%3C/svg%3E")}
 .ti-ws-ergonomia{--ws-ic:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Ccircle cx=%226.5%22 cy=%224%22 r=%222%22/%3E%3Cpath d=%22M6.5 7v7h5v6.5M6.5 10h6M12.5 11.5h9M19.5 11.5v9%22/%3E%3Crect x=%2215.5%22 y=%224%22 width=%225%22 height=%224%22 rx=%22.6%22/%3E%3Cpath d=%22M18 8v3.5%22/%3E%3Cpath d=%22M4 16h5.5M6.5 16v4.5%22/%3E%3C/svg%3E")}
+.ev-head{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;flex-direction:column;gap:10px}
+.ev-head-tit{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.ev-head-tit span{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3)}
+.ev-head-tit b{font-size:15px;color:var(--text)}
+.ev-chips{display:flex;flex-wrap:wrap;gap:6px}
+.ev-chip{position:relative;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2)}
+.ev-chip i{font-size:14px}
+.ev-chip .ev-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);margin-left:2px}
+.ev-chip.ev-ok{color:var(--green);border-color:color-mix(in srgb,var(--green) 35%,transparent)}.ev-chip.ev-ok .ev-dot{background:var(--green)}
+.ev-chip.ev-warn{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 35%,transparent)}.ev-chip.ev-warn .ev-dot{background:var(--amber)}
+.ev-chip.ev-bad{color:var(--red-text);border-color:color-mix(in srgb,var(--red-text) 35%,transparent)}.ev-chip.ev-bad .ev-dot{background:var(--red-text)}
+.ev-chip.ev-neutro .ev-dot{display:none}
+.ev-resumen{display:flex;gap:16px;font-size:12px;color:var(--text2);flex-wrap:wrap}
+.ev-resumen span{display:inline-flex;align-items:center;gap:6px}
+.ev-resumen span::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--c)}
+.ev-resumen b{color:var(--text);font-size:13px}
+.ev-sec{display:flex;align-items:center;gap:8px;margin:18px 0 10px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text)}
+.ev-sec-dot{width:8px;height:8px;border-radius:50%}
+.ev-sec-n{font-family:var(--mono);color:var(--text3)}
+.ev-sec-ayuda{font-weight:500;letter-spacing:0;text-transform:none;color:var(--text3);font-size:11.5px}
+.ev-vacio{display:flex;align-items:center;gap:8px;padding:12px 14px;border:1px dashed var(--border2);border-radius:10px;font-size:12.5px;color:var(--text2);margin-bottom:6px}
+.ev-desc>summary{list-style:none;cursor:pointer}.ev-desc>summary::-webkit-details-marker{display:none}
+.ev-desc .ev-flecha{margin-left:auto;color:var(--text3);transition:transform .15s}
+.ev-desc[open] .ev-flecha{transform:rotate(180deg)}
+.cv-card{display:grid;grid-template-columns:64px minmax(0,1fr) 250px 190px;align-items:center;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:8px;transition:border-color .15s}
+.cv-card:hover{border-color:var(--border2)}
+.cv-card.top{border-color:color-mix(in srgb,var(--green) 55%,transparent)}
+.cv-card.cv-descartado{opacity:.86}
+.cv-score{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;outline:none}
+.cv-ring{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(closest-side,var(--surface) 78%,transparent 80% 100%),conic-gradient(var(--c) calc(var(--p) * 1%),var(--surface2) 0)}
+.cv-ring b{font-size:17px;font-weight:800;color:var(--c);font-variant-numeric:tabular-nums}
+.cv-ring small{font-size:10px;font-weight:700;color:var(--c);margin-left:1px}
+.cv-score>span{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3)}
+.cv-main{min-width:0}
+.cv-nombre{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cv-link{background:none;border:0;padding:0;font:inherit;font-size:14px;font-weight:700;color:var(--text);cursor:pointer;display:inline-flex;align-items:center;gap:2px;text-align:left}
+.cv-link i{font-size:14px;color:var(--text3);transition:transform .15s}
+.cv-link:hover i{transform:translateX(2px);color:var(--text)}
+.cv-top{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--green);background:color-mix(in srgb,var(--green) 14%,transparent);padding:2px 7px;border-radius:999px}
+.cv-sub{font-size:12px;color:var(--text2);margin:2px 0 8px}
+.cv-reqs{display:flex;flex-wrap:wrap;gap:6px}
+.cv-req{position:relative;width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:16px;outline:none;cursor:default}
+.cv-req.ok{color:var(--green);background:color-mix(in srgb,var(--green) 12%,transparent);border:1px solid color-mix(in srgb,var(--green) 30%,transparent)}
+.cv-req.falta{color:var(--red-text);background:color-mix(in srgb,var(--red-text) 8%,transparent);border:1px dashed color-mix(in srgb,var(--red-text) 45%,transparent)}
+.cv-req.falta>i{opacity:.55}
+.cv-req-est{position:absolute;right:-4px;bottom:-4px;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;border:1.5px solid var(--surface)}
+.cv-req.ok .cv-req-est{background:var(--green)}.cv-req.falta .cv-req-est{background:var(--red-text)}
+.cv-sinreq{font-size:11.5px;color:var(--text3)}
+.cv-tl{min-width:0}
+.cv-tl-bar{position:relative;height:12px;border-radius:6px;background:color-mix(in srgb,var(--green) 70%,transparent);overflow:visible;
+  background-image:repeating-linear-gradient(90deg,transparent 0 calc(100% / var(--n) - 1px),color-mix(in srgb,var(--surface) 55%,transparent) calc(100% / var(--n) - 1px) calc(100% / var(--n)))}
+.cv-tl-bar .cv-tl-occ{position:absolute;top:0;bottom:0;background:var(--red-text);border-radius:3px;outline:none;cursor:default}
+.cv-tl-bar .cv-tl-occ.aus{background:var(--orange,#f97316)}
+.cv-tl-lab{display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-top:6px;font-size:10.5px;color:var(--text3);font-family:var(--mono)}
+.cv-tl-lab b{font-family:var(--sans);font-size:11px;font-weight:600;text-align:center}
+.cv-acc{display:flex;justify-content:flex-end}
+.cv-ya{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--green)}
+:where([data-tip]){position:relative}
+.cv-req[data-tip]:hover::after,.cv-req[data-tip]:focus::after,.cv-score[data-tip]:hover::after,.cv-score[data-tip]:focus::after,.ev-chip[data-tip]:hover::after,.ev-chip[data-tip]:focus::after{left:0;transform:none}
+[data-tip]:hover::after,[data-tip]:focus-visible::after,[data-tip]:focus::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);width:max-content;max-width:260px;white-space:normal;background:#18181b;color:#fafafa;font:500 11.5px/1.4 var(--sans);letter-spacing:0;text-transform:none;padding:6px 9px;border-radius:7px;box-shadow:0 6px 18px rgba(0,0,0,.35);z-index:50;pointer-events:none}
+@media (max-width:600px){.ev-sec{flex-wrap:wrap}.ev-sec-ayuda{flex-basis:100%;padding-left:16px;margin-top:-4px}}
+@media (max-width:900px){.cv-card{grid-template-columns:56px minmax(0,1fr);gap:12px}.cv-tl{grid-column:1 / -1}.cv-acc{grid-column:1 / -1;justify-content:stretch}.cv-acc .btn{width:100%;justify-content:center}}
 .mk-panel{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
 .mk-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
 .mk-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:12px;color:var(--text3)}
@@ -3306,111 +3368,172 @@ async function renderEvaluar() {
     ${pendientes.length===0?'<div class="empty-state"><i class="ti ti-check-circle" aria-hidden="true"></i><p>No hay proyectos pendientes de asignación</p><span>Todos los proyectos están asignados o en progreso</span></div>':''}`);
 }
 
+// ─── EVALUACIÓN DE CANDIDATOS ────────────────────────────────────────────────
+// Datos que alimentan la pantalla (GET /proyectos/proyectos/{id}/evaluar):
+//   aprobados[]:   { posicion, id_empleado, nombre, puntaje_total (0-100), recomendacion, alerta_fatiga,
+//                    desglose{habilidades|fatiga|recencia|seniority|cercania: {puntos, maximo, porcentaje, justificacion}},
+//                    perfil }
+//   descartados[]: { id_empleado, nombre, filtro_falla, razon, nivel, filtros_fallidos[{filtro, razon}], perfil }
+//   perfil:        { match (% requisitos cumplidos, incluye fechas libres), disponible, perfil_activo,
+//                    dias_proyecto, dias_ocupados, fecha_inicio, fecha_fin,
+//                    requisitos[{ tipo: 'habilidad'|'certificado', nombre, estado: 'ok'|'falta'|'nivel'|'vence', detalle }],
+//                    ocupacion[{ inicio, fin, tipo: 'proyecto'|'ausencia'|'estado', nombre, abierto }] }
+// Categorías:
+//   aptos     → pasan todos los filtros (aprobados)
+//   brecha    → disponibles pero les falta algún requisito, o traslape de 1 día y nada más
+//   descartados → no disponibles en esas fechas, perfil inactivo, o varios pendientes
+const EV_BLOQUEO = ['F0', 'F1', 'F5'];   // filtros de disponibilidad (perfil, otro proyecto, agenda)
+function categoriaCandidato(d) {
+  const fallos = (d.filtros_fallidos || [{ filtro: d.filtro_falla }]).map(f => String(f.filtro || '').slice(0, 2));
+  const pf = d.perfil;
+  if (!pf || pf.dias_proyecto == null) return d.nivel === 'amarillo' ? 'brecha' : 'descartado';   // backend anterior
+  const bloquea = fallos.some(f => EV_BLOQUEO.includes(f));
+  if (!bloquea) return 'brecha';
+  const soloAgenda = fallos.every(f => f === 'F1' || f === 'F5');
+  if (soloAgenda && pf.perfil_activo && pf.dias_ocupados <= 1 && !(pf.ocupacion || []).some(o => o.abierto || o.tipo === 'estado')) return 'brecha';
+  return 'descartado';
+}
+const EV_SEM = { apto: 'var(--green)', brecha: 'var(--amber)', descartado: 'var(--red-text)' };
+
+// Chip de infraestructura del encabezado: [ícono, texto, estado 'ok'|'warn'|'bad'|'neutro', tooltip]
+function chipInfraEval([icono, texto, est, tip]) {
+  return `<span class="ev-chip ev-${est}"${tip ? ` tabindex="0" data-tip="${escHtml(tip)}"` : ''}><i class="ti ti-${icono}" aria-hidden="true"></i>${texto}<span class="ev-dot"></span></span>`;
+}
+
+// Fila de íconos: un ícono por requisito, verde si lo cumple, rojo/opaco si es brecha (con tooltip)
+function htmlRequisitosEval(pf) {
+  const reqs = pf?.requisitos || [];
+  if (!reqs.length) return '<span class="cv-sinreq">Sin habilidades ni certificados requeridos</span>';
+  const orden = { falta: 0, nivel: 1, vence: 2, ok: 3 };
+  return reqs.slice().sort((a, b) => orden[a.estado] - orden[b.estado] || a.nombre.localeCompare(b.nombre, 'es'))
+    .map(r => {
+      const ok = r.estado === 'ok';
+      const tit = `${r.tipo === 'habilidad' ? 'Habilidad' : 'Certificado'}: ${r.nombre} — ${r.detalle}`;
+      return `<span class="cv-req ${ok ? 'ok' : 'falta'}" tabindex="0" data-tip="${escHtml(tit)}" aria-label="${escHtml(tit)}">
+        <i class="ti ti-${iconoTermino(r.tipo, r.nombre)}" aria-hidden="true"></i><span class="cv-req-est"><i class="ti ti-${ok ? 'check' : r.estado === 'vence' ? 'clock-exclamation' : 'x'}" aria-hidden="true"></i></span></span>`;
+    }).join('');
+}
+
+// Mini-línea de tiempo: la barra son las fechas del proyecto; verde = libre, bloques rojos/naranjas = ocupado
+function htmlTimelineEval(pf) {
+  if (!pf || !pf.fecha_inicio || !pf.dias_proyecto) return '<div class="cv-tl"><span class="cv-sinreq">Sin fechas para comparar</span></div>';
+  const ini = fechaLocal(pf.fecha_inicio).getTime(), N = pf.dias_proyecto, dia = 86400000;
+  const bloques = (pf.ocupacion || []).map(o => {
+    const a = Math.round((fechaLocal(o.inicio).getTime() - ini) / dia), b = Math.round((fechaLocal(o.fin).getTime() - ini) / dia) + 1;
+    const tipo = o.tipo === 'ausencia' ? 'Ausencia' : o.tipo === 'estado' ? 'No disponible' : 'Otro proyecto';
+    const tip = `${tipo}: ${o.nombre} · ${rangoCorto(o.inicio, o.fin)}${o.abierto ? ' (iniciado y sin finalizar)' : ''}`;
+    return `<span class="cv-tl-occ ${o.tipo === 'ausencia' ? 'aus' : ''}" style="left:${a * 100 / N}%;width:${(b - a) * 100 / N}%" tabindex="0" data-tip="${escHtml(tip)}"></span>`;
+  }).join('');
+  const libre = !pf.dias_ocupados;
+  return `<div class="cv-tl">
+    <div class="cv-tl-bar${libre ? ' libre' : ''}" style="--n:${Math.min(N, 62)}">${bloques}</div>
+    <div class="cv-tl-lab"><span>${fCorta(pf.fecha_inicio)}</span>
+      <b style="color:${libre ? 'var(--green)' : 'var(--red-text)'}">${libre ? 'Libre todo el periodo' : `${pf.dias_ocupados} de ${plural(N, 'día')} ocupado${pf.dias_ocupados === 1 ? '' : 's'}`}</b>
+      <span>${fCorta(pf.fecha_fin)}</span></div>
+  </div>`;
+}
+
+// Tarjeta de candidato. cat: 'apto' | 'brecha' | 'descartado'
+function tarjetaCandidatoEval(c, cat, pid, yaAsignado) {
+  const pf = c.perfil || {};
+  const esApto = cat === 'apto';
+  const valor = esApto ? Math.round(c.puntaje_total) : (pf.match ?? null);
+  const color = esApto ? (valor >= 70 ? 'var(--green)' : 'var(--amber)') : EV_SEM[cat];
+  const labels = { habilidades: 'Habilidades', fatiga: 'Fatiga', recencia: 'Recencia', seniority: 'Seniority', cercania: 'Cercanía' };
+  const tipScore = esApto
+    ? `Idoneidad ${valor}/100 — ${Object.entries(labels).map(([k, l]) => `${l} ${c.desglose?.[k]?.puntos ?? '—'}/${c.desglose?.[k]?.maximo ?? '—'}`).join(' · ')}`
+    : `Cumple ${valor ?? '—'} % de los requisitos (habilidades, certificados y fechas)`;
+  const brechas = (pf.requisitos || []).filter(r => r.estado !== 'ok').length;
+  const sub = esApto
+    ? `${c.recomendacion}${c.alerta_fatiga ? ' · <span style="color:var(--amber)">fatiga alta</span>' : ''}`
+    : [brechas ? plural(brechas, 'requisito faltante', 'requisitos faltantes') : '', pf.dias_ocupados ? `ocupado ${plural(pf.dias_ocupados, 'día')}` : '',
+       pf.perfil_activo === false ? 'perfil no activo' : ''].filter(Boolean).join(' · ') || escHtml(c.razon || '');
+  const boton = yaAsignado
+    ? '<span class="cv-ya"><i class="ti ti-circle-check" aria-hidden="true"></i> Ya asignado</span>'
+    : esApto
+      ? `<button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => asignarTecnico('${c.id_empleado}','${pid}'))"><i class="ti ti-user-plus" aria-hidden="true"></i> Asignar al proyecto</button>`
+      : `<button class="btn btn-ghost btn-sm" onclick="asignarConBrecha(this,'${c.id_empleado}','${pid}')"><i class="ti ti-user-plus" aria-hidden="true"></i> Asignar de todos modos</button>`;
+  return `<div class="cv-card cv-${cat}${esApto && c.posicion === 1 ? ' top' : ''}">
+    <div class="cv-score" style="--p:${valor ?? 0};--c:${color}" tabindex="0" data-tip="${escHtml(tipScore)}">
+      <div class="cv-ring"><b>${valor ?? '—'}</b>${valor != null ? '<small>%</small>' : ''}</div>
+      <span>${esApto ? 'idoneidad' : 'requisitos'}</span>
+    </div>
+    <div class="cv-main">
+      <div class="cv-nombre">${esApto && c.posicion === 1 ? '<span class="cv-top">Mejor opción</span>' : ''}
+        <button class="cv-link" onclick="verCandidatoEval('${pid}','${c.id_empleado}')">${escHtml(c.nombre)} <i class="ti ti-chevron-right" aria-hidden="true"></i></button></div>
+      <div class="cv-sub">${sub}</div>
+      <div class="cv-reqs">${htmlRequisitosEval(pf)}</div>
+    </div>
+    ${htmlTimelineEval(pf)}
+    <div class="cv-acc">${boton}</div>
+  </div>`;
+}
+
+async function asignarConBrecha(btn, empId, pid) {
+  const r = STATE._evalUltima, c = (r?.descartados || []).find(d => d.id_empleado === empId);
+  const faltan = (c?.perfil?.requisitos || []).filter(q => q.estado !== 'ok').map(q => `• ${q.nombre}: ${q.detalle}`);
+  if (c?.perfil?.dias_ocupados) faltan.push(`• Ocupado ${plural(c.perfil.dias_ocupados, 'día')} dentro de las fechas del proyecto`);
+  if (!confirm(`${c?.nombre || 'Esta persona'} no cumple todo lo que pide el proyecto:\n\n${faltan.join('\n') || c?.razon || ''}\n\n¿Asignarlo(a) de todos modos?`)) return;
+  ejecutarConCarga(btn, () => asignarTecnico(empId, pid));
+}
+
 async function ejecutarEvaluacion() {
   const pid = document.getElementById('ev-proyecto')?.value;
-  if (!pid) { toast('Selecciona un proyecto primero','error'); return; }
+  if (!pid) { toast('Selecciona un proyecto primero', 'error'); return; }
   const resultsEl = document.getElementById('ev-results');
-  resultsEl.innerHTML = '<div class="empty-state"><i class="ti ti-loader-2" aria-hidden="true"></i><p>Ejecutando motor de asignación...</p></div>';
+  resultsEl.innerHTML = '<div class="empty-state"><i class="ti ti-loader-2 ti-spin" aria-hidden="true"></i><p>Evaluando candidatos…</p></div>';
 
-  const r = await api('GET', `/proyectos/proyectos/${pid}/evaluar`);
+  const [r, dispEquipo, dispVeh] = await Promise.all([
+    api('GET', `/proyectos/proyectos/${pid}/evaluar`),
+    api('GET', `/proyectos/proyectos/${pid}/disponibilidad-equipo`),
+    api('GET', `/proyectos/proyectos/${pid}/disponibilidad-vehiculo`),
+  ]);
   if (!r) { resultsEl.innerHTML = '<div class="empty-state"><i class="ti ti-alert-triangle" aria-hidden="true"></i><p>Error al ejecutar la evaluación.</p></div>'; return; }
-  const dispEquipo = await api('GET', `/proyectos/proyectos/${pid}/disponibilidad-equipo`);
-  const dispVeh = await api('GET', `/proyectos/proyectos/${pid}/disponibilidad-vehiculo`);
+  STATE._evalUltima = r;
+  const pry = (STATE.proyectos || []).find(p => p.id === pid) || {};
+  const asignados = pry.tecnicos_asignados || [], req = pry.personal_requerido || 1;
 
-  const { proyecto_nombre, aprobados, descartados, mensaje_si_vacio } = r;
-  const labels = { habilidades:'Habilidades', fatiga:'Fatiga', recencia:'Recencia', seniority:'Seniority', cercania:'Cercanía' };
-  const amarillos = descartados.filter(d=>d.nivel==='amarillo');
-  const rojos = descartados.filter(d=>d.nivel!=='amarillo');
-
-  let html_out = '';
-  const eqLabels = { drone:'Drone / RPAS', camara:'Cámara', termografo:'Termógrafo', escalada:'Equipo de escalada', medicion:'Medición', otro:'Otro' };
-  if (dispEquipo && dispEquipo.no_requiere_equipo) {
-    html_out += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--text3)">
-      <i class="ti ti-tool" aria-hidden="true"></i> Este proyecto no requiere equipo.
-    </div>`;
-  } else if (dispEquipo && dispEquipo.todo_disponible) {
-    html_out += `<div style="background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--green)">
-      <i class="ti ti-circle-check" aria-hidden="true"></i> <strong>Equipo disponible</strong> para las fechas de este proyecto.
-    </div>`;
-  } else if (dispEquipo && !dispEquipo.todo_disponible) {
-    const faltantes = dispEquipo.items.filter(it=>!it.suficiente).map(it=>`${eqLabels[it.tipo]||it.tipo} (${it.disponibles}/${it.cantidad_requerida})`).join(', ');
-    html_out += `<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--amber)">
-      <i class="ti ti-alert-triangle" aria-hidden="true"></i> <strong>Aunque el personal califique, falta equipo disponible para estas fechas:</strong> ${faltantes}. No bloquea la asignación, pero revísalo antes de confirmar.
-    </div>`;
+  // ── Encabezado compacto: fechas, personal, equipo y vehículo
+  const eqLabels = { drone: 'Drone / RPAS', camara: 'Cámara', termografo: 'Termógrafo', escalada: 'Equipo de escalada', medicion: 'Medición', otro: 'Otro' };
+  const chips = [];
+  if (pry.fecha_inicio && pry.fecha_fin_estimada) {
+    const n = Math.round((fechaLocal(pry.fecha_fin_estimada) - fechaLocal(pry.fecha_inicio)) / 86400000) + 1;
+    chips.push(['calendar-event', `${rangoCorto(pry.fecha_inicio, pry.fecha_fin_estimada)} · ${plural(n, 'día')}`, 'neutro']);
   }
-  // Vehículo: solo se muestra si el proyecto realmente requiere uno (la mayoría no)
-  if (dispVeh && !dispVeh.no_requiere_vehiculo) {
-    if (dispVeh.todo_disponible) {
-      html_out += `<div style="background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--green)">
-        <i class="ti ti-circle-check" aria-hidden="true"></i> <strong>Vehículo disponible</strong> para las fechas de este proyecto.
-      </div>`;
-    } else {
-      const faltantesVeh = dispVeh.items.filter(it=>!it.suficiente).map(it=>`${VEH_TIPOS[it.tipo]||it.tipo} (${it.disponibles}/${it.cantidad_requerida})`).join(', ');
-      html_out += `<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--amber)">
-        <i class="ti ti-alert-triangle" aria-hidden="true"></i> <strong>Falta vehículo disponible para estas fechas:</strong> ${faltantesVeh}. No bloquea la asignación, pero revísalo antes de confirmar.
-      </div>`;
-    }
-  }
+  chips.push(['users', `${asignados.length}/${req} asignados`, asignados.length >= req ? 'ok' : 'warn', asignados.length >= req ? 'Personal completo' : `Faltan ${req - asignados.length} por asignar`]);
+  if (!dispEquipo || dispEquipo.no_requiere_equipo) chips.push(['tool', 'Sin equipo requerido', 'neutro']);
+  else if (dispEquipo.todo_disponible) chips.push(['tool', 'Equipos OK', 'ok', 'Todo el equipo requerido está libre en esas fechas']);
+  else chips.push(['tool', 'Falta equipo', 'bad', dispEquipo.items.filter(it => !it.suficiente).map(it => `${eqLabels[it.tipo] || etiquetaEquipo(it.tipo)}: ${it.disponibles} de ${it.cantidad_requerida} libres`).join(' · ')]);
+  if (!dispVeh || dispVeh.no_requiere_vehiculo) chips.push(['car', 'Sin vehículo requerido', 'neutro']);
+  else if (dispVeh.todo_disponible) chips.push(['car', 'Vehículo OK', 'ok', 'El vehículo requerido está libre en esas fechas']);
+  else chips.push(['car', 'Falta vehículo', 'bad', dispVeh.items.filter(it => !it.suficiente).map(it => `${VEH_TIPOS[it.tipo] || it.tipo}: ${it.disponibles} de ${it.cantidad_requerida} libres`).join(' · ')]);
 
-  html_out += `<div style="background:var(--surface);border:1px solid var(--border);padding:10px 14px;border-radius:var(--radius);margin-bottom:14px;font-size:12px">
-    <strong style="color:var(--text)">Evaluación — ${proyecto_nombre}</strong>
-    <span style="color:var(--green);margin-left:12px">● ${aprobados.length} aprobados</span>
-    <span style="color:var(--amber);margin-left:8px">● ${amarillos.length} podrían aprobarse</span>
-    <span style="color:var(--red-text);margin-left:8px">● ${rojos.length} descartados</span>
-  </div>`;
+  // ── Clasificación
+  const aptos = r.aprobados || [];
+  const brecha = [], desc = [];
+  (r.descartados || []).forEach(d => (categoriaCandidato(d) === 'brecha' ? brecha : desc).push(d));
+  const porMatch = (a, b) => (b.perfil?.match ?? 0) - (a.perfil?.match ?? 0);
+  brecha.sort(porMatch); desc.sort(porMatch);
 
-  if (aprobados.length) {
-    html_out += `<div class="eval-section-title">CANDIDATOS APROBADOS</div>`;
-    aprobados.forEach((c)=>{
-      const top = c.posicion===1;
-      const topClass = top?'candidato-card top':'candidato-card';
-      html_out += `<div class="${topClass}">
-        <div class="candidato-head" style="cursor:pointer" onclick="verCandidatoEval('${pid}','${c.id_empleado}')" title="Ver detalle">
-          <div><div class="candidato-name">${top?'<span style="color:var(--green);margin-right:6px">①</span>':''}${c.nombre} <span class="ver-det">ver detalle <i class="ti ti-chevron-right" aria-hidden="true"></i></span></div><div class="candidato-sub">${c.recomendacion}${c.alerta_fatiga?' · ⚠️ fatiga alta':''}</div></div>
-          <div style="text-align:right"><div class="candidato-score">${c.puntaje_total}<span class="score-max">/100</span></div></div>
-        </div>
-        ${['habilidades','fatiga','recencia','seniority','cercania'].map(key=>{
-          const d = c.desglose[key];
-          return `<div class="criterio-row" title="${d.justificacion||''}"><span class="criterio-name">${labels[key]}</span><div class="criterio-bar-wrap"><div class="criterio-bar-fill" style="width:${d.porcentaje}%"></div></div><span class="criterio-val">${d.puntos}/${d.maximo}</span></div>`;
-        }).join('')}
-        <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:8px">
-          <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:2px;font-size:11px;font-weight:700;background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)">${c.recomendacion}</span>
-          <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => asignarTecnico('${c.id_empleado}','${pid}'))"><i class="ti ti-user-plus" aria-hidden="true"></i> Asignar</button>
-        </div>
-      </div>`;
-    });
-  }
+  const seccion = (titulo, ayuda, color, lista, cat) => lista.length ? `
+    <div class="ev-sec"><span class="ev-sec-dot" style="background:${color}"></span>${titulo}<span class="ev-sec-n">${lista.length}</span><span class="ev-sec-ayuda">${ayuda}</span></div>
+    ${lista.map(c => tarjetaCandidatoEval(c, cat, pid, asignados.includes(c.id_empleado))).join('')}` : '';
 
-  if (amarillos.length) {
-    html_out += `<div class="eval-section-title" style="margin-top:14px;border-left-color:var(--amber)">PODRÍAN APROBARSE — les falta una sola cosa</div>`;
-    amarillos.forEach(d=>{
-      html_out += `<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;cursor:pointer" onclick="verCandidatoEval('${pid}','${d.id_empleado}')" title="Ver detalle">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-weight:600;color:var(--text)">${d.nombre} <span class="ver-det">ver detalle <i class="ti ti-chevron-right" aria-hidden="true"></i></span></span>
-          <span style="font-size:11px;color:var(--text3)">${d.filtro_falla}</span>
-        </div>
-        <div class="brecha-item">${d.razon}</div>
-      </div>`;
-    });
-  }
-
-  if (rojos.length) {
-    html_out += `<div class="eval-section-title" style="margin-top:14px;border-left-color:var(--red-text)">DESCARTADOS — varios pendientes a la vez</div>`;
-    rojos.forEach(d=>{
-      html_out += `<div style="background:var(--red-bg);border:1px solid var(--red-border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;cursor:pointer" onclick="verCandidatoEval('${pid}','${d.id_empleado}')" title="Ver detalle">
-        <div style="font-weight:600;color:var(--text);margin-bottom:6px">${d.nombre} <span class="ver-det">ver detalle <i class="ti ti-chevron-right" aria-hidden="true"></i></span></div>
-        ${(d.filtros_fallidos||[{filtro:d.filtro_falla,razon:d.razon}]).map(f=>
-          `<div class="brecha-item-rojo"><span style="color:var(--red-text-light);font-size:11px">${f.filtro}:</span> ${f.razon}</div>`
-        ).join('')}
-      </div>`;
-    });
-  }
-
-  if (mensaje_si_vacio) {
-    html_out += `<div class="empty-state"><i class="ti ti-alert-circle" aria-hidden="true"></i><p>${mensaje_si_vacio}</p></div>`;
-  }
-
-  resultsEl.innerHTML = html_out;
+  resultsEl.innerHTML = `
+    <div class="ev-head">
+      <div class="ev-head-tit"><span>Evaluación</span><b>${escHtml(r.proyecto_nombre)}</b></div>
+      <div class="ev-chips">${chips.map(chipInfraEval).join('')}</div>
+      <div class="ev-resumen">
+        <span style="--c:var(--green)"><b>${aptos.length}</b> aptos</span>
+        <span style="--c:var(--amber)"><b>${brecha.length}</b> con brecha</span>
+        <span style="--c:var(--red-text)"><b>${desc.length}</b> descartados</span>
+      </div>
+    </div>
+    ${seccion('Aptos', 'cumplen todo y están libres', 'var(--green)', aptos, 'apto')}
+    ${!aptos.length ? `<div class="ev-vacio"><i class="ti ti-user-search" aria-hidden="true"></i>${escHtml(r.mensaje_si_vacio || 'Ningún candidato cumple todos los requisitos.')}</div>` : ''}
+    ${seccion('Podrían aprobarse', 'libres, pero les falta algún requisito', 'var(--amber)', brecha, 'brecha')}
+    ${desc.length ? `<details class="ev-desc"${!aptos.length && !brecha.length ? ' open' : ''}><summary><span class="ev-sec"><span class="ev-sec-dot" style="background:var(--red-text)"></span>Descartados<span class="ev-sec-n">${desc.length}</span><span class="ev-sec-ayuda">no disponibles en esas fechas o con varios pendientes</span><i class="ti ti-chevron-down ev-flecha" aria-hidden="true"></i></span></summary>
+      ${desc.map(c => tarjetaCandidatoEval(c, 'descartado', pid, asignados.includes(c.id_empleado))).join('')}</details>` : ''}`;
 }
 
 async function asignarTecnico(empId, pryId) {
