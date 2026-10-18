@@ -411,6 +411,19 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .ev-bar-sel>i{position:absolute;left:11px;font-size:16px;color:var(--text3);pointer-events:none}
 .ev-bar-sel .field-select{padding-left:34px;width:100%;font-weight:600}
 .ev-bar-agenda{margin-left:auto}
+.ev-bar-flecha{font-size:14px;transition:transform .2s}
+.ev-bar-agenda.activo{border-color:var(--red);color:var(--text)}
+.ev-bar-agenda.activo .ev-bar-flecha{transform:rotate(180deg)}
+.ev-agenda{display:grid;grid-template-rows:0fr;transition:grid-template-rows .28s ease,opacity .2s;opacity:0}
+.ev-agenda.abierta{grid-template-rows:1fr;opacity:1}
+.ev-agenda:not(.abierta){margin-top:-10px}
+.ev-agenda-in{overflow:hidden;min-height:0}
+.ev-agenda.abierta .ev-agenda-in{border-top:1px solid var(--border);padding-top:12px}
+.ag-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.ag-acc{display:flex;gap:6px}
+.ev-agenda .ag-wrap{padding:0;max-height:52vh}
+.ev-agenda .ag-ley{padding:10px 0 2px;margin-top:8px}
+.ag-ley i.ag-c.hoy{outline-offset:-2px}
 .ev-bar-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--border)}
 .ev-bar-hint{font-size:12px;color:var(--text3);display:inline-flex;align-items:center;gap:6px}
 .cv-tl-click{cursor:pointer;padding:8px 10px;margin:-8px -10px;border-radius:10px;border:1px solid transparent;transition:background .15s,border-color .15s;outline:none}
@@ -3401,12 +3414,14 @@ async function renderEvaluar() {
           </select>
         </div>
         <button class="btn btn-primary" onclick="ejecutarEvaluacion()"><i class="ti ti-player-play" aria-hidden="true"></i> Evaluar</button>
-        <button class="btn btn-ghost ev-bar-agenda" onclick="abrirAgendaGeneralEval()"><i class="ti ti-world" aria-hidden="true"></i> Ver agenda general</button>
+        <button class="btn btn-ghost ev-bar-agenda" id="ev-btn-agenda" aria-expanded="false" aria-controls="ev-agenda" onclick="toggleAgendaEval()"><i class="ti ti-world" aria-hidden="true"></i> Agenda general <i class="ti ti-chevron-down ev-bar-flecha" aria-hidden="true"></i></button>
       </div>
+      <div class="ev-agenda" id="ev-agenda"><div class="ev-agenda-in"></div></div>
       <div class="ev-bar-meta" id="ev-meta">${opciones.length ? '<span class="ev-bar-hint">Elige un proyecto para ver a los candidatos.</span>' : '<span class="ev-bar-hint"><i class="ti ti-circle-check" aria-hidden="true"></i> Todos los proyectos tienen su personal completo.</span>'}</div>
     </div>
     <div id="ev-results"></div>`);
   if (STATE._evalPid && opciones.some(p => p.id === STATE._evalPid)) ejecutarEvaluacion();
+  if (STATE._evalAgendaAbierta) toggleAgendaEval(true);
 }
 
 // ─── EVALUACIÓN DE CANDIDATOS ────────────────────────────────────────────────
@@ -3492,47 +3507,129 @@ function abrirAgendaOperador(empId, nombre, pid) {
   abrirCalendarioMensual(empId, nombre, offset, pid);
 }
 
-// Agenda general: ocupación de toda la plantilla alrededor de las fechas del proyecto
-async function abrirAgendaGeneralEval() {
+// ─── AGENDA GENERAL (Gantt de toda la plantilla) dentro de Evaluar ──────────
+// Un solo cálculo para la vista desplegable y para el PDF/JPG.
+async function datosAgendaGeneral(pid) {
   await loadEmpleados(); await loadProyectos();
-  const pid = document.getElementById('ev-proyecto')?.value || STATE._evalPid;
-  const pry = (STATE.proyectos || []).find(p => p.id === pid);
+  const pry = (STATE.proyectos || []).find(p => p.id === pid) || null;
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
   const pIni = pry?.fecha_inicio ? fechaLocal(pry.fecha_inicio) : null, pFin = pry?.fecha_fin_estimada ? fechaLocal(pry.fecha_fin_estimada) : null;
   const desde = new Date(pIni || hoy); desde.setDate(desde.getDate() - (pIni ? 5 : 2));
-  const nDias = pIni && pFin ? Math.min(45, Math.round((pFin - pIni) / 86400000) + 11) : 28;
+  const diasPry = pIni && pFin ? Math.round((pFin - pIni) / 86400000) + 1 : 0;
+  const nDias = diasPry ? Math.min(45, diasPry + 10) : 28;
   const cols = Array.from({ length: nDias }, (_, i) => { const d = new Date(desde); d.setDate(d.getDate() + i); return d; });
-  const emps = [...(STATE.empleados || [])].filter(e => e.estado_perfil !== 'archivado')
-    .sort((a, b) => `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`, 'es'));
-  const filas = emps.map(e => {
-    const ev = eventosProyectosPorDia(e.id);
-    let libresEnPry = 0;
-    const celdas = cols.map(d => {
-      const k = isoLocal(d), evs = (ev[k] || []).filter(p => p.id !== pid), aus = ausenciaEn(e, d);
-      const enPry = pIni && pFin && d >= pIni && d <= pFin;
-      const asignadoAqui = pry && (pry.tecnicos_asignados || []).includes(e.id) && enPry;
-      if (enPry && !evs.length && !aus) libresEnPry++;
-      const cls = aus ? 'aus' : evs.length ? 'ocu' : asignadoAqui ? 'aqui' : '';
-      const tip = [aus ? tipoAusencia(aus) : null, ...evs.map(p => p.nombre), asignadoAqui ? `Asignado a ${pry.nombre}` : null].filter(Boolean).join(' · ');
-      return `<td class="ag-c ${cls}${enPry ? ' pry' : ''}${d.getTime() === hoy.getTime() ? ' hoy' : ''}"${tip ? ` title="${escHtml(`${fCorta(d)}: ${tip}`)}"` : ''}></td>`;
-    }).join('');
-    const nombre = `${e.nombre} ${e.apellido}`;
-    return `<tr><th class="ag-n"><button class="cv-link" onclick="cerrarSelectorTerminos();abrirAgendaOperador('${e.id}','${escHtml(nombre.replace(/'/g, "\\'"))}','${pid || ''}')">${escHtml(nombre)}</button>
-      ${pry && (pry.tecnicos_asignados || []).includes(e.id) ? '<span class="ag-libre" style="color:var(--green)">Asignado a este proyecto</span>' : pIni ? `<span class="ag-libre" style="color:${libresEnPry === Math.round((pFin - pIni) / 86400000) + 1 ? 'var(--green)' : libresEnPry ? 'var(--amber)' : 'var(--red-text)'}">${libresEnPry}/${Math.round((pFin - pIni) / 86400000) + 1} libres</span>` : ''}</th>${celdas}</tr>`;
-  }).join('');
-  let ov = document.getElementById('selector-overlay');
-  if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; document.body.appendChild(ov); }
-  ov.className = 'modal-overlay open';
-  ov.onclick = e => { if (e.target === ov) cerrarSelectorTerminos(); };
-  ov.innerHTML = `<div class="sel-card" style="max-width:1100px">
-    <div class="ag-head"><div><div class="ag-tit"><i class="ti ti-world" aria-hidden="true"></i> Agenda general</div>
-      <div class="ag-sub">${pry ? `Ocupación de la plantilla alrededor de <b>${escHtml(pry.nombre)}</b> (${rangoCorto(pry.fecha_inicio, pry.fecha_fin_estimada)}). Toca un nombre para ver su calendario.` : 'Ocupación de la plantilla en las próximas semanas.'}</div></div>
-      <button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button></div>
-    <div class="ag-wrap"><table class="ag-tabla"><thead><tr><th class="ag-n"></th>${cols.map(d => `<th class="${pIni && d >= pIni && d <= pFin ? 'pry' : ''}${d.getTime() === hoy.getTime() ? ' hoy' : ''}">${d.getDate()}<br><span>${['D', 'L', 'M', 'X', 'J', 'V', 'S'][d.getDay()]}</span></th>`).join('')}</tr></thead>
-      <tbody>${filas}</tbody></table></div>
-    <div class="ag-ley"><span><i class="ag-c ocu"></i>Otro proyecto</span><span><i class="ag-c aus"></i>Ausencia</span><span><i class="ag-c aqui"></i>Ya asignado a este proyecto</span>${pry ? '<span><i class="ag-c pry"></i>Fechas del proyecto</span>' : ''}
-      <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="cerrarSelectorTerminos();showSection('gantt')"><i class="ti ti-calendar-stats" aria-hidden="true"></i> Abrir Gantt completo</button></div>
-  </div>`;
+  const filas = [...(STATE.empleados || [])].filter(e => e.estado_perfil !== 'archivado')
+    .sort((a, b) => `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`, 'es'))
+    .map(e => {
+      const ev = eventosProyectosPorDia(e.id);
+      const aqui = !!pry && (pry.tecnicos_asignados || []).includes(e.id);
+      let libres = 0;
+      const celdas = cols.map(d => {
+        const evs = (ev[isoLocal(d)] || []).filter(p => p.id !== pid), aus = ausenciaEn(e, d);
+        const enPry = !!(pIni && pFin && d >= pIni && d <= pFin);
+        if (enPry && !evs.length && !aus) libres++;
+        const tipo = aus ? 'aus' : evs.length ? 'ocu' : (aqui && enPry) ? 'aqui' : '';
+        const tip = [aus ? tipoAusencia(aus) : null, ...evs.map(p => p.nombre), tipo === 'aqui' ? `Asignado a ${pry.nombre}` : null].filter(Boolean).join(' · ');
+        return { tipo, tip, enPry, hoy: d.getTime() === hoy.getTime() };
+      });
+      return { id: e.id, nombre: `${e.nombre} ${e.apellido}`, celdas, libres, aqui };
+    });
+  return { pry, pid, hoy, cols, pIni, pFin, diasPry, filas };
+}
+const textoLibresAgenda = (f, A) => f.aqui ? ['Asignado aquí', 'ok'] : !A.diasPry ? ['', 'na']
+  : [`${f.libres}/${A.diasPry} libres`, f.libres === A.diasPry ? 'ok' : f.libres ? 'warn' : 'bad'];
+
+function htmlAgendaGeneral(A) {
+  const C = { ok: 'var(--green)', warn: 'var(--amber)', bad: 'var(--red-text)', na: 'var(--text3)' };
+  const DS = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+  return `
+    <div class="ag-top">
+      <div class="ag-sub">${A.pry ? `Ocupación de la plantilla alrededor de <b>${escHtml(A.pry.nombre)}</b> (${rangoCorto(A.pry.fecha_inicio, A.pry.fecha_fin_estimada)}). Toca un nombre para ver su calendario.` : 'Ocupación de la plantilla en las próximas semanas. Elige un proyecto para marcar sus fechas.'}</div>
+      <div class="ag-acc">
+        <button class="btn btn-ghost btn-sm" onclick="showSection('gantt')"><i class="ti ti-calendar-stats" aria-hidden="true"></i> Gantt completo</button>
+        <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => exportarAgendaGeneralPDF())"><i class="ti ti-file-download" aria-hidden="true"></i> Exportar</button>
+      </div>
+    </div>
+    <div class="ag-wrap"><table class="ag-tabla"><thead><tr><th class="ag-n"></th>${A.cols.map(d => `<th class="${A.pIni && d >= A.pIni && d <= A.pFin ? 'pry' : ''}${d.getTime() === A.hoy.getTime() ? ' hoy' : ''}">${d.getDate()}<br><span>${DS[d.getDay()]}</span></th>`).join('')}</tr></thead>
+      <tbody>${A.filas.map(f => { const [lt, ls] = textoLibresAgenda(f, A); return `<tr><th class="ag-n"><button class="cv-link" onclick="abrirAgendaOperador('${f.id}','${escHtml(f.nombre.replace(/'/g, "\\'"))}','${A.pid || ''}')">${escHtml(f.nombre)}</button>${lt ? `<span class="ag-libre" style="color:${C[ls]}">${lt}</span>` : ''}</th>
+        ${f.celdas.map((c, i) => `<td class="ag-c ${c.tipo}${c.enPry ? ' pry' : ''}${c.hoy ? ' hoy' : ''}"${c.tip ? ` title="${escHtml(`${fCorta(A.cols[i])}: ${c.tip}`)}"` : ''}></td>`).join('')}</tr>`; }).join('')}</tbody></table></div>
+    <div class="ag-ley"><span><i class="ag-c ocu"></i>Otro proyecto</span><span><i class="ag-c aus"></i>Ausencia</span>${A.pry ? '<span><i class="ag-c aqui"></i>Asignado a este proyecto</span><span><i class="ag-c pry"></i>Fechas del proyecto</span>' : ''}<span><i class="ag-c hoy"></i>Hoy</span></div>`;
+}
+
+// Botón "Agenda general": despliega / pliega el Gantt debajo de la barra de control
+async function toggleAgendaEval(forzarAbrir) {
+  const cont = document.getElementById('ev-agenda'), btn = document.getElementById('ev-btn-agenda');
+  if (!cont) return;
+  const abrir = forzarAbrir ?? !cont.classList.contains('abierta');
+  STATE._evalAgendaAbierta = abrir;
+  cont.classList.toggle('abierta', abrir);
+  btn?.classList.toggle('activo', abrir);
+  btn?.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+  if (!abrir) return;
+  const pid = document.getElementById('ev-proyecto')?.value || STATE._evalPid;
+  cont.querySelector('.ev-agenda-in').innerHTML = '<div class="ev-bar-hint" style="padding:14px 0"><i class="ti ti-loader-2 ti-spin" aria-hidden="true"></i> Cargando agenda…</div>';
+  const A = await datosAgendaGeneral(pid);
+  STATE._agendaGeneral = A;
+  cont.querySelector('.ev-agenda-in').innerHTML = htmlAgendaGeneral(A);
+}
+
+// PDF (y JPG desde la misma ventanita de entrega) con el mismo formato de los demás reportes
+async function exportarAgendaGeneralPDF() {
+  const A = STATE._agendaGeneral || await datosAgendaGeneral(document.getElementById('ev-proyecto')?.value || STATE._evalPid);
+  const T = await nuevaPlantillaPDF('landscape'), { doc, C, M } = T;
+  const W = T.W, H = T.H;
+  const c0 = A.cols[0], c1 = A.cols[A.cols.length - 1];
+  const codigo = `${MESES_CORTOS[c0.getMonth()].toUpperCase()}${c0.getMonth() !== c1.getMonth() ? ` – ${MESES_CORTOS[c1.getMonth()].toUpperCase()}` : ''} ${c1.getFullYear()}`;
+  const sub = A.pry ? `${A.pry.nombre}  ·  ${rangoCorto(A.pry.fecha_inicio, A.pry.fecha_fin_estimada)}  ·  ${plural(A.filas.length, 'técnico')}` : `${rangoCorto(c0, c1)}  ·  ${plural(A.filas.length, 'técnico')}`;
+  const COL = { ocu: PDF_EST.progreso.c, aus: PDF_EST.ausencia.c, aqui: PDF_EST.asignado.c };
+  const DS = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+  const nombreW = 52, libresW = A.diasPry ? 22 : 0;
+  const gx = M + nombreW + libresW, gw = W - M - gx, cw = gw / A.cols.length, rh = 6.2, gap = 0.5;
+  const encabezado = (cont) => {
+    T.encabezado('Agenda general', codigo, 'Agenda general de la plantilla', cont ? `${sub}  ·  continuación` : sub);
+    let y = 36;
+    // cabecera de días
+    A.cols.forEach((d, i) => {
+      const x = gx + i * cw, enPry = A.pIni && d >= A.pIni && d <= A.pFin;
+      if (enPry) { T.relleno(C.ambarBg); doc.rect(x + gap / 2, y - 4.6, cw - gap, 8.2, 'F'); }
+      const col = d.getTime() === A.hoy.getTime() ? C.rojo : enPry ? C.ambar : C.gris;
+      T.font('semibold', 6.4, col); doc.text(String(d.getDate()), x + cw / 2, y - 1, { align: 'center' });
+      T.font('normal', 5, col); doc.text(DS[d.getDay()], x + cw / 2, y + 2.4, { align: 'center' });
+    });
+    T.etiqueta('Técnico', M, y + 1, C.gris, 5.8);
+    if (libresW) T.etiqueta('Libres', M + nombreW, y + 1, C.gris, 5.8);
+    return y + 6;
+  };
+  let y = encabezado(false);
+  const limite = H - 30;
+  A.filas.forEach((f, idx) => {
+    if (y + rh > limite) { T.nuevaPagina(); y = encabezado(true); }
+    if (idx % 2 === 0) { T.relleno(C.fondo); doc.rect(M, y - 0.2, W - 2 * M, rh, 'F'); }
+    T.font(f.aqui ? 'bold' : 'medium', 7, C.tinta); doc.text(recortarTexto(doc, f.nombre, nombreW - 3), M + 1.5, y + rh / 2 + 1.2);
+    if (libresW) {
+      const [lt, ls] = textoLibresAgenda(f, A);
+      T.font('semibold', 6.4, { ok: PDF_EST.asignado.c, warn: C.ambar, bad: PDF_EST.progreso.c, na: C.gris }[ls]);
+      doc.text(lt, M + nombreW, y + rh / 2 + 1.1);
+    }
+    f.celdas.forEach((c, i) => {
+      const x = gx + i * cw + gap / 2, w = cw - gap, h = rh - 1.2, yy = y + 0.4;
+      T.relleno(COL[c.tipo] || [232, 232, 235]); doc.roundedRect(x, yy, w, h, 0.7, 0.7, 'F');
+      if (c.enPry) { T.trazo(C.ambar, 0.35); doc.roundedRect(x, yy, w, h, 0.7, 0.7, 'S'); }
+      if (c.hoy) { T.trazo(C.rojo, 0.45); doc.roundedRect(x, yy, w, h, 0.7, 0.7, 'S'); }
+    });
+    y += rh;
+  });
+  // Leyenda
+  y += 5;
+  if (y > H - 24) { T.nuevaPagina(); y = encabezado(true) + 2; }
+  let lx = M;
+  [['Otro proyecto', COL.ocu, 'F'], ['Ausencia', COL.aus, 'F'], ...(A.pry ? [['Asignado a este proyecto', COL.aqui, 'F'], ['Fechas del proyecto', C.ambar, 'S']] : []), ['Hoy', C.rojo, 'S'], ['Libre', [232, 232, 235], 'F']]
+    .forEach(([t, col, modo]) => {
+      if (modo === 'F') { T.relleno(col); doc.roundedRect(lx, y - 2.8, 3.6, 3.6, 0.6, 0.6, 'F'); }
+      else { T.relleno([232, 232, 235]); doc.roundedRect(lx, y - 2.8, 3.6, 3.6, 0.6, 0.6, 'F'); T.trazo(col, 0.45); doc.roundedRect(lx, y - 2.8, 3.6, 3.6, 0.6, 0.6, 'S'); }
+      T.font('medium', 6.8, C.texto); doc.text(t, lx + 5.2, y); lx += 5.2 + doc.getTextWidth(t) + 7;
+    });
+  T.cerrar(limpiarNombreArchivo(`Agenda general${A.pry ? ' - ' + A.pry.nombre : ''} - ${isoLocal(new Date())}.pdf`), false);
 }
 
 // Tarjeta de candidato. cat: 'apto' | 'brecha' | 'descartado'
@@ -3595,7 +3692,9 @@ async function ejecutarEvaluacion() {
     api('GET', `/proyectos/proyectos/${pid}/disponibilidad-vehiculo`),
   ]);
   if (!r) { resultsEl.innerHTML = '<div class="empty-state"><i class="ti ti-alert-triangle" aria-hidden="true"></i><p>Error al ejecutar la evaluación.</p></div>'; return; }
+  const cambioProyecto = STATE._evalPid !== pid;
   STATE._evalUltima = r; STATE._evalPid = pid;
+  if (cambioProyecto && document.getElementById('ev-agenda')?.classList.contains('abierta')) toggleAgendaEval(true);
   const pry = (STATE.proyectos || []).find(p => p.id === pid) || {};
   const asignados = pry.tecnicos_asignados || [], req = pry.personal_requerido || 1;
 
