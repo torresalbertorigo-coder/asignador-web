@@ -263,7 +263,7 @@ a{text-decoration:none;color:inherit}
 .notif-on-avatar{position:absolute;top:-4px;right:-6px;pointer-events:none}
 .notif-on-avatar .notif-trigger{pointer-events:auto;width:22px;height:22px;font-size:12px;background:var(--surface);border:2px solid var(--bg);color:var(--text2);box-shadow:0 1px 3px rgba(0,0,0,.25)}
 .notif-on-avatar .notif-trigger:hover{color:var(--text)}
-.notif-on-avatar .notif-dropdown{top:calc(100% + 10px)}
+.notif-on-avatar .notif-dropdown{top:calc(100% + 10px);pointer-events:auto}   /* el contenedor deja pasar clics; la lista sí debe recibirlos */
 .notif-trigger:hover{background:var(--surface2);color:var(--text)}
 .notif-badge{position:absolute;top:1px;right:1px;background:var(--red);color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;line-height:15px;border-radius:8px;text-align:center;padding:0 3px;box-shadow:0 0 0 2px var(--bg)}
 .notif-dropdown{width:340px;max-height:420px;display:flex;flex-direction:column}
@@ -271,7 +271,26 @@ a{text-decoration:none;color:inherit}
 #notif-list{overflow-y:auto}
 .notif-item{padding:10px 12px;border-top:1px solid var(--border);cursor:pointer;transition:background .12s}
 .notif-item:hover{background:var(--surface2)}
-.notif-item.unread{background:var(--red-bg)}
+.notif-item{position:relative}
+.notif-item.unread{background:var(--red-bg);box-shadow:inset 3px 0 0 var(--red)}
+.notif-item.unread .notif-title{padding-right:14px}
+.notif-item.leida .notif-title{font-weight:500;color:var(--text2)}
+.notif-punto{position:absolute;top:13px;right:12px;width:7px;height:7px;border-radius:50%;background:var(--red)}
+.notif-tab-n{display:inline-block;min-width:16px;height:16px;line-height:16px;padding:0 4px;border-radius:8px;background:var(--red);color:#fff;font-size:10px;font-weight:700;text-align:center;margin-left:2px}
+.notif-tab-n.gris{background:var(--surface2);color:var(--text3);border:1px solid var(--border2)}
+.notif-item.aviso{display:flex;gap:10px;align-items:flex-start}
+.notif-item.aviso .aviso-ico{font-size:18px;margin-top:1px;flex-shrink:0}
+.aviso-chip{flex-shrink:0;font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;white-space:nowrap;margin-top:1px}
+.notif-item.aviso-nuevo{background:var(--red-bg);box-shadow:inset 3px 0 0 var(--red)}
+.notif-item.aviso-nuevo .aviso-ico{color:var(--red)}
+.notif-item.aviso-nuevo .aviso-chip{background:var(--red);color:#fff}
+.notif-item.aviso-seg{background:color-mix(in srgb, var(--amber) 9%, transparent);box-shadow:inset 3px 0 0 var(--amber)}
+.notif-item.aviso-seg .aviso-ico{color:var(--amber)}
+.notif-item.aviso-seg .notif-title{font-weight:500}
+.notif-item.aviso-seg .aviso-chip{background:color-mix(in srgb, var(--amber) 18%, transparent);color:var(--amber);border:1px solid color-mix(in srgb, var(--amber) 45%, transparent)}
+.aviso-sep{display:flex;align-items:baseline;gap:6px;padding:7px 12px 5px;border-top:1px solid var(--border);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.aviso-sep span{font-weight:500;letter-spacing:0;text-transform:none;color:var(--text3);font-size:10px}
+.aviso-sep.rojo{color:var(--red-text)}.aviso-sep.ambar{color:var(--amber)}
 .notif-item .notif-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px}
 .notif-item .notif-msg{font-size:11px;color:var(--text2);line-height:1.4}
 .notif-item .notif-time{font-size:10px;color:var(--text3);margin-top:4px}
@@ -1601,45 +1620,59 @@ async function cargarNotificaciones() {
       : [[], { no_leidas: 0 }];
     await cargarAvisos();
     STATE.notificaciones = lista || [];
-    const urgentes = STATE.avisos?.altas || 0;
-    const total = (conteo?.no_leidas || 0) + urgentes;
-    const badge = document.getElementById('notif-badge');
-    const avatar = document.getElementById('sb-avatar');
-    if (total > 0) {
-      badge.style.display = 'block';
-      badge.textContent = total > 9 ? '9+' : total;
-      avatar?.classList.add('has-unread');
-    } else {
-      badge.style.display = 'none';
-      avatar?.classList.remove('has-unread');
-    }
-    // Pestañas: Avisos solo para admin/director; Notificaciones solo si hay perfil de empleado
-    const tabAv = document.getElementById('notif-tab-avisos'), tabNo = document.getElementById('notif-tab-notif');
-    if (tabAv) { tabAv.style.display = STATE.avisos ? '' : 'none'; document.getElementById('avisos-cuenta').textContent = STATE.avisos?.total ? `(${STATE.avisos.total})` : ''; }
-    if (tabNo) tabNo.style.display = tieneEmp ? '' : 'none';
+    STATE._notifNoLeidas = conteo?.no_leidas || 0;
+    pintarCampana();
     if (!STATE._notifTab) STATE._notifTab = tieneEmp ? 'notif' : 'avisos';
-    document.querySelectorAll('.notif-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === STATE._notifTab));
-    const marcar = document.getElementById('notif-marcar'); if (marcar) marcar.style.display = STATE._notifTab === 'notif' ? '' : 'none';
-    if (STATE._notifTab === 'avisos' && STATE.avisos) { pintarAvisos(); return; }
-    const cont = document.getElementById('notif-list');
-    if (!cont) return;
-    if (!lista || lista.length === 0) {
-      cont.innerHTML = `<div class="notif-empty"><i class="ti ti-bell-off" aria-hidden="true" style="font-size:22px;display:block;margin-bottom:6px"></i>Sin notificaciones</div>`;
-      return;
-    }
-    cont.innerHTML = lista.map(n => `
-      <div class="notif-item ${n.leida ? '' : 'unread'}" onclick="clicNotificacion(${n.id}, ${n.entidad_tipo === 'proyecto' ? `'${n.entidad_id}'` : 'null'}, '${n.entidad_tipo||''}')">
-        <div class="notif-title">${escHtml(n.titulo)}</div>
-        ${n.mensaje ? `<div class="notif-msg">${escHtml(n.mensaje)}</div>` : ''}
-        <div class="notif-time">${tiempoRelativo(n.fecha)}</div>
-      </div>
-    `).join('');
+    pintarListaCampana();
   } catch (e) { /* silencioso — no interrumpir la app si falla */ }
 }
 
+// Contador del avatar = notificaciones sin leer + avisos que aún no se abren (los "en seguimiento" ya no cuentan)
+function pintarCampana() {
+  const tieneEmp = !!STATE.user?.empleado_id;
+  const noLeidas = Math.max(0, STATE._notifNoLeidas || 0);
+  const avNuevos = STATE.avisos ? (STATE.avisos.no_vistos ?? STATE.avisos.altas ?? 0) : 0;
+  const total = noLeidas + avNuevos;
+  const badge = document.getElementById('notif-badge');
+  const avatar = document.getElementById('sb-avatar');
+  if (badge) { badge.style.display = total > 0 ? 'block' : 'none'; badge.textContent = total > 9 ? '9+' : total; }
+  avatar?.classList.toggle('has-unread', total > 0);
+  // Pestañas: Avisos solo para admin/director; Notificaciones solo si hay perfil de empleado
+  const tabAv = document.getElementById('notif-tab-avisos'), tabNo = document.getElementById('notif-tab-notif');
+  if (tabAv) { tabAv.style.display = STATE.avisos ? '' : 'none'; document.getElementById('avisos-cuenta').innerHTML = avNuevos ? `<span class="notif-tab-n">${avNuevos}</span>` : (STATE.avisos?.total ? `<span class="notif-tab-n gris">${STATE.avisos.total}</span>` : ''); }
+  if (tabNo) { tabNo.style.display = tieneEmp ? '' : 'none'; tabNo.innerHTML = `Notificaciones${noLeidas ? ` <span class="notif-tab-n">${noLeidas}</span>` : ''}`; }
+}
+
+function pintarListaCampana() {
+  document.querySelectorAll('.notif-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === STATE._notifTab));
+  const marcar = document.getElementById('notif-marcar');
+  if (STATE._notifTab === 'avisos' && STATE.avisos) {
+    if (marcar) { marcar.textContent = 'Marcar vistos'; marcar.style.display = STATE.avisos.no_vistos ? '' : 'none'; }
+    pintarAvisos(); return;
+  }
+  if (marcar) { marcar.textContent = 'Marcar leídas'; marcar.style.display = STATE._notifNoLeidas ? '' : 'none'; }
+  const cont = document.getElementById('notif-list');
+  if (!cont) return;
+  const lista = STATE.notificaciones || [];
+  if (!lista.length) {
+    cont.innerHTML = `<div class="notif-empty"><i class="ti ti-bell-off" aria-hidden="true" style="font-size:22px;display:block;margin-bottom:6px"></i>Sin notificaciones</div>`;
+    return;
+  }
+  cont.innerHTML = lista.map(n => `
+    <div class="notif-item ${n.leida ? 'leida' : 'unread'}" onclick="clicNotificacion(${n.id}, ${n.entidad_tipo === 'proyecto' ? `'${n.entidad_id}'` : 'null'}, '${n.entidad_tipo||''}')">
+      ${n.leida ? '' : '<span class="notif-punto" aria-label="Sin leer"></span>'}
+      <div class="notif-title">${escHtml(n.titulo)}</div>
+      ${n.mensaje ? `<div class="notif-msg">${escHtml(n.mensaje)}</div>` : ''}
+      <div class="notif-time">${tiempoRelativo(n.fecha)}</div>
+    </div>
+  `).join('');
+}
+
 async function clicNotificacion(id, proyectoId, entidadTipo) {
-  try { await api('POST', `/notificaciones/${id}/marcar-leida`); } catch (e) {}
-  cargarNotificaciones();
+  // Se descuenta al instante; el servidor se actualiza detrás
+  const n = (STATE.notificaciones || []).find(x => x.id === id);
+  if (n && !n.leida) { n.leida = true; STATE._notifNoLeidas = Math.max(0, (STATE._notifNoLeidas || 0) - 1); pintarCampana(); pintarListaCampana(); }
+  api('POST', `/notificaciones/${id}/marcar-leida`).catch(() => {});
   if (entidadTipo === 'inactividad') {
     document.getElementById('notif-dropdown').classList.remove('open');
     showSection((STATE.rol === 'tecnico' || STATE.modoTecnico) ? 'checador' : 'inactividad');
@@ -1653,6 +1686,12 @@ async function clicNotificacion(id, proyectoId, entidadTipo) {
 }
 
 async function marcarTodasNotifLeidas() {
+  if (STATE._notifTab === 'avisos' && STATE.avisos) {   // avisos: pasan a "en seguimiento", no desaparecen
+    const claves = (STATE.avisos.avisos || []).filter(a => !a.visto).map(a => a.clave);
+    marcarAvisosVistos(claves); return;
+  }
+  (STATE.notificaciones || []).forEach(n => n.leida = true);
+  STATE._notifNoLeidas = 0; pintarCampana(); pintarListaCampana();
   try { await api('POST', '/notificaciones/marcar-todas-leidas'); } catch (e) {}
   cargarNotificaciones();
 }
@@ -9794,22 +9833,40 @@ async function cargarAvisos() {
   if (!['administrador','director_proyecto'].includes(STATE.rol)) { STATE.avisos = null; return; }
   STATE.avisos = await api('GET', '/avisos') || { total: 0, altas: 0, avisos: [] };
 }
+// Avisos: 🔴 nuevo (cuenta en la campana) → 🟡 visto / en seguimiento (sigue en la lista) → se quita solo al resolverse
 function pintarAvisos() {
   const cont = document.getElementById('notif-list'); if (!cont) return;
   const lista = STATE.avisos?.avisos || [];
   if (!lista.length) { cont.innerHTML = `<div class="notif-empty"><i class="ti ti-shield-check" aria-hidden="true" style="font-size:22px;display:block;margin-bottom:6px;color:var(--green)"></i>Todo en orden</div>`; return; }
-  cont.innerHTML = lista.map((a, i) => `
-    <div class="notif-item" onclick="abrirAviso(${i})" style="display:flex;gap:10px;align-items:flex-start">
-      <i class="ti ti-${a.icono}" aria-hidden="true" style="font-size:18px;margin-top:1px;color:${a.nivel === 'alta' ? 'var(--red)' : 'var(--amber)'}"></i>
-      <div style="min-width:0">
+  const nuevos = lista.filter(a => !a.visto).length, seg = lista.length - nuevos;
+  const fila = (a) => {
+    const i = lista.indexOf(a);
+    return `
+    <div class="notif-item aviso ${a.visto ? 'aviso-seg' : 'aviso-nuevo'}" onclick="abrirAviso(${i})">
+      <i class="ti ti-${a.icono} aviso-ico" aria-hidden="true"></i>
+      <div style="min-width:0;flex:1">
         <div class="notif-title">${escHtml(a.titulo)}</div>
         <div class="notif-msg">${escHtml(a.detalle)}</div>
         <div class="notif-time">${a.categoria}${a.nivel === 'alta' ? ' · urgente' : ''}</div>
       </div>
-    </div>`).join('');
+      <span class="aviso-chip">${a.visto ? 'En seguimiento' : 'Nuevo'}</span>
+    </div>`;
+  };
+  cont.innerHTML = (nuevos ? `<div class="aviso-sep rojo">Sin revisar · ${nuevos}</div>${lista.filter(a => !a.visto).map(fila).join('')}` : '')
+    + (seg ? `<div class="aviso-sep ambar">En seguimiento · ${seg}<span>se quitan solos al resolverse</span></div>${lista.filter(a => a.visto).map(fila).join('')}` : '');
+}
+async function marcarAvisosVistos(claves) {
+  claves = (claves || []).filter(Boolean);
+  if (!claves.length || !STATE.avisos) return;
+  let n = 0;
+  (STATE.avisos.avisos || []).forEach(a => { if (claves.includes(a.clave) && !a.visto) { a.visto = true; n++; } });
+  STATE.avisos.no_vistos = Math.max(0, (STATE.avisos.no_vistos || 0) - n);
+  pintarCampana(); pintarListaCampana();
+  try { await api('POST', '/avisos/vistos', { claves }); } catch (e) {}
 }
 async function abrirAviso(i) {
   const a = STATE.avisos.avisos[i];
+  if (!a.visto) marcarAvisosVistos([a.clave]);
   document.getElementById('notif-dropdown').classList.remove('open');
   showSection(a.seccion);
   if (!a.entidad_id) return;
@@ -9822,9 +9879,7 @@ async function abrirAviso(i) {
 }
 function cambiarPestanaNotif(tab) {
   STATE._notifTab = tab;
-  document.querySelectorAll('.notif-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
-  document.getElementById('notif-marcar').style.display = tab === 'notif' ? '' : 'none';
-  if (tab === 'avisos') pintarAvisos(); else cargarNotificaciones();
+  pintarListaCampana();
 }
 
 // ─── CUENTAS DE GESTIÓN (sin perfil de empleado) ────────────────────────────
