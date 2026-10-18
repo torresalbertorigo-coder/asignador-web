@@ -405,6 +405,43 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .ti-ws-ga25{--ws-ic:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M7 3h10M7 3v5M17 3v5M7 5.5h10M5.5 8h13%22/%3E%3Cpath d=%22M10.8 8v9M13.2 8v9M10.8 11h2.4M10.8 14h2.4%22/%3E%3Crect x=%225%22 y=%2217%22 width=%2214%22 height=%222.5%22 rx=%22.8%22/%3E%3Cpath d=%22M5.5 19.5L3 21.5M18.5 19.5l2.5 2M1.8 21.5h2.4M19.8 21.5h2.4%22/%3E%3C/svg%3E")}
 .ti-ws-confinado{--ws-ic:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M4.5 7v10.5c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5V7%22/%3E%3Cellipse cx=%2212%22 cy=%227%22 rx=%227.5%22 ry=%222.5%22/%3E%3Cpath d=%22M10 2.5v14M14 2.5v14M10 5h4M10 9.5h4M10 13h4%22/%3E%3C/svg%3E")}
 .ti-ws-ergonomia{--ws-ic:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Ccircle cx=%226.5%22 cy=%224%22 r=%222%22/%3E%3Cpath d=%22M6.5 7v7h5v6.5M6.5 10h6M12.5 11.5h9M19.5 11.5v9%22/%3E%3Crect x=%2215.5%22 y=%224%22 width=%225%22 height=%224%22 rx=%22.6%22/%3E%3Cpath d=%22M18 8v3.5%22/%3E%3Cpath d=%22M4 16h5.5M6.5 16v4.5%22/%3E%3C/svg%3E")}
+.ev-bar{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:16px;display:flex;flex-direction:column;gap:10px}
+.ev-bar-fila{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ev-bar-sel{flex:1;min-width:220px;position:relative;display:flex;align-items:center}
+.ev-bar-sel>i{position:absolute;left:11px;font-size:16px;color:var(--text3);pointer-events:none}
+.ev-bar-sel .field-select{padding-left:34px;width:100%;font-weight:600}
+.ev-bar-agenda{margin-left:auto}
+.ev-bar-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--border)}
+.ev-bar-hint{font-size:12px;color:var(--text3);display:inline-flex;align-items:center;gap:6px}
+.cv-tl-click{cursor:pointer;padding:8px 10px;margin:-8px -10px;border-radius:10px;border:1px solid transparent;transition:background .15s,border-color .15s;outline:none}
+.cv-tl-click:hover,.cv-tl-click:focus-visible{background:var(--surface2);border-color:var(--border2)}
+.cv-tl-click:hover .cv-tl-bar{filter:brightness(1.12)}
+.cv-tl-cal{display:flex;align-items:center;justify-content:center;gap:4px;font-size:10.5px;font-weight:600;color:var(--text3);margin-top:4px;opacity:0;transition:opacity .15s}
+.cv-tl-click:hover .cv-tl-cal,.cv-tl-click:focus-visible .cv-tl-cal{opacity:1;color:var(--text2)}
+.cv-btn-brecha{background:color-mix(in srgb,var(--amber) 16%,transparent);border:1px solid color-mix(in srgb,var(--amber) 55%,transparent);color:var(--amber);font-weight:700}
+.cv-btn-brecha:hover{background:color-mix(in srgb,var(--amber) 26%,transparent);border-color:var(--amber)}
+.cv-btn-desc{background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-weight:600}
+.cv-btn-desc:hover{border-color:var(--text3);background:color-mix(in srgb,var(--text) 8%,var(--surface2))}
+.ag-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:16px 18px 10px}
+.ag-tit{font-size:15px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px}
+.ag-sub{font-size:12px;color:var(--text3);margin-top:3px}.ag-sub b{color:var(--text2)}
+.ag-wrap{overflow:auto;padding:0 18px;flex:1;min-height:0}
+.ag-tabla{border-collapse:separate;border-spacing:2px;font-size:11px}
+.ag-tabla thead th{position:sticky;top:0;background:var(--surface);color:var(--text3);font-weight:600;font-size:10.5px;text-align:center;min-width:20px;padding:4px 0;z-index:1}
+.ag-tabla thead th span{font-size:9px;font-weight:500}
+.ag-tabla thead th.pry{color:var(--amber)}.ag-tabla thead th.hoy{color:var(--red)}
+.ag-n{position:sticky;left:0;background:var(--surface);text-align:left;padding:2px 10px 2px 0;white-space:nowrap;z-index:2;min-width:190px}
+.ag-n .cv-link{font-size:12px;font-weight:600}
+.ag-libre{display:block;font-size:10px;font-weight:600}
+.ag-c{height:22px;min-width:20px;border-radius:4px;background:var(--surface2);padding:0}
+.ag-c.pry{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--amber) 70%,transparent)}
+.ag-c.ocu{background:color-mix(in srgb,var(--red-text) 70%,transparent)}
+.ag-c.aus{background:#8B6FD6}
+.ag-c.aqui{background:color-mix(in srgb,var(--green) 70%,transparent)}
+.ag-c.hoy{outline:1.5px solid var(--red);outline-offset:-1px}
+.ag-ley{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 18px 16px;font-size:11.5px;color:var(--text2);border-top:1px solid var(--border);margin-top:10px}
+.ag-ley span{display:inline-flex;align-items:center;gap:6px}
+.ag-ley i.ag-c{display:inline-block;width:14px;height:14px;min-width:0}
 .ev-head{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;flex-direction:column;gap:10px}
 .ev-head-tit{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .ev-head-tit span{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3)}
@@ -850,6 +887,9 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .cal-weekday{font-size:10px;color:var(--text3);text-align:center;padding:4px 0;font-weight:600}
 .cal-cell{aspect-ratio:1;border-radius:4px;background:var(--surface2);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;color:var(--text2);position:relative;cursor:default}
 .cal-cell.empty{background:transparent}
+.cal-cell.objetivo{box-shadow:inset 0 0 0 1.5px var(--amber);border-radius:4px}
+.cal-cell.objetivo.ocupado{box-shadow:inset 0 0 0 2px var(--amber)}
+.cal-ley-obj{display:inline-block;width:10px;height:10px;border-radius:3px;box-shadow:inset 0 0 0 1.5px var(--amber);vertical-align:-1px;margin-right:2px}
 .cal-cell.hoy{outline:1.5px solid var(--red);color:var(--text)}
 .cal-cell.ocupado{background:var(--red-bg);color:var(--red-text);cursor:pointer;font-weight:600}
 .cal-cell.ausente{background:rgba(124,92,201,.22);color:#B9A4F0;font-weight:600}
@@ -1663,9 +1703,13 @@ function eventosProyectosPorDia(empId) {
   return mapa;
 }
 
-async function abrirCalendarioMensual(empId, nombre, offsetMeses) {
+async function abrirCalendarioMensual(empId, nombre, offsetMeses, pidResaltar) {
   STATE._cal_offset = offsetMeses || 0;
   await loadProyectos();
+  // Proyecto en evaluación (desde Evaluar): sus fechas se marcan con borde punteado
+  const objetivo = pidResaltar ? (STATE.proyectos || []).find(p => p.id === pidResaltar) : null;
+  const objIni = objetivo?.fecha_inicio ? fechaLocal(objetivo.fecha_inicio) : null, objFin = objetivo?.fecha_fin_estimada ? fechaLocal(objetivo.fecha_fin_estimada) : null;
+  const argRes = pidResaltar ? `,'${pidResaltar}'` : '';
   const hoy = new Date();
   const base = new Date(hoy.getFullYear(), hoy.getMonth() + STATE._cal_offset, 1);
   const year = base.getFullYear(), month = base.getMonth();
@@ -1684,18 +1728,19 @@ async function abrirCalendarioMensual(empId, nombre, offsetMeses) {
     const aus = ausenciaEn(emp, fecha);
     if (aus) hayAusencia = true;
     const esHoy = fecha.toDateString() === hoy.toDateString();
-    const titulo = [aus ? `${tipoAusencia(aus)} (${aus.fecha_inicio} al ${aus.fecha_fin})` : null, ...evs.map(p => p.nombre)].filter(Boolean).join(' · ');
+    const enObj = objIni && objFin && fecha >= objIni && fecha <= objFin;
+    const titulo = [aus ? `${tipoAusencia(aus)} (${aus.fecha_inicio} al ${aus.fecha_fin})` : null, ...evs.map(p => p.nombre), enObj ? `Fechas de ${objetivo.nombre} (en evaluación)` : null].filter(Boolean).join(' · ');
     const click = evs.length ? ` onclick="verProyecto('${evs[0].id}')"` : '';
-    celdas += `<div class="cal-cell ${esHoy?'hoy':''} ${evs.length?'ocupado':''} ${aus?'ausente':''}" title="${escHtml(titulo)}"${click}>${d}${aus ? `<div class="cal-aus">${escHtml(tipoAusencia(aus))}</div>` : ''}${evs.length?'<div class="cal-dot"></div>':''}</div>`;
+    celdas += `<div class="cal-cell ${esHoy?'hoy':''} ${evs.length?'ocupado':''} ${aus?'ausente':''} ${enObj?'objetivo':''}" title="${escHtml(titulo)}"${click}>${d}${aus ? `<div class="cal-aus">${escHtml(tipoAusencia(aus))}</div>` : ''}${evs.length?'<div class="cal-dot"></div>':''}</div>`;
   }
   const mesLabel = base.toLocaleDateString('es-MX',{month:'long',year:'numeric'});
   const puedeExportar = STATE.rol !== 'tecnico';
   openPanel(`Calendario — ${nombre}`, `
     <div class="panel-section" id="cal-export-area">
       <div class="cal-header">
-        <button class="btn btn-ghost btn-sm" onclick="abrirCalendarioMensual('${empId}','${nombre.replace(/'/g,"\\'")}',${STATE._cal_offset-1})"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirCalendarioMensual('${empId}','${nombre.replace(/'/g,"\\'")}',${STATE._cal_offset-1}${argRes})"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
         <span class="cal-monthlabel">${mesLabel}</span>
-        <button class="btn btn-ghost btn-sm" onclick="abrirCalendarioMensual('${empId}','${nombre.replace(/'/g,"\\'")}',${STATE._cal_offset+1})"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirCalendarioMensual('${empId}','${nombre.replace(/'/g,"\\'")}',${STATE._cal_offset+1}${argRes})"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
       </div>
       <div class="cal-grid">
         ${['D','L','M','X','J','V','S'].map(w=>`<div class="cal-weekday">${w}</div>`).join('')}
@@ -1704,6 +1749,7 @@ async function abrirCalendarioMensual(empId, nombre, offsetMeses) {
       <div style="margin-top:10px;font-size:11px;color:var(--text3);display:flex;flex-direction:column;gap:4px">
         <div><span style="color:var(--red-text)">●</span> Días con proyecto asignado — toca un día para ver el detalle del proyecto.</div>
         ${hayAusencia ? '<div><span style="color:#8B6FD6">●</span> Ausencia (vacaciones, permiso, incapacidad).</div>' : ''}
+        ${objetivo ? `<div><span class="cal-ley-obj"></span> Fechas de <b style="color:var(--text2)">${escHtml(objetivo.nombre)}</b> (proyecto en evaluación). Un día rojo dentro del borde es un choque.</div>` : ''}
       </div>
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>${puedeExportar?`<button class="btn btn-primary btn-sm" onclick="exportarCalendarioEmpleadoPDF('${empId}','${nombre.replace(/'/g,"\\'")}',${year},${month})"><i class="ti ti-file-download" aria-hidden="true"></i> Exportar PDF</button>`:''}`);
@@ -3338,34 +3384,29 @@ async function descargarKitDocumentos(proyectoId, nombreProyecto) {
 // ─── SECCIÓN: EVALUAR ─────────────────────────────────────────────────────────
 async function renderEvaluar() {
   await loadEmpleados(); await loadProyectos();
-  const pendientes = STATE.proyectos.filter(p=>p.estado==='pendiente_asignacion');
+  const pendientes = STATE.proyectos.filter(p => p.estado === 'pendiente_asignacion')
+    .sort((a, b) => String(a.fecha_inicio || '').localeCompare(String(b.fecha_inicio || '')));
+  // Si se estaba evaluando un proyecto que ya se completó de personal, sigue en la lista
+  const actual = STATE._evalPid && !pendientes.some(p => p.id === STATE._evalPid) ? STATE.proyectos.find(p => p.id === STATE._evalPid) : null;
+  const opciones = [...pendientes, ...(actual ? [actual] : [])];
+  const etiqueta = p => `${p.nombre}${p.fecha_inicio ? ` · ${fCorta(p.fecha_inicio)}` : ''} · ${(p.tecnicos_asignados || []).length}/${p.personal_requerido || 1}`;
   html(`
-    <div class="eval-config">
-      <div class="field-group" style="flex:1">
-        <label class="field-label">PROYECTO A EVALUAR</label>
-        <select class="field-select" id="ev-proyecto">
-          <option value="">Selecciona un proyecto...</option>
-          ${pendientes.map(p=>`<option value="${p.id}">${p.nombre}</option>`).join('')}
-        </select>
+    <div class="ev-bar">
+      <div class="ev-bar-fila">
+        <div class="ev-bar-sel">
+          <i class="ti ti-folder-search" aria-hidden="true"></i>
+          <select class="field-select" id="ev-proyecto" onchange="STATE._evalPid=this.value;if(this.value)ejecutarEvaluacion()" aria-label="Proyecto a evaluar">
+            <option value="">${opciones.length ? `Selecciona un proyecto (${pendientes.length} pendiente${pendientes.length === 1 ? '' : 's'} de asignar)` : 'No hay proyectos pendientes de asignación'}</option>
+            ${opciones.map(p => `<option value="${p.id}" ${p.id === STATE._evalPid ? 'selected' : ''}>${escHtml(etiqueta(p))}</option>`).join('')}
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="ejecutarEvaluacion()"><i class="ti ti-player-play" aria-hidden="true"></i> Evaluar</button>
+        <button class="btn btn-ghost ev-bar-agenda" onclick="abrirAgendaGeneralEval()"><i class="ti ti-world" aria-hidden="true"></i> Ver agenda general</button>
       </div>
-      <button class="btn btn-primary" onclick="ejecutarEvaluacion()"><i class="ti ti-player-play" aria-hidden="true"></i> Ejecutar</button>
+      <div class="ev-bar-meta" id="ev-meta">${opciones.length ? '<span class="ev-bar-hint">Elige un proyecto para ver a los candidatos.</span>' : '<span class="ev-bar-hint"><i class="ti ti-circle-check" aria-hidden="true"></i> Todos los proyectos tienen su personal completo.</span>'}</div>
     </div>
-    ${pendientes.length ? `
-    <div class="table-section" style="margin-bottom:14px">
-      <div class="table-header"><span class="table-title">PROYECTOS PENDIENTES DE ASIGNACIÓN (${pendientes.length})</span></div>
-      ${pendientes.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer" onclick="document.getElementById('ev-proyecto').value='${p.id}';ejecutarEvaluacion()">
-        <div>
-          <div style="font-size:13px;font-weight:600;color:var(--text)">${p.nombre}</div>
-          <div style="font-size:11px;color:var(--text2)">${p.cliente||'—'} · ${p.ciudad||'—'} · ${p.fecha_inicio||'—'}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:11px;color:var(--text3)">${(p.tecnicos_asignados||[]).length}/${p.personal_requerido||1} personal</span>
-          <i class="ti ti-chevron-right" aria-hidden="true" style="color:var(--text3)"></i>
-        </div>
-      </div>`).join('')}
-    </div>` : ''}
-    <div id="ev-results"></div>
-    ${pendientes.length===0?'<div class="empty-state"><i class="ti ti-check-circle" aria-hidden="true"></i><p>No hay proyectos pendientes de asignación</p><span>Todos los proyectos están asignados o en progreso</span></div>':''}`);
+    <div id="ev-results"></div>`);
+  if (STATE._evalPid && opciones.some(p => p.id === STATE._evalPid)) ejecutarEvaluacion();
 }
 
 // ─── EVALUACIÓN DE CANDIDATOS ────────────────────────────────────────────────
@@ -3408,28 +3449,89 @@ function htmlRequisitosEval(pf) {
   return reqs.slice().sort((a, b) => orden[a.estado] - orden[b.estado] || a.nombre.localeCompare(b.nombre, 'es'))
     .map(r => {
       const ok = r.estado === 'ok';
-      const tit = `${r.tipo === 'habilidad' ? 'Habilidad' : 'Certificado'}: ${r.nombre} — ${r.detalle}`;
+      const tipo = r.tipo === 'habilidad' ? 'habilidad' : 'certificado';
+      const tit = ok ? `Cumple ${tipo}: ${r.nombre} — ${r.detalle}`
+        : r.estado === 'falta' ? `Falta ${tipo}: ${r.nombre} — ${r.detalle}`
+        : r.estado === 'nivel' ? `Nivel insuficiente en ${r.nombre} — ${r.detalle}`
+        : `Certificado por vencer: ${r.nombre} — ${r.detalle}`;
       return `<span class="cv-req ${ok ? 'ok' : 'falta'}" tabindex="0" data-tip="${escHtml(tit)}" aria-label="${escHtml(tit)}">
         <i class="ti ti-${iconoTermino(r.tipo, r.nombre)}" aria-hidden="true"></i><span class="cv-req-est"><i class="ti ti-${ok ? 'check' : r.estado === 'vence' ? 'clock-exclamation' : 'x'}" aria-hidden="true"></i></span></span>`;
     }).join('');
 }
 
-// Mini-línea de tiempo: la barra son las fechas del proyecto; verde = libre, bloques rojos/naranjas = ocupado
-function htmlTimelineEval(pf) {
+// Mini-línea de tiempo: la barra son las fechas del proyecto; verde = libre, bloques rojos/naranjas = ocupado.
+// Es clicable: abre el calendario detallado del operador (onOpenOperatorGantt → abrirAgendaOperador).
+function htmlTimelineEval(pf, emp, pid) {
   if (!pf || !pf.fecha_inicio || !pf.dias_proyecto) return '<div class="cv-tl"><span class="cv-sinreq">Sin fechas para comparar</span></div>';
   const ini = fechaLocal(pf.fecha_inicio).getTime(), N = pf.dias_proyecto, dia = 86400000;
-  const bloques = (pf.ocupacion || []).map(o => {
+  const ocup = pf.ocupacion || [];
+  const bloques = ocup.map(o => {
     const a = Math.round((fechaLocal(o.inicio).getTime() - ini) / dia), b = Math.round((fechaLocal(o.fin).getTime() - ini) / dia) + 1;
-    const tipo = o.tipo === 'ausencia' ? 'Ausencia' : o.tipo === 'estado' ? 'No disponible' : 'Otro proyecto';
-    const tip = `${tipo}: ${o.nombre} · ${rangoCorto(o.inicio, o.fin)}${o.abierto ? ' (iniciado y sin finalizar)' : ''}`;
-    return `<span class="cv-tl-occ ${o.tipo === 'ausencia' ? 'aus' : ''}" style="left:${a * 100 / N}%;width:${(b - a) * 100 / N}%" tabindex="0" data-tip="${escHtml(tip)}"></span>`;
+    return `<span class="cv-tl-occ ${o.tipo === 'ausencia' ? 'aus' : ''}" style="left:${a * 100 / N}%;width:${(b - a) * 100 / N}%"></span>`;
   }).join('');
   const libre = !pf.dias_ocupados;
-  return `<div class="cv-tl">
+  const detalle = ocup.map(o => `${o.tipo === 'ausencia' ? 'Ausencia' : o.tipo === 'estado' ? 'No disponible' : 'Otro proyecto'}: ${o.nombre} (${rangoCorto(o.inicio, o.fin)}${o.abierto ? ', sin finalizar' : ''})`).join(' · ');
+  const tip = `${detalle ? detalle + ' — ' : ''}Clic para ver el calendario detallado de ${emp.nombre}`;
+  const nombreJs = String(emp.nombre).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  return `<div class="cv-tl cv-tl-click" role="button" tabindex="0" data-tip="${escHtml(tip)}" aria-label="${escHtml(tip)}"
+      onclick="abrirAgendaOperador('${emp.id}','${escHtml(nombreJs)}','${pid}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
     <div class="cv-tl-bar${libre ? ' libre' : ''}" style="--n:${Math.min(N, 62)}">${bloques}</div>
     <div class="cv-tl-lab"><span>${fCorta(pf.fecha_inicio)}</span>
       <b style="color:${libre ? 'var(--green)' : 'var(--red-text)'}">${libre ? 'Libre todo el periodo' : `${pf.dias_ocupados} de ${plural(N, 'día')} ocupado${pf.dias_ocupados === 1 ? '' : 's'}`}</b>
       <span>${fCorta(pf.fecha_fin)}</span></div>
+    <span class="cv-tl-cal"><i class="ti ti-calendar-search" aria-hidden="true"></i> Ver calendario</span>
+  </div>`;
+}
+
+// onOpenOperatorGantt(operatorId): calendario mensual del operador, abierto en el mes del
+// proyecto y con las fechas del proyecto en evaluación marcadas.
+function abrirAgendaOperador(empId, nombre, pid) {
+  const pry = (STATE.proyectos || []).find(p => p.id === pid);
+  const hoy = new Date(), ini = pry?.fecha_inicio ? fechaLocal(pry.fecha_inicio) : hoy;
+  const offset = (ini.getFullYear() - hoy.getFullYear()) * 12 + ini.getMonth() - hoy.getMonth();
+  abrirCalendarioMensual(empId, nombre, offset, pid);
+}
+
+// Agenda general: ocupación de toda la plantilla alrededor de las fechas del proyecto
+async function abrirAgendaGeneralEval() {
+  await loadEmpleados(); await loadProyectos();
+  const pid = document.getElementById('ev-proyecto')?.value || STATE._evalPid;
+  const pry = (STATE.proyectos || []).find(p => p.id === pid);
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const pIni = pry?.fecha_inicio ? fechaLocal(pry.fecha_inicio) : null, pFin = pry?.fecha_fin_estimada ? fechaLocal(pry.fecha_fin_estimada) : null;
+  const desde = new Date(pIni || hoy); desde.setDate(desde.getDate() - (pIni ? 5 : 2));
+  const nDias = pIni && pFin ? Math.min(45, Math.round((pFin - pIni) / 86400000) + 11) : 28;
+  const cols = Array.from({ length: nDias }, (_, i) => { const d = new Date(desde); d.setDate(d.getDate() + i); return d; });
+  const emps = [...(STATE.empleados || [])].filter(e => e.estado_perfil !== 'archivado')
+    .sort((a, b) => `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`, 'es'));
+  const filas = emps.map(e => {
+    const ev = eventosProyectosPorDia(e.id);
+    let libresEnPry = 0;
+    const celdas = cols.map(d => {
+      const k = isoLocal(d), evs = (ev[k] || []).filter(p => p.id !== pid), aus = ausenciaEn(e, d);
+      const enPry = pIni && pFin && d >= pIni && d <= pFin;
+      const asignadoAqui = pry && (pry.tecnicos_asignados || []).includes(e.id) && enPry;
+      if (enPry && !evs.length && !aus) libresEnPry++;
+      const cls = aus ? 'aus' : evs.length ? 'ocu' : asignadoAqui ? 'aqui' : '';
+      const tip = [aus ? tipoAusencia(aus) : null, ...evs.map(p => p.nombre), asignadoAqui ? `Asignado a ${pry.nombre}` : null].filter(Boolean).join(' · ');
+      return `<td class="ag-c ${cls}${enPry ? ' pry' : ''}${d.getTime() === hoy.getTime() ? ' hoy' : ''}"${tip ? ` title="${escHtml(`${fCorta(d)}: ${tip}`)}"` : ''}></td>`;
+    }).join('');
+    const nombre = `${e.nombre} ${e.apellido}`;
+    return `<tr><th class="ag-n"><button class="cv-link" onclick="cerrarSelectorTerminos();abrirAgendaOperador('${e.id}','${escHtml(nombre.replace(/'/g, "\\'"))}','${pid || ''}')">${escHtml(nombre)}</button>
+      ${pry && (pry.tecnicos_asignados || []).includes(e.id) ? '<span class="ag-libre" style="color:var(--green)">Asignado a este proyecto</span>' : pIni ? `<span class="ag-libre" style="color:${libresEnPry === Math.round((pFin - pIni) / 86400000) + 1 ? 'var(--green)' : libresEnPry ? 'var(--amber)' : 'var(--red-text)'}">${libresEnPry}/${Math.round((pFin - pIni) / 86400000) + 1} libres</span>` : ''}</th>${celdas}</tr>`;
+  }).join('');
+  let ov = document.getElementById('selector-overlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; document.body.appendChild(ov); }
+  ov.className = 'modal-overlay open';
+  ov.onclick = e => { if (e.target === ov) cerrarSelectorTerminos(); };
+  ov.innerHTML = `<div class="sel-card" style="max-width:1100px">
+    <div class="ag-head"><div><div class="ag-tit"><i class="ti ti-world" aria-hidden="true"></i> Agenda general</div>
+      <div class="ag-sub">${pry ? `Ocupación de la plantilla alrededor de <b>${escHtml(pry.nombre)}</b> (${rangoCorto(pry.fecha_inicio, pry.fecha_fin_estimada)}). Toca un nombre para ver su calendario.` : 'Ocupación de la plantilla en las próximas semanas.'}</div></div>
+      <button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button></div>
+    <div class="ag-wrap"><table class="ag-tabla"><thead><tr><th class="ag-n"></th>${cols.map(d => `<th class="${pIni && d >= pIni && d <= pFin ? 'pry' : ''}${d.getTime() === hoy.getTime() ? ' hoy' : ''}">${d.getDate()}<br><span>${['D', 'L', 'M', 'X', 'J', 'V', 'S'][d.getDay()]}</span></th>`).join('')}</tr></thead>
+      <tbody>${filas}</tbody></table></div>
+    <div class="ag-ley"><span><i class="ag-c ocu"></i>Otro proyecto</span><span><i class="ag-c aus"></i>Ausencia</span><span><i class="ag-c aqui"></i>Ya asignado a este proyecto</span>${pry ? '<span><i class="ag-c pry"></i>Fechas del proyecto</span>' : ''}
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="cerrarSelectorTerminos();showSection('gantt')"><i class="ti ti-calendar-stats" aria-hidden="true"></i> Abrir Gantt completo</button></div>
   </div>`;
 }
 
@@ -3452,7 +3554,9 @@ function tarjetaCandidatoEval(c, cat, pid, yaAsignado) {
     ? '<span class="cv-ya"><i class="ti ti-circle-check" aria-hidden="true"></i> Ya asignado</span>'
     : esApto
       ? `<button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => asignarTecnico('${c.id_empleado}','${pid}'))"><i class="ti ti-user-plus" aria-hidden="true"></i> Asignar al proyecto</button>`
-      : `<button class="btn btn-ghost btn-sm" onclick="asignarConBrecha(this,'${c.id_empleado}','${pid}')"><i class="ti ti-user-plus" aria-hidden="true"></i> Asignar de todos modos</button>`;
+      : cat === 'brecha'
+        ? `<button class="btn btn-sm cv-btn-brecha" onclick="asignarConBrecha(this,'${c.id_empleado}','${pid}')"><i class="ti ti-user-exclamation" aria-hidden="true"></i> Asignar con brecha</button>`
+        : `<button class="btn btn-sm cv-btn-desc" onclick="asignarConBrecha(this,'${c.id_empleado}','${pid}')"><i class="ti ti-user-plus" aria-hidden="true"></i> Asignar de todos modos</button>`;
   return `<div class="cv-card cv-${cat}${esApto && c.posicion === 1 ? ' top' : ''}">
     <div class="cv-score" style="--p:${valor ?? 0};--c:${color}" tabindex="0" data-tip="${escHtml(tipScore)}">
       <div class="cv-ring"><b>${valor ?? '—'}</b>${valor != null ? '<small>%</small>' : ''}</div>
@@ -3464,7 +3568,7 @@ function tarjetaCandidatoEval(c, cat, pid, yaAsignado) {
       <div class="cv-sub">${sub}</div>
       <div class="cv-reqs">${htmlRequisitosEval(pf)}</div>
     </div>
-    ${htmlTimelineEval(pf)}
+    ${htmlTimelineEval(pf, { id: c.id_empleado, nombre: c.nombre }, pid)}
     <div class="cv-acc">${boton}</div>
   </div>`;
 }
@@ -3482,6 +3586,8 @@ async function ejecutarEvaluacion() {
   if (!pid) { toast('Selecciona un proyecto primero', 'error'); return; }
   const resultsEl = document.getElementById('ev-results');
   resultsEl.innerHTML = '<div class="empty-state"><i class="ti ti-loader-2 ti-spin" aria-hidden="true"></i><p>Evaluando candidatos…</p></div>';
+  const metaEl = document.getElementById('ev-meta');
+  if (metaEl) metaEl.innerHTML = '<span class="ev-bar-hint"><i class="ti ti-loader-2 ti-spin" aria-hidden="true"></i> Revisando disponibilidad…</span>';
 
   const [r, dispEquipo, dispVeh] = await Promise.all([
     api('GET', `/proyectos/proyectos/${pid}/evaluar`),
@@ -3489,7 +3595,7 @@ async function ejecutarEvaluacion() {
     api('GET', `/proyectos/proyectos/${pid}/disponibilidad-vehiculo`),
   ]);
   if (!r) { resultsEl.innerHTML = '<div class="empty-state"><i class="ti ti-alert-triangle" aria-hidden="true"></i><p>Error al ejecutar la evaluación.</p></div>'; return; }
-  STATE._evalUltima = r;
+  STATE._evalUltima = r; STATE._evalPid = pid;
   const pry = (STATE.proyectos || []).find(p => p.id === pid) || {};
   const asignados = pry.tecnicos_asignados || [], req = pry.personal_requerido || 1;
 
@@ -3519,16 +3625,14 @@ async function ejecutarEvaluacion() {
     <div class="ev-sec"><span class="ev-sec-dot" style="background:${color}"></span>${titulo}<span class="ev-sec-n">${lista.length}</span><span class="ev-sec-ayuda">${ayuda}</span></div>
     ${lista.map(c => tarjetaCandidatoEval(c, cat, pid, asignados.includes(c.id_empleado))).join('')}` : '';
 
+  if (metaEl) metaEl.innerHTML = `
+    <div class="ev-chips">${chips.map(chipInfraEval).join('')}</div>
+    <div class="ev-resumen">
+      <span style="--c:var(--green)"><b>${aptos.length}</b> aptos</span>
+      <span style="--c:var(--amber)"><b>${brecha.length}</b> con brecha</span>
+      <span style="--c:var(--red-text)"><b>${desc.length}</b> descartados</span>
+    </div>`;
   resultsEl.innerHTML = `
-    <div class="ev-head">
-      <div class="ev-head-tit"><span>Evaluación</span><b>${escHtml(r.proyecto_nombre)}</b></div>
-      <div class="ev-chips">${chips.map(chipInfraEval).join('')}</div>
-      <div class="ev-resumen">
-        <span style="--c:var(--green)"><b>${aptos.length}</b> aptos</span>
-        <span style="--c:var(--amber)"><b>${brecha.length}</b> con brecha</span>
-        <span style="--c:var(--red-text)"><b>${desc.length}</b> descartados</span>
-      </div>
-    </div>
     ${seccion('Aptos', 'cumplen todo y están libres', 'var(--green)', aptos, 'apto')}
     ${!aptos.length ? `<div class="ev-vacio"><i class="ti ti-user-search" aria-hidden="true"></i>${escHtml(r.mensaje_si_vacio || 'Ningún candidato cumple todos los requisitos.')}</div>` : ''}
     ${seccion('Podrían aprobarse', 'libres, pero les falta algún requisito', 'var(--amber)', brecha, 'brecha')}
