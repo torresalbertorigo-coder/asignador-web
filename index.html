@@ -8899,11 +8899,13 @@ async function nuevaPlantillaPDF(orientacion = 'portrait') {
       const x = M + i * (w + gap);
       T.relleno(PDF_C.fondo); doc.roundedRect(x, y, w, h, 2, 2, 'F');
       T.relleno(color || PDF_C.tinta); doc.rect(x, y + 4, 0.9, h - 8, 'F');
-      T.etiqueta(lab, x + 4.5, y + 6.2);
-      let tam = 14; T.font('bold', tam, color || PDF_C.tinta);
+      // posiciones relativas al alto de la tarjeta (con h=21 quedan igual que siempre)
+      const comp = h < 19;    // versión compacta: cifra un poco más chica para que no choque con la etiqueta
+      T.etiqueta(lab, x + 4.5, y + (comp ? 4.9 : 6.2));
+      let tam = comp ? 11.5 : 14; T.font('bold', tam, color || PDF_C.tinta);
       while (doc.getTextWidth(String(val)) > w - 8 && tam > 6.5) { tam -= 0.5; T.font('bold', tam, color || PDF_C.tinta); }
-      doc.text(String(val), x + 4.5, y + 13.6);
-      T.font('normal', 6.8, PDF_C.gris); doc.text(String(sub || ''), x + 4.5, y + 17.8);
+      doc.text(String(val), x + 4.5, y + h - (comp ? 6 : 7.4));
+      T.font('normal', 6.8, PDF_C.gris); doc.text(String(sub || ''), x + 4.5, y + h - (comp ? 2.6 : 3.2));
     });
     return y + h;
   };
@@ -9556,7 +9558,7 @@ function vigenciaActivoPDF(u, clase) {
   const fecha = d ? d.fecha_vencimiento : (clase === 'equipo' ? u.proxima_calibracion : null);
   if (!fecha) return null;
   const vencido = fechaLocal(fecha) < new Date();
-  return { texto: `${clase === 'equipo' ? 'Calibración' : 'Seguro'} ${vencido ? 'vencido' : 'vigente hasta'} ${fLargaAnio(fecha)}`, vencido };
+  return { texto: `${clase === 'equipo' ? 'Calibración' : 'Seguro'} ${vencido ? (clase === 'equipo' ? 'vencida el' : 'vencido el') : 'vigente hasta'} ${fLargaAnio(fecha)}`, vencido };
 }
 async function exportarGanttProyectoPDF(proyectoId, modo) {
   if (!modo) { elegirPDFProyecto(proyectoId); return; }
@@ -9564,158 +9566,224 @@ async function exportarGanttProyectoPDF(proyectoId, modo) {
   const p = STATE.proyectos.find(x => x.id === proyectoId);
   if (!p) { toast('No se encontró el proyecto', 'error'); return; }
   const cliente = modo === 'cliente';
-  const T = await nuevaPlantillaPDF('portrait'), { doc, C, M } = T, W = T.W;
   const ini = fechaLocal(p.fecha_inicio), fin = fechaLocal(p.fecha_fin_estimada);
   const dur = Math.round((fin - ini) / 86400000) + 1;
   const personal = (p.tecnicos_asignados || []).map(id => STATE.empleados.find(e => e.id === id)).filter(Boolean);
   const equipos = (p.equipo_asignado_ids || []).map(id => (STATE.equipos || []).find(z => z.id === id)).filter(Boolean);
   const vehiculos = (p.vehiculo_asignado_ids || []).map(id => (STATE.vehiculos || []).find(z => z.id === id)).filter(Boolean);
   const diaSem = d => ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'][d.getDay()];
-
-  const tipoDocP = cliente ? 'Programa de trabajo' : 'Ficha de proyecto · interna';
-  const subP = [p.cliente, p.ciudad].filter(Boolean).join('  ·  ');
-  T.encabezado(tipoDocP, p.id, p.nombre, subP);
-  const otraHoja = () => { T.nuevaPagina(); T.encabezado(tipoDocP, p.id, p.nombre, 'continuación'); return 38; };
-  let y = 34, x;
-  if (!cliente) {
-    y += 2;
-    const g = grupoEstadoPDF(p), st = PDF_EST[g];
-    x = T.pastilla(estadoProyectoVisible(p).replace(/_/g, ' ').toUpperCase(), M, y, st.c, st.bg);
-    T.font('medium', 7.6, C.gris); doc.text(`Criticidad ${String(p.criticidad || '').replace('tipo_', 'Tipo ').toUpperCase().replace('TIPO', 'Tipo')}  ·  Intensidad ${p.intensidad || '—'}`, x + 3.5, y);
-    y += 6;
-  }
-  const kFechas = [rangoCorto(ini, fin), `${ini.getFullYear()} · ${diaSem(ini)} a ${diaSem(fin)}`];
-  y = T.tarjetas(y, cliente
-    ? [['Fechas', ...kFechas], ['Días en sitio', `${dur} día${dur > 1 ? 's' : ''}`, 'programados'],
-       ['Personal', `${personal.length} técnico${personal.length === 1 ? '' : 's'}`, 'en sitio'], ['Sitio', p.ciudad || '—', p.cliente || '']]
-    : [['Fechas', ...kFechas], ['Duración', `${dur} día${dur > 1 ? 's' : ''}`, 'planeados'],
-       ['Personal', `${personal.length} / ${p.personal_requerido || 1}`, 'técnicos asignados', personal.length >= (p.personal_requerido || 1) ? PDF_EST.asignado.c : PDF_EST.prep.c],
-       ['Equipo y vehículo', `${equipos.length + vehiculos.length}`, 'unidades apartadas']]);
-  y += 5;
-  const repro = p.reprogramaciones_resumen || [];
-  if (!cliente && repro.length) {
-    T.relleno(PDF_EST.prep.bg); doc.roundedRect(M, y, W - 2 * M, 9, 1.5, 1.5, 'F');
-    T.relleno(PDF_EST.prep.c); doc.rect(M, y, 1, 9, 'F');
-    const t1 = `Reprogramado ${repro.length} ${repro.length === 1 ? 'vez' : 'veces'}`;
-    T.font('bold', 7.4, [150, 105, 40]); doc.text(t1, M + 4, y + 5.6);
-    const a1 = doc.getTextWidth(t1);
-    T.font('normal', 7.4, C.texto);
-    const ult = repro[repro.length - 1];
-    doc.text(recortarTexto(doc, `·  fechas originales ${rangoCorto(repro[0].inicio_anterior, repro[0].fin_anterior)} ${fechaLocal(repro[0].inicio_anterior).getFullYear()}${ult.motivo ? '  ·  último motivo: ' + ult.motivo : ''}`, W - 2 * M - a1 - 10), M + 4 + a1 + 2, y + 5.6);
-    y += 12;
-  }
-  y += 4;
-
-  // Línea de tiempo (hasta 31 días) — días del proyecto resaltados
-  y = T.seccion(cliente ? 'DÍAS PROGRAMADOS' : 'LÍNEA DE TIEMPO', y);
-  {
-    const total = Math.min(31, Math.max(12, dur + 6));
-    const desde = new Date(ini); desde.setDate(desde.getDate() - Math.max(0, Math.floor((total - dur) / 2)));
-    const dias = Array.from({ length: total }, (_, i) => { const d = new Date(desde); d.setDate(d.getDate() + i); return d; });
-    const ancho = (W - 2 * M) / total, letra = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
-    dias.forEach((f, i) => {
-      const xx = M + i * ancho, fds = [0, 6].includes(f.getDay()), en = f >= ini && f <= fin, stl = PDF_EST.asignado;
-      T.relleno(en ? stl.bg : fds ? [236, 236, 238] : C.fondo); doc.rect(xx + 0.3, y, ancho - 0.6, 13, 'F');
-      if (en) { T.relleno(stl.c); doc.rect(xx + 0.3, y + 12, ancho - 0.6, 1, 'F'); }
-      T.font('semibold', total > 24 ? 6.4 : 7.6, en ? stl.c : C.tinta); doc.text(String(f.getDate()), xx + ancho / 2, y + 4.8, { align: 'center' });
-      T.font('medium', 5.6, en ? stl.c : C.gris); doc.text(letra[f.getDay()], xx + ancho / 2, y + 8.6, { align: 'center' });
-    });
-    T.font('normal', 7, C.gris);
-    doc.text(dur > total ? `Jornadas del ${diaSem(ini)} ${fLargaAnio(ini)} al ${diaSem(fin)} ${fLargaAnio(fin)} (${dur} días; se muestran los primeros ${total}).`
-      : `Jornadas en sitio del ${diaSem(ini)} ${ini.getDate()} al ${diaSem(fin)} ${fin.getDate()} de ${fin.toLocaleDateString('es-MX', { month: 'long' })} de ${fin.getFullYear()}.`, M, y + 19);
-  }
-  y += 28;
-
-  // Personal
-  y = T.seccion(cliente ? 'PERSONAL EN SITIO' : 'PERSONAL ASIGNADO', y, cliente ? '' : `${personal.length} de ${p.personal_requerido || 1} requerido`);
-  if (!personal.length) { T.font('normal', 8, C.gris); doc.text('Sin personal asignado todavía.', M, y); y += 8; }
   const fotos = cliente ? [] : await Promise.all(personal.map(e => fotoCircularPDF(e.foto_perfil_url)));
-  const SIGLAS = ['RPAS', 'GWO', 'DC-3', 'LOTO', 'LOTTO', 'LIDAR', 'NDT', 'UAV', 'DJI', 'IRATA', 'EPP', 'STPS'];
+  const SIGLAS = ['RPAS', 'GWO', 'DC-3', 'LOTO', 'LOTTO', 'LIDAR', 'NDT', 'UAV', 'DJI', 'IRATA', 'EPP', 'STPS', 'INE'];
   const oracion = t => { const s2 = t.toLowerCase(); return (s2.charAt(0).toUpperCase() + s2.slice(1)).split(' ').map(w => SIGLAS.includes(w.toUpperCase()) ? w.toUpperCase() : w).join(' '); };
   const habsTxt = (p.habilidades_requeridas_items || []).map(h => oracion(h.nombre)).slice(0, 2).join(' · ');
-  personal.forEach((e, i) => {
-    if (!T.cabe(y, 12)) { y = otraHoja(); }
-    const nom = `${e.nombre} ${e.apellido}`;
-    if (cliente) {
-      T.font('bold', 9.6, C.tinta); doc.text(nom, M, y + 1.4);
-      T.font('normal', 7.4, C.gris); doc.text(`Técnico de campo${habsTxt ? '  ·  ' + habsTxt : ''}`, M, y + 5.6);
-    } else {
-      if (fotos[i]) { doc.addImage(fotos[i], 'PNG', M, y - 3.2, 10.8, 10.8); T.trazo(C.linea, 0.4); doc.circle(M + 5.4, y + 2.2, 5.4, 'S'); }
-      else { T.relleno([82, 82, 91]); doc.circle(M + 5.4, y + 2.2, 5.4, 'F'); T.font('bold', 7.6, C.blanco); doc.text(((e.nombre || '')[0] || '') + ((e.apellido || '')[0] || ''), M + 5.4, y + 3.4, { align: 'center' }); }
-      T.font('bold', 9.6, C.tinta); doc.text(nom, M + 14, y + 1.4);
-      const sen = e.seniority ? e.seniority.charAt(0).toUpperCase() + e.seniority.slice(1) + '  ·  ' : '';
-      T.font('normal', 7.4, C.gris); doc.text(`${sen}Técnico de campo${e.ciudad ? '  ·  ' + e.ciudad : ''}`, M + 14, y + 5.6);
-      if (e.telefono) { T.font('semibold', 7.6, C.texto); doc.text(e.telefono, W - M, y + 1.4, { align: 'right' }); }
-      if (e.contacto_emergencia) { T.font('normal', 6.6, C.gris); doc.text(recortarTexto(doc, `Emergencia: ${e.contacto_emergencia}`, 70), W - M, y + 5.6, { align: 'right' }); }
+  const tipoDocP = cliente ? 'Programa de trabajo' : 'Ficha de proyecto interna';
+  const subP = [p.cliente, p.ciudad].filter(Boolean).join('  ·  ');
+
+  // Se dibuja con la densidad normal; si no cabe en una hoja, se vuelve a dibujar más compacto (3 niveles)
+  const dibujar = async (nv) => {
+    const D = (a, b, c) => [a, b, c][nv];
+    const T = await nuevaPlantillaPDF('portrait'), { doc, C, M } = T, W = T.W;
+    T.encabezado(tipoDocP, p.id, p.nombre, subP);
+    const otraHoja = () => { T.nuevaPagina(); T.encabezado(tipoDocP, p.id, p.nombre, 'continuación'); return 38; };
+    let y = 34, x;
+    if (!cliente) {
+      y += 2;
+      const g = grupoEstadoPDF(p), st = PDF_EST[g];
+      x = T.pastilla(estadoProyectoVisible(p).replace(/_/g, ' ').toUpperCase(), M, y, st.c, st.bg);
+      T.font('medium', 7.6, C.gris); doc.text(`Criticidad ${p.criticidad ? String(p.criticidad).replace('tipo_', 'Tipo ').toUpperCase().replace('TIPO', 'Tipo') : '—'}  ·  Intensidad ${p.intensidad || '—'}`, x + 3.5, y);
+      y += D(6, 5, 4.5);
     }
-    y += cliente ? 11 : 14;
-  });
-  y += 2;
+    const kFechas = [rangoCorto(ini, fin), `${ini.getFullYear()} · ${diaSem(ini)} a ${diaSem(fin)}`];
+    y = T.tarjetas(y, cliente
+      ? [['Fechas', ...kFechas], ['Días en sitio', `${dur} día${dur > 1 ? 's' : ''}`, 'programados'],
+         ['Personal', `${personal.length} técnico${personal.length === 1 ? '' : 's'}`, 'en sitio'], ['Sitio', p.ciudad || '—', p.cliente || '']]
+      : [['Fechas', ...kFechas], ['Duración', `${dur} día${dur > 1 ? 's' : ''}`, 'planeados'],
+         ['Personal', `${personal.length} / ${p.personal_requerido || 1}`, 'técnicos asignados', personal.length >= (p.personal_requerido || 1) ? PDF_EST.asignado.c : PDF_EST.prep.c],
+         ['Equipo y vehículo', `${equipos.length + vehiculos.length}`, 'unidades apartadas']], D(21, 18, 16));
+    y += D(5, 4, 3.5);
 
-  // Requisitos (solo interno)
-  if (!cliente && ((p.habilidades_requeridas_items || []).length || (p.certificados_requeridos_items || []).length)) {
-    if (!T.cabe(y, 30)) { y = otraHoja(); }
-    y = T.seccion('REQUISITOS', y);
-    const col2 = M + (W - 2 * M) / 2 + 4;
-    T.etiqueta('Habilidades · nivel mínimo', M, y); T.etiqueta('Certificados', col2, y);
-    y += 5.5;
-    const habs = p.habilidades_requeridas_items || [], certs = p.certificados_requeridos_items || [];
-    habs.forEach((h, i) => {
-      const yy = y + i * 9;
-      T.font('semibold', 7.8, C.tinta); doc.text(recortarTexto(doc, h.nombre, col2 - M - 8), M, yy);
-      for (let k = 0; k < 10; k++) { T.relleno(k < h.nivel ? [82, 82, 91] : C.linea); doc.roundedRect(M + k * 5.6, yy + 2, 4.8, 2.2, 0.6, 0.6, 'F'); }
-      T.font('bold', 7.4, C.texto); doc.text(`${h.nivel}/10`, M + 58, yy + 4);
-    });
-    certs.forEach((c, i) => {
-      const yy = y + i * 9;
-      T.relleno(PDF_EST.asignado.bg); doc.circle(col2 + 2.2, yy - 1.2, 2.2, 'F');
-      T.trazo(PDF_EST.asignado.c, 0.55); doc.lines([[0.9, 0.9], [1.7, -1.9]], col2 + 1.2, yy - 1.2, [1, 1], 'S');
-      T.font('semibold', 7.8, C.tinta); doc.text(recortarTexto(doc, c.nombre, W - M - col2 - 8), col2 + 6.5, yy);
-    });
-    y += Math.max(habs.length, certs.length, 1) * 9 + 4;
-  }
+    // Historial de reprogramaciones (solo interno): una línea por cambio
+    const repro = p.reprogramaciones_resumen || [];
+    if (!cliente && repro.length) {
+      const visibles = repro.slice(-D(4, 2, 1)), resto = repro.length - visibles.length;
+      const alto = 7.5 + visibles.length * 4 + (resto ? 3.6 : 0);
+      T.relleno(PDF_EST.prep.bg); doc.roundedRect(M, y, W - 2 * M, alto, 1.5, 1.5, 'F');
+      T.relleno(PDF_EST.prep.c); doc.rect(M, y, 1, alto, 'F');
+      T.font('bold', 7.4, [150, 105, 40]); doc.text(`Reprogramado ${repro.length} ${repro.length === 1 ? 'vez' : 'veces'}`, M + 4, y + 5);
+      visibles.forEach((r, i) => {
+        const yy = y + 9.2 + i * 4;
+        T.font('semibold', 6.8, C.texto); const t0 = `${rangoCorto(r.inicio_anterior, r.fin_anterior)}  →  ${rangoCorto(r.inicio_nuevo || r.inicio, r.fin_nuevo || r.fin)}`;
+        doc.text(t0, M + 4, yy);
+        const a0 = doc.getTextWidth(t0);
+        T.font('normal', 6.8, C.gris); doc.text(recortarTexto(doc, `${r.motivo ? '·  ' + r.motivo : ''}${r.usuario ? '  ·  ' + r.usuario : ''}`, W - 2 * M - a0 - 12), M + 4 + a0 + 2.5, yy);
+      });
+      if (resto) { T.font('normal', 6.4, C.gris); doc.text(`+ ${resto} cambio(s) anteriores`, M + 4, y + 9.2 + visibles.length * 4); }
+      y += alto + D(3, 2.5, 2);
+    }
+    y += D(4, 3.5, 3);
 
-  // Equipo y vehículo
-  if (equipos.length || vehiculos.length) {
-    if (!T.cabe(y, 12 + (equipos.length + vehiculos.length) * 12)) { y = otraHoja(); }
-    y = T.seccion(cliente ? 'EQUIPO Y VEHÍCULO' : 'EQUIPO Y VEHÍCULO APARTADOS', y);
-    const filas = [...equipos.map(u => ['equipo', u]), ...vehiculos.map(u => ['vehiculo', u])];
-    filas.forEach(([clase, u]) => {
-      T.relleno(C.fondo); doc.roundedRect(M, y - 4.2, W - 2 * M, 10, 1.6, 1.6, 'F');
-      const tipoTxt = (clase === 'equipo' ? etiquetaEquipo(u.tipo) : etiquetaVehiculo(u.tipo)).replace(/\s*\/\s*/g, ' ').toUpperCase();
-      let xx = T.pastilla(tipoTxt, M + 3, y + 1.9, C.texto, C.blanco);
-      const vig = vigenciaActivoPDF(u, clase);
+    // Línea de tiempo (hasta 31 días): mismo tamaño en ambos documentos
+    y = T.seccion(cliente ? 'DÍAS PROGRAMADOS' : 'LÍNEA DE TIEMPO', y);
+    {
+      const total = Math.min(31, Math.max(12, dur + 6)), hT = D(13, 11, 10);
+      const desde = new Date(ini); desde.setDate(desde.getDate() - Math.max(0, Math.floor((total - dur) / 2)));
+      const dias = Array.from({ length: total }, (_, i) => { const d = new Date(desde); d.setDate(d.getDate() + i); return d; });
+      const ancho = (W - 2 * M) / total, letra = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+      dias.forEach((f, i) => {
+        const xx = M + i * ancho, fds = [0, 6].includes(f.getDay()), en = f >= ini && f <= fin, stl = PDF_EST.asignado;
+        T.relleno(en ? stl.bg : fds ? [236, 236, 238] : C.fondo); doc.rect(xx + 0.3, y, ancho - 0.6, hT, 'F');
+        if (en) { T.relleno(stl.c); doc.rect(xx + 0.3, y + hT - 1, ancho - 0.6, 1, 'F'); }
+        T.font('semibold', total > 24 ? 6.4 : 7.6, en ? stl.c : C.tinta); doc.text(String(f.getDate()), xx + ancho / 2, y + hT * 0.37, { align: 'center' });
+        T.font('medium', 5.6, en ? stl.c : C.gris); doc.text(letra[f.getDay()], xx + ancho / 2, y + hT * 0.66, { align: 'center' });
+      });
+      T.font('normal', 7, C.gris);
+      doc.text(dur > total ? `Jornadas del ${diaSem(ini)} ${fLargaAnio(ini)} al ${diaSem(fin)} ${fLargaAnio(fin)} (${dur} días; se muestran los primeros ${total}).`
+        : `Jornadas en sitio del ${diaSem(ini)} ${ini.getDate()} al ${diaSem(fin)} ${fin.getDate()} de ${fin.toLocaleDateString('es-MX', { month: 'long' })} de ${fin.getFullYear()}.`, M, y + hT + 5.5);
+      y += hT + D(15, 12.5, 11);
+    }
+
+    // Personal (en el nivel más compacto, a dos columnas)
+    y = T.seccion(cliente ? 'PERSONAL EN SITIO' : 'PERSONAL ASIGNADO', y, cliente ? '' : `${personal.length} de ${p.personal_requerido || 1} requerido`);
+    if (!personal.length) { T.font('normal', 8, C.gris); doc.text('Sin personal asignado todavía.', M, y); y += 8; }
+    const dosColP = nv >= 1 && personal.length > 2, anchoP = dosColP ? (W - 2 * M - 8) / 2 : W - 2 * M;
+    const altoP = cliente ? D(11, 9.5, 9) : dosColP ? D(14, 13, 12) : D(14, 12.5, 12);
+    personal.forEach((e, i) => {
+      const cx = M + (dosColP ? (i % 2) * (anchoP + 8) : 0);
+      if (dosColP && i % 2 === 1) y -= altoP;
+      if (!T.cabe(y, 12)) { y = otraHoja(); }
+      const nom = `${e.nombre} ${e.apellido}`;
       if (cliente) {
-        T.font('semibold', 8.8, C.tinta); doc.text(u.nombre, xx + 3, y + 1.9);
-        const extra = clase === 'vehiculo' ? (u.placas ? `Placas ${u.placas}` : '') : (vig && !vig.vencido ? 'Calibración vigente' : '');
-        T.font('medium', 7.4, C.gris); doc.text(extra, W - M - 3, y + 1.9, { align: 'right' });
+        T.font('bold', 9.6, C.tinta); doc.text(recortarTexto(doc, nom, anchoP), cx, y + 1.4);
+        T.font('normal', 7.4, C.gris); doc.text(recortarTexto(doc, `Técnico de campo${habsTxt ? '  ·  ' + habsTxt : ''}`, anchoP), cx, y + 5.6);
+      } else if (dosColP) {
+        // tarjeta compacta: nombre / seniority · ciudad · teléfono / emergencia
+        if (fotos[i]) { doc.addImage(fotos[i], 'PNG', cx, y - 3.2, 10, 10); T.trazo(C.linea, 0.4); doc.circle(cx + 5, y + 1.8, 5, 'S'); }
+        else { T.relleno([82, 82, 91]); doc.circle(cx + 5, y + 1.8, 5, 'F'); T.font('bold', 7.2, C.blanco); doc.text(((e.nombre || '')[0] || '') + ((e.apellido || '')[0] || ''), cx + 5, y + 3, { align: 'center' }); }
+        const tx = cx + 13, an = anchoP - 13;
+        T.font('bold', 8.8, C.tinta); doc.text(recortarTexto(doc, nom, an), tx, y + 0.6);
+        const sen = e.seniority ? e.seniority.charAt(0).toUpperCase() + e.seniority.slice(1) : '';
+        T.font('normal', 6.8, C.gris); doc.text(recortarTexto(doc, [sen, e.ciudad, e.telefono].filter(Boolean).join('  ·  ') || 'Técnico de campo', an), tx, y + 4.3);
+        if (e.contacto_emergencia) { T.font('normal', 6.3, C.grisClaro); doc.text(recortarTexto(doc, `Emergencia: ${e.contacto_emergencia}`, an), tx, y + 7.6); }
       } else {
-        const ap = (u.apodo || u.nombre).toUpperCase();
-        T.font('bold', 9, C.tinta); doc.text(ap, xx + 3, y + 1.9);
-        xx += 3 + doc.getTextWidth(ap) + 2.5;
-        const ident = clase === 'equipo' ? (u.numero_serie ? `SN …${String(u.numero_serie).slice(-3)}` : 'sin serie') : (u.placas || 'sin placas');
-        T.font('normal', 7.6, C.gris); doc.text(`${u.apodo ? u.nombre + '  ·  ' : ''}${ident}`, xx, y + 1.9);
-        if (vig) { T.font('medium', 6.8, vig.vencido ? PDF_EST.progreso.c : PDF_EST.asignado.c); doc.text(vig.texto, W - M - 3, y + 1.9, { align: 'right' }); }
+        if (fotos[i]) { doc.addImage(fotos[i], 'PNG', cx, y - 3.2, 10.8, 10.8); T.trazo(C.linea, 0.4); doc.circle(cx + 5.4, y + 2.2, 5.4, 'S'); }
+        else { T.relleno([82, 82, 91]); doc.circle(cx + 5.4, y + 2.2, 5.4, 'F'); T.font('bold', 7.6, C.blanco); doc.text(((e.nombre || '')[0] || '') + ((e.apellido || '')[0] || ''), cx + 5.4, y + 3.4, { align: 'center' }); }
+        const der = cx + anchoP;
+        let anchoTel = 0;
+        if (e.telefono) { T.font('semibold', 7.6, C.texto); doc.text(e.telefono, der, y + 1.4, { align: 'right' }); anchoTel = doc.getTextWidth(e.telefono) + 4; }
+        T.font('bold', 9.6, C.tinta); doc.text(recortarTexto(doc, nom, anchoP - 14 - anchoTel), cx + 14, y + 1.4);
+        const sen = e.seniority ? e.seniority.charAt(0).toUpperCase() + e.seniority.slice(1) + '  ·  ' : '';
+        let anchoEm = 0;
+        if (e.contacto_emergencia) { T.font('normal', 6.6, C.gris); const te = recortarTexto(doc, `Emergencia: ${e.contacto_emergencia}`, dosColP ? anchoP * 0.45 : 70); doc.text(te, der, y + 5.6, { align: 'right' }); anchoEm = doc.getTextWidth(te) + 4; }
+        T.font('normal', 7.4, C.gris); doc.text(recortarTexto(doc, `${sen}Técnico de campo${e.ciudad ? '  ·  ' + e.ciudad : ''}`, anchoP - 14 - anchoEm), cx + 14, y + 5.6);
       }
-      y += 12;
+      y += altoP;
     });
-    y += 3;
-  }
+    y += cliente ? 4 : D(2, 1.5, 1);
 
-  // Ubicación
-  if (!T.cabe(y, cliente ? 30 : 16)) { y = otraHoja(); }
-  y = T.seccion('UBICACIÓN', y);
-  T.font('semibold', 8.4, C.tinta); doc.text(p.ciudad || '—', M, y);
-  if (p.latitud != null && p.longitud != null) {
-    T.font('normal', 7.6, C.gris); doc.text(`${p.latitud}, ${p.longitud}`, M, y + 4.6);
-    T.font('semibold', 7.6, C.rojo); const lk = 'Abrir en Google Maps  →';
-    doc.textWithLink(lk, W - M - doc.getTextWidth(lk), y, { url: `https://maps.google.com/?q=${p.latitud},${p.longitud}` });
-  }
-  y += 14;
-  if (cliente) {
-    T.relleno(C.fondo); doc.roundedRect(M, y, W - 2 * M, 11, 1.6, 1.6, 'F');
-    T.font('normal', 7.2, C.texto);
-    doc.text('Las fechas pueden ajustarse por condiciones de clima o de acceso al sitio. Cualquier cambio se le notificará con anticipación.', M + 4, y + 6.6);
+    // Requisitos (solo interno): habilidades con nivel mínimo y certificados
+    if (!cliente && ((p.habilidades_requeridas_items || []).length || (p.certificados_requeridos_items || []).length)) {
+      if (!T.cabe(y, 30)) { y = otraHoja(); }
+      y = T.seccion('REQUISITOS', y);
+      const col2 = M + (W - 2 * M) / 2 + 4, paso = D(8.5, 7, 5.8);
+      T.etiqueta('Habilidades · nivel mínimo', M, y); T.etiqueta('Certificados', col2, y);
+      y += D(5.5, 5, 4.2);
+      const habs = p.habilidades_requeridas_items || [], certs = p.certificados_requeridos_items || [];
+      habs.forEach((h, i) => {
+        const yy = y + i * paso;
+        T.font('semibold', 7.8, C.tinta); doc.text(recortarTexto(doc, oracion(h.nombre), 42), M, yy);
+        const bx = M + 44;
+        for (let k = 0; k < 10; k++) { T.relleno(k < h.nivel ? [82, 82, 91] : C.linea); doc.roundedRect(bx + k * 3.5, yy - 2.3, 3, 2, 0.5, 0.5, 'F'); }
+        T.font('bold', 7.4, C.texto); doc.text(`${h.nivel}/10`, bx + 36.5, yy - 0.4);
+      });
+      certs.forEach((c, i) => {
+        const yy = y + i * paso;
+        T.relleno(PDF_EST.asignado.bg); doc.circle(col2 + 2.2, yy - 1.2, 2.2, 'F');
+        T.trazo(PDF_EST.asignado.c, 0.55); doc.lines([[0.9, 0.9], [1.7, -1.9]], col2 + 1.2, yy - 1.2, [1, 1], 'S');
+        T.font('semibold', 7.8, C.tinta); doc.text(recortarTexto(doc, oracion(c.nombre), W - M - col2 - 8), col2 + 6.5, yy);
+      });
+      y += Math.max(habs.length, certs.length, 1) * paso + D(4, 3, 2.5);
+    }
+
+    // Equipo y vehículo (interno: N/S completo y vigencia exacta · cliente: sin series, solo estatus)
+    if (equipos.length || vehiculos.length) {
+      const filas = [...equipos.map(u => ['equipo', u]), ...vehiculos.map(u => ['vehiculo', u])];
+      const dosColE = nv === 2 && filas.length > 3;
+      const altoE = dosColE ? 12 : D(12, 10, 9.5);
+      if (!T.cabe(y, 12 + altoE)) { y = otraHoja(); }
+      y = T.seccion(cliente ? 'EQUIPO Y VEHÍCULO' : 'EQUIPO Y VEHÍCULO APARTADOS', y);
+      const anchoE = (W - 2 * M - 4) / 2;
+      filas.forEach(([clase, u], i) => {
+        if (dosColE) {
+          // tarjeta compacta a dos columnas: tipo + nombre / identificación y vigencia
+          const cx = M + (i % 2) * (anchoE + 4);
+          if (i % 2 === 1) y -= altoE;
+          if (!T.cabe(y, altoE)) { y = otraHoja(); }
+          T.relleno(C.fondo); doc.roundedRect(cx, y - 4.4, anchoE, altoE - 1.6, 1.6, 1.6, 'F');
+          const tipoTxt = (clase === 'equipo' ? etiquetaEquipo(u.tipo) : etiquetaVehiculo(u.tipo)).replace(/\s*\/\s*/g, ' ').toUpperCase();
+          let xx = T.pastilla(tipoTxt, cx + 2.5, y, C.texto, C.blanco);
+          const vig = vigenciaActivoPDF(u, clase);
+          const ap = cliente ? u.nombre : (u.apodo || u.nombre).toUpperCase();
+          // renglón 1: tipo · nombre (modelo)   ·   renglón 2: N/S completo o placas … vigencia
+          T.font('bold', 8, C.tinta); const apR = recortarTexto(doc, ap, cx + anchoE - 2.5 - xx - 2.5); doc.text(apR, xx + 2.5, y);
+          if (!cliente && u.apodo) { const xm = xx + 2.5 + doc.getTextWidth(apR) + 2; T.font('normal', 6.4, C.gris); if (cx + anchoE - 2.5 - xm > 10) doc.text(recortarTexto(doc, u.nombre, cx + anchoE - 2.5 - xm), xm, y); }
+          let txtV = '', colV = C.gris;
+          if (cliente) { if (vig && !vig.vencido) { txtV = clase === 'equipo' ? 'Calibración vigente' : 'Seguro vigente'; colV = PDF_EST.asignado.c; } }
+          else if (vig) { txtV = `${clase === 'equipo' ? 'Calib.' : 'Seguro'} ${vig.vencido ? (clase === 'equipo' ? 'vencida' : 'vencido') : 'vigente al'} ${vig.texto.slice(-11)}`; colV = vig.vencido ? PDF_EST.progreso.c : PDF_EST.asignado.c; }
+          T.font('medium', 6.2, colV); const anchoV = txtV ? doc.getTextWidth(txtV) + 3 : 0;
+          if (txtV) doc.text(txtV, cx + anchoE - 2.5, y + 4.2, { align: 'right' });
+          const l2 = cliente ? (clase === 'vehiculo' && u.placas ? `Placas ${u.placas}` : '')
+            : clase === 'equipo' ? (u.numero_serie ? `N/S ${u.numero_serie}` : 'sin serie') : (u.placas ? `Placas ${u.placas}` : 'sin placas');
+          T.font('normal', 6.2, C.gris); doc.text(recortarTexto(doc, l2, anchoE - 5 - anchoV), cx + 2.5, y + 4.2);
+          y += altoE;
+          return;
+        }
+        if (!T.cabe(y, altoE)) { y = otraHoja(); }
+        const hF = altoE - 2;
+        T.relleno(C.fondo); doc.roundedRect(M, y - hF / 2 - 0.8, W - 2 * M, hF, 1.6, 1.6, 'F');
+        const tipoTxt = (clase === 'equipo' ? etiquetaEquipo(u.tipo) : etiquetaVehiculo(u.tipo)).replace(/\s*\/\s*/g, ' ').toUpperCase();
+        let xx = T.pastilla(tipoTxt, M + 3, y + 1.4, C.texto, C.blanco);
+        const vig = vigenciaActivoPDF(u, clase);
+        if (cliente) {
+          const estatus = vig ? (vig.vencido ? '' : clase === 'equipo' ? 'Calibración vigente' : 'Seguro vigente') : '';
+          const extra = [clase === 'vehiculo' && u.placas ? `Placas ${u.placas}` : '', estatus].filter(Boolean).join('  ·  ');
+          T.font('medium', 7.4, estatus ? PDF_EST.asignado.c : C.gris); doc.text(extra, W - M - 3, y + 1.4, { align: 'right' });
+          const anchoX = doc.getTextWidth(extra) + 6;
+          T.font('semibold', 8.8, C.tinta); doc.text(recortarTexto(doc, u.nombre, W - M - 3 - anchoX - xx - 3), xx + 3, y + 1.4);
+        } else {
+          let anchoV = 0;
+          if (vig) { T.font('medium', 6.8, vig.vencido ? PDF_EST.progreso.c : PDF_EST.asignado.c); doc.text(vig.texto, W - M - 3, y + 1.4, { align: 'right' }); anchoV = doc.getTextWidth(vig.texto) + 5; }
+          const ap = (u.apodo || u.nombre).toUpperCase();
+          T.font('bold', 9, C.tinta); doc.text(ap, xx + 3, y + 1.4);
+          xx += 3 + doc.getTextWidth(ap) + 2.5;
+          const ident = clase === 'equipo' ? (u.numero_serie ? `N/S ${u.numero_serie}` : 'sin serie') : (u.placas ? `Placas ${u.placas}` : 'sin placas');
+          T.font('normal', 7.4, C.gris); doc.text(recortarTexto(doc, `${u.apodo ? u.nombre + '  ·  ' : ''}${ident}`, W - M - 3 - anchoV - xx), xx, y + 1.4);
+        }
+        y += altoE;
+      });
+      y += D(3, 2, 1.5);
+    }
+
+    // Ubicación
+    if (!T.cabe(y, cliente ? 24 : 13)) { y = otraHoja(); }
+    y = T.seccion('UBICACIÓN', y);
+    T.font('semibold', 8.4, C.tinta); doc.text(p.ciudad || '—', M, y);
+    if (p.latitud != null && p.longitud != null) {
+      T.font('normal', 7.6, C.gris); doc.text(`GPS ${p.latitud}, ${p.longitud}`, M, y + 4.4);
+      T.font('semibold', 7.6, C.rojo); const lk = 'Abrir en Google Maps  →';
+      doc.textWithLink(lk, W - M - doc.getTextWidth(lk), y, { url: `https://maps.google.com/?q=${p.latitud},${p.longitud}` });
+    }
+    y += D(12, 10, 9);
+    if (cliente) {
+      T.relleno(C.fondo); doc.roundedRect(M, y, W - 2 * M, 10, 1.6, 1.6, 'F');
+      T.font('normal', 7.2, C.texto);
+      doc.text('Las fechas pueden ajustarse por condiciones de clima o de acceso al sitio. Cualquier cambio se le notificará con anticipación.', M + 4, y + 6.1);
+    }
+    return T;
+  };
+  let T;
+  for (let nv = 0; nv < 3; nv++) {
+    T = await dibujar(nv);
+    if (T.doc.internal.getNumberOfPages() === 1) break;
   }
   T.cerrar(`${cliente ? 'Programa de trabajo' : 'Ficha interna'} - ${limpiarNombreArchivo(p.nombre)}.pdf`, cliente);
 }
