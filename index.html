@@ -1110,7 +1110,24 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .cal-det-lista{display:flex;flex-direction:column;gap:6px}
 .cal-det{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 12px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);font:inherit;color:var(--text);box-shadow:inset 3px 0 0 var(--red)}
 .cal-det.aus{box-shadow:inset 3px 0 0 #8B6FD6}
-.cal-det.pry{cursor:pointer}
+.cal-det.pry{cursor:pointer;transition:border-color .15s,background .15s}
+.cal-det.pry.activo{border-color:var(--red);background:var(--surface)}
+.cal-det.pry.est-fin{box-shadow:inset 3px 0 0 var(--green)}
+.cal-det.pry.est-fin .cal-det-tag{background:var(--green-bg);color:var(--green)}
+.cal-det.pry.est-fin.activo{border-color:var(--green)}
+.cal-det.pry.est-pausa{box-shadow:inset 3px 0 0 var(--amber)}
+.cal-det.pry.est-pausa .cal-det-tag{background:var(--amber-bg);color:var(--amber)}
+.cal-det.pry.est-pausa.activo{border-color:var(--amber)}
+.cal-cell.ocupado.est-fin{background:var(--green-bg);color:var(--green)}
+.cal-cell.ocupado.est-pausa{background:var(--amber-bg);color:var(--amber)}
+:root[data-theme="light"] .cal-cell.ocupado.est-fin{background:#E3F5E9;color:#15803D}
+:root[data-theme="light"] .cal-cell.ocupado.est-pausa{background:#FCF1DF;color:#B45309}
+.cal-grid .cal-cell{transition:opacity .15s,box-shadow .15s,transform .15s}
+.cal-con-sel .cal-cell:not(.cal-sel):not(.empty){opacity:.35}
+.cal-cell.cal-sel{opacity:1;box-shadow:inset 0 0 0 2px currentColor;transform:scale(1.02);z-index:1}
+.cal-ley{display:flex;flex-wrap:wrap;gap:4px 14px}
+.cal-ley span{display:inline-flex;align-items:center;gap:5px}
+.cal-ley i{width:8px;height:8px;border-radius:50%;display:inline-block}
 .cal-det.pry:hover{border-color:var(--border2);background:var(--surface)}
 .cal-det > i{margin-left:auto;color:var(--text3)}
 .cal-det-tag{flex-shrink:0;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--red-bg);color:var(--red-text)}
@@ -2000,8 +2017,8 @@ async function abrirCalendarioMensual(empId, nombre, offsetMeses, pidResaltar) {
     const esHoy = fecha.toDateString() === hoy.toDateString();
     const enObj = objIni && objFin && fecha >= objIni && fecha <= objFin;
     const titulo = [aus ? `${tipoAusencia(aus)} (${aus.fecha_inicio} al ${aus.fecha_fin})` : null, ...evs.map(p => p.nombre), enObj ? `Fechas de ${objetivo.nombre} (en evaluación)` : null].filter(Boolean).join(' · ');
-    const click = evs.length ? ` onclick="verProyecto('${evs[0].id}')"` : '';
-    celdas += `<div class="cal-cell ${esHoy?'hoy':''} ${evs.length?'ocupado':''} ${aus?'ausente':''} ${enObj?'objetivo':''}" title="${escHtml(titulo)}"${click}>${d}${aus ? `<div class="cal-aus">${escHtml(tipoAusencia(aus))}</div>` : ''}${evs.length ? `<div class="cal-pry">${escHtml(evs[0].nombre)}</div>${evs.length > 1 ? `<div class="cal-mas">+${evs.length - 1}</div>` : ''}` : ''}</div>`;
+    const click = evs.length ? ` data-pids="${evs.map(p => p.id).join(',')}" onclick="clicDiaCalendario(this)"` : '';
+    celdas += `<div class="cal-cell ${esHoy?'hoy':''} ${evs.length?'ocupado ' + claseEstadoCal(evs[0]):''} ${aus?'ausente':''} ${enObj?'objetivo':''}" title="${escHtml(titulo)}"${click}>${d}${aus ? `<div class="cal-aus">${escHtml(tipoAusencia(aus))}</div>` : ''}${evs.length ? `<div class="cal-pry">${escHtml(evs[0].nombre)}</div>${evs.length > 1 ? `<div class="cal-mas">+${evs.length - 1}</div>` : ''}` : ''}</div>`;
   }
   const mesLabel = base.toLocaleDateString('es-MX',{month:'long',year:'numeric'});
   const puedeExportar = STATE.rol !== 'tecnico';
@@ -2016,11 +2033,14 @@ async function abrirCalendarioMensual(empId, nombre, offsetMeses, pidResaltar) {
       const eqs = (p.equipo_asignado_ids || []).map(id => (STATE.equipos || []).find(z => z.id === id)).filter(Boolean).map(z => z.apodo || z.nombre);
       const vhs = (p.vehiculo_asignado_ids || []).map(id => (STATE.vehiculos || []).find(z => z.id === id)).filter(Boolean).map(z => z.apodo || z.nombre);
       const det = [rangoCorto(p.fecha_inicio, p.fecha_fin_estimada), p.ciudad, comp.length ? 'con ' + comp.join(', ') : '', [...eqs, ...vhs].join(', ')].filter(Boolean).map(escHtml).join(' · ');
+      const est = claseEstadoCal(p);
       return `
-      <button type="button" class="cal-det pry" onclick="verProyecto('${p.id}')"><span class="cal-det-tag">Proyecto</span>
+      <button type="button" class="cal-det pry ${est}" data-pid="${p.id}" onclick="resaltarProyectoCal('${p.id}')"><span class="cal-det-tag">${{ 'est-fin': 'Finalizado', 'est-pausa': 'En pausa' }[est] || 'Proyecto'}</span>
         <div class="cal-det-txt"><b>${escHtml(p.nombre)}${p.cliente ? ` <em>· ${escHtml(p.cliente)}</em>` : ''}</b><span>${det}</span></div>
         <i class="ti ti-chevron-right" aria-hidden="true"></i></button>`;
     })];
+  const estMes = new Set([...pryMes.values()].map(claseEstadoCal));
+  STATE._calSel = null;
   const diasMesN = new Date(year, month + 1, 0).getDate();
   openPanel(`Calendario — ${nombre}`, `
     <div class="panel-section" id="cal-export-area">
@@ -2041,12 +2061,43 @@ async function abrirCalendarioMensual(empId, nombre, offsetMeses, pidResaltar) {
       <div class="cal-det-tit">Detalle del mes</div>
       ${filasDet.length ? `<div class="cal-det-lista">${filasDet.join('')}</div>` : '<div style="font-size:12px;color:var(--text3);padding:6px 0">Sin proyectos ni ausencias en este mes.</div>'}
       <div style="margin-top:10px;font-size:11px;color:var(--text3);display:flex;flex-direction:column;gap:4px">
-        <div><span style="color:var(--red-text)">●</span> Días con proyecto asignado — toca un día o un proyecto de la lista para ver su detalle.</div>
+        <div class="cal-ley">${estMes.has('') ? '<span><i style="background:var(--red-text)"></i>Proyecto asignado / en curso</span>' : ''}${estMes.has('est-fin') ? '<span><i style="background:var(--green)"></i>Finalizado</span>' : ''}${estMes.has('est-pausa') ? '<span><i style="background:var(--amber)"></i>En pausa</span>' : ''}</div>
+        ${pryMes.size ? '<div>Toca un proyecto de la lista (o un día) para resaltar sus fechas; toca una fecha resaltada para abrir su ficha.</div>' : ''}
         ${hayAusencia ? '<div><span style="color:#8B6FD6">●</span> Ausencia (vacaciones, permiso, incapacidad).</div>' : ''}
         ${objetivo ? `<div><span class="cal-ley-obj"></span> Fechas de <b style="color:var(--text2)">${escHtml(objetivo.nombre)}</b> (proyecto en evaluación). Un día rojo dentro del borde es un choque.</div>` : ''}
       </div>
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>${puedeExportar?`<button class="btn btn-primary btn-sm" onclick="exportarCalendarioEmpleadoPDF('${empId}','${nombre.replace(/'/g,"\\'")}',${year},${month})"><i class="ti ti-file-download" aria-hidden="true"></i> Exportar PDF</button>`:''}`);
+}
+
+// Color del día según el estado del proyecto: finalizado en verde, en pausa en ámbar, el resto en rojo
+function claseEstadoCal(p) {
+  const e = estadoProyectoVisible(p);
+  return e === 'completado' ? 'est-fin' : e === 'pausado' ? 'est-pausa' : '';
+}
+// 1er toque: resalta las fechas del proyecto · toque sobre una fecha resaltada: abre su ficha
+function resaltarProyectoCal(pid) {
+  const area = document.getElementById('cal-export-area'); if (!area) return;
+  const sel = STATE._calSel === pid ? null : pid;
+  STATE._calSel = sel;
+  area.classList.toggle('cal-con-sel', !!sel);
+  area.querySelectorAll('.cal-cell[data-pids]').forEach(c => {
+    const ids = c.dataset.pids.split(',');
+    const on = !!sel && ids.includes(sel);
+    c.classList.toggle('cal-sel', on);
+    if (on && ids.length > 1) {   // en días con varios proyectos, muestra el elegido
+      const p = (STATE.proyectos || []).find(x => x.id === sel), et = c.querySelector('.cal-pry');
+      if (p && et) et.textContent = p.nombre;
+    }
+  });
+  area.querySelectorAll('.cal-det.pry').forEach(b => b.classList.toggle('activo', b.dataset.pid === sel));
+  if (sel) area.querySelector('.cal-cell.cal-sel')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+function clicDiaCalendario(el) {
+  const ids = (el.dataset.pids || '').split(',').filter(Boolean);
+  if (!ids.length) return;
+  if (STATE._calSel && ids.includes(STATE._calSel)) { verProyecto(STATE._calSel); return; }
+  resaltarProyectoCal(ids[0]);
 }
 
 async function loadEmpleados(forzar) {
