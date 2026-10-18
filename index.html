@@ -398,7 +398,13 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .mapa-leyenda{background:color-mix(in srgb, var(--surface) 52%, transparent);backdrop-filter:blur(8px) saturate(1.2);-webkit-backdrop-filter:blur(8px) saturate(1.2);border:1px solid color-mix(in srgb, var(--border2) 55%, transparent);border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.18);color:var(--text);font-family:var(--sans);min-width:150px;max-width:220px;overflow:hidden;margin:0 0 14px 12px!important}
 .mapa-leyenda .ley-head{display:flex;align-items:center;gap:6px;width:100%;padding:7px 10px;background:none;border:0;color:var(--text3);font:inherit;font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;cursor:pointer;text-align:left}
 .mapa-leyenda .ley-head i{font-size:12px}
-.mapa-leyenda .ley-head > i:first-child{display:none}
+.mapa-leyenda .ley-head > i:first-child{font-size:14px;color:var(--text2)}
+.mapa-leyenda .ley-head{color:var(--text2)!important;font-size:10.5px!important;padding:8px 11px!important}
+.mapa-leyenda .ley-head:hover{color:var(--text)!important}
+.mapa-leyenda.plegada{min-width:0!important;border-radius:999px}
+
+.mapa-barra{position:relative;z-index:5;margin-bottom:12px;padding:8px 16px;border-radius:12px;border:1px solid var(--border);background:color-mix(in srgb, var(--surface) 80%, transparent);backdrop-filter:blur(12px) saturate(1.2);-webkit-backdrop-filter:blur(12px) saturate(1.2);box-shadow:0 8px 24px rgba(0,0,0,.22)}
+:root[data-theme="light"] .mapa-barra{box-shadow:0 6px 18px rgba(0,0,0,.07)}
 .mapa-leyenda .ley-flecha{margin-left:auto;opacity:.7}
 .mapa-leyenda .ley-cuerpo{padding:0 10px 8px;max-height:46vh;overflow:auto}
 .mapa-leyenda.plegada .ley-cuerpo{display:none}
@@ -5975,17 +5981,17 @@ async function renderMapa() {
   }
   html(`
     ${['administrador', 'director_proyecto'].includes(STATE.rol) ? `<button class="wa-fab" onclick="abrirReporteWhatsApp()" aria-label="¿Qué tenemos hoy?"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></button>` : ''}
-    <div class="table-section" style="padding:14px 18px;margin-bottom:12px">
-      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center">
+    <div class="mapa-barra">
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="mapa-f-proyectos" checked onchange="actualizarMapa()"> Proyectos</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="mapa-f-personal" checked onchange="actualizarMapa()"> Personal</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="mapa-f-personal" onchange="actualizarMapa()"> Personal</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="mapa-f-equipo" onchange="actualizarMapa()"> Equipo</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="mapa-f-vehiculos" onchange="actualizarMapa()"> Vehículos</label>
         <input type="text" id="mapa-buscar" class="field-input" placeholder="Buscar..." style="max-width:220px;height:32px;font-size:12px" oninput="actualizarMapa()">
         <div id="mapa-filtros-proy" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
           <select id="mapa-vista-proy" class="field-select" style="width:auto;height:32px;font-size:12px" onchange="actualizarMapa()">
+            <option value="en_curso" selected>Solo activos / en curso</option>
             <option value="activos">En curso + programados</option>
-            <option value="en_curso">Solo en curso</option>
             <option value="programados">Solo programados</option>
             <option value="finalizados">Finalizados</option>
             <option value="todos">Todos</option>
@@ -6129,7 +6135,7 @@ function actualizarMapa() {
   // Los controles de vista solo se ven cuando "Proyectos" está activo.
   // El desplegable de periodo solo aparece (y solo se aplica) cuando la vista es "Por fecha";
   // las fechas desde/hasta, solo cuando además el periodo es "Rango personalizado…"
-  const vistaPry = document.getElementById('mapa-vista-proy')?.value || 'activos';
+  const vistaPry = document.getElementById('mapa-vista-proy')?.value || 'en_curso';
   const porFecha = vistaPry === 'por_fecha';
   const periodoSelEl = document.getElementById('mapa-periodo-proy');
   const periodoPry = porFecha ? (periodoSelEl?.value || 'mes') : '';
@@ -6239,7 +6245,7 @@ function pintarLeyendaMapa(leyenda) {
   try { plegada = localStorage.getItem('ws_leyenda_plegada') === '1'; } catch (e) {}
   const icono = { 'Proyectos': 'ti-folder', 'Personal': 'ti-users', 'Equipo': 'ti-tool', 'Vehículos': 'ti-car' };
   div.classList.toggle('plegada', plegada);
-  div.innerHTML = `<button type="button" class="ley-head" onclick="plegarLeyendaMapa()"><i class="ti ti-info-circle" aria-hidden="true"></i>Simbología<i class="ti ti-chevron-${plegada ? 'up' : 'down'} ley-flecha" aria-hidden="true"></i></button>
+  div.innerHTML = `<button type="button" class="ley-head" onclick="plegarLeyendaMapa()"><i class="ti ti-chart-dots-3" aria-hidden="true"></i>Simbología<i class="ti ti-chevron-${plegada ? 'up' : 'down'} ley-flecha" aria-hidden="true"></i></button>
     <div class="ley-cuerpo">${[...leyenda.entries()].map(([grupo, colores]) => `
       <div class="ley-grupo"><div class="ley-tit"><i class="ti ${icono[grupo] || 'ti-point'}" aria-hidden="true"></i>${grupo}</div>
       ${[...colores.entries()].sort((a, b) => b[1].n - a[1].n).map(([color, it]) => `
