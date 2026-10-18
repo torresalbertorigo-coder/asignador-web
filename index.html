@@ -3534,8 +3534,12 @@ async function datosAgendaGeneral(pid) {
       });
       return { id: e.id, nombre: `${e.nombre} ${e.apellido}`, celdas, libres, aqui };
     });
-  return { pry, pid, hoy, cols, pIni, pFin, diasPry, filas };
+  // Leyenda dinámica: solo los significados que de verdad aparecen en la tabla
+  const usados = new Set();
+  filas.forEach(f => f.celdas.forEach(c => { if (c.tipo) usados.add(c.tipo); else usados.add('libre'); if (c.enPry) usados.add('pry'); if (c.hoy) usados.add('hoy'); }));
+  return { pry, pid, hoy, cols, pIni, pFin, diasPry, filas, usados };
 }
+const LEYENDA_AGENDA = [['ocu', 'Otro proyecto'], ['aus', 'Ausencia'], ['aqui', 'Asignado a este proyecto'], ['pry', 'Fechas del proyecto'], ['hoy', 'Hoy'], ['libre', 'Libre']];
 const textoLibresAgenda = (f, A) => f.aqui ? ['Asignado aquí', 'ok'] : !A.diasPry ? ['', 'na']
   : [`${f.libres}/${A.diasPry} libres`, f.libres === A.diasPry ? 'ok' : f.libres ? 'warn' : 'bad'];
 
@@ -3553,7 +3557,7 @@ function htmlAgendaGeneral(A) {
     <div class="ag-wrap"><table class="ag-tabla"><thead><tr><th class="ag-n"></th>${A.cols.map(d => `<th class="${A.pIni && d >= A.pIni && d <= A.pFin ? 'pry' : ''}${d.getTime() === A.hoy.getTime() ? ' hoy' : ''}">${d.getDate()}<br><span>${DS[d.getDay()]}</span></th>`).join('')}</tr></thead>
       <tbody>${A.filas.map(f => { const [lt, ls] = textoLibresAgenda(f, A); return `<tr><th class="ag-n"><button class="cv-link" onclick="abrirAgendaOperador('${f.id}','${escHtml(f.nombre.replace(/'/g, "\\'"))}','${A.pid || ''}')">${escHtml(f.nombre)}</button>${lt ? `<span class="ag-libre" style="color:${C[ls]}">${lt}</span>` : ''}</th>
         ${f.celdas.map((c, i) => `<td class="ag-c ${c.tipo}${c.enPry ? ' pry' : ''}${c.hoy ? ' hoy' : ''}"${c.tip ? ` title="${escHtml(`${fCorta(A.cols[i])}: ${c.tip}`)}"` : ''}></td>`).join('')}</tr>`; }).join('')}</tbody></table></div>
-    <div class="ag-ley"><span><i class="ag-c ocu"></i>Otro proyecto</span><span><i class="ag-c aus"></i>Ausencia</span>${A.pry ? '<span><i class="ag-c aqui"></i>Asignado a este proyecto</span><span><i class="ag-c pry"></i>Fechas del proyecto</span>' : ''}<span><i class="ag-c hoy"></i>Hoy</span></div>`;
+    <div class="ag-ley">${LEYENDA_AGENDA.filter(([k]) => k !== 'libre' && A.usados.has(k)).map(([k, t]) => `<span><i class="ag-c ${k}"></i>${t}</span>`).join('')}</div>`;
 }
 
 // Botón "Agenda general": despliega / pliega el Gantt debajo de la barra de control
@@ -3623,7 +3627,8 @@ async function exportarAgendaGeneralPDF() {
   y += 5;
   if (y > H - 24) { T.nuevaPagina(); y = encabezado(true) + 2; }
   let lx = M;
-  [['Otro proyecto', COL.ocu, 'F'], ['Ausencia', COL.aus, 'F'], ...(A.pry ? [['Asignado a este proyecto', COL.aqui, 'F'], ['Fechas del proyecto', C.ambar, 'S']] : []), ['Hoy', C.rojo, 'S'], ['Libre', [232, 232, 235], 'F']]
+  const estilo = { ocu: [COL.ocu, 'F'], aus: [COL.aus, 'F'], aqui: [COL.aqui, 'F'], pry: [C.ambar, 'S'], hoy: [C.rojo, 'S'], libre: [[232, 232, 235], 'F'] };
+  LEYENDA_AGENDA.filter(([k]) => A.usados.has(k)).map(([k, t]) => [t, ...estilo[k]])
     .forEach(([t, col, modo]) => {
       if (modo === 'F') { T.relleno(col); doc.roundedRect(lx, y - 2.8, 3.6, 3.6, 0.6, 0.6, 'F'); }
       else { T.relleno([232, 232, 235]); doc.roundedRect(lx, y - 2.8, 3.6, 3.6, 0.6, 0.6, 'F'); T.trazo(col, 0.45); doc.roundedRect(lx, y - 2.8, 3.6, 3.6, 0.6, 0.6, 'S'); }
