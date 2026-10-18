@@ -291,7 +291,15 @@ a{text-decoration:none;color:inherit}
 .notif-item.aviso-seg .aviso-chip{background:color-mix(in srgb, var(--amber) 18%, transparent);color:var(--amber);border:1px solid color-mix(in srgb, var(--amber) 45%, transparent)}
 .aviso-sep{display:flex;align-items:baseline;gap:6px;padding:7px 12px 5px;border-top:1px solid var(--border);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
 .aviso-sep span{font-weight:500;letter-spacing:0;text-transform:none;color:var(--text3);font-size:10px}
-.aviso-sep.rojo{color:var(--red-text)}.aviso-sep.ambar{color:var(--amber)}
+.aviso-sep.rojo{color:var(--red-text)}.aviso-sep.ambar{color:var(--amber)}.aviso-sep.verde{color:var(--green)}
+.notif-item.aviso-ok{opacity:.85}
+.notif-item.aviso-ok .aviso-ico{color:var(--green)}
+.notif-item.aviso-ok .notif-title{font-weight:500;color:var(--text2)}
+.notif-item.aviso-ok .aviso-chip,.notif-chip.ok{background:color-mix(in srgb, var(--green) 16%, transparent);color:var(--green);border:1px solid color-mix(in srgb, var(--green) 40%, transparent)}
+.notif-item.por-resolver{background:color-mix(in srgb, var(--amber) 9%, transparent);box-shadow:inset 3px 0 0 var(--amber)}
+.notif-chip{position:absolute;top:10px;right:12px}
+.notif-item.por-resolver .notif-title,.notif-item.resuelta .notif-title{padding-right:96px}
+.notif-chip.seg{background:color-mix(in srgb, var(--amber) 18%, transparent);color:var(--amber);border:1px solid color-mix(in srgb, var(--amber) 45%, transparent)}
 .notif-item .notif-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px}
 .notif-item .notif-msg{font-size:11px;color:var(--text2);line-height:1.4}
 .notif-item .notif-time{font-size:10px;color:var(--text3);margin-top:4px}
@@ -1094,6 +1102,25 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .cal-cell.ausente.ocupado{box-shadow:inset 0 0 0 2px var(--red)}
 .cal-aus{font-size:8.5px;font-weight:500;line-height:1;margin-top:2px;opacity:.9;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px}
 .cal-cell.ocupado.hoy{outline:1.5px solid var(--red-text)}
+.cal-pry{font-size:10px;font-weight:600;line-height:1.15;max-width:100%;padding:0 5px;margin-top:4px;text-align:center;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.cal-mas{font-size:9px;font-weight:700;opacity:.8;margin-top:1px}
+.cal-resumen{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--text3);margin:-2px 0 10px}
+.cal-resumen b{color:var(--text);font-size:13px}
+.cal-det-tit{margin:14px 0 6px;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text3)}
+.cal-det-lista{display:flex;flex-direction:column;gap:6px}
+.cal-det{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 12px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);font:inherit;color:var(--text);box-shadow:inset 3px 0 0 var(--red)}
+.cal-det.aus{box-shadow:inset 3px 0 0 #8B6FD6}
+.cal-det.pry{cursor:pointer}
+.cal-det.pry:hover{border-color:var(--border2);background:var(--surface)}
+.cal-det > i{margin-left:auto;color:var(--text3)}
+.cal-det-tag{flex-shrink:0;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--red-bg);color:var(--red-text)}
+.cal-det.aus .cal-det-tag{background:rgba(124,92,201,.22);color:#B9A4F0}
+.cal-det-txt{min-width:0;display:flex;flex-direction:column;gap:2px}
+.cal-det-txt b{font-size:12.5px;font-weight:600}
+.cal-det-txt em{font-style:normal;font-weight:500;color:var(--text3)}
+.cal-det-txt span{font-size:11.5px;color:var(--text3);line-height:1.35}
+:root[data-theme="light"] .cal-det.aus .cal-det-tag{background:#EDE7FB;color:#6D4FC2}
+@media (max-width:768px){.cal-pry{font-size:7.5px;padding:0 2px;margin-top:2px}.cal-cell{font-size:11px}}
 .cal-dot{width:4px;height:4px;border-radius:50%;background:var(--red-text);position:absolute;bottom:4px}
 </style>
 </head>
@@ -1655,15 +1682,18 @@ function pintarListaCampana() {
   const cont = document.getElementById('notif-list');
   if (!cont) return;
   // Primero las que faltan por leer (cada grupo de la más reciente a la más vieja)
-  const lista = [...(STATE.notificaciones || [])].sort((a, b) => (a.leida - b.leida) || String(b.fecha).localeCompare(String(a.fecha)));
+  // 0 sin leer · 1 leída pero por resolver · 2 leída / resuelta
+  const grupoN = n => !n.leida ? 0 : (n.requiere_accion && !n.resuelta_en) ? 1 : 2;
+  const lista = [...(STATE.notificaciones || [])].sort((a, b) => (grupoN(a) - grupoN(b)) || String(b.fecha).localeCompare(String(a.fecha)));
   if (!lista.length) {
     cont.innerHTML = `<div class="notif-empty"><i class="ti ti-bell-off" aria-hidden="true" style="font-size:22px;display:block;margin-bottom:6px"></i>Sin notificaciones</div>`;
     return;
   }
-  const nSin = lista.filter(n => !n.leida).length;
-  cont.innerHTML = lista.map((n, i) => `${i === 0 && nSin ? `<div class="aviso-sep rojo">Sin leer · ${nSin}</div>` : ''}${i === nSin && nSin ? `<div class="aviso-sep" style="color:var(--text3)">Leídas</div>` : ''}
-    <div class="notif-item ${n.leida ? 'leida' : 'unread'}" onclick="clicNotificacion(${n.id}, ${n.entidad_tipo === 'proyecto' ? `'${n.entidad_id}'` : 'null'}, '${n.entidad_tipo||''}')">
-      ${n.leida ? '' : '<span class="notif-punto" aria-label="Sin leer"></span>'}
+  const cuenta = [0, 1, 2].map(g => lista.filter(n => grupoN(n) === g).length);
+  const sep = { 0: `<div class="aviso-sep rojo">Sin leer · ${cuenta[0]}</div>`, 1: `<div class="aviso-sep ambar">Por resolver · ${cuenta[1]}<span>se quedan hasta resolverse</span></div>`, 2: `<div class="aviso-sep" style="color:var(--text3)">Leídas<span>se borran solas a los 15 días</span></div>` };
+  cont.innerHTML = lista.map((n, i) => `${i === 0 || grupoN(lista[i - 1]) !== grupoN(n) ? sep[grupoN(n)] : ''}
+    <div class="notif-item ${!n.leida ? 'unread' : grupoN(n) === 1 ? 'por-resolver' : 'leida'}${n.resuelta_en ? ' resuelta' : ''}" onclick="clicNotificacion(${n.id}, ${n.entidad_tipo === 'proyecto' ? `'${n.entidad_id}'` : 'null'}, '${n.entidad_tipo||''}')">
+      ${n.leida ? (grupoN(n) === 1 ? '<span class="aviso-chip notif-chip seg">Por resolver</span>' : n.resuelta_en ? '<span class="aviso-chip notif-chip ok">Resuelto</span>' : '') : '<span class="notif-punto" aria-label="Sin leer"></span>'}
       <div class="notif-title">${escHtml(n.titulo)}</div>
       ${n.mensaje ? `<div class="notif-msg">${escHtml(n.mensaje)}</div>` : ''}
       <div class="notif-time">${tiempoRelativo(n.fecha)}</div>
@@ -1955,7 +1985,8 @@ async function abrirCalendarioMensual(empId, nombre, offsetMeses, pidResaltar) {
   const primerDia = new Date(year, month, 1);
   const diasEnMes = new Date(year, month+1, 0).getDate();
   const offset = primerDia.getDay();
-  let hayAusencia = false;
+  let hayAusencia = false, diasPry = 0, diasAus = 0;
+  const pryMes = new Map(), ausMes = new Map();
   let celdas = '';
   for (let i=0;i<offset;i++) celdas += `<div class="cal-cell empty"></div>`;
   for (let d=1; d<=diasEnMes; d++) {
@@ -1963,15 +1994,34 @@ async function abrirCalendarioMensual(empId, nombre, offsetMeses, pidResaltar) {
     const key = isoLocal(fecha);   // fecha local (antes UTC: de noche se corría un día)
     const evs = eventos[key] || [];
     const aus = ausenciaEn(emp, fecha);
-    if (aus) hayAusencia = true;
+    if (aus) { hayAusencia = true; diasAus++; ausMes.set(aus.fecha_inicio + aus.fecha_fin, aus); }
+    else if (evs.length) diasPry++;
+    evs.forEach(p => pryMes.set(p.id, p));
     const esHoy = fecha.toDateString() === hoy.toDateString();
     const enObj = objIni && objFin && fecha >= objIni && fecha <= objFin;
     const titulo = [aus ? `${tipoAusencia(aus)} (${aus.fecha_inicio} al ${aus.fecha_fin})` : null, ...evs.map(p => p.nombre), enObj ? `Fechas de ${objetivo.nombre} (en evaluación)` : null].filter(Boolean).join(' · ');
     const click = evs.length ? ` onclick="verProyecto('${evs[0].id}')"` : '';
-    celdas += `<div class="cal-cell ${esHoy?'hoy':''} ${evs.length?'ocupado':''} ${aus?'ausente':''} ${enObj?'objetivo':''}" title="${escHtml(titulo)}"${click}>${d}${aus ? `<div class="cal-aus">${escHtml(tipoAusencia(aus))}</div>` : ''}${evs.length?'<div class="cal-dot"></div>':''}</div>`;
+    celdas += `<div class="cal-cell ${esHoy?'hoy':''} ${evs.length?'ocupado':''} ${aus?'ausente':''} ${enObj?'objetivo':''}" title="${escHtml(titulo)}"${click}>${d}${aus ? `<div class="cal-aus">${escHtml(tipoAusencia(aus))}</div>` : ''}${evs.length ? `<div class="cal-pry">${escHtml(evs[0].nombre)}</div>${evs.length > 1 ? `<div class="cal-mas">+${evs.length - 1}</div>` : ''}` : ''}</div>`;
   }
   const mesLabel = base.toLocaleDateString('es-MX',{month:'long',year:'numeric'});
   const puedeExportar = STATE.rol !== 'tecnico';
+  // Detalle del mes (lo mismo que trae el PDF): en qué está ocupado cada día
+  const nomEmp = id => { const z = (STATE.empleados || []).find(x => x.id === id); return z ? `${z.nombre} ${z.apellido}` : null; };
+  const filasDet = [
+    ...[...ausMes.values()].map(a => `
+      <div class="cal-det aus"><span class="cal-det-tag">Ausencia</span>
+        <div class="cal-det-txt"><b>${escHtml(tipoAusencia(a))}</b><span>${rangoCorto(a.fecha_inicio, a.fecha_fin)}${(a.motivo || '').split(' — ')[1] ? ' · ' + escHtml((a.motivo || '').split(' — ').slice(1).join(' — ')) : ''}</span></div></div>`),
+    ...[...pryMes.values()].map(p => {
+      const comp = (p.tecnicos_asignados || []).filter(id => id !== empId).map(nomEmp).filter(Boolean);
+      const eqs = (p.equipo_asignado_ids || []).map(id => (STATE.equipos || []).find(z => z.id === id)).filter(Boolean).map(z => z.apodo || z.nombre);
+      const vhs = (p.vehiculo_asignado_ids || []).map(id => (STATE.vehiculos || []).find(z => z.id === id)).filter(Boolean).map(z => z.apodo || z.nombre);
+      const det = [rangoCorto(p.fecha_inicio, p.fecha_fin_estimada), p.ciudad, comp.length ? 'con ' + comp.join(', ') : '', [...eqs, ...vhs].join(', ')].filter(Boolean).map(escHtml).join(' · ');
+      return `
+      <button type="button" class="cal-det pry" onclick="verProyecto('${p.id}')"><span class="cal-det-tag">Proyecto</span>
+        <div class="cal-det-txt"><b>${escHtml(p.nombre)}${p.cliente ? ` <em>· ${escHtml(p.cliente)}</em>` : ''}</b><span>${det}</span></div>
+        <i class="ti ti-chevron-right" aria-hidden="true"></i></button>`;
+    })];
+  const diasMesN = new Date(year, month + 1, 0).getDate();
   openPanel(`Calendario — ${nombre}`, `
     <div class="panel-section" id="cal-export-area">
       <div class="cal-header">
@@ -1979,12 +2029,19 @@ async function abrirCalendarioMensual(empId, nombre, offsetMeses, pidResaltar) {
         <span class="cal-monthlabel">${mesLabel}</span>
         <button class="btn btn-ghost btn-sm" onclick="abrirCalendarioMensual('${empId}','${nombre.replace(/'/g,"\\'")}',${STATE._cal_offset+1}${argRes})"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
       </div>
+      <div class="cal-resumen">
+        <span><b style="color:var(--red-text)">${diasPry}</b> día(s) en proyecto</span>
+        ${diasAus ? `<span><b style="color:#B9A4F0">${diasAus}</b> de ausencia</span>` : ''}
+        <span><b>${diasMesN - diasPry - diasAus}</b> libre(s)</span>
+      </div>
       <div class="cal-grid">
         ${['D','L','M','X','J','V','S'].map(w=>`<div class="cal-weekday">${w}</div>`).join('')}
         ${celdas}
       </div>
+      <div class="cal-det-tit">Detalle del mes</div>
+      ${filasDet.length ? `<div class="cal-det-lista">${filasDet.join('')}</div>` : '<div style="font-size:12px;color:var(--text3);padding:6px 0">Sin proyectos ni ausencias en este mes.</div>'}
       <div style="margin-top:10px;font-size:11px;color:var(--text3);display:flex;flex-direction:column;gap:4px">
-        <div><span style="color:var(--red-text)">●</span> Días con proyecto asignado — toca un día para ver el detalle del proyecto.</div>
+        <div><span style="color:var(--red-text)">●</span> Días con proyecto asignado — toca un día o un proyecto de la lista para ver su detalle.</div>
         ${hayAusencia ? '<div><span style="color:#8B6FD6">●</span> Ausencia (vacaciones, permiso, incapacidad).</div>' : ''}
         ${objetivo ? `<div><span class="cal-ley-obj"></span> Fechas de <b style="color:var(--text2)">${escHtml(objetivo.nombre)}</b> (proyecto en evaluación). Un día rojo dentro del borde es un choque.</div>` : ''}
       </div>
@@ -9839,8 +9896,15 @@ async function cargarAvisos() {
 // Avisos: 🔴 nuevo (cuenta en la campana) → 🟡 visto / en seguimiento (sigue en la lista) → se quita solo al resolverse
 function pintarAvisos() {
   const cont = document.getElementById('notif-list'); if (!cont) return;
-  const lista = STATE.avisos?.avisos || [];
-  if (!lista.length) { cont.innerHTML = `<div class="notif-empty"><i class="ti ti-shield-check" aria-hidden="true" style="font-size:22px;display:block;margin-bottom:6px;color:var(--green)"></i>Todo en orden</div>`; return; }
+  const lista = STATE.avisos?.avisos || [], resueltos = STATE.avisos?.resueltos || [];
+  const htmlRes = resueltos.length ? `<div class="aviso-sep verde">Resueltos · ${resueltos.length}<span>se borran a los 15 días</span></div>${resueltos.map((a, i) => `
+    <div class="notif-item aviso aviso-ok" onclick="abrirAvisoResuelto(${i})">
+      <i class="ti ti-${a.icono || 'circle-check'} aviso-ico" aria-hidden="true"></i>
+      <div style="min-width:0;flex:1"><div class="notif-title">${escHtml(a.titulo)}</div>
+        <div class="notif-time">${escHtml(a.categoria || '')} · resuelto ${tiempoRelativo(String(a.resuelto_en).replace(/Z$/, ''))}</div></div>
+      <span class="aviso-chip">Resuelto</span>
+    </div>`).join('')}` : '';
+  if (!lista.length) { cont.innerHTML = `<div class="notif-empty"><i class="ti ti-shield-check" aria-hidden="true" style="font-size:22px;display:block;margin-bottom:6px;color:var(--green)"></i>Todo en orden</div>${htmlRes}`; return; }
   const nuevos = lista.filter(a => !a.visto).length, seg = lista.length - nuevos;
   const fila = (a) => {
     const i = lista.indexOf(a);
@@ -9856,7 +9920,12 @@ function pintarAvisos() {
     </div>`;
   };
   cont.innerHTML = (nuevos ? `<div class="aviso-sep rojo">Sin revisar · ${nuevos}</div>${lista.filter(a => !a.visto).map(fila).join('')}` : '')
-    + (seg ? `<div class="aviso-sep ambar">En seguimiento · ${seg}<span>se quitan solos al resolverse</span></div>${lista.filter(a => a.visto).map(fila).join('')}` : '');
+    + (seg ? `<div class="aviso-sep ambar">En seguimiento · ${seg}<span>se quitan solos al resolverse</span></div>${lista.filter(a => a.visto).map(fila).join('')}` : '')
+    + htmlRes;
+}
+function abrirAvisoResuelto(i) {
+  const a = (STATE.avisos?.resueltos || [])[i]; if (!a) return;
+  abrirAviso(-1, a);
 }
 async function marcarAvisosVistos(claves) {
   claves = (claves || []).filter(Boolean);
@@ -9867,9 +9936,9 @@ async function marcarAvisosVistos(claves) {
   pintarCampana(); pintarListaCampana();
   try { await api('POST', '/avisos/vistos', { claves }); } catch (e) {}
 }
-async function abrirAviso(i) {
-  const a = STATE.avisos.avisos[i];
-  if (!a.visto) marcarAvisosVistos([a.clave]);
+async function abrirAviso(i, directo) {
+  const a = directo || STATE.avisos.avisos[i];
+  if (!directo && !a.visto) marcarAvisosVistos([a.clave]);
   document.getElementById('notif-dropdown').classList.remove('open');
   showSection(a.seccion);
   if (!a.entidad_id) return;
