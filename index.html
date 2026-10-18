@@ -756,12 +756,38 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .section-page.active{display:block}
 
 /* GANTT */
-.gantt-wrap{overflow-x:auto}
-.gantt-table{border-collapse:collapse;min-width:600px}
+.gantt-wrap{overflow:auto;max-height:calc(100vh - 290px);cursor:grab;overscroll-behavior-x:contain;scroll-behavior:auto}
+.gantt-wrap.arrastrando{cursor:grabbing;user-select:none}
+.gantt-table{border-collapse:separate;border-spacing:0;min-width:600px}
+.gantt-barra{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--border)}
+.gantt-nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.gantt-hoy{border-color:var(--red)!important;color:var(--text)!important}
+.gantt-rango-txt{font-size:13px;font-weight:700;color:var(--text);margin-left:8px}
+.gantt-seg{display:inline-flex;border:1px solid var(--border2);border-radius:8px;overflow:hidden}
+.gantt-seg button{background:none;border:0;padding:5px 12px;font:inherit;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer}
+.gantt-seg button+button{border-left:1px solid var(--border2)}
+.gantt-seg button.on{background:var(--red);color:#fff}
+.gantt-table thead th{position:sticky;z-index:3}
+.gantt-table .gantt-meses th{top:0;height:26px}
+.gantt-table th,.gantt-table td{border:0!important;border-right:1px solid var(--border)!important;border-bottom:1px solid var(--border)!important}
+.gantt-mes{border-left:0!important;border-right:2px solid var(--border2)!important}
+.gantt-table .gantt-dias th{top:26px}
+.gantt-mes{text-align:left!important;font-size:10.5px!important;color:var(--text2)!important;letter-spacing:.1em;padding:5px 10px!important;border-left:2px solid var(--border2)!important}
+.gantt-mes span{position:sticky;left:170px}
+.gantt-dias th{min-width:var(--gcw);width:var(--gcw);padding:5px 0!important;text-align:center}
+.gantt-dias th b{display:block;font-size:11.5px;color:var(--text);font-weight:700}
+.gantt-dias th span{display:block;font-size:9px;color:var(--text3);font-weight:600;margin-top:1px}
+.gantt-dias th.fin{background:color-mix(in srgb,var(--text) 6%,var(--surface2))!important}
+.gantt-dias th.hoy{background:var(--red)!important}
+.gantt-dias th.hoy b,.gantt-dias th.hoy span{color:#fff}
+.gantt-esq{left:0;z-index:5!important;min-width:170px;text-align:left!important;padding-left:12px!important}
+.gantt-table tbody .gantt-name{position:sticky;left:0;z-index:2;min-width:170px;max-width:200px;overflow:hidden;text-overflow:ellipsis;box-shadow:1px 0 0 var(--border)}
 .gantt-table th{background:var(--surface2);font-size:10px;color:var(--text3);padding:6px 8px;border:1px solid var(--border);letter-spacing:.08em;font-weight:600;white-space:nowrap}
 .gantt-table td{border:1px solid var(--border);padding:0;height:32px}
 .gantt-name{padding:6px 12px;background:var(--surface);font-size:12px;color:var(--text);min-width:140px;white-space:nowrap}
-.gantt-cell{width:28px;background:transparent;position:relative}
+.gantt-cell{width:var(--gcw,28px);min-width:var(--gcw,28px);background:transparent;position:relative}
+.gantt-cell.weekend:not(.occupied):not(.past):not(.tenue):not(.ausencia):not(.descanso):not(.standby):not(.pausa){background:color-mix(in srgb,var(--text) 5%,transparent)}
+.gantt-cell.today::before{content:'';position:absolute;inset:0;background:color-mix(in srgb,var(--red) 7%,transparent);pointer-events:none}
 .gantt-cell.today::after{content:'';position:absolute;top:0;bottom:0;left:var(--hoy-pos,50%);width:2px;background:var(--red);transform:translateX(-50%);pointer-events:none}
 .gantt-cell.weekend{background:var(--input-bg)}
 .gantt-cell.occupied{background:var(--gantt-occupied)}
@@ -3475,12 +3501,37 @@ function leyendaGantt(usados) {
   return `<div style="padding:12px 16px;display:flex;gap:16px;flex-wrap:wrap">${items.join('')}</div>`;
 }
 
+// ─── GANTT: rango navegable (7/30/60 días), scroll continuo y nombres fijos ──
+// Se pinta el rango visible + el mismo tanto antes y después, para poder deslizar
+// hacia semanas pasadas o futuras; los botones mueven el rango y recentran.
+const GANTT_ANCHO = { 7: 64, 30: 30, 60: 22 };   // ancho mínimo por día; se estira para que quepa justo el rango
+function anchoDiaGantt(n) {
+  const disp = (document.getElementById('main-content')?.clientWidth || 1200) - 60 - 172;
+  return Math.max({ 7: 44, 30: 24, 60: 16 }[n], Math.floor(disp / n));
+}
+const GANTT_ANTES = { 7: 1, 30: 7, 60: 14 };   // días antes de hoy al iniciar en "Hoy"
+function moverGantt(dir) {
+  const n = STATE._ganttRango || 30;
+  if (dir === 0) STATE._ganttInicio = null;
+  else { const d = ganttInicioVista(); d.setDate(d.getDate() + dir * (n === 7 ? 7 : Math.round(n / 2))); STATE._ganttInicio = isoLocal(d); }
+  renderGantt();
+}
+function ganttInicioVista() {
+  const n = STATE._ganttRango || 30;
+  if (STATE._ganttInicio) return fechaLocal(STATE._ganttInicio);
+  const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - GANTT_ANTES[n]); return d;
+}
+function cambiarRangoGantt(n) { STATE._ganttRango = n; STATE._ganttInicio = null; renderGantt(); }
 async function renderGantt() {
   await loadEmpleados(); await loadProyectos();
-  const today = new Date();
-  const dias = 30;
-  const cols = Array.from({length:dias}, (_,i) => { const d = new Date(today); d.setDate(d.getDate()-7+i); d.setHours(0,0,0,0); return d; });
+  const n = STATE._ganttRango || 30, cw = anchoDiaGantt(n);
+  STATE._ganttCw = cw;
+  const inicio = ganttInicioVista();
+  const desde = new Date(inicio); desde.setDate(desde.getDate() - n);
+  const total = n * 3;
+  const cols = Array.from({ length: total }, (_, i) => { const d = new Date(desde); d.setDate(d.getDate() + i); d.setHours(0, 0, 0, 0); return d; });
   const [inact, trabajados] = await Promise.all([cargarInactividadAprobada(), cargarDiasTrabajados(cols[0], cols[cols.length-1])]);
+  const today = new Date();
   const hoy = today.toDateString();
   const hoy00 = new Date(today); hoy00.setHours(0,0,0,0);
   const horaHoyPct = ((today.getHours()*60+today.getMinutes())/1440*100).toFixed(1);
@@ -3490,16 +3541,31 @@ async function renderGantt() {
     if (enCampoA !== enCampoB) return enCampoA - enCampoB;
     return `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`, 'es');
   });
+  // Fila de meses: un bloque por cada mes que aparece
+  const meses = [];
+  cols.forEach(d => { const k = `${d.getFullYear()}-${d.getMonth()}`; if (meses.length && meses.at(-1).k === k) meses.at(-1).n++; else meses.push({ k, n: 1, d }); });
   const usados = new Set();   // tipos de celda que aparecen: la leyenda solo muestra esos
   html(`
     <div class="table-section" id="gantt-export-area">
-      <div class="table-header"><span class="table-title">CALENDARIO DE DISPONIBILIDAD — 30 DÍAS</span><span class="table-meta">hoy: ${today.toLocaleDateString('es-MX')}</span><button class="btn btn-ghost btn-sm" onclick="exportarGanttPDF()" style="margin-left:10px"><i class="ti ti-file-download" aria-hidden="true"></i> Exportar PDF</button></div>
-      <div class="gantt-wrap">
+      <div class="gantt-barra">
+        <div class="gantt-nav">
+          <button class="btn btn-ghost btn-sm" onclick="moverGantt(-1)" title="Anterior"><i class="ti ti-chevron-left" aria-hidden="true"></i> Anterior</button>
+          <button class="btn btn-ghost btn-sm gantt-hoy" onclick="moverGantt(0)"><i class="ti ti-calendar-dot" aria-hidden="true"></i> Hoy</button>
+          <button class="btn btn-ghost btn-sm" onclick="moverGantt(1)" title="Siguiente">Siguiente <i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+          <span class="gantt-rango-txt" id="gantt-rango-txt"></span>
+        </div>
+        <div class="gantt-nav">
+          <div class="gantt-seg" role="group" aria-label="Rango">${[7, 30, 60].map(k => `<button class="${k === n ? 'on' : ''}" onclick="cambiarRangoGantt(${k})">${k} días</button>`).join('')}</div>
+          <button class="btn btn-ghost btn-sm" onclick="exportarGanttPDF()"><i class="ti ti-file-download" aria-hidden="true"></i> Exportar PDF</button>
+        </div>
+      </div>
+      <div class="gantt-wrap" id="gantt-wrap" style="--gcw:${cw}px">
         <table class="gantt-table">
-          <thead><tr>
-            <th style="min-width:140px">TÉCNICO</th>
-            ${cols.map(d=>`<th style="min-width:28px;text-align:center;${d.toDateString()===hoy?'color:var(--red)':''}">${d.getDate()}<br><span style="font-size:9px">${['D','L','M','X','J','V','S'][d.getDay()]}</span></th>`).join('')}
-          </tr></thead>
+          <thead>
+            <tr class="gantt-meses"><th class="gantt-esq" rowspan="2">TÉCNICO</th>
+              ${meses.map(m => `<th colspan="${m.n}" class="gantt-mes"><span>${m.d.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }).toUpperCase()}</span></th>`).join('')}</tr>
+            <tr class="gantt-dias">${cols.map(d => { const w = d.getDay() === 0 || d.getDay() === 6; return `<th class="${w ? 'fin' : ''}${d.toDateString() === hoy ? ' hoy' : ''}"><b>${d.getDate()}</b><span>${['D','L','M','X','J','V','S'][d.getDay()]}</span></th>`; }).join('')}</tr>
+          </thead>
           <tbody>
             ${empsGantt.map(e=>`<tr>
               <td class="gantt-name" style="cursor:pointer" onclick="abrirCalendarioMensual('${e.id}','${(e.nombre+' '+e.apellido).replace(/'/g,"\\'")}',0)"><span class="gantt-nom">${e.nombre} ${e.apellido}</span></td>
@@ -3533,6 +3599,33 @@ async function renderGantt() {
       </div>
       ${leyendaGantt(usados)}
     </div>`);
+  // Arrancar mostrando el rango elegido (el tercio de en medio) y activar el arrastre
+  const wrap = document.getElementById('gantt-wrap');
+  STATE._ganttCols = cols;
+  wrap.scrollLeft = n * cw;
+  activarArrastreGantt(wrap);
+  wrap.addEventListener('scroll', () => actualizarRangoVisibleGantt(), { passive: true });
+  actualizarRangoVisibleGantt();
+}
+// Texto "18 oct – 16 nov 2026" según lo que de verdad se ve
+function actualizarRangoVisibleGantt() {
+  const wrap = document.getElementById('gantt-wrap'), cols = STATE._ganttCols, el = document.getElementById('gantt-rango-txt');
+  if (!wrap || !cols || !el) return;
+  const cw = STATE._ganttCw || 30, nombre = wrap.querySelector('.gantt-esq')?.offsetWidth || 170;
+  const a = Math.max(0, Math.floor(wrap.scrollLeft / cw)), b = Math.min(cols.length - 1, Math.floor((wrap.scrollLeft + wrap.clientWidth - nombre) / cw) - 1);
+  STATE._ganttVisible = { desde: cols[a], hasta: cols[Math.max(a, b)] };
+  el.textContent = `${fCorta(cols[a])} – ${fLargaAnio(cols[Math.max(a, b)])}`;
+}
+// Arrastrar con el mouse para desplazar (en celular ya se desliza con el dedo)
+function activarArrastreGantt(wrap) {
+  const D = STATE._ganttDrag = { wrap, x0: null, s0: 0, movio: false };
+  wrap.addEventListener('mousedown', e => { if (e.button !== 0 || e.target.closest('.gantt-name')) return; D.x0 = e.clientX; D.s0 = wrap.scrollLeft; D.movio = false; wrap.classList.add('arrastrando'); });
+  // Si fue arrastre, no abrir el proyecto al soltar
+  wrap.addEventListener('click', e => { if (D.movio) { e.stopPropagation(); e.preventDefault(); D.movio = false; } }, true);
+  if (window._ganttDragListo) return;   // los escuchas de la ventana se ponen una sola vez
+  window._ganttDragListo = true;
+  window.addEventListener('mousemove', e => { const G = STATE._ganttDrag; if (!G || G.x0 == null) return; const dx = e.clientX - G.x0; if (Math.abs(dx) > 4) G.movio = true; G.wrap.scrollLeft = G.s0 - dx; });
+  window.addEventListener('mouseup', () => { const G = STATE._ganttDrag; if (!G || G.x0 == null) return; G.x0 = null; G.wrap.classList.remove('arrastrando'); });
 }
 
 
@@ -8973,8 +9066,12 @@ async function exportarGanttPDF() {
   await Promise.all([loadEmpleados(), loadProyectos()]);
   const T = await nuevaPlantillaPDF('landscape'), { doc, C, M } = T;
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-  const dias = Array.from({ length: 30 }, (_, i) => { const d = new Date(hoy); d.setDate(d.getDate() - 7 + i); return d; });
-  const HOY = 7;
+  // Exporta el rango que se está viendo en pantalla (si no, 30 días desde una semana antes)
+  const vis = STATE._seccion === 'gantt' && STATE._ganttVisible;
+  const d0 = vis ? new Date(vis.desde) : (() => { const d = new Date(hoy); d.setDate(d.getDate() - 7); return d; })();
+  const nDias = vis ? Math.round((vis.hasta - vis.desde) / 86400000) + 1 : 30;
+  const dias = Array.from({ length: nDias }, (_, i) => { const d = new Date(d0); d.setDate(d.getDate() + i); d.setHours(0, 0, 0, 0); return d; });
+  const HOY = dias.findIndex(d => d.getTime() === hoy.getTime());
   const emps = [...(STATE.empleados || [])].sort((a, b) => {
     const ca = estadoVisible(a) === 'en_proyecto' ? 0 : 1, cb = estadoVisible(b) === 'en_proyecto' ? 0 : 1;
     return ca - cb || `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`, 'es');
@@ -9000,8 +9097,8 @@ async function exportarGanttPDF() {
   const enCampo = (STATE.proyectos || []).filter(p => estadoProyectoVisible(p) === 'en_progreso').length;
   const libresHoy = emps.filter(e => !ausenciaEn(e, hoy) && !proyectoEnDia(e.id, hoy)).length;
 
-  T.encabezado('Calendario de disponibilidad', `${fCorta(dias[0]).toUpperCase()} – ${fLargaAnio(dias[29]).toUpperCase()}`,
-    'Disponibilidad del personal', `Próximos 30 días  ·  hoy ${hoy.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}`);
+  T.encabezado('Calendario de disponibilidad', `${fCorta(dias[0]).toUpperCase()} – ${fLargaAnio(dias.at(-1)).toUpperCase()}`,
+    'Disponibilidad del personal', `${dias.length} días  ·  hoy ${hoy.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}`);
   let y = 33;
   T.relleno(C.fondo); doc.roundedRect(M, y, T.W - 2 * M, 8, 1.6, 1.6, 'F');
   [[proyectosPeriodo.size, 'proyectos en el periodo', C.tinta], [programados, 'programados', PDF_EST.asignado.c],
@@ -9084,7 +9181,7 @@ async function exportarGanttPDF() {
       if (t.replace('…', '').length >= 3) doc.text(t, bx + 1.6, yy + rh / 2 + 1);
     });
   });
-  T.relleno(C.rojo); doc.rect(gx + HOY * cw + cw / 2 - 0.2, y - 0.8, 0.4, filasAlto + 0.8, 'F');
+  if (HOY >= 0) { T.relleno(C.rojo); doc.rect(gx + HOY * cw + cw / 2 - 0.2, y - 0.8, 0.4, filasAlto + 0.8, 'F'); }
   y += filasAlto + 4.5;
   let lx = M;
   ['asignado', 'prep', 'progreso', 'pausa', 'completado', 'ausencia'].filter(k => usados.has(k)).forEach(k => {
