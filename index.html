@@ -8950,6 +8950,13 @@ async function nuevaPlantillaPDF(orientacion = 'portrait') {
   };
   return T;
 }
+// Blanco o tinta oscura, el que tenga más contraste (WCAG) sobre un color de relleno
+function colorTextoSobre(rgb) {
+  const L = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const lum = x => 0.2126 * L(x[0]) + 0.7152 * L(x[1]) + 0.0722 * L(x[2]);
+  const lf = lum(rgb), cBlanco = 1.05 / (lf + 0.05), cTinta = (lf + 0.05) / (lum(PDF_C.tinta) + 0.05);
+  return cBlanco >= cTinta ? PDF_C.blanco : PDF_C.tinta;
+}
 const limpiarNombreArchivo = t => String(t || '').replace(/[\\/:*?"<>|]+/g, '-');
 const recortarTexto = (doc, t, ancho) => { let s = String(t); if (doc.getTextWidth(s) <= ancho) return s; while (s.length > 2 && doc.getTextWidth(s + '…') > ancho) s = s.slice(0, -1); return s + '…'; };
 
@@ -9323,10 +9330,32 @@ async function exportarGanttPDF() {
     });
     return out;
   };
+  // Simbología en 3 grupos (proyectos · personal · referencias), cada uno en 2 columnas, dentro de una caja aparte
+  const estUsados = ['asignado', 'prep', 'progreso', 'pausa', 'completado'].filter(k => filas.some(f => f.barras.some(b => b.est === k)));
+  const tiposAus = [...new Set(ausenciasPeriodo.map(x => tipoAusencia(x.aus)))];
+  const leyGrupos = [
+    ['Proyectos', estUsados.map(k => ({ t: PDF_EST[k].nombre, c: PDF_EST[k].c }))],
+    ['Personal', tiposAus.length ? [{ t: `Ausencia (${tiposAus.join(', ').toLowerCase()})`, c: PDF_EST.ausencia.c }] : [{ t: 'Sin ausencias en el periodo', c: null }]],
+    ['Referencias', [{ t: 'Fin de semana', c: C.finde, borde: true }, ...(HOY >= 0 ? [{ t: 'Hoy', linea: true }] : [])]],
+  ].filter(([, it]) => it.length);
+  const leyFilas = Math.max(1, ...leyGrupos.map(([n, it]) => Math.ceil(it.length / (n === 'Proyectos' ? 2 : 1))));
+  const leyAlto = 8.5 + leyFilas * 4.4;
   // Espacio disponible: de la franja de resumen al pie
-  const espacioTotal = (T.H - 21) - (y + 8) - 4.5 - 9 - 8 - 2;     // encabezados de rejilla, leyenda y título de sección
+  const espacioTotal = (T.H - 21) - (y + 8) - 5 - leyAlto - 6 - 8 - 2;     // encabezados de rejilla, simbología y título de sección
   let esp = { f: 1, persona: 3.5, extra: 3.4 }, bloques = armarBloques(esp);
-  const porColumna = b => b.reduce((a, x) => a + x.alto, 0) / ncol * 1.12;      // reparto nunca es perfecto
+  // Alto real que ocupará la lista: simula el mismo reparto en columnas que se usa al dibujar
+  const porColumna = b => {
+    const meta = b.reduce((a, x) => a + x.alto, 0) / ncol;
+    let col = 0, acum = 0, maxH = 0;
+    b.forEach((x, n) => {
+      const altoEval = x.tipo === 'grupo' && b[n + 1] ? x.alto + b[n + 1].alto : x.alto;
+      const trasTitulo = n > 0 && b[n - 1].tipo === 'grupo';
+      const rebasa = acum > 0 && !trasTitulo && acum + altoEval > meta + 3 && !(x.tipo === 'item' && acum + x.alto <= meta + 8);
+      if (col < ncol - 1 && rebasa) { col++; acum = x.tipo === 'item' ? 5.6 * esp.f : 0; }
+      acum += x.alto; maxH = Math.max(maxH, acum);
+    });
+    return maxH + 2;
+  };
   let rh = Math.max(6, Math.min(9.6, (espacioTotal - porColumna(bloques)) / Math.max(1, filas.length)));
   if (rh * filas.length + porColumna(bloques) > espacioTotal) {    // aún no cabe: lista más compacta
     esp = { f: 0.9, persona: 3.1, extra: 1.8 }; bloques = armarBloques(esp);
@@ -9364,21 +9393,34 @@ async function exportarGanttPDF() {
       const st = PDF_EST[br.est], bx = gx + br.a * cw + 0.45, bw = (br.b - br.a + 1) * cw - 0.9;
       usados.add(br.est);
       T.relleno(st.c); doc.roundedRect(bx, yy + Math.min(1.8, rh * 0.2), bw, rh - 2 * Math.min(1.8, rh * 0.2), 1.2, 1.2, 'F');
-      T.font('semibold', 5.8, C.blanco);
+      // texto blanco u oscuro, el que contraste más con el color de la barra
+      T.font('bold', 5.8, colorTextoSobre(st.c));
       const t = recortarTexto(doc, br.etq || '', bw - 3);
       if (t.replace('…', '').length >= 3) doc.text(t, bx + 1.6, yy + rh / 2 + 1);
     });
   });
   if (HOY >= 0) { T.relleno(C.rojo); doc.rect(gx + HOY * cw + cw / 2 - 0.2, y - 0.8, 0.4, filasAlto + 0.8, 'F'); }
-  y += filasAlto + 4.5;
-  let lx = M;
-  ['asignado', 'prep', 'progreso', 'pausa', 'completado', 'ausencia'].filter(k => usados.has(k)).forEach(k => {
-    const st = PDF_EST[k]; T.relleno(st.c); doc.roundedRect(lx, y - 2.5, 4.4, 3, 0.7, 0.7, 'F');
-    T.font('medium', 6.6, C.texto); doc.text(st.nombre, lx + 5.8, y); lx += 5.8 + doc.getTextWidth(st.nombre) + 7;
-  });
-  T.relleno(C.finde); doc.rect(lx, y - 2.5, 4.4, 3, 'F'); T.font('medium', 6.6, C.texto); doc.text('Fin de semana', lx + 5.8, y); lx += 5.8 + doc.getTextWidth('Fin de semana') + 7;
-  T.relleno(C.rojo); doc.rect(lx, y - 3, 0.5, 4, 'F'); doc.text('Hoy', lx + 2.2, y);
-  y += 9;
+  y += filasAlto + 5;
+  // Simbología: caja propia, separada de la rejilla
+  {
+    const anchoTot = T.W - 2 * M, pesos = leyGrupos.map(([n]) => n === 'Proyectos' ? 2 : 1), sumaP = pesos.reduce((a, b) => a + b, 0);
+    T.relleno(C.fondo); doc.roundedRect(M, y, anchoTot, leyAlto, 1.6, 1.6, 'F');
+    let gxL = M + 5;
+    leyGrupos.forEach(([nombre, items], gi) => {
+      const anchoG = (anchoTot - 10) * pesos[gi] / sumaP, ncolG = nombre === 'Proyectos' ? 2 : 1, anchoCol = (anchoG - 6) / ncolG;
+      if (gi > 0) { T.trazo(C.linea, 0.3); doc.line(gxL - 3, y + 3, gxL - 3, y + leyAlto - 3); }
+      T.etiqueta(nombre, gxL, y + 5, C.gris, 5.6);
+      items.forEach((it, k) => {
+        const ix = gxL + (k % ncolG) * anchoCol, iy = y + 9.6 + Math.floor(k / ncolG) * 4.4;
+        if (it.linea) { T.relleno(C.rojo); doc.rect(ix + 1.9, iy - 2.9, 0.5, 3.8, 'F'); }
+        else if (it.c) { T.relleno(it.c); doc.roundedRect(ix, iy - 2.4, 4.4, 2.9, 0.7, 0.7, 'F'); if (it.borde) { T.trazo(C.linea, 0.3); doc.roundedRect(ix, iy - 2.4, 4.4, 2.9, 0.7, 0.7, 'S'); } }
+        T.font(it.c || it.linea ? 'medium' : 'normal', 6.6, it.c || it.linea ? C.texto : C.grisClaro);
+        doc.text(recortarTexto(doc, it.t, anchoCol - 7), ix + (it.c || it.linea ? 6 : 0), iy);
+      });
+      gxL += anchoG;
+    });
+    y += leyAlto + 9;
+  }
 
   // Asignaciones: por estado y proyecto, una persona por renglón, en 3 columnas tipo periódico
   y = T.seccion('ASIGNACIONES DEL PERIODO', y);
