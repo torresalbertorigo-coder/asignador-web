@@ -9023,12 +9023,19 @@ async function exportarInventarioEquiposPDF() {
   const cmp = (a, b) => String(a || '').localeCompare(String(b || ''), 'es', { numeric: true, sensitivity: 'base' });
   const filas = equipos.map(eq => ({ eq, cal: calibracionEquipo(eq, hoy), est: estadoEquipoInfo(eq), tipo: etiquetaEquipo(eq.tipo),
       piezas: resumenAccesorios(eq).piezas }))
-    .sort((a, b) => cmp(a.tipo, b.tipo) || cmp(a.eq.apodo || a.eq.nombre, b.eq.apodo || b.eq.nombre));
+    // Prioridad por calibración: vencidas (más días de retraso primero) → por vencer → vigentes → sin fecha / no aplica;
+    // dentro de cada grupo, por tipo y equipo
+    .sort((a, b) => {
+      const pri = { vencida: 0, porVencer: 1, vigente: 2, sinFecha: 3, sinCalibracion: 4 };
+      return (pri[a.cal.grupo] - pri[b.cal.grupo])
+        || (a.cal.grupo === 'vencida' ? a.cal.dias - b.cal.dias : 0)
+        || cmp(a.tipo, b.tipo) || cmp(a.eq.apodo || a.eq.nombre, b.eq.apodo || b.eq.nombre);
+    });
   const cuenta = g => filas.filter(f => f.cal.grupo === g).length;
   const sinF = cuenta('sinFecha');
 
   // ── Encabezado y KPIs (versión compacta para que todo quepa en una hoja)
-  T.encabezado('Inventario de equipos', `CORTE ${fLargaAnio(hoy).toUpperCase()}`, 'Inventario general de equipos',
+  T.encabezado('Inventario general de equipos', `CORTE ${fLargaAnio(hoy).toUpperCase()}`, 'Inventario general de equipos',
     `${equipos.length} equipo(s) activos  ·  no incluye equipo dado de baja`);
   let y = T.tarjetasCompactas(32, [
     ['Equipos', equipos.length, `${new Set(filas.map(f => f.tipo)).size} tipo(s)`, C.tinta],
@@ -9046,7 +9053,7 @@ async function exportarInventarioEquiposPDF() {
   });
 
   // ── Resumen por tipo (compacto)
-  const tipos = [...new Set(filas.map(f => f.tipo))];
+  const tipos = [...new Set(filas.map(f => f.tipo))].sort(cmp);
   const n = (arr, fn) => { const k = arr.filter(fn).length; return k ? String(k) : '–'; };
   // Si el inventario es muy largo, se omite este resumen para que la tabla maestra siga cabiendo en una hoja
   const altoResumen = 8 + (tipos.length + 1) * 3.7 + 7;
