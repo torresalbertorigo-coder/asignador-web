@@ -412,6 +412,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .ev-bar-sel .field-select{padding-left:34px;width:100%;font-weight:600}
 .ev-bar-agenda{margin-left:auto}
 .ev-bar-flecha{font-size:14px;transition:transform .2s}
+.ev-bar-agenda:disabled{opacity:.45;cursor:not-allowed}
 .ev-bar-agenda.activo{border-color:var(--red);color:var(--text)}
 .ev-bar-agenda.activo .ev-bar-flecha{transform:rotate(180deg)}
 .ev-agenda{display:grid;grid-template-rows:0fr;transition:grid-template-rows .28s ease,opacity .2s;opacity:0}
@@ -3408,20 +3409,19 @@ async function renderEvaluar() {
       <div class="ev-bar-fila">
         <div class="ev-bar-sel">
           <i class="ti ti-folder-search" aria-hidden="true"></i>
-          <select class="field-select" id="ev-proyecto" onchange="STATE._evalPid=this.value;if(this.value)ejecutarEvaluacion()" aria-label="Proyecto a evaluar">
+          <select class="field-select" id="ev-proyecto" onchange="habilitarAgendaEval(false);STATE._evalPid=this.value;if(this.value)ejecutarEvaluacion()" aria-label="Proyecto a evaluar">
             <option value="">${opciones.length ? `Selecciona un proyecto (${pendientes.length} pendiente${pendientes.length === 1 ? '' : 's'} de asignar)` : 'No hay proyectos pendientes de asignación'}</option>
             ${opciones.map(p => `<option value="${p.id}" ${p.id === STATE._evalPid ? 'selected' : ''}>${escHtml(etiqueta(p))}</option>`).join('')}
           </select>
         </div>
         <button class="btn btn-primary" onclick="ejecutarEvaluacion()"><i class="ti ti-player-play" aria-hidden="true"></i> Evaluar</button>
-        <button class="btn btn-ghost ev-bar-agenda" id="ev-btn-agenda" aria-expanded="false" aria-controls="ev-agenda" onclick="toggleAgendaEval()"><i class="ti ti-world" aria-hidden="true"></i> Agenda general <i class="ti ti-chevron-down ev-bar-flecha" aria-hidden="true"></i></button>
+        <button class="btn btn-ghost ev-bar-agenda" id="ev-btn-agenda" aria-expanded="false" aria-controls="ev-agenda" disabled title="Evalúa un proyecto para ver su agenda" onclick="toggleAgendaEval()"><i class="ti ti-world" aria-hidden="true"></i> Agenda general <i class="ti ti-chevron-down ev-bar-flecha" aria-hidden="true"></i></button>
       </div>
       <div class="ev-agenda" id="ev-agenda"><div class="ev-agenda-in"></div></div>
       <div class="ev-bar-meta" id="ev-meta">${opciones.length ? '<span class="ev-bar-hint">Elige un proyecto para ver a los candidatos.</span>' : '<span class="ev-bar-hint"><i class="ti ti-circle-check" aria-hidden="true"></i> Todos los proyectos tienen su personal completo.</span>'}</div>
     </div>
     <div id="ev-results"></div>`);
   if (STATE._evalPid && opciones.some(p => p.id === STATE._evalPid)) ejecutarEvaluacion();
-  if (STATE._evalAgendaAbierta) toggleAgendaEval(true);
 }
 
 // ─── EVALUACIÓN DE CANDIDATOS ────────────────────────────────────────────────
@@ -3560,10 +3560,18 @@ function htmlAgendaGeneral(A) {
     <div class="ag-ley">${LEYENDA_AGENDA.filter(([k]) => k !== 'libre' && A.usados.has(k)).map(([k, t]) => `<span><i class="ag-c ${k}"></i>${t}</span>`).join('')}</div>`;
 }
 
+// La agenda solo se activa cuando ya se evaluó el proyecto (para lo general está la sección Gantt)
+function habilitarAgendaEval(on) {
+  const btn = document.getElementById('ev-btn-agenda'), cont = document.getElementById('ev-agenda');
+  if (!btn) return;
+  btn.disabled = !on;
+  btn.title = on ? 'Ver la ocupación de la plantilla en las fechas de este proyecto' : 'Evalúa un proyecto para ver su agenda';
+  if (!on && cont) { cont.classList.remove('abierta'); btn.classList.remove('activo'); btn.setAttribute('aria-expanded', 'false'); }
+}
 // Botón "Agenda general": despliega / pliega el Gantt debajo de la barra de control
 async function toggleAgendaEval(forzarAbrir) {
   const cont = document.getElementById('ev-agenda'), btn = document.getElementById('ev-btn-agenda');
-  if (!cont) return;
+  if (!cont || btn?.disabled) return;
   const abrir = forzarAbrir ?? !cont.classList.contains('abierta');
   STATE._evalAgendaAbierta = abrir;
   cont.classList.toggle('abierta', abrir);
@@ -3696,10 +3704,12 @@ async function ejecutarEvaluacion() {
     api('GET', `/proyectos/proyectos/${pid}/disponibilidad-equipo`),
     api('GET', `/proyectos/proyectos/${pid}/disponibilidad-vehiculo`),
   ]);
-  if (!r) { resultsEl.innerHTML = '<div class="empty-state"><i class="ti ti-alert-triangle" aria-hidden="true"></i><p>Error al ejecutar la evaluación.</p></div>'; return; }
+  if (!r) { habilitarAgendaEval(false); resultsEl.innerHTML = '<div class="empty-state"><i class="ti ti-alert-triangle" aria-hidden="true"></i><p>Error al ejecutar la evaluación.</p></div>'; return; }
   const cambioProyecto = STATE._evalPid !== pid;
   STATE._evalUltima = r; STATE._evalPid = pid;
-  if (cambioProyecto && document.getElementById('ev-agenda')?.classList.contains('abierta')) toggleAgendaEval(true);
+  habilitarAgendaEval(true);
+  const agendaAbierta = document.getElementById('ev-agenda')?.classList.contains('abierta');
+  if ((agendaAbierta && cambioProyecto) || (!agendaAbierta && STATE._evalAgendaAbierta)) toggleAgendaEval(true);
   const pry = (STATE.proyectos || []).find(p => p.id === pid) || {};
   const asignados = pry.tecnicos_asignados || [], req = pry.personal_requerido || 1;
 
