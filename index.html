@@ -411,6 +411,20 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .ev-bar-sel>i{position:absolute;left:11px;font-size:16px;color:var(--text3);pointer-events:none}
 .ev-bar-sel .field-select{padding-left:34px;width:100%;font-weight:600}
 .ev-bar-agenda{margin-left:auto}
+.ev-bar-pry{flex:1;min-width:0;display:flex;align-items:center;gap:10px}
+.ev-volver{padding:6px 8px}
+.ev-bar-pry-n{font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev-bar-pry-s{font-size:12px;color:var(--text3);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ev-cambiar{background:none;border:0;padding:0;font:inherit;font-size:12px;color:var(--blue,#60a5fa);cursor:pointer}
+.ev-cambiar:hover{text-decoration:underline}
+.pry-tabs{display:flex;gap:6px;margin:4px 0 12px;flex-wrap:wrap}
+.pry-tab{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:border-color .15s,color .15s}
+.pry-tab span{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.pry-tab:hover{color:var(--text);border-color:var(--border2)}
+.pry-tab.activa{color:var(--text);border-color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+.pry-tab.activa i{color:var(--red)}
+.pry-btn-eval{background:color-mix(in srgb,var(--amber) 16%,transparent);border:1px solid color-mix(in srgb,var(--amber) 55%,transparent);color:var(--amber);font-weight:700;white-space:nowrap}
+.pry-btn-eval:hover{background:color-mix(in srgb,var(--amber) 28%,transparent);border-color:var(--amber)}
 .ev-bar-flecha{font-size:14px;transition:transform .2s}
 .ev-bar-agenda:disabled{display:none}
 .ev-bar-agenda.activo{border-color:var(--red);color:var(--text)}
@@ -1300,7 +1314,13 @@ async function initApp() {
   }
   if (STATE.rol === 'administrador' || STATE.rol === 'director_proyecto') {
     await loadEmpleados();
-    showSection('mapa');
+    const pidRuta = pidDeRutaEvaluar();
+    if (pidRuta) { await loadProyectos(); irAEvaluar(pidRuta); }
+    else showSection('mapa');
+    if (!STATE._rutaEscuchando) {
+      STATE._rutaEscuchando = true;
+      window.addEventListener('hashchange', () => { const pid = pidDeRutaEvaluar(); if (pid && pid !== STATE._evalModoPid) irAEvaluar(pid); });
+    }
   } else {
     showSection('mis-asignaciones');
   }
@@ -1549,8 +1569,25 @@ const RENDERERS = {
   'mi-perfil':      renderMiPerfil,
 };
 
+// Abre Evaluar con el proyecto ya cargado (sin pasar por el selector)
+function irAEvaluar(pid) {
+  STATE._evalPid = pid; STATE._evalModoPid = pid; STATE._entrandoDirecto = true;
+  try { history.replaceState(null, '', `#/proyectos/${encodeURIComponent(pid)}/evaluar`); } catch (e) {}
+  showSection('evaluar');
+}
+// Ruta en la dirección: #/proyectos/PRY-XXXX/evaluar
+function pidDeRutaEvaluar() {
+  const m = /^#\/proyectos\/([^/]+)\/evaluar$/.exec(location.hash || '');
+  return m ? decodeURIComponent(m[1]) : null;
+}
 function showSection(sec) {
   STATE._seccion = sec;
+  // Entrar a Evaluar desde el menú = modo normal (con selector); desde un proyecto = modo directo
+  if (sec === 'evaluar' && !STATE._entrandoDirecto) STATE._evalModoPid = null;
+  STATE._entrandoDirecto = false;
+  if (!(sec === 'evaluar' && STATE._evalModoPid) && /^#\/proyectos\//.test(location.hash || '')) {
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  }
   if (window.innerWidth <= 768) cerrarSidebarMovil();   // al elegir una opción del menú en celular, se cierra
   document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(el => {
     el.classList.toggle('active', el.dataset.sec === sec);
@@ -2537,6 +2574,15 @@ async function renderProyectos() {
       (p.ciudad||'').toLowerCase().includes(filtro)
     );
   }
+  // Pestañas: Activos (todo lo que no está terminado) | Histórico (completados y cancelados)
+  const tab = STATE._pryTab || 'activos';
+  const esHist = p => ['completado', 'cancelado'].includes(p.estado);
+  const nActivos = STATE.proyectos.filter(p => !esHist(p)).length, nHist = STATE.proyectos.length - nActivos;
+  proyectos = proyectos.filter(p => tab === 'historico' ? esHist(p) : !esHist(p));
+  const opcionesEstado = tab === 'historico'
+    ? [['completado', 'Completado'], ['cancelado', 'Cancelado']]
+    : [['pendiente_asignacion', 'Pendiente'], ['asignado', 'Asignado'], ['en_preparacion', 'En preparativos'], ['en_progreso', 'En progreso'], ['pausado', 'Pausado']];
+  if (STATE._pryFiltroEstado && !opcionesEstado.some(([v]) => v === STATE._pryFiltroEstado)) STATE._pryFiltroEstado = '';
   const filtroEstadoPry = STATE._pryFiltroEstado || '';
   if (filtroEstadoPry) {
     proyectos = proyectos.filter(p => {
@@ -2546,6 +2592,10 @@ async function renderProyectos() {
   }
   const sortCampo = STATE._prySortCampo;
   const sortDir = STATE._prySortDir || 'asc';
+  if (!sortCampo && tab === 'historico') {
+    // Histórico: lo más reciente primero
+    proyectos = proyectos.slice().sort((a, b) => String(b.fecha_fin_real || b.fecha_fin_estimada || '').localeCompare(String(a.fecha_fin_real || a.fecha_fin_estimada || '')));
+  }
   if (sortCampo) {
     proyectos = proyectos.slice().sort((a,b) => {
       const va = a[sortCampo] || '';
@@ -2562,25 +2612,23 @@ async function renderProyectos() {
       <div class="stat-card c-red"><div class="stat-lbl">EN CAMPO</div><div class="stat-val">${enCampo}</div><div class="stat-sub">${pausados ? `iniciados · ${pausados} en pausa aparte` : 'iniciados, sin finalizar'}</div></div>
       <div class="stat-card c-green"><div class="stat-lbl">FINALIZADOS</div><div class="stat-val">${finalizados}</div><div class="stat-sub">completados</div></div>
     </div>
+    <div class="pry-tabs" role="tablist">
+      <button type="button" role="tab" class="pry-tab${tab === 'activos' ? ' activa' : ''}" aria-selected="${tab === 'activos'}" onclick="STATE._pryTab='activos';renderProyectos()"><i class="ti ti-bolt" aria-hidden="true"></i> Activos / Pendientes <span>${nActivos}</span></button>
+      <button type="button" role="tab" class="pry-tab${tab === 'historico' ? ' activa' : ''}" aria-selected="${tab === 'historico'}" onclick="STATE._pryTab='historico';renderProyectos()"><i class="ti ti-archive" aria-hidden="true"></i> Completados / Histórico <span>${nHist}</span></button>
+    </div>
     <div class="table-section">
       <div class="table-header">
-        <span class="table-title">REGISTRO DE PROYECTOS</span>
+        <span class="table-title">${tab === 'historico' ? 'HISTÓRICO DE PROYECTOS' : 'PROYECTOS ACTIVOS'}</span>
         <div class="filter-bar"><div class="filter-bar-inner">
           <div class="search-box" style="max-width:none"><i class="ti ti-search" aria-hidden="true"></i><input class="field-input" id="pry-buscar" placeholder="Buscar por nombre, cliente, ID o ciudad..." value="${filtro}" oninput="STATE._pryFiltro=this.value;renderProyectos();" onclick="event.stopPropagation()"></div>
           <select class="field-select" onchange="STATE._pryFiltroEstado=this.value;renderProyectos();" onclick="event.stopPropagation()">
             <option value="">Todos los estados</option>
-            <option value="pendiente_asignacion" ${filtroEstadoPry==='pendiente_asignacion'?'selected':''}>Pendiente</option>
-            <option value="asignado" ${filtroEstadoPry==='asignado'?'selected':''}>Asignado</option>
-            <option value="en_preparacion" ${filtroEstadoPry==='en_preparacion'?'selected':''}>En preparativos</option>
-            <option value="en_progreso" ${filtroEstadoPry==='en_progreso'?'selected':''}>En progreso</option>
-            <option value="pausado" ${filtroEstadoPry==='pausado'?'selected':''}>Pausado</option>
-            <option value="completado" ${filtroEstadoPry==='completado'?'selected':''}>Completado</option>
-            <option value="cancelado" ${filtroEstadoPry==='cancelado'?'selected':''}>Cancelado</option>
+            ${opcionesEstado.map(([v, t]) => `<option value="${v}" ${filtroEstadoPry === v ? 'selected' : ''}>${t}</option>`).join('')}
           </select>
         </div></div>
-        <span class="table-meta">${proyectos.length} de ${STATE.proyectos.length} proyectos · nube</span>
+        <span class="table-meta">${proyectos.length} de ${tab === 'historico' ? nHist : nActivos} proyectos</span>
       </div>
-      ${proyectos.length === 0 ? '<div class="empty-state"><i class="ti ti-folder" aria-hidden="true"></i><p>Sin resultados</p></div>' : `
+      ${proyectos.length === 0 ? `<div class="empty-state"><i class="ti ti-folder" aria-hidden="true"></i><p>${filtro || filtroEstadoPry ? 'Sin resultados' : tab === 'historico' ? 'Aún no hay proyectos completados ni cancelados' : 'No hay proyectos activos'}</p></div>` : `
       <table>
         <thead><tr><th>ID</th><th>NOMBRE</th><th>CLIENTE</th><th>ESTADO</th><th class="th-sortable${sortCampo==='fecha_inicio'?' activo':''}" onclick="ordenarProyectosPor('fecha_inicio')">INICIO<i class="ti ${sortCampo==='fecha_inicio'?(sortDir==='asc'?'ti-sort-ascending':'ti-sort-descending'):'ti-arrows-sort'}" aria-hidden="true"></i></th><th class="th-sortable${sortCampo==='fecha_fin_estimada'?' activo':''}" onclick="ordenarProyectosPor('fecha_fin_estimada')">FIN EST.<i class="ti ${sortCampo==='fecha_fin_estimada'?(sortDir==='asc'?'ti-sort-ascending':'ti-sort-descending'):'ti-arrows-sort'}" aria-hidden="true"></i></th><th>SITIO</th><th></th></tr></thead>
         <tbody>
@@ -2592,7 +2640,9 @@ async function renderProyectos() {
             <td class="td-mono">${p.fecha_inicio||'—'}</td>
             <td class="td-mono">${p.fecha_fin_estimada||'—'}</td>
             <td>${p.ciudad||'—'}</td>
-            <td class="td-action"><i class="ti ti-chevron-right" aria-hidden="true"></i></td>
+            <td class="td-action">${estadoProyectoVisible(p) === 'pendiente_asignacion' && STATE.rol !== 'tecnico'
+              ? `<button class="btn btn-sm pry-btn-eval" onclick="event.stopPropagation();irAEvaluar('${p.id}')" title="Evaluar al personal para este proyecto"><i class="ti ti-bolt" aria-hidden="true"></i> Evaluar personal</button>`
+              : '<i class="ti ti-chevron-right" aria-hidden="true"></i>'}</td>
           </tr>`).join('')}
         </tbody>
       </table>`}
@@ -3033,7 +3083,7 @@ function openNuevoProyecto() {
     </div>
     <div class="panel-section">
       <div class="panel-section-title">FECHAS Y PERSONAL</div>
-      <div class="field-row" style="margin-bottom:10px"><div class="field-group"><label class="field-label">PERSONAL REQUERIDO</label><input class="field-input" id="np-personal" type="number" value="1" min="1"></div><div class="field-group"><label class="field-label">PRESUPUESTO VIÁTICOS</label><input class="field-input" id="np-presup" type="number" placeholder="0.00"></div></div>
+      <div class="field-row" style="margin-bottom:10px"><div class="field-group"><label class="field-label">PERSONAL REQUERIDO</label><input class="field-input" id="np-personal" type="number" value="1" min="1"></div><div class="field-group"></div></div>
       <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);cursor:pointer;margin-bottom:10px">
         <input type="checkbox" id="np-buscar" onchange="alternarBuscadorFechas(this.checked)">
         <span><i class="ti ti-calendar-search" aria-hidden="true"></i> No tengo fechas fijas: <strong>buscar la fecha más próxima</strong></span>
@@ -3105,7 +3155,9 @@ function openNuevoProyecto() {
     <div id="np-buscador-final"></div>
     <div id="np-guia-lugar"></div>
     <div id="np-err" style="color:var(--red-text);font-size:12px;margin-top:8px"></div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, guardarNuevoProyecto)"><i class="ti ti-check" aria-hidden="true"></i> Crear proyecto</button>`);
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button>
+     <button class="btn btn-ghost btn-sm np-btn-pend" onclick="ejecutarConCarga(this, () => guardarNuevoProyecto(false))"><i class="ti ti-device-floppy" aria-hidden="true"></i> Guardar como pendiente</button>
+     <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarNuevoProyecto(true))"><i class="ti ti-bolt" aria-hidden="true"></i> Crear y evaluar personal</button>`);
 }
 
 function renderListaHabilidadesProyecto() {
@@ -3164,7 +3216,7 @@ function quitarEquipoProyecto(i) {
   document.getElementById('np-equipo-list').innerHTML = renderListaEquipoProyecto();
 }
 
-async function guardarNuevoProyecto() {
+async function guardarNuevoProyecto(evaluar = false) {
   const nombre   = document.getElementById('np-nombre')?.value.trim();
   const cliente  = document.getElementById('np-cliente')?.value.trim();
   const crit     = document.getElementById('np-crit')?.value;
@@ -3179,7 +3231,6 @@ async function guardarNuevoProyecto() {
   const estadoUb = document.getElementById('np-estado')?.value.trim();
   const coordsTexto = document.getElementById('np-coords')?.value.trim();
   const coordsParseadas = parsearCoordenadas(coordsTexto);
-  const presup   = document.getElementById('np-presup')?.value;
   const err      = document.getElementById('np-err');
   if (!nombre || !inicio || !fin || !ciudad) { err.textContent = 'Nombre, fechas y ciudad son obligatorios.'; return; }
   let cliente_id = null;
@@ -3199,7 +3250,6 @@ async function guardarNuevoProyecto() {
     id: id_pry, nombre, cliente, cliente_id, criticidad: crit, intensidad: intens,
     fecha_inicio: inicio, fecha_fin_estimada: fin,
     personal_requerido: parseInt(personal)||1,
-    presupuesto_viaticos: parseFloat(presup)||0,
     ciudad, estado_ub: estadoUb, pais: 'México',
     latitud: coordsParseadas ? coordsParseadas.lat : 0,
     longitud: coordsParseadas ? coordsParseadas.lon : 0,
@@ -3218,9 +3268,11 @@ async function guardarNuevoProyecto() {
     STATE._np_sugerido = null;
     await loadProyectos(true);
     closePanel(null, true);
-    toast(`Proyecto "${nombre}" creado${asignados ? ` · ${asignados} persona(s) asignada(s)` : ''}`);
-    renderProyectos();
+    toast(`Proyecto "${nombre}" creado${asignados ? ` · ${asignados} persona(s) asignada(s)` : evaluar ? '' : ' como pendiente'}`);
     cargarCatalogos();
+    if (evaluar) { irAEvaluar(id_pry); return; }
+    STATE._pryTab = 'activos';
+    renderProyectos();
   } else { err.textContent = 'Error al crear el proyecto.'; }
 }
 
@@ -3404,9 +3456,21 @@ async function renderEvaluar() {
   const actual = STATE._evalPid && !pendientes.some(p => p.id === STATE._evalPid) ? STATE.proyectos.find(p => p.id === STATE._evalPid) : null;
   const opciones = [...pendientes, ...(actual ? [actual] : [])];
   const etiqueta = p => `${p.nombre}${p.fecha_inicio ? ` · ${fCorta(p.fecha_inicio)}` : ''} · ${(p.tecnicos_asignados || []).length}/${p.personal_requerido || 1}`;
+  const directo = STATE._evalModoPid ? STATE.proyectos.find(p => p.id === STATE._evalModoPid) : null;
+  if (STATE._evalModoPid && !directo) { STATE._evalModoPid = null; toast('No se encontró ese proyecto', 'error'); }
   html(`
     <div class="ev-bar">
       <div class="ev-bar-fila">
+        ${directo ? `
+        <div class="ev-bar-pry">
+          <button class="btn btn-ghost btn-sm ev-volver" onclick="showSection('proyectos')" title="Volver a Proyectos" aria-label="Volver a Proyectos"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+          <div style="min-width:0">
+            <div class="ev-bar-pry-n">${escHtml(directo.nombre)}</div>
+            <div class="ev-bar-pry-s">${escHtml(directo.cliente || '—')} · ${escHtml(directo.ciudad || '—')}<button class="ev-cambiar" onclick="STATE._evalModoPid=null;try{history.replaceState(null,'',location.pathname+location.search)}catch(e){};renderEvaluar()">Cambiar proyecto</button></div>
+          </div>
+          <input type="hidden" id="ev-proyecto" value="${directo.id}">
+        </div>
+        <button class="btn btn-ghost" onclick="ejecutarEvaluacion()" title="Volver a evaluar"><i class="ti ti-refresh" aria-hidden="true"></i> Reevaluar</button>` : `
         <div class="ev-bar-sel">
           <i class="ti ti-folder-search" aria-hidden="true"></i>
           <select class="field-select" id="ev-proyecto" onchange="habilitarAgendaEval(false);STATE._evalPid=this.value;if(this.value)ejecutarEvaluacion()" aria-label="Proyecto a evaluar">
@@ -3414,14 +3478,15 @@ async function renderEvaluar() {
             ${opciones.map(p => `<option value="${p.id}" ${p.id === STATE._evalPid ? 'selected' : ''}>${escHtml(etiqueta(p))}</option>`).join('')}
           </select>
         </div>
-        <button class="btn btn-primary" onclick="ejecutarEvaluacion()"><i class="ti ti-player-play" aria-hidden="true"></i> Evaluar</button>
+        <button class="btn btn-primary" onclick="ejecutarEvaluacion()"><i class="ti ti-player-play" aria-hidden="true"></i> Evaluar</button>`}
         <button class="btn btn-ghost ev-bar-agenda" id="ev-btn-agenda" aria-expanded="false" aria-controls="ev-agenda" disabled title="Evalúa un proyecto para ver su agenda" onclick="toggleAgendaEval()"><i class="ti ti-world" aria-hidden="true"></i> Agenda general <i class="ti ti-chevron-down ev-bar-flecha" aria-hidden="true"></i></button>
       </div>
       <div class="ev-agenda" id="ev-agenda"><div class="ev-agenda-in"></div></div>
       <div class="ev-bar-meta" id="ev-meta">${opciones.length ? '<span class="ev-bar-hint">Elige un proyecto para ver a los candidatos.</span>' : '<span class="ev-bar-hint"><i class="ti ti-circle-check" aria-hidden="true"></i> Todos los proyectos tienen su personal completo.</span>'}</div>
     </div>
     <div id="ev-results"></div>`);
-  if (STATE._evalPid && opciones.some(p => p.id === STATE._evalPid)) ejecutarEvaluacion();
+  if (directo) { STATE._evalPid = directo.id; ejecutarEvaluacion(); }
+  else if (STATE._evalPid && opciones.some(p => p.id === STATE._evalPid)) ejecutarEvaluacion();
 }
 
 // ─── EVALUACIÓN DE CANDIDATOS ────────────────────────────────────────────────
