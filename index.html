@@ -415,7 +415,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .mapa-leyenda .ley-punto{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .mapa-leyenda .ley-txt{flex:1;color:var(--text2)}
 .mapa-leyenda .ley-n{font-family:var(--mono);font-size:10px;color:var(--text3)}
-@media (max-width:768px){.mapa-leyenda{max-width:200px;margin:8px 0 0 10px!important}.mapa-leyenda .ley-cuerpo{max-height:38vh}}
+@media (max-width:768px){.mapa-leyenda{max-width:200px;margin:12px 0 0 12px!important}.mapa-leyenda .ley-cuerpo{max-height:38vh}}
 .ti[class*=' ti-ws-']::before,.ti[class^='ti-ws-']::before{content:'';display:inline-block;width:1em;height:1em;vertical-align:-.125em;background:currentColor;-webkit-mask:var(--ws-ic) center/contain no-repeat;mask:var(--ws-ic) center/contain no-repeat}
 .ti-ws-ga25{--ws-ic:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M7 3h10M7 3v5M17 3v5M7 5.5h10M5.5 8h13%22/%3E%3Cpath d=%22M10.8 8v9M13.2 8v9M10.8 11h2.4M10.8 14h2.4%22/%3E%3Crect x=%225%22 y=%2217%22 width=%2214%22 height=%222.5%22 rx=%22.8%22/%3E%3Cpath d=%22M5.5 19.5L3 21.5M18.5 19.5l2.5 2M1.8 21.5h2.4M19.8 21.5h2.4%22/%3E%3C/svg%3E")}
 .ti-ws-confinado{--ws-ic:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M4.5 7v10.5c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5V7%22/%3E%3Cellipse cx=%2212%22 cy=%227%22 rx=%227.5%22 ry=%222.5%22/%3E%3Cpath d=%22M10 2.5v14M14 2.5v14M10 5h4M10 9.5h4M10 13h4%22/%3E%3C/svg%3E")}
@@ -6150,8 +6150,8 @@ function inicializarMapa() {
   if (!cont || typeof L === 'undefined') return;
   if (MAPA_LEAFLET) { MAPA_LEAFLET.remove(); MAPA_LEAFLET = null; }
   ajustarAlturaMapa();
-  MAPA_LEAFLET = L.map('map-container', { zoomControl: true }).setView([23.6345, -102.5528], 5);
-  MAPA_LEYENDA = L.control({ position: esCelular() ? 'topleft' : 'bottomleft' });   // celular: bajo el zoom, plegada
+  MAPA_LEAFLET = L.map('map-container', { zoomControl: !esCelular() }).setView([23.6345, -102.5528], 5);   // celular: sin + / − (zoom con los dedos)
+  MAPA_LEYENDA = L.control({ position: esCelular() ? 'topleft' : 'bottomleft' });   // celular: arriba a la izquierda, plegada
   MAPA_LEYENDA.onAdd = () => {
     const div = L.DomUtil.create('div', 'mapa-leyenda');
     L.DomEvent.disableClickPropagation(div); L.DomEvent.disableScrollPropagation(div);
