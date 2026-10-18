@@ -417,6 +417,10 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .ev-bar-pry-s{font-size:12px;color:var(--text3);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .ev-cambiar{background:none;border:0;padding:0;font:inherit;font-size:12px;color:var(--blue,#60a5fa);cursor:pointer}
 .ev-cambiar:hover{text-decoration:underline}
+.stat-click{cursor:pointer;transition:border-color .15s,transform .15s}
+.stat-click:hover{border-color:var(--amber)}
+.stat-click.stat-activa{border-color:var(--amber);box-shadow:inset 0 0 0 1px var(--amber)}
+.nav-badge-pend{background:var(--amber);color:#111}
 .pry-tabs{display:flex;gap:6px;margin:4px 0 12px;flex-wrap:wrap}
 .pry-tab{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:border-color .15s,color .15s}
 .pry-tab span{font-family:var(--mono);font-size:11px;color:var(--text3)}
@@ -1331,17 +1335,17 @@ function buildNav() {
     document.getElementById('admin-nav').innerHTML = `
       <div class="nav-section">GESTIÓN</div>
       <div class="nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i> Empleados</div>
-      <div class="nav-item" onclick="showSection('proyectos')" data-sec="proyectos"><i class="ti ti-folder" aria-hidden="true"></i> Proyectos</div>
+      <div class="nav-item" onclick="showSection('proyectos')" data-sec="proyectos"><i class="ti ti-folder" aria-hidden="true"></i> Proyectos <span id="nav-badge-pendientes" class="nav-badge nav-badge-pend" style="display:none" title="Proyectos pendientes de asignar"></span></div>
       <div class="nav-item" onclick="showSection('clientes')" data-sec="clientes"><i class="ti ti-building" aria-hidden="true"></i> Clientes</div>
       <div class="nav-item" onclick="showSection('gantt')" data-sec="gantt"><i class="ti ti-calendar-stats" aria-hidden="true"></i> Gantt</div>
       <div class="nav-section">OPERACIONES</div>
-      <div class="nav-item" onclick="showSection('evaluar')" data-sec="evaluar"><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i> Evaluar</div>
       <div class="nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-tool" aria-hidden="true"></i> Equipos</div>
       <div class="nav-item" onclick="showSection('vehiculos')" data-sec="vehiculos"><i class="ti ti-truck" aria-hidden="true"></i> Vehículos</div>
       <div class="nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Incidencias</div>
       <div class="nav-item" onclick="showSection('inactividad')" data-sec="inactividad"><i class="ti ti-calendar-pause" aria-hidden="true"></i> Días sin trabajo <span id="nav-badge-inactividad" class="nav-badge" style="display:none"></span></div>
       <div class="nav-item" onclick="showSection('metricas')" data-sec="metricas"><i class="ti ti-chart-bar" aria-hidden="true"></i> Métricas</div>`;
     actualizarBadgeInactividad();
+    loadProyectos().then(actualizarBadgePendientes);
     document.getElementById('um-switch-modo').style.display = STATE.user?.empleado_id ? 'flex' : 'none';
     document.getElementById('um-bitacora').style.display = STATE.rol === 'administrador' ? 'flex' : 'none';
     document.getElementById('um-catalogo').style.display = STATE.rol === 'administrador' ? 'flex' : 'none';
@@ -1351,7 +1355,6 @@ function buildNav() {
       <div class="mobile-nav-items">
         <div class="mobile-nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i>Empleados</div>
         <div class="mobile-nav-item" onclick="showSection('proyectos')" data-sec="proyectos"><i class="ti ti-folder" aria-hidden="true"></i>Proyectos</div>
-        <div class="mobile-nav-item" onclick="showSection('evaluar')" data-sec="evaluar"><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i>Evaluar</div>
         <div class="mobile-nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-tool" aria-hidden="true"></i>Equipos</div>
         <div class="mobile-nav-item" onclick="showSection('vehiculos')" data-sec="vehiculos"><i class="ti ti-truck" aria-hidden="true"></i>Vehículos</div>
         <div class="mobile-nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Incidencias</div>
@@ -1516,7 +1519,6 @@ function buildMobileNavAdmin() {
     <div class="mobile-nav-items">
       <div class="mobile-nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i>Empleados</div>
       <div class="mobile-nav-item" onclick="showSection('proyectos')" data-sec="proyectos"><i class="ti ti-folder" aria-hidden="true"></i>Proyectos</div>
-      <div class="mobile-nav-item" onclick="showSection('evaluar')" data-sec="evaluar"><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i>Evaluar</div>
       <div class="mobile-nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-tool" aria-hidden="true"></i>Equipos</div>
       <div class="mobile-nav-item" onclick="showSection('vehiculos')" data-sec="vehiculos"><i class="ti ti-truck" aria-hidden="true"></i>Vehículos</div>
       <div class="mobile-nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Incidencias</div>
@@ -1590,7 +1592,7 @@ function showSection(sec) {
   }
   if (window.innerWidth <= 768) cerrarSidebarMovil();   // al elegir una opción del menú en celular, se cierra
   document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.sec === sec);
+    el.classList.toggle('active', el.dataset.sec === sec || (sec === 'evaluar' && el.dataset.sec === 'proyectos'));
   });
   const [icon, title] = TITLES[sec] || ['ti-home', sec];
   document.getElementById('page-title').innerHTML = `<i class="ti ${icon}" aria-hidden="true"></i><span>${title}</span>`;
@@ -1822,7 +1824,7 @@ async function loadProyectos(forzar) {
   const ahora = Date.now();
   if (!forzar && STATE._pryCargadosEn && (ahora - STATE._pryCargadosEn) < 8000) return;
   const d = await api('GET', '/proyectos/proyectos');
-  if (d) { STATE.proyectos = d; STATE._pryCargadosEn = ahora; }
+  if (d) { STATE.proyectos = d; STATE._pryCargadosEn = ahora; actualizarBadgePendientes(); }
 }
 
 // ─── HELPER UI ────────────────────────────────────────────────────────────────
@@ -2607,7 +2609,9 @@ async function renderProyectos() {
   html(`
     <div class="stats-grid stats-5">
       <div class="stat-card c-red"><div class="stat-lbl">TOTAL PROYECTOS</div><div class="stat-val">${STATE.proyectos.length}</div><div class="stat-sub">en sistema</div></div>
-      <div class="stat-card c-amber"><div class="stat-lbl">PENDIENTES</div><div class="stat-val">${pend}</div><div class="stat-sub">sin asignar</div></div>
+      <div class="stat-card c-amber stat-click${filtroEstadoPry === 'pendiente_asignacion' ? ' stat-activa' : ''}" role="button" tabindex="0" title="${filtroEstadoPry === 'pendiente_asignacion' ? 'Quitar filtro' : 'Ver solo los pendientes'}"
+        onclick="STATE._pryTab='activos';STATE._pryFiltroEstado=STATE._pryFiltroEstado==='pendiente_asignacion'?'':'pendiente_asignacion';renderProyectos()" onkeydown="if(event.key==='Enter')this.click()">
+        <div class="stat-lbl">PENDIENTES</div><div class="stat-val">${pend}</div><div class="stat-sub">${filtroEstadoPry === 'pendiente_asignacion' ? 'mostrando solo estos · quitar filtro' : 'sin asignar · ver solo estos'}</div></div>
       <div class="stat-card c-blue"><div class="stat-lbl">PROGRAMADOS</div><div class="stat-val">${programados}</div><div class="stat-sub">asignados, aún no inician</div></div>
       <div class="stat-card c-red"><div class="stat-lbl">EN CAMPO</div><div class="stat-val">${enCampo}</div><div class="stat-sub">${pausados ? `iniciados · ${pausados} en pausa aparte` : 'iniciados, sin finalizar'}</div></div>
       <div class="stat-card c-green"><div class="stat-lbl">FINALIZADOS</div><div class="stat-val">${finalizados}</div><div class="stat-sub">completados</div></div>
@@ -2750,7 +2754,11 @@ async function verProyecto(id) {
           <div><div style="color:var(--text);font-weight:600">${e.nombre} ${e.apellido}</div><div style="color:var(--text3);font-size:10px">${(e.seniority||'').replace('_',' ')}</div></div>
           ${badge(estadoVisible(e))}
         </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Aún no hay técnicos asignados a este proyecto.</div>'}
-      <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="abrirAsignacionDirecta('${p.id}')"><i class="ti ti-user-plus" aria-hidden="true"></i> Asignar técnico directamente</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        ${!['completado', 'cancelado'].includes(p.estado) && idsAsignados.length < (p.personal_requerido || 1) && STATE.rol !== 'tecnico'
+          ? `<button class="btn btn-sm pry-btn-eval" onclick="closePanel(null,true);irAEvaluar('${p.id}')"><i class="ti ti-bolt" aria-hidden="true"></i> Evaluar personal</button>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="abrirAsignacionDirecta('${p.id}')"><i class="ti ti-user-plus" aria-hidden="true"></i> Asignar técnico directamente</button>
+      </div>
     </div>
     <div class="panel-section">
       <div class="panel-section-title">EQUIPO Y HERRAMIENTAS</div>
@@ -3457,16 +3465,22 @@ async function renderEvaluar() {
   const opciones = [...pendientes, ...(actual ? [actual] : [])];
   const etiqueta = p => `${p.nombre}${p.fecha_inicio ? ` · ${fCorta(p.fecha_inicio)}` : ''} · ${(p.tecnicos_asignados || []).length}/${p.personal_requerido || 1}`;
   const directo = STATE._evalModoPid ? STATE.proyectos.find(p => p.id === STATE._evalModoPid) : null;
-  if (STATE._evalModoPid && !directo) { STATE._evalModoPid = null; toast('No se encontró ese proyecto', 'error'); }
+  if (!directo) {
+    // La evaluación se abre desde Proyectos (ya no hay entrada en el menú)
+    if (STATE._evalModoPid) toast('No se encontró ese proyecto', 'error');
+    STATE._evalModoPid = null; STATE._pryTab = 'activos';
+    showSection('proyectos');
+    return;
+  }
   html(`
     <div class="ev-bar">
       <div class="ev-bar-fila">
         ${directo ? `
         <div class="ev-bar-pry">
-          <button class="btn btn-ghost btn-sm ev-volver" onclick="showSection('proyectos')" title="Volver a Proyectos" aria-label="Volver a Proyectos"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+          <button class="btn btn-ghost btn-sm ev-volver" onclick="STATE._pryTab='activos';showSection('proyectos')" title="Volver a Proyectos" aria-label="Volver a Proyectos"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
           <div style="min-width:0">
             <div class="ev-bar-pry-n">${escHtml(directo.nombre)}</div>
-            <div class="ev-bar-pry-s">${escHtml(directo.cliente || '—')} · ${escHtml(directo.ciudad || '—')}<button class="ev-cambiar" onclick="STATE._evalModoPid=null;try{history.replaceState(null,'',location.pathname+location.search)}catch(e){};renderEvaluar()">Cambiar proyecto</button></div>
+            <div class="ev-bar-pry-s">${escHtml(directo.cliente || '—')} · ${escHtml(directo.ciudad || '—')}${directo.fecha_inicio ? ` · ${rangoCorto(directo.fecha_inicio, directo.fecha_fin_estimada || directo.fecha_inicio)}` : ''}</div>
           </div>
           <input type="hidden" id="ev-proyecto" value="${directo.id}">
         </div>
@@ -7144,6 +7158,14 @@ async function enviarReporteInactividad() {
   renderChecador();
 }
 
+// Numerito en "Proyectos" del menú: proyectos pendientes de asignar
+function actualizarBadgePendientes() {
+  const b = document.getElementById('nav-badge-pendientes');
+  if (!b) return;
+  const n = (STATE.proyectos || []).filter(p => p.estado === 'pendiente_asignacion').length;
+  b.textContent = n;
+  b.style.display = n ? 'inline-block' : 'none';
+}
 async function actualizarBadgeInactividad() {
   if (!['administrador','director_proyecto'].includes(STATE.rol)) return;
   const r = await api('GET', '/inactividad/pendientes/conteo');
