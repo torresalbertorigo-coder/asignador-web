@@ -5627,7 +5627,7 @@ async function armarReporteWhatsApp() {
     && (fechaLocal(p.fecha_inicio) - hoy) / 86400000 <= 7).sort((a, b) => a.fecha_inicio.localeCompare(b.fecha_inicio));
   const L = [];
   const fechaTxt = hoy.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-  L.push(`*📋 REPORTE DIARIO DE OPERACIONES*`, `_${fechaTxt.charAt(0).toUpperCase() + fechaTxt.slice(1)}_`, '');
+  L.push(`📋 *¿QUÉ TENEMOS HOY?*`, `_${fechaTxt.charAt(0).toUpperCase() + fechaTxt.slice(1)}_`, '');
   L.push(`*🟢 Proyectos en ejecución hoy (${activos.length})*`);
   if (!activos.length) L.push('_Sin proyectos en campo hoy._');
   activos.forEach(p => {
@@ -5639,17 +5639,17 @@ async function armarReporteWhatsApp() {
       const atraso = p.fecha_fin_estimada && hoyIso > p.fecha_fin_estimada ? Math.round((hoy - fechaLocal(p.fecha_fin_estimada)) / 86400000) : 0;
       estado = `En campo · día ${dia}${total ? ` de ${total}` : ''}${atraso ? ` · ⏰ +${atraso} día${atraso === 1 ? '' : 's'} de retraso` : ''}`;
     } else estado = p.fecha_inicio === hoyIso ? 'Inicia hoy' : 'Programado, aún sin iniciar';
-    L.push(`• *${p.nombre}*`, `   🏢 ${p.cliente || '—'} · 📍 ${p.ciudad || '—'}`,
+    L.push(`- *${p.nombre}*`, `   🏢 ${p.cliente || '—'} · 📍 ${p.ciudad || '—'}`,
       `   👷 ${personal.length ? personal.join(', ') : 'Sin personal asignado'}`, `   📌 ${estado}`);
   });
   // Novedades: standby/descanso de hoy, proyectos pausados e incidencias abiertas
   const hoyInact = (inact || []).filter(g => g.estado !== 'rechazado' && (g.fechas || []).includes(hoyIso));
   const incAbiertas = (inc || []).filter(i => i.estado !== 'resuelta' && (i.severidad === 'alta' || String(i.fecha || '').slice(0, 10) === hoyIso));
-  L.push('', `*⚠️ Standby / incidencias activas*`);
+  L.push('', `*⚠️ Standby / Incidencias activas*`);
   if (!hoyInact.length && !pausados.length && !incAbiertas.length) L.push('_Sin novedades._');
-  hoyInact.forEach(g => L.push(`• ${g.tipo === 'standby' ? '⏸️ Standby' : '😴 Descanso'}: ${g.empleado_nombre || nombreEmp(g.empleado_id) || ''} — ${g.proyecto_nombre || pryNombre(g.proyecto_id)}${g.motivo ? ` (${g.motivo})` : ''}${g.estado === 'pendiente' ? ' _[por aprobar]_' : ''}`));
-  pausados.forEach(p => L.push(`• ⏸️ Proyecto en pausa: *${p.nombre}*${p.pausas_resumen?.length ? ` desde el ${fCorta(p.pausas_resumen.at(-1).inicio)}` : ''}`));
-  incAbiertas.forEach(i => L.push(`• ${i.severidad === 'alta' ? '🔴' : i.severidad === 'media' ? '🟠' : '🟡'} ${i.tipo}${pryNombre(i.proyecto_id) ? ` — ${pryNombre(i.proyecto_id)}` : ''}${i.descripcion ? `: ${i.descripcion}` : ''}`));
+  hoyInact.forEach(g => L.push(`- ${g.tipo === 'standby' ? '⏸️ Standby' : '😴 Descanso'}: ${g.empleado_nombre || nombreEmp(g.empleado_id) || ''} — ${g.proyecto_nombre || pryNombre(g.proyecto_id)}${g.motivo ? ` (${g.motivo})` : ''}${g.estado === 'pendiente' ? ' _[por aprobar]_' : ''}`));
+  pausados.forEach(p => L.push(`- ⏸️ Proyecto en pausa: *${p.nombre}*${p.pausas_resumen?.length ? ` desde el ${fCorta(p.pausas_resumen.at(-1).inicio)}` : ''}`));
+  incAbiertas.forEach(i => L.push(`- ${i.severidad === 'alta' ? '🔴' : i.severidad === 'media' ? '🟠' : '🟡'} ${i.tipo}${pryNombre(i.proyecto_id) ? ` — ${pryNombre(i.proyecto_id)}` : ''}${i.descripcion ? `: ${i.descripcion}` : ''}`));
   // Recursos en campo, agrupados por proyecto
   const enCampo = new Map();
   const add = (pry, txt) => { if (!pry) return; if (!enCampo.has(pry)) enCampo.set(pry, { veh: [], eq: [] }); enCampo.get(pry)[txt[0]].push(txt[1]); };
@@ -5658,13 +5658,13 @@ async function armarReporteWhatsApp() {
   L.push('', `*🚚 Recursos y vehículos en campo*`);
   if (!enCampo.size) L.push('_Sin equipo ni vehículos fuera de base._');
   [...enCampo.entries()].sort((a, b) => a[0].localeCompare(b[0], 'es')).forEach(([pry, r]) => {
-    L.push(`• *${pry}*`);
+    L.push(`- *${pry}*`);
     if (r.veh.length) L.push(`   🚗 ${r.veh.join(', ')}`);
     if (r.eq.length) L.push(`   🧰 ${r.eq.join(', ')}`);
   });
   if (proximos.length) {
     L.push('', `*📅 Próximos inicios (7 días)*`);
-    proximos.slice(0, 6).forEach(p => L.push(`• ${fCorta(p.fecha_inicio)} — *${p.nombre}* · ${p.ciudad || '—'} (${(p.tecnicos_asignados || []).length}/${p.personal_requerido || 1} personal)`));
+    proximos.slice(0, 6).forEach(p => L.push(`- ${fCorta(p.fecha_inicio)} — *${p.nombre}* · ${p.ciudad || '—'} (${(p.tecnicos_asignados || []).length}/${p.personal_requerido || 1} personal)`));
   }
   L.push('', '_Generado con WorkSync_');
   return L.join('\n');
@@ -5686,7 +5686,7 @@ async function abrirReporteWhatsApp() {
     <div class="sel-card" style="max-width:560px">
       <div class="sel-head">
         <div style="display:flex;align-items:center;gap:10px"><span class="wa-ico"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></span>
-          <div><div style="font-weight:700;font-size:15px;color:var(--text)">Resumen diario de operaciones</div>
+          <div><div style="font-weight:700;font-size:15px;color:var(--text)">📋 ¿QUÉ TENEMOS HOY?</div>
           <div style="font-size:12px;color:var(--text3)">Revísalo, edítalo si quieres y compártelo</div></div></div>
         <button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button>
       </div>
@@ -5971,10 +5971,10 @@ async function eliminarTerminoCatalogo(tipo, nombre, usos) {
 async function renderMapa() {
   await loadEmpleados(); await loadProyectos(); await loadEquipos(); await loadVehiculos();
   if (['administrador', 'director_proyecto'].includes(STATE.rol)) {
-    document.getElementById('topbar-actions').insertAdjacentHTML('afterbegin', `<button class="btn btn-sm btn-wa btn-wa-top" onclick="abrirReporteWhatsApp()" title="Resumen del día para compartir por WhatsApp"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i> Reporte WhatsApp</button>`);
+    document.getElementById('topbar-actions').insertAdjacentHTML('afterbegin', `<button class="btn btn-sm btn-wa btn-wa-top" onclick="abrirReporteWhatsApp()" title="Resumen del día para compartir por WhatsApp">💬 ¿Qué tenemos hoy?</button>`);
   }
   html(`
-    ${['administrador', 'director_proyecto'].includes(STATE.rol) ? `<button class="wa-fab" onclick="abrirReporteWhatsApp()" aria-label="Reporte diario por WhatsApp"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></button>` : ''}
+    ${['administrador', 'director_proyecto'].includes(STATE.rol) ? `<button class="wa-fab" onclick="abrirReporteWhatsApp()" aria-label="¿Qué tenemos hoy?"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></button>` : ''}
     <div class="table-section" style="padding:14px 18px;margin-bottom:12px">
       <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center">
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="mapa-f-proyectos" checked onchange="actualizarMapa()"> Proyectos</label>
