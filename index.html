@@ -415,7 +415,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .mapa-leyenda .ley-punto{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .mapa-leyenda .ley-txt{flex:1;color:var(--text2)}
 .mapa-leyenda .ley-n{font-family:var(--mono);font-size:10px;color:var(--text3)}
-@media (max-width:768px){.mapa-leyenda{max-width:180px;margin:0 0 10px 8px!important}}
+@media (max-width:768px){.mapa-leyenda{max-width:200px;margin:8px 0 0 10px!important}.mapa-leyenda .ley-cuerpo{max-height:38vh}}
 .ti[class*=' ti-ws-']::before,.ti[class^='ti-ws-']::before{content:'';display:inline-block;width:1em;height:1em;vertical-align:-.125em;background:currentColor;-webkit-mask:var(--ws-ic) center/contain no-repeat;mask:var(--ws-ic) center/contain no-repeat}
 .ti-ws-ga25{--ws-ic:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M7 3h10M7 3v5M17 3v5M7 5.5h10M5.5 8h13%22/%3E%3Cpath d=%22M10.8 8v9M13.2 8v9M10.8 11h2.4M10.8 14h2.4%22/%3E%3Crect x=%225%22 y=%2217%22 width=%2214%22 height=%222.5%22 rx=%22.8%22/%3E%3Cpath d=%22M5.5 19.5L3 21.5M18.5 19.5l2.5 2M1.8 21.5h2.4M19.8 21.5h2.4%22/%3E%3C/svg%3E")}
 .ti-ws-confinado{--ws-ic:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M4.5 7v10.5c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5V7%22/%3E%3Cellipse cx=%2212%22 cy=%227%22 rx=%227.5%22 ry=%222.5%22/%3E%3Cpath d=%22M10 2.5v14M14 2.5v14M10 5h4M10 9.5h4M10 13h4%22/%3E%3C/svg%3E")}
@@ -517,10 +517,11 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .gantt-fab{display:none}
 @media (max-width:768px){
   .btn-wa-top,.gantt-export-top{display:none!important}
-  .btn-wa-movil{display:flex;align-items:center;gap:8px;position:fixed;right:24px;bottom:calc(24px + env(safe-area-inset-bottom));z-index:50;background:rgba(5,150,105,.96);color:#fff;font-size:14px;font-weight:500;padding:12px 16px;border:0;border-radius:999px;box-shadow:0 25px 50px -12px rgba(0,0,0,.55),0 4px 12px rgba(0,0,0,.25);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .btn-wa-movil{display:flex;align-items:center;gap:8px;position:fixed;right:24px;bottom:calc(24px + env(safe-area-inset-bottom));z-index:30;background:rgba(5,150,105,.96);color:#fff;font-size:14px;font-weight:500;padding:12px 16px;border:0;border-radius:999px;box-shadow:0 25px 50px -12px rgba(0,0,0,.55),0 4px 12px rgba(0,0,0,.25);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);cursor:pointer;-webkit-tap-highlight-color:transparent}
   .btn-wa-movil:hover,.btn-wa-movil:active{background:#10b981}
-  .gantt-fab{display:flex;align-items:center;justify-content:center;position:fixed;right:24px;bottom:calc(24px + env(safe-area-inset-bottom));z-index:50;width:56px;height:56px;padding:16px;background:rgba(220,38,38,.96);color:#fff;font-size:22px;border:0;border-radius:50%;box-shadow:0 25px 50px -12px rgba(0,0,0,.55),0 4px 12px rgba(0,0,0,.25);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .gantt-fab{display:flex;align-items:center;justify-content:center;position:fixed;right:24px;bottom:calc(24px + env(safe-area-inset-bottom));z-index:50;flex-direction:column;gap:1px;width:60px;height:60px;padding:0;background:rgba(220,38,38,.96);color:#fff;font-size:21px;line-height:1;border:0;border-radius:50%;box-shadow:0 25px 50px -12px rgba(0,0,0,.55),0 4px 12px rgba(0,0,0,.25);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);cursor:pointer;-webkit-tap-highlight-color:transparent}
   .gantt-fab:hover,.gantt-fab:active{background:#ef4444}
+  .gantt-fab .fab-txt{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#fff;font-family:var(--sans)}
   #gantt-export-area{margin-bottom:84px}
 }
 .wa-ico{width:34px;height:34px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;font-size:19px}
@@ -3580,7 +3581,7 @@ async function renderGantt() {
           <button class="btn btn-ghost btn-sm gantt-export-top" onclick="exportarGanttPDF()"><i class="ti ti-file-download" aria-hidden="true"></i> Exportar PDF</button>
         </div>
       </div>
-      <button class="gantt-fab" onclick="ejecutarConCarga(this, () => exportarGanttPDF())" aria-label="Exportar PDF" title="Exportar PDF"><i class="ti ti-file-download" aria-hidden="true"></i></button>
+      <button class="gantt-fab" onclick="ejecutarConCarga(this, () => exportarGanttPDF())" aria-label="Exportar PDF" title="Exportar PDF"><i class="ti ti-file-download" aria-hidden="true"></i><span class="fab-txt">PDF</span></button>
       <div class="gantt-wrap" id="gantt-wrap" style="--gcw:${cw}px">
         <table class="gantt-table">
           <thead>
@@ -6150,7 +6151,7 @@ function inicializarMapa() {
   if (MAPA_LEAFLET) { MAPA_LEAFLET.remove(); MAPA_LEAFLET = null; }
   ajustarAlturaMapa();
   MAPA_LEAFLET = L.map('map-container', { zoomControl: true }).setView([23.6345, -102.5528], 5);
-  MAPA_LEYENDA = L.control({ position: 'bottomleft' });
+  MAPA_LEYENDA = L.control({ position: esCelular() ? 'topleft' : 'bottomleft' });   // celular: bajo el zoom, plegada
   MAPA_LEYENDA.onAdd = () => {
     const div = L.DomUtil.create('div', 'mapa-leyenda');
     L.DomEvent.disableClickPropagation(div); L.DomEvent.disableScrollPropagation(div);
@@ -6356,11 +6357,11 @@ function pintarLeyendaMapa(leyenda) {
   if (!div) return;
   if (!leyenda.size) { div.style.display = 'none'; return; }
   div.style.display = '';
-  let plegada = false;
-  try { plegada = localStorage.getItem('ws_leyenda_plegada') === '1'; } catch (e) {}
+  let plegada = esCelular();
+  try { const v = localStorage.getItem(claveLeyendaMapa()); if (v !== null) plegada = v === '1'; } catch (e) {}
   const icono = { 'Proyectos': 'ti-folder', 'Personal': 'ti-users', 'Equipo': 'ti-tool', 'Vehículos': 'ti-car' };
   div.classList.toggle('plegada', plegada);
-  div.innerHTML = `<button type="button" class="ley-head" onclick="plegarLeyendaMapa()"><i class="ti ti-chart-dots-3" aria-hidden="true"></i>Simbología<i class="ti ti-chevron-${plegada ? 'up' : 'down'} ley-flecha" aria-hidden="true"></i></button>
+  div.innerHTML = `<button type="button" class="ley-head" onclick="plegarLeyendaMapa()"><i class="ti ti-chart-dots-3" aria-hidden="true"></i>Simbología<i class="ti ti-chevron-${flechaLeyendaMapa(plegada)} ley-flecha" aria-hidden="true"></i></button>
     <div class="ley-cuerpo">${[...leyenda.entries()].map(([grupo, colores]) => `
       <div class="ley-grupo"><div class="ley-tit"><i class="ti ${icono[grupo] || 'ti-point'}" aria-hidden="true"></i>${grupo}</div>
       ${[...colores.entries()].sort((a, b) => b[1].n - a[1].n).map(([color, it]) => `
@@ -6370,10 +6371,13 @@ function pintarLeyendaMapa(leyenda) {
 function plegarLeyendaMapa() {
   const div = MAPA_LEYENDA?.getContainer?.(); if (!div) return;
   const plegada = !div.classList.contains('plegada');
-  try { localStorage.setItem('ws_leyenda_plegada', plegada ? '1' : '0'); } catch (e) {}
+  try { localStorage.setItem(claveLeyendaMapa(), plegada ? '1' : '0'); } catch (e) {}
   div.classList.toggle('plegada', plegada);
-  const f = div.querySelector('.ley-flecha'); if (f) f.className = `ti ti-chevron-${plegada ? 'up' : 'down'} ley-flecha`;
+  const f = div.querySelector('.ley-flecha'); if (f) f.className = `ti ti-chevron-${flechaLeyendaMapa(plegada)} ley-flecha`;
 }
+// En celular la simbología vive arriba (se despliega hacia abajo) y recuerda su estado aparte de la PC
+const claveLeyendaMapa = () => esCelular() ? 'ws_leyenda_plegada_movil' : 'ws_leyenda_plegada';
+const flechaLeyendaMapa = (plegada) => esCelular() ? (plegada ? 'down' : 'up') : (plegada ? 'up' : 'down');
 
 // ─── SECCIÓN: MÉTRICAS DE PROYECTOS ───────────────────────────────────────────
 async function renderMetricas() {
