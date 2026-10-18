@@ -501,6 +501,19 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .pd-sen{font-size:10.5px;color:var(--text3);text-transform:capitalize}
 .pd-acciones{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 @media (max-width:860px){.pd-grid{grid-template-columns:1fr}}
+.btn-wa{background:#25D366;border:1px solid #1EBE5B;color:#06301A;font-weight:700}
+.btn-wa:hover{background:#2EE072}
+.wa-fab{position:fixed;right:22px;bottom:26px;z-index:400;width:56px;height:56px;border-radius:50%;border:0;background:#25D366;color:#fff;font-size:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(0,0,0,.35);cursor:pointer;transition:transform .15s}
+.wa-fab:hover{transform:scale(1.06)}
+.wa-fab{display:none}
+@media (max-width:768px){.wa-fab{display:flex;bottom:92px;right:16px}.btn-wa-top{display:none}}
+.wa-ico{width:34px;height:34px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;font-size:19px}
+.wa-fondo{background:#0B141A;border-radius:12px;padding:14px;background-image:radial-gradient(rgba(255,255,255,.03) 1px,transparent 1px);background-size:14px 14px}
+:root[data-theme="light"] .wa-fondo{background-color:#EFEAE2;background-image:radial-gradient(rgba(0,0,0,.04) 1px,transparent 1px)}
+.wa-burbuja{background:#005C4B;color:#E9EDEF;border-radius:10px 2px 10px 10px;padding:10px 12px;font-size:13px;line-height:1.45;margin-left:auto;max-width:92%;box-shadow:0 1px 1px rgba(0,0,0,.2);word-wrap:break-word}
+:root[data-theme="light"] .wa-burbuja{background:#D9FDD3;color:#111B21}
+.wa-edit{width:100%;min-height:320px;font-family:var(--mono);font-size:12px;line-height:1.5;resize:vertical}
+.exc-pend{margin-left:4px;background:var(--red);color:#fff;font-family:var(--mono);font-size:10px;font-weight:700;border-radius:9px;padding:1px 6px}
 .pry-tabs{display:flex;gap:6px;margin:4px 0 12px;flex-wrap:wrap}
 .pry-tab{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:border-color .15s,color .15s}
 .pry-tab span{font-family:var(--mono);font-size:11px;color:var(--text3)}
@@ -1422,8 +1435,7 @@ function buildNav() {
       <div class="nav-item" onclick="showSection('gantt')" data-sec="gantt"><i class="ti ti-calendar-stats" aria-hidden="true"></i> Gantt</div>
       <div class="nav-section">OPERACIONES</div>
       <div class="nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-packages" aria-hidden="true"></i> Activos / Equipos</div>
-      <div class="nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Incidencias</div>
-      <div class="nav-item" onclick="showSection('inactividad')" data-sec="inactividad"><i class="ti ti-calendar-pause" aria-hidden="true"></i> Días sin trabajo <span id="nav-badge-inactividad" class="nav-badge" style="display:none"></span></div>
+      <div class="nav-item" onclick="showSection(STATE._excTab || 'incidencias')" data-sec="incidencias"><i class="ti ti-calendar-exclamation" aria-hidden="true"></i> Bitácora de excepciones <span id="nav-badge-inactividad" class="nav-badge" style="display:none" title="Días sin trabajo pendientes de aprobar"></span></div>
       <div class="nav-item" onclick="showSection('metricas')" data-sec="metricas"><i class="ti ti-chart-bar" aria-hidden="true"></i> Métricas</div>`;
     actualizarBadgeInactividad();
     loadProyectos().then(actualizarBadgePendientes);
@@ -1437,7 +1449,7 @@ function buildNav() {
         <div class="mobile-nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i>Empleados</div>
         <div class="mobile-nav-item" onclick="showSection('proyectos')" data-sec="proyectos"><i class="ti ti-folder" aria-hidden="true"></i>Proyectos</div>
         <div class="mobile-nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-packages" aria-hidden="true"></i>Activos</div>
-        <div class="mobile-nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Incidencias</div>
+        <div class="mobile-nav-item" onclick="showSection(STATE._excTab || 'incidencias')" data-sec="incidencias"><i class="ti ti-calendar-exclamation" aria-hidden="true"></i>Excepciones</div>
         <div class="mobile-nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i>Perfil</div>
       </div>`;
   } else {
@@ -1600,7 +1612,7 @@ function buildMobileNavAdmin() {
       <div class="mobile-nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i>Empleados</div>
       <div class="mobile-nav-item" onclick="showSection('proyectos')" data-sec="proyectos"><i class="ti ti-folder" aria-hidden="true"></i>Proyectos</div>
       <div class="mobile-nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-packages" aria-hidden="true"></i>Activos</div>
-      <div class="mobile-nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Incidencias</div>
+      <div class="mobile-nav-item" onclick="showSection(STATE._excTab || 'incidencias')" data-sec="incidencias"><i class="ti ti-calendar-exclamation" aria-hidden="true"></i>Excepciones</div>
     </div>`;
 }
 
@@ -1612,13 +1624,13 @@ const TITLES = {
   'evaluar':          ['ti-adjustments-horizontal','Evaluar Candidatos'],
   'equipos':          ['ti-packages',           'Activos / Equipos'],
   'vehiculos':        ['ti-truck',              'Vehículos'],
-  'incidencias':      ['ti-alert-triangle',     'Incidencias de Campo'],
+  'incidencias':      ['ti-calendar-exclamation','Bitácora de excepciones'],
   'mapa':             ['ti-home',               'Inicio'],
   'metricas':         ['ti-chart-bar',          'Métricas de Proyectos'],
   'clientes':         ['ti-building',           'Clientes'],
   'bitacora':         ['ti-history',            'Bitácora de Cambios'],
   'catalogo':         ['ti-tags',               'Catálogo de Términos'],
-  'inactividad':      ['ti-calendar-pause',     'Días sin trabajo'],
+  'inactividad':      ['ti-calendar-exclamation','Bitácora de excepciones'],
   'permisos':         ['ti-key',                'Cuentas y Permisos'],
   'mis-asignaciones': ['ti-briefcase',          'Mis Asignaciones'],
   'mi-gantt':         ['ti-calendar-stats',     'Mi Calendario'],
@@ -1671,7 +1683,7 @@ function showSection(sec) {
   }
   if (window.innerWidth <= 768) cerrarSidebarMovil();   // al elegir una opción del menú en celular, se cierra
   document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.sec === sec || (sec === 'evaluar' && el.dataset.sec === 'proyectos') || (sec === 'vehiculos' && el.dataset.sec === 'equipos'));
+    el.classList.toggle('active', el.dataset.sec === sec || (sec === 'evaluar' && el.dataset.sec === 'proyectos') || (sec === 'vehiculos' && el.dataset.sec === 'equipos') || (sec === 'inactividad' && el.dataset.sec === 'incidencias'));
   });
   const [icon, title] = TITLES[sec] || ['ti-home', sec];
   document.getElementById('page-title').innerHTML = `<i class="ti ${icon}" aria-hidden="true"></i><span>${title}</span>`;
@@ -1907,7 +1919,19 @@ async function loadProyectos(forzar) {
 }
 
 // ─── HELPER UI ────────────────────────────────────────────────────────────────
-function html(el) { document.getElementById('main-content').innerHTML = el; }
+function html(el) {
+  // Bitácora de excepciones: incidencias y días sin trabajo comparten pestañas
+  const sec = STATE.currentSection;
+  if ((sec === 'incidencias' || sec === 'inactividad') && ['administrador', 'director_proyecto'].includes(STATE.rol)) {
+    STATE._excTab = sec;
+    const pend = STATE._inactPendientes || 0;
+    el = `<div class="pry-tabs exc-tabs" role="tablist">
+      <button type="button" role="tab" class="pry-tab${sec === 'incidencias' ? ' activa' : ''}" aria-selected="${sec === 'incidencias'}" onclick="showSection('incidencias')"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Incidencias de campo</button>
+      <button type="button" role="tab" class="pry-tab${sec === 'inactividad' ? ' activa' : ''}" aria-selected="${sec === 'inactividad'}" onclick="showSection('inactividad')"><i class="ti ti-calendar-pause" aria-hidden="true"></i> Standby y días sin trabajo${pend ? `<span class="exc-pend">${pend}</span>` : ''}</button>
+    </div>` + el;
+  }
+  document.getElementById('main-content').innerHTML = el;
+}
 
 // Ausencia (vacaciones, permiso, incapacidad) que cubre la fecha d, o null.
 function ausenciaEn(e, d) {
@@ -5587,6 +5611,99 @@ function quitarVehiculoProyecto(i) {
 }
 
 // ─── SECCIÓN: INCIDENCIAS ─────────────────────────────────────────────────────
+// ─── REPORTE DIARIO PARA WHATSAPP ────────────────────────────────────────────
+async function armarReporteWhatsApp() {
+  await Promise.all([loadProyectos(), loadEmpleados(), loadEquipos(), loadVehiculos()]);
+  const [inact, inc] = await Promise.all([api('GET', '/inactividad') || [], api('GET', '/incidencias') || []]);
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const hoyIso = isoLocal(hoy);
+  const nombreEmp = id => { const e = (STATE.empleados || []).find(x => x.id === id); return e ? `${e.nombre} ${e.apellido}` : null; };
+  const pryNombre = id => (STATE.proyectos || []).find(p => p.id === id)?.nombre || '';
+  const activos = (STATE.proyectos || []).filter(p => !['completado', 'cancelado', 'pausado'].includes(p.estado) &&
+    ((p.fecha_inicio_real && !p.fecha_fin_real) || (p.fecha_inicio && p.fecha_fin_estimada && p.fecha_inicio <= hoyIso && hoyIso <= p.fecha_fin_estimada)))
+    .sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
+  const pausados = (STATE.proyectos || []).filter(p => p.estado === 'pausado');
+  const proximos = (STATE.proyectos || []).filter(p => !['completado', 'cancelado', 'pausado'].includes(p.estado) && !p.fecha_inicio_real && p.fecha_inicio > hoyIso
+    && (fechaLocal(p.fecha_inicio) - hoy) / 86400000 <= 7).sort((a, b) => a.fecha_inicio.localeCompare(b.fecha_inicio));
+  const L = [];
+  const fechaTxt = hoy.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  L.push(`*📋 REPORTE DIARIO DE OPERACIONES*`, `_${fechaTxt.charAt(0).toUpperCase() + fechaTxt.slice(1)}_`, '');
+  L.push(`*🟢 Proyectos en ejecución hoy (${activos.length})*`);
+  if (!activos.length) L.push('_Sin proyectos en campo hoy._');
+  activos.forEach(p => {
+    const personal = (p.tecnicos_asignados || []).map(nombreEmp).filter(Boolean);
+    let estado;
+    if (p.fecha_inicio_real) {
+      const dia = Math.round((hoy - fechaLocal(p.fecha_inicio_real)) / 86400000) + 1;
+      const total = p.fecha_inicio && p.fecha_fin_estimada ? Math.round((fechaLocal(p.fecha_fin_estimada) - fechaLocal(p.fecha_inicio)) / 86400000) + 1 : null;
+      const atraso = p.fecha_fin_estimada && hoyIso > p.fecha_fin_estimada ? Math.round((hoy - fechaLocal(p.fecha_fin_estimada)) / 86400000) : 0;
+      estado = `En campo · día ${dia}${total ? ` de ${total}` : ''}${atraso ? ` · ⏰ +${atraso} día${atraso === 1 ? '' : 's'} de retraso` : ''}`;
+    } else estado = p.fecha_inicio === hoyIso ? 'Inicia hoy' : 'Programado, aún sin iniciar';
+    L.push(`• *${p.nombre}*`, `   🏢 ${p.cliente || '—'} · 📍 ${p.ciudad || '—'}`,
+      `   👷 ${personal.length ? personal.join(', ') : 'Sin personal asignado'}`, `   📌 ${estado}`);
+  });
+  // Novedades: standby/descanso de hoy, proyectos pausados e incidencias abiertas
+  const hoyInact = (inact || []).filter(g => g.estado !== 'rechazado' && (g.fechas || []).includes(hoyIso));
+  const incAbiertas = (inc || []).filter(i => i.estado !== 'resuelta' && (i.severidad === 'alta' || String(i.fecha || '').slice(0, 10) === hoyIso));
+  L.push('', `*⚠️ Standby / incidencias activas*`);
+  if (!hoyInact.length && !pausados.length && !incAbiertas.length) L.push('_Sin novedades._');
+  hoyInact.forEach(g => L.push(`• ${g.tipo === 'standby' ? '⏸️ Standby' : '😴 Descanso'}: ${g.empleado_nombre || nombreEmp(g.empleado_id) || ''} — ${g.proyecto_nombre || pryNombre(g.proyecto_id)}${g.motivo ? ` (${g.motivo})` : ''}${g.estado === 'pendiente' ? ' _[por aprobar]_' : ''}`));
+  pausados.forEach(p => L.push(`• ⏸️ Proyecto en pausa: *${p.nombre}*${p.pausas_resumen?.length ? ` desde el ${fCorta(p.pausas_resumen.at(-1).inicio)}` : ''}`));
+  incAbiertas.forEach(i => L.push(`• ${i.severidad === 'alta' ? '🔴' : i.severidad === 'media' ? '🟠' : '🟡'} ${i.tipo}${pryNombre(i.proyecto_id) ? ` — ${pryNombre(i.proyecto_id)}` : ''}${i.descripcion ? `: ${i.descripcion}` : ''}`));
+  // Recursos en campo, agrupados por proyecto
+  const enCampo = new Map();
+  const add = (pry, txt) => { if (!pry) return; if (!enCampo.has(pry)) enCampo.set(pry, { veh: [], eq: [] }); enCampo.get(pry)[txt[0]].push(txt[1]); };
+  (STATE.vehiculos || []).forEach(v => add(v.proyecto_actual_nombre, ['veh', `${v.apodo || v.nombre}${v.placas ? ` (${v.placas})` : ''}`]));
+  (STATE.equipos || []).forEach(e => add(e.proyecto_actual_nombre, ['eq', e.apodo || e.nombre]));
+  L.push('', `*🚚 Recursos y vehículos en campo*`);
+  if (!enCampo.size) L.push('_Sin equipo ni vehículos fuera de base._');
+  [...enCampo.entries()].sort((a, b) => a[0].localeCompare(b[0], 'es')).forEach(([pry, r]) => {
+    L.push(`• *${pry}*`);
+    if (r.veh.length) L.push(`   🚗 ${r.veh.join(', ')}`);
+    if (r.eq.length) L.push(`   🧰 ${r.eq.join(', ')}`);
+  });
+  if (proximos.length) {
+    L.push('', `*📅 Próximos inicios (7 días)*`);
+    proximos.slice(0, 6).forEach(p => L.push(`• ${fCorta(p.fecha_inicio)} — *${p.nombre}* · ${p.ciudad || '—'} (${(p.tecnicos_asignados || []).length}/${p.personal_requerido || 1} personal)`));
+  }
+  L.push('', '_Generado con WorkSync_');
+  return L.join('\n');
+}
+// Vista previa con el formato de WhatsApp (*negritas*, _cursivas_)
+function previaWhatsApp(t) {
+  return escHtml(t).replace(/\*([^*\n]+)\*/g, '<b>$1</b>').replace(/(^|[\s(])_([^_\n]+)_/g, '$1<i>$2</i>').replace(/\n/g, '<br>');
+}
+async function abrirReporteWhatsApp() {
+  let ov = document.getElementById('selector-overlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; document.body.appendChild(ov); }
+  ov.style.zIndex = 1100;
+  ov.className = 'modal-overlay open';
+  ov.onclick = e => { if (e.target === ov) cerrarSelectorTerminos(); };
+  ov.innerHTML = `<div class="sel-card" style="max-width:560px"><div class="sel-grid-wrap" style="padding:30px;text-align:center;color:var(--text3)"><i class="ti ti-loader-2 ti-spin" aria-hidden="true"></i> Armando el resumen del día…</div></div>`;
+  const texto = await armarReporteWhatsApp();
+  STATE._waTexto = texto;
+  ov.innerHTML = `
+    <div class="sel-card" style="max-width:560px">
+      <div class="sel-head">
+        <div style="display:flex;align-items:center;gap:10px"><span class="wa-ico"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></span>
+          <div><div style="font-weight:700;font-size:15px;color:var(--text)">Resumen diario de operaciones</div>
+          <div style="font-size:12px;color:var(--text3)">Revísalo, edítalo si quieres y compártelo</div></div></div>
+        <button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button>
+      </div>
+      <div class="sel-grid-wrap">
+        <div class="wa-fondo"><div class="wa-burbuja" id="wa-previa">${previaWhatsApp(texto)}</div></div>
+        <textarea id="wa-texto" class="field-input wa-edit" style="display:none" oninput="STATE._waTexto=this.value;document.getElementById('wa-previa').innerHTML=previaWhatsApp(this.value)">${escHtml(texto)}</textarea>
+      </div>
+      <div class="sel-foot">
+        <button class="btn btn-ghost btn-sm" onclick="const t=document.getElementById('wa-texto');const v=t.style.display==='none';t.style.display=v?'block':'none';this.innerHTML=v?'<i class=&quot;ti ti-eye&quot;></i> Ver vista previa':'<i class=&quot;ti ti-pencil&quot;></i> Editar texto';document.querySelector('.wa-fondo').style.display=v?'none':'block'"><i class="ti ti-pencil" aria-hidden="true"></i> Editar texto</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+          <button class="btn btn-ghost btn-sm" onclick="copiarTexto(STATE._waTexto, 'Reporte copiado')"><i class="ti ti-copy" aria-hidden="true"></i> Copiar</button>
+          <button class="btn btn-sm btn-wa" onclick="window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(STATE._waTexto), '_blank')"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i> Abrir en WhatsApp</button>
+        </div>
+      </div>
+    </div>`;
+}
+
 async function renderIncidencias() {
   await loadProyectos(); await loadEmpleados();
   const inc = await api('GET', '/incidencias') || [];
@@ -5853,7 +5970,11 @@ async function eliminarTerminoCatalogo(tipo, nombre, usos) {
 // ─── SECCIÓN: MAPA DE OPERACIONES ─────────────────────────────────────────────
 async function renderMapa() {
   await loadEmpleados(); await loadProyectos(); await loadEquipos(); await loadVehiculos();
+  if (['administrador', 'director_proyecto'].includes(STATE.rol)) {
+    document.getElementById('topbar-actions').insertAdjacentHTML('afterbegin', `<button class="btn btn-sm btn-wa btn-wa-top" onclick="abrirReporteWhatsApp()" title="Resumen del día para compartir por WhatsApp"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i> Reporte WhatsApp</button>`);
+  }
   html(`
+    ${['administrador', 'director_proyecto'].includes(STATE.rol) ? `<button class="wa-fab" onclick="abrirReporteWhatsApp()" aria-label="Reporte diario por WhatsApp"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></button>` : ''}
     <div class="table-section" style="padding:14px 18px;margin-bottom:12px">
       <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center">
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="mapa-f-proyectos" checked onchange="actualizarMapa()"> Proyectos</label>
@@ -7301,6 +7422,9 @@ async function actualizarBadgeInactividad() {
   const r = await api('GET', '/inactividad/pendientes/conteo');
   const b = document.getElementById('nav-badge-inactividad');
   if (!b || !r) return;
+  STATE._inactPendientes = r.pendientes || 0;
+  const tabPend = document.querySelector('.exc-tabs .pry-tab:nth-child(2)');
+  if (tabPend) { tabPend.querySelector('.exc-pend')?.remove(); if (r.pendientes) tabPend.insertAdjacentHTML('beforeend', `<span class="exc-pend">${r.pendientes}</span>`); }
   b.textContent = r.pendientes;
   b.style.display = r.pendientes ? 'inline-block' : 'none';
 }
