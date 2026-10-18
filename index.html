@@ -512,7 +512,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .wa-fab{position:fixed;right:22px;bottom:26px;z-index:400;width:56px;height:56px;border-radius:50%;border:0;background:#25D366;color:#fff;font-size:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(0,0,0,.35);cursor:pointer;transition:transform .15s}
 .wa-fab:hover{transform:scale(1.06)}
 .wa-fab{display:none}
-@media (max-width:768px){.wa-fab{display:flex;bottom:92px;right:16px}.btn-wa-top{display:none}}
+@media (max-width:768px){.wa-fab{display:flex;bottom:20px;right:16px}.btn-wa-top{display:none}}
 .wa-ico{width:34px;height:34px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;font-size:19px}
 .wa-fondo{background:#0B141A;border-radius:12px;padding:14px;background-image:radial-gradient(rgba(255,255,255,.03) 1px,transparent 1px);background-size:14px 14px}
 :root[data-theme="light"] .wa-fondo{background-color:#EFEAE2;background-image:radial-gradient(rgba(0,0,0,.04) 1px,transparent 1px)}
@@ -984,7 +984,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 /* RESPONSIVE */
 @media(max-width:768px){
   .sidebar{display:none}.sidebar.mobile-open{display:flex;position:fixed;z-index:1000;height:100vh}
-  .mobile-nav{display:block}
+  .mobile-nav{display:none!important}   /* en celular la navegación es solo con el menú ☰ */
   .topbar-menu-btn{display:block}
   .stats-grid,.stats-grid.stats-5{grid-template-columns:1fr 1fr}
   .stats-grid.stats-5>.stat-card:first-child{grid-column:1 / -1}
@@ -7270,7 +7270,7 @@ function desactivarInterceptor() {
 // ── Pasos ──────────────────────────────────────────────────────────────────
 // sel: lo que se ilumina (el primero visible de la lista). avanza: 'click' (al tocarlo),
 // 'boton' (botón Siguiente) o una función que se revisa hasta que sea verdadera.
-const nav = sec => [`.mobile-nav-item[data-sec="${sec}"]`, `.nav-item[data-sec="${sec}"]`];
+const nav = sec => [`.mobile-nav-item[data-sec="${sec}"]`, `.nav-item[data-sec="${sec}"]`, '.topbar-menu-btn'];
 const T = () => STATE.tutorial.datos;
 const PASOS_TUTORIAL = [
   { titulo: 'Bienvenido a WorkSync', texto: 'Vamos a practicar con un <strong>proyecto ficticio</strong>. Nada de lo que hagas aquí se guarda, así que equivócate con confianza.<br><br>Toca lo que se ilumine para avanzar.', avanza: 'boton', boton: 'Empezar' },
@@ -7286,7 +7286,7 @@ const PASOS_TUTORIAL = [
   { sel: nav('reportar'), titulo: 'Incidencias', texto: 'Si pasa algo en campo (equipo dañado, accidente, clima), se reporta en <strong>Reportar</strong>. Tócalo.', avanza: 'click' },
   { sel: ['#form-reportar'], titulo: 'Haz un reporte de prueba', texto: 'Llena el tipo, la severidad y una descripción breve, y toca <strong>Enviar reporte</strong>.', avanza: () => T().incidencias >= 1 },
   { sel: nav('mi-gantt'), opcional: true, titulo: 'Tu calendario', texto: 'En <strong>Mi Calendario</strong> ves tus días asignados del mes. Tócalo.', avanza: 'click' },
-  { sel: ['.mobile-nav-item[data-sec="mi-perfil"]', '.user-menu-trigger'], titulo: 'Tu perfil', texto: 'Ahora lo más importante: tu perfil. Toca aquí.', avanza: () => STATE._seccion === 'mi-perfil' || document.getElementById('user-menu-dropdown')?.classList.contains('open') },
+  { sel: ['.nav-item[data-sec="mi-perfil"]', '.user-menu-trigger'], titulo: 'Tu perfil', texto: 'Ahora lo más importante: tu perfil. Toca aquí.', avanza: () => STATE._seccion === 'mi-perfil' || document.getElementById('user-menu-dropdown')?.classList.contains('open') },
   { sel: ['.user-menu-item[onclick*="mi-perfil"]'], opcional: true, titulo: 'Mi Perfil', texto: 'Toca <strong>Mi Perfil</strong>.', avanza: () => STATE._seccion === 'mi-perfil' },
   { sel: ['#sec-habilidades'], titulo: 'Habilidades', texto: '<strong>Habilidades</strong> = lo que sabes hacer, con o sin un papel que lo diga (pilotaje RPAS, termografía, manejo de Megger). Te calificas del 1 al 10, <em>con honestidad</em>: el sistema las usa para elegir a quién asignar.', avanza: 'boton' },
   { sel: ['#sec-certificados'], titulo: 'Certificados', texto: '<strong>Certificados y documentos</strong> = lo que tiene constancia, número o vigencia (DC-3, GWO, licencia, INE). Aquí subes el archivo y su vigencia. Te avisaremos antes de que venzan.', avanza: 'boton' },
@@ -7402,7 +7402,8 @@ function clicTutorial(ev) {
   const paso = PASOS_TUTORIAL[t.i];
   if (paso.avanza !== 'click') return;
   const el = objetivoTutorial(paso);
-  if (el && el.contains(ev.target)) t.clicado = Date.now();
+  // Tocar el ☰ solo abre el menú: el paso sigue hasta tocar la opción
+  if (el && el.contains(ev.target) && !el.classList.contains('topbar-menu-btn')) t.clicado = Date.now();
 }
 
 function avanzarTutorial() {
