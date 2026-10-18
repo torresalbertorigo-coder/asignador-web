@@ -8952,6 +8952,15 @@ async function nuevaPlantillaPDF(orientacion = 'portrait') {
   };
   return T;
 }
+// Oscurece un color (mismo tono) hasta que el texto tenga contraste ≥ 4.5:1 sobre el fondo dado
+function tonoLegible(rgb, fondo) {
+  const L = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const lum = x => 0.2126 * L(x[0]) + 0.7152 * L(x[1]) + 0.0722 * L(x[2]);
+  const lf = lum(fondo);
+  let c = [...rgb];
+  for (let i = 0; i < 20 && (lf + 0.05) / (lum(c) + 0.05) < 4.5; i++) c = c.map(v => Math.round(v * 0.92));
+  return c;
+}
 // Blanco o tinta oscura, el que tenga más contraste (WCAG) sobre un color de relleno
 function colorTextoSobre(rgb) {
   const L = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
@@ -9837,6 +9846,9 @@ async function exportarMetricasPDF() {
   const k = calcularKpisMetricas(datos);
   const SEM = { ok: PDF_EST.asignado.c, warn: C.ambar, bad: PDF_EST.progreso.c, na: C.grisClaro, neutro: C.tinta, curso: [96, 140, 200], pausa: PDF_EST.pausa.c, desc: PDF_EST.ausencia.c };
   const SEM_BG = { ok: PDF_EST.asignado.bg, warn: C.ambarBg, bad: PDF_EST.progreso.bg, na: C.fondo, curso: [226, 234, 246], pausa: PDF_EST.pausa.bg, desc: PDF_EST.ausencia.bg };
+  // Para TEXTO se usa el mismo tono pero oscurecido hasta tener contraste de lectura (≥ 4.5:1) sobre su fondo;
+  // barras, puntos y rellenos conservan el color original
+  const SEM_TX = Object.fromEntries(Object.entries(SEM).map(([kk, c]) => [kk, kk === 'na' ? C.gris : tonoLegible(c, SEM_BG[kk] || C.fondo)]));
 
   // ── BLOQUE SUPERIOR: KPIs clave (5 tarjetas)
   let y = 33;
@@ -9849,8 +9861,9 @@ async function exportarMetricasPDF() {
     T.font('semibold', 5.3, C.gris);
     const lineas = doc.splitTextToSize(lab.toUpperCase(), tw - 12).slice(0, 2);
     lineas.forEach((l, j) => doc.text(l, x + 3.6, y + 5 + j * 2.6, { charSpace: 0.3 }));
-    let tam = 15; T.font('bold', tam, col);
-    while (doc.getTextWidth(val) > tw - 6.5 && tam > 9) { tam -= 0.5; T.font('bold', tam, col); }
+    const colTx = SEM_TX[sem] || col;
+    let tam = 15; T.font('bold', tam, colTx);
+    while (doc.getTextWidth(val) > tw - 6.5 && tam > 9) { tam -= 0.5; T.font('bold', tam, colTx); }
     doc.text(val, x + 3.6, y + 14.6);
     T.font('normal', 5.6, C.gris);
     doc.splitTextToSize(det, tw - 6.5).slice(0, 2).forEach((l, j) => doc.text(l, x + 3.6, y + 18.4 + j * 2.4));
@@ -9929,13 +9942,13 @@ async function exportarMetricasPDF() {
     anchoIns.forEach(a => { if (acc + a > w - 10) { filasIns++; acc = 0; } acc += a + 2; });
     const recursos = [['Personal', p.personal_asignado_nombres], ['Equipo', p.equipo_usado], ['Vehículo', p.vehiculo_usado]].filter(([, l]) => (l || []).length);
     const alto = 60 + filasIns * 6.5 + (recursos.length ? 6 : 0) + (inc.length ? 9 + inc.length * 5.6 : 0);
-    if (y + alto > T.H - 18.5) { T.nuevaPagina(); T.encabezado('Reporte de métricas', codigo, 'Métricas de proyectos', 'Detalle por proyecto (continuación)'); y = 36; }
+    if (y + alto > T.H - 20) { T.nuevaPagina(); T.encabezado('Reporte de métricas', codigo, 'Métricas de proyectos', 'Detalle por proyecto (continuación)'); y = 36; }
     T.relleno(C.fondo); doc.roundedRect(M, y, w, alto, 2, 2, 'F');
     let yy = y + 8;
     // Encabezado: nombre + estado
     const est = f.estado[0].toUpperCase(), ap = T.anchoPastilla(est);
     T.font('bold', 11, C.tinta); doc.text(recortarTexto(doc, p.nombre, w - ap - 16), M + 5, yy);
-    T.pastilla(est, M + w - 5 - ap, yy - 0.2, SEM[f.estado[1]], SEM_BG[f.estado[1]]);
+    T.pastilla(est, M + w - 5 - ap, yy - 0.2, SEM_TX[f.estado[1]], SEM_BG[f.estado[1]]);
     yy += 4.8;
     T.font('normal', 7.4, C.gris); doc.text(`${p.cliente || '—'}  ·  ${p.ciudad || '—'}`, M + 5, yy);
     yy += 6.5;
@@ -9958,7 +9971,7 @@ async function exportarMetricasPDF() {
       T.font('medium', 6.2, C.texto);
       const tw2 = doc.getTextWidth(txt);
       if (bx + bw + 2 + tw2 <= ex + ew) doc.text(txt, bx + bw + 2, by + 2.4);
-      else if (bw > tw2 + 4) { T.font('semibold', 6.2, i === 0 ? C.texto : C.blanco); doc.text(txt, bx + bw - 2, by + 2.35, { align: 'right' }); }
+      else if (bw > tw2 + 4) { T.font('semibold', 6.2, i === 0 ? C.texto : colorTextoSobre(col)); doc.text(txt, bx + bw - 2, by + 2.35, { align: 'right' }); }
       else doc.text(txt, Math.max(ex + 1, bx - 2 - tw2), by + 2.4);
     });
     yy += 15;
@@ -9966,8 +9979,8 @@ async function exportarMetricasPDF() {
     const dato = (i, lab, val, det, sem, fila) => {
       const dx = M + 5 + i * cw3, dy = yy + fila * 14;
       T.etiqueta(lab, dx, dy, C.gris, 5.6);
-      let tm = 9.6; T.font('bold', tm, sem ? SEM[sem] : C.tinta);
-      while (doc.getTextWidth(val) > cw3 - 4 && tm > 7) { tm -= 0.4; T.font('bold', tm, sem ? SEM[sem] : C.tinta); }
+      let tm = 9.6; T.font('bold', tm, sem ? SEM_TX[sem] : C.tinta);
+      while (doc.getTextWidth(val) > cw3 - 4 && tm > 7) { tm -= 0.4; T.font('bold', tm, sem ? SEM_TX[sem] : C.tinta); }
       doc.text(val, dx, dy + 4.6);
       T.font('normal', 6, C.gris); doc.text(recortarTexto(doc, det, cw3 - 4), dx, dy + 8.2);
     };
@@ -9983,7 +9996,7 @@ async function exportarMetricasPDF() {
     f.insignias.forEach(([t, s], i) => {
       if (ix + anchoIns[i] > M + w - 5) { ix = M + 5; yy += 6.5; }
       T.relleno(SEM_BG[s] || C.fondo); doc.roundedRect(ix, yy - 3.6, anchoIns[i], 5, 2.5, 2.5, 'F');
-      T.font('semibold', 6.2, SEM[s]); doc.text(t, ix + 3, yy + 0.1);
+      T.font('semibold', 6.2, SEM_TX[s]); doc.text(t, ix + 3, yy + 0.1);
       ix += anchoIns[i] + 2;
     });
     yy += 6.5;
