@@ -8925,15 +8925,24 @@ async function nuevaPlantillaPDF(orientacion = 'portrait') {
     const total = doc.internal.getNumberOfPages();
     for (let n = 1; n <= total; n++) {
       doc.setPage(n); T.medir();
-      const { W, H, M } = T, y = H - 13;
-      T.trazo(PDF_C.linea, 0.25); doc.line(M, y - 4, W - M, y - 4);
-      T.font('bold', 7, PDF_C.tinta); doc.text('WORKSYNC', M, y);
-      T.font('normal', 7, PDF_C.gris); doc.text('·  Walross Tech & Innovation', M + doc.getTextWidth('WORKSYNC') + 3.6, y);
-      T.font('semibold', 7, PDF_C.tinta); doc.text(`${n} / ${total}`, W - M, y, { align: 'right' });
-      T.font('normal', 6.3, PDF_C.grisClaro);
-      doc.text(paraCliente
-        ? `Contacto: ${STATE.user?.nombre || 'Walross Tech & Innovation'}${STATE.user?.email ? '  ·  ' + STATE.user.email : ''}`
-        : `Generado por ${STATE.user?.nombre || '—'} · ${ahoraTexto()} · Documento interno, no compartir fuera de la empresa`, M, y + 4.2);
+      // Pie unificado:  Generado por… / Documento interno   |   Walross Tech & Innovation   |   Página X/Y
+      const { W, H, M } = T, y = H - 11.5;
+      T.trazo(PDF_C.linea, 0.25); doc.line(M, y - 5.5, W - M, y - 5.5);
+      const lin1 = paraCliente ? `Contacto: ${STATE.user?.nombre || 'Walross Tech & Innovation'}` : `Generado por ${STATE.user?.nombre || '—'} · ${ahoraTexto()}`;
+      const lin2 = paraCliente ? (STATE.user?.email || '') : 'Documento interno, no compartir fuera de la empresa';
+      // derecha:  Walross Tech & Innovation  |  Página X/Y
+      T.font('bold', 7, PDF_C.tinta); const num = `${n}/${total}`, anchoNum = doc.getTextWidth(num);
+      doc.text(num, W - M, y + 0.8, { align: 'right' });
+      T.font('normal', 6.4, PDF_C.gris); const xPag = W - M - anchoNum - 1.6; doc.text('Página', xPag, y + 0.8, { align: 'right' });
+      const xSep = xPag - doc.getTextWidth('Página') - 4;
+      T.trazo(PDF_C.linea, 0.3); doc.line(xSep, y - 2.4, xSep, y + 3);
+      T.font('semibold', 6.8, PDF_C.tinta); doc.text('Walross Tech & Innovation', xSep - 4, y + 0.8, { align: 'right' });
+      const xSep2 = xSep - 8 - doc.getTextWidth('Walross Tech & Innovation');
+      doc.line(xSep2, y - 2.4, xSep2, y + 3);
+      // izquierda: quién y cuándo lo generó + nota de confidencialidad
+      const maxIzq = xSep2 - M - 4;
+      T.font('semibold', 6.4, PDF_C.gris); doc.text(recortarTexto(doc, lin1, maxIzq), M, y - 1);
+      T.font('normal', 6.2, PDF_C.grisClaro); if (lin2) doc.text(recortarTexto(doc, lin2, maxIzq), M, y + 2.6);
     }
     entregarPDF(doc, nombreArchivo);
   };
@@ -9443,7 +9452,8 @@ async function exportarCalendarioEmpleadoPDF(empId, nombre, year, month) {
     if (esHoy) { T.font('bold', 5.4, C.rojo); doc.text('HOY', xx + cw - 3.2, yy + 5.2, { align: 'right' }); }
   }
   y += Math.ceil((primer + diasMes) / 7) * (ch + 1.4) + 4;
-  [[PDF_EST.ausencia.c, 'Ausencia', diasAus], [PDF_EST.asignado.c, 'Proyecto asignado', diasPry], [C.linea, 'Libre', 1]].filter(z => z[2]).reduce((xx, [c, t]) => {
+  const estPry = [...new Set([...pryMes.values()].map(grupoEstadoPDF))];
+  [[PDF_EST.ausencia.c, 'Ausencia', diasAus], ...estPry.map(g => [PDF_EST[g].c, PDF_EST[g].nombre, 1]), [C.linea, 'Libre', 1]].filter(z => z[2]).reduce((xx, [c, t]) => {
     T.relleno(c); doc.roundedRect(xx, y - 2.6, 3.2, 3.2, 0.6, 0.6, 'F');
     T.font('medium', 7, C.texto); doc.text(t, xx + 4.6, y); return xx + 4.6 + doc.getTextWidth(t) + 8;
   }, M);
