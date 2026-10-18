@@ -418,8 +418,13 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .ev-cambiar{background:none;border:0;padding:0;font:inherit;font-size:12px;color:var(--blue,#60a5fa);cursor:pointer}
 .ev-cambiar:hover{text-decoration:underline}
 .stat-click{cursor:pointer;transition:border-color .15s,transform .15s}
-.stat-click:hover{border-color:var(--amber)}
-.stat-click.stat-activa{border-color:var(--amber);box-shadow:inset 0 0 0 1px var(--amber)}
+.stat-click:hover{border-color:var(--border2)}
+.stat-click.stat-activa{border-color:var(--text2);box-shadow:inset 0 0 0 1px var(--text2);background:var(--surface2)}
+.stat-click.c-amber.stat-activa{border-color:var(--amber);box-shadow:inset 0 0 0 1px var(--amber)}
+.stat-click.c-blue.stat-activa{border-color:var(--blue,#60a5fa);box-shadow:inset 0 0 0 1px var(--blue,#60a5fa)}
+.stat-click.c-red.stat-activa{border-color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+.stat-click.c-green.stat-activa{border-color:var(--green);box-shadow:inset 0 0 0 1px var(--green)}
+.stat-click:not(.stat-activa){opacity:.82}.stat-click:not(.stat-activa):hover{opacity:1}
 .nav-badge-pend{background:var(--amber);color:#111}
 .pry-tabs{display:flex;gap:6px;margin:4px 0 12px;flex-wrap:wrap}
 .pry-tab{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:border-color .15s,color .15s}
@@ -2576,22 +2581,22 @@ async function renderProyectos() {
       (p.ciudad||'').toLowerCase().includes(filtro)
     );
   }
-  // Pestañas: Activos (todo lo que no está terminado) | Histórico (completados y cancelados)
-  const tab = STATE._pryTab || 'activos';
+  // Las tarjetas de arriba son el filtro: una vista a la vez (por defecto Activos)
   const esHist = p => ['completado', 'cancelado'].includes(p.estado);
-  const nActivos = STATE.proyectos.filter(p => !esHist(p)).length, nHist = STATE.proyectos.length - nActivos;
-  proyectos = proyectos.filter(p => tab === 'historico' ? esHist(p) : !esHist(p));
-  const opcionesEstado = tab === 'historico'
-    ? [['completado', 'Completado'], ['cancelado', 'Cancelado']]
-    : [['pendiente_asignacion', 'Pendiente'], ['asignado', 'Asignado'], ['en_preparacion', 'En preparativos'], ['en_progreso', 'En progreso'], ['pausado', 'Pausado']];
-  if (STATE._pryFiltroEstado && !opcionesEstado.some(([v]) => v === STATE._pryFiltroEstado)) STATE._pryFiltroEstado = '';
-  const filtroEstadoPry = STATE._pryFiltroEstado || '';
-  if (filtroEstadoPry) {
-    proyectos = proyectos.filter(p => {
-      const est = estadoProyectoVisible(p);
-      return est === filtroEstadoPry || (filtroEstadoPry === 'en_preparacion' && est === 'en_espera_inicio');
-    });
-  }
+  const VISTAS = {
+    activos:     { fn: p => !esHist(p), titulo: 'PROYECTOS ACTIVOS', vacio: 'No hay proyectos activos' },
+    pendientes:  { fn: p => estadoProyectoVisible(p) === 'pendiente_asignacion', titulo: 'PENDIENTES DE ASIGNAR', vacio: 'No hay proyectos pendientes de asignar' },
+    programados: { fn: p => ['asignado', 'en_preparacion', 'en_espera_inicio'].includes(estadoProyectoVisible(p)), titulo: 'PROGRAMADOS', vacio: 'No hay proyectos programados' },
+    en_campo:    { fn: p => estadoProyectoVisible(p) === 'en_progreso', titulo: 'EN CAMPO', vacio: 'No hay proyectos en campo' },
+    historico:   { fn: p => esHist(p), titulo: 'FINALIZADOS', vacio: 'Aún no hay proyectos finalizados' },
+  };
+  const vista = VISTAS[STATE._pryVista] ? STATE._pryVista : 'activos';
+  const tab = vista === 'historico' ? 'historico' : 'activos';
+  const nVista = STATE.proyectos.filter(VISTAS[vista].fn).length;
+  const nActivos = STATE.proyectos.filter(p => !esHist(p)).length;
+  const cancelados = STATE.proyectos.filter(p => p.estado === 'cancelado').length;
+  proyectos = proyectos.filter(VISTAS[vista].fn);
+  const filtroEstadoPry = '';
   const sortCampo = STATE._prySortCampo;
   const sortDir = STATE._prySortDir || 'asc';
   if (!sortCampo && tab === 'historico') {
@@ -2607,32 +2612,26 @@ async function renderProyectos() {
   }
 
   html(`
-    <div class="stats-grid stats-5">
-      <div class="stat-card c-red"><div class="stat-lbl">TOTAL PROYECTOS</div><div class="stat-val">${STATE.proyectos.length}</div><div class="stat-sub">en sistema</div></div>
-      <div class="stat-card c-amber stat-click${filtroEstadoPry === 'pendiente_asignacion' ? ' stat-activa' : ''}" role="button" tabindex="0" title="${filtroEstadoPry === 'pendiente_asignacion' ? 'Quitar filtro' : 'Ver solo los pendientes'}"
-        onclick="STATE._pryTab='activos';STATE._pryFiltroEstado=STATE._pryFiltroEstado==='pendiente_asignacion'?'':'pendiente_asignacion';renderProyectos()" onkeydown="if(event.key==='Enter')this.click()">
-        <div class="stat-lbl">PENDIENTES</div><div class="stat-val">${pend}</div><div class="stat-sub">${filtroEstadoPry === 'pendiente_asignacion' ? 'mostrando solo estos · quitar filtro' : 'sin asignar · ver solo estos'}</div></div>
-      <div class="stat-card c-blue"><div class="stat-lbl">PROGRAMADOS</div><div class="stat-val">${programados}</div><div class="stat-sub">asignados, aún no inician</div></div>
-      <div class="stat-card c-red"><div class="stat-lbl">EN CAMPO</div><div class="stat-val">${enCampo}</div><div class="stat-sub">${pausados ? `iniciados · ${pausados} en pausa aparte` : 'iniciados, sin finalizar'}</div></div>
-      <div class="stat-card c-green"><div class="stat-lbl">FINALIZADOS</div><div class="stat-val">${finalizados}</div><div class="stat-sub">completados</div></div>
-    </div>
-    <div class="pry-tabs" role="tablist">
-      <button type="button" role="tab" class="pry-tab${tab === 'activos' ? ' activa' : ''}" aria-selected="${tab === 'activos'}" onclick="STATE._pryTab='activos';renderProyectos()"><i class="ti ti-bolt" aria-hidden="true"></i> Activos / Pendientes <span>${nActivos}</span></button>
-      <button type="button" role="tab" class="pry-tab${tab === 'historico' ? ' activa' : ''}" aria-selected="${tab === 'historico'}" onclick="STATE._pryTab='historico';renderProyectos()"><i class="ti ti-archive" aria-hidden="true"></i> Completados / Histórico <span>${nHist}</span></button>
+    <div class="stats-grid stats-5 pry-vistas">
+      ${[
+        ['activos', 'c-red', 'ACTIVOS', nActivos, `sin terminar · ${STATE.proyectos.length} en sistema`],
+        ['pendientes', 'c-amber', 'PENDIENTES', pend, 'sin asignar'],
+        ['programados', 'c-blue', 'PROGRAMADOS', programados, 'asignados, aún no inician'],
+        ['en_campo', 'c-red', 'EN CAMPO', enCampo, pausados ? `iniciados · ${pausados} en pausa aparte` : 'iniciados, sin finalizar'],
+        ['historico', 'c-green', 'FINALIZADOS', finalizados + cancelados, cancelados ? `${finalizados} completados · ${cancelados} cancelados` : 'completados'],
+      ].map(([v, c, lbl, n, sub]) => `<div class="stat-card ${c} stat-click${vista === v ? ' stat-activa' : ''}" role="button" tabindex="0" aria-pressed="${vista === v}"
+          onclick="STATE._pryVista='${v}';renderProyectos()" onkeydown="if(event.key==='Enter')this.click()">
+          <div class="stat-lbl">${lbl}</div><div class="stat-val">${n}</div><div class="stat-sub">${sub}</div></div>`).join('')}
     </div>
     <div class="table-section">
       <div class="table-header">
-        <span class="table-title">${tab === 'historico' ? 'HISTÓRICO DE PROYECTOS' : 'PROYECTOS ACTIVOS'}</span>
+        <span class="table-title">${VISTAS[vista].titulo}</span>
         <div class="filter-bar"><div class="filter-bar-inner">
           <div class="search-box" style="max-width:none"><i class="ti ti-search" aria-hidden="true"></i><input class="field-input" id="pry-buscar" placeholder="Buscar por nombre, cliente, ID o ciudad..." value="${filtro}" oninput="STATE._pryFiltro=this.value;renderProyectos();" onclick="event.stopPropagation()"></div>
-          <select class="field-select" onchange="STATE._pryFiltroEstado=this.value;renderProyectos();" onclick="event.stopPropagation()">
-            <option value="">Todos los estados</option>
-            ${opcionesEstado.map(([v, t]) => `<option value="${v}" ${filtroEstadoPry === v ? 'selected' : ''}>${t}</option>`).join('')}
-          </select>
         </div></div>
-        <span class="table-meta">${proyectos.length} de ${tab === 'historico' ? nHist : nActivos} proyectos</span>
+        <span class="table-meta">${proyectos.length} de ${nVista} proyectos</span>
       </div>
-      ${proyectos.length === 0 ? `<div class="empty-state"><i class="ti ti-folder" aria-hidden="true"></i><p>${filtro || filtroEstadoPry ? 'Sin resultados' : tab === 'historico' ? 'Aún no hay proyectos completados ni cancelados' : 'No hay proyectos activos'}</p></div>` : `
+      ${proyectos.length === 0 ? `<div class="empty-state"><i class="ti ti-folder" aria-hidden="true"></i><p>${filtro ? 'Sin resultados' : VISTAS[vista].vacio}</p></div>` : `
       <table>
         <thead><tr><th>ID</th><th>NOMBRE</th><th>CLIENTE</th><th>ESTADO</th><th class="th-sortable${sortCampo==='fecha_inicio'?' activo':''}" onclick="ordenarProyectosPor('fecha_inicio')">INICIO<i class="ti ${sortCampo==='fecha_inicio'?(sortDir==='asc'?'ti-sort-ascending':'ti-sort-descending'):'ti-arrows-sort'}" aria-hidden="true"></i></th><th class="th-sortable${sortCampo==='fecha_fin_estimada'?' activo':''}" onclick="ordenarProyectosPor('fecha_fin_estimada')">FIN EST.<i class="ti ${sortCampo==='fecha_fin_estimada'?(sortDir==='asc'?'ti-sort-ascending':'ti-sort-descending'):'ti-arrows-sort'}" aria-hidden="true"></i></th><th>SITIO</th><th></th></tr></thead>
         <tbody>
@@ -3279,7 +3278,7 @@ async function guardarNuevoProyecto(evaluar = false) {
     toast(`Proyecto "${nombre}" creado${asignados ? ` · ${asignados} persona(s) asignada(s)` : evaluar ? '' : ' como pendiente'}`);
     cargarCatalogos();
     if (evaluar) { irAEvaluar(id_pry); return; }
-    STATE._pryTab = 'activos';
+    STATE._pryVista = 'activos';
     renderProyectos();
   } else { err.textContent = 'Error al crear el proyecto.'; }
 }
@@ -3468,7 +3467,7 @@ async function renderEvaluar() {
   if (!directo) {
     // La evaluación se abre desde Proyectos (ya no hay entrada en el menú)
     if (STATE._evalModoPid) toast('No se encontró ese proyecto', 'error');
-    STATE._evalModoPid = null; STATE._pryTab = 'activos';
+    STATE._evalModoPid = null; STATE._pryVista = 'activos';
     showSection('proyectos');
     return;
   }
@@ -3477,7 +3476,7 @@ async function renderEvaluar() {
       <div class="ev-bar-fila">
         ${directo ? `
         <div class="ev-bar-pry">
-          <button class="btn btn-ghost btn-sm ev-volver" onclick="STATE._pryTab='activos';showSection('proyectos')" title="Volver a Proyectos" aria-label="Volver a Proyectos"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+          <button class="btn btn-ghost btn-sm ev-volver" onclick="STATE._pryVista='activos';showSection('proyectos')" title="Volver a Proyectos" aria-label="Volver a Proyectos"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
           <div style="min-width:0">
             <div class="ev-bar-pry-n">${escHtml(directo.nombre)}</div>
             <div class="ev-bar-pry-s">${escHtml(directo.cliente || '—')} · ${escHtml(directo.ciudad || '—')}${directo.fecha_inicio ? ` · ${rangoCorto(directo.fecha_inicio, directo.fecha_fin_estimada || directo.fecha_inicio)}` : ''}</div>
