@@ -9013,16 +9013,30 @@ function calibracionEquipo(eq, hoy) {
   const dias = Math.round((fechaLocal(fecha) - hoy) / 86400000);
   return { grupo: dias < 0 ? 'vencida' : dias <= 30 ? 'porVencer' : 'vigente', fecha, dias };
 }
+// Vehículos: en lugar de calibración, el documento clave que vence primero (seguro, verificación, tenencia, tarjeta)
+function documentosVehiculo(vh, hoy) {
+  const claves = ['seguro', 'verificacion', 'tenencia', 'tarjeta_circulacion'];
+  const docs = (vh.documentos || []).filter(d => d.fecha_vencimiento && claves.includes(d.tipo))
+    .map(d => ({ d, dias: Math.round((fechaLocal(d.fecha_vencimiento) - hoy) / 86400000) }))
+    .sort((a, b) => a.dias - b.dias);
+  if (!docs.length) return { grupo: 'sinFecha', fecha: null, dias: null, doc: null, extra: 0 };
+  const peor = docs[0], g = peor.dias < 0 ? 'vencida' : peor.dias <= 30 ? 'porVencer' : 'vigente';
+  const extra = docs.filter(x => g === 'vencida' ? x.dias < 0 : g === 'porVencer' ? x.dias <= 30 : false).length - 1;
+  return { grupo: g, fecha: peor.d.fecha_vencimiento, dias: peor.dias, doc: VEH_DOC_TIPOS[peor.d.tipo] || peor.d.nombre || 'Documento', extra: Math.max(0, extra) };
+}
 async function exportarInventarioEquiposPDF() {
-  await loadEquipos(true);
+  await Promise.all([loadEquipos(true), loadVehiculos(true)]);
   const equipos = (STATE.equipos || []).filter(e => e.estado !== 'baja');
-  if (!equipos.length) { toast('No hay equipos registrados', 'error'); return; }
+  const vehiculos = (STATE.vehiculos || []).filter(v => v.estado !== 'baja');
+  if (!equipos.length && !vehiculos.length) { toast('No hay equipos ni vehículos registrados', 'error'); return; }
   const T = await nuevaPlantillaPDF('landscape'), { doc, C, M } = T;
   const fuente = doc.getFontList()['Montserrat'] ? 'Montserrat' : 'helvetica';
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
   const cmp = (a, b) => String(a || '').localeCompare(String(b || ''), 'es', { numeric: true, sensitivity: 'base' });
-  const filas = equipos.map(eq => ({ eq, cal: calibracionEquipo(eq, hoy), est: estadoEquipoInfo(eq), tipo: etiquetaEquipo(eq.tipo),
-      piezas: resumenAccesorios(eq).piezas }))
+  const filas = [
+    ...equipos.map(eq => ({ eq, cal: calibracionEquipo(eq, hoy), est: estadoEquipoInfo(eq), tipo: etiquetaEquipo(eq.tipo), piezas: resumenAccesorios(eq).piezas })),
+    ...vehiculos.map(vh => ({ eq: vh, veh: true, cal: documentosVehiculo(vh, hoy), est: estadoEquipoInfo(vh), tipo: etiquetaVehiculo(vh.tipo), piezas: 0 })),
+  ]
     // Prioridad por calibración: vencidas (más días de retraso primero) → por vencer → vigentes → sin fecha / no aplica;
     // dentro de cada grupo, por tipo y equipo
     .sort((a, b) => {
@@ -9035,13 +9049,13 @@ async function exportarInventarioEquiposPDF() {
   const sinF = cuenta('sinFecha');
 
   // ── Encabezado y KPIs (versión compacta para que todo quepa en una hoja)
-  T.encabezado('Inventario general de equipos', `CORTE ${fLargaAnio(hoy).toUpperCase()}`, 'Inventario general de equipos',
-    `${equipos.length} equipo(s) activos  ·  no incluye equipo dado de baja`);
+  T.encabezado('Inventario general de equipos', `CORTE ${fLargaAnio(hoy).toUpperCase()}`, 'Inventario de equipos y vehículos',
+    `${equipos.length} equipo(s)  ·  ${vehiculos.length} vehículo(s)  ·  no incluye dados de baja`);
   let y = T.tarjetasCompactas(32, [
-    ['Equipos', equipos.length, `${new Set(filas.map(f => f.tipo)).size} tipo(s)`, C.tinta],
-    ['Calibración vigente', cuenta('vigente'), 'más de 30 días', PDF_EST.asignado.c],
+    ['Activos', filas.length, `${equipos.length} eq. · ${vehiculos.length} veh.`, C.tinta],
+    ['Vigentes', cuenta('vigente'), 'más de 30 días', PDF_EST.asignado.c],
     ['Por vencer', cuenta('porVencer'), 'próximos 30 días', C.ambar],
-    ['Vencidas', cuenta('vencida'), 'requieren calibración', C.rojo],
+    ['Vencidos', cuenta('vencida'), 'calibración o documentos', C.rojo],
     ['No aplica', cuenta('sinCalibracion'), sinF ? `+${sinF} sin fecha registrada` : 'sin calibración', C.grisClaro],
   ]) + 8;
 
@@ -9053,7 +9067,9 @@ async function exportarInventarioEquiposPDF() {
   });
 
   // ── Resumen por tipo (compacto)
-  const tipos = [...new Set(filas.map(f => f.tipo))].sort(cmp);
+  const tipos = [...new Set(filas.filter(f => !f.veh).map(f => f.tipo))].sort(cmp)
+    .concat([...new Set(filas.filter(f => f.veh).map(f => f.tipo))].sort(cmp).map(t => '\u0000' + t));   // vehículos al final
+  const tipoDe = f => (f.veh ? '\u0000' : '') + f.tipo;
   const n = (arr, fn) => { const k = arr.filter(fn).length; return k ? String(k) : '–'; };
   // Si el inventario es muy largo, se omite este resumen para que la tabla maestra siga cabiendo en una hoja
   const altoResumen = 8 + (tipos.length + 1) * 3.7 + 7;
@@ -9063,7 +9079,7 @@ async function exportarInventarioEquiposPDF() {
   doc.autoTable({
     startY: y - 3.5, margin: { left: M, right: M, top: 20, bottom: 24 }, theme: 'plain', ...estilosBase(6.6, 0.9),
     head: [['Tipo', 'Equipos', 'En oficina', 'En proyecto', 'Mantenimiento', 'Vigentes', 'Por vencer', 'Vencidas', 'No aplica / sin fecha']],
-    body: tipos.map(t => { const fs = filas.filter(f => f.tipo === t); return [t, String(fs.length),
+    body: tipos.map(t => { const fs = filas.filter(f => tipoDe(f) === t); return [t.startsWith('\u0000') ? `${t.slice(1)} (vehículo)` : t, String(fs.length),
       n(fs, f => !f.eq.proyecto_actual_nombre && f.eq.estado === 'disponible'), n(fs, f => !!f.eq.proyecto_actual_nombre),
       n(fs, f => f.eq.estado === 'mantenimiento'), n(fs, f => f.cal.grupo === 'vigente'), n(fs, f => f.cal.grupo === 'porVencer'),
       n(fs, f => f.cal.grupo === 'vencida'), n(fs, f => f.cal.grupo === 'sinCalibracion' || f.cal.grupo === 'sinFecha')]; }),
@@ -9074,7 +9090,7 @@ async function exportarInventarioEquiposPDF() {
   }
 
   // ── Tabla maestra: un renglón por equipo, con ubicación y calibración unificadas
-  y = T.seccion('INVENTARIO GENERAL', y, `${filas.length} equipo(s)`);
+  y = T.seccion('INVENTARIO GENERAL', y, `${equipos.length} equipo(s)  ·  ${vehiculos.length} vehículo(s)`);
   const ubicacion = f => f.est.srv
     ? `${f.est.texto}${f.est.srv.fecha_regreso_estimada ? ' · regresa ' + fCorta(f.est.srv.fecha_regreso_estimada) : ''}${f.est.srv.proveedor ? ' · ' + f.est.srv.proveedor : ''}`
     : f.eq.proyecto_actual_nombre
@@ -9082,6 +9098,14 @@ async function exportarInventarioEquiposPDF() {
     : `${f.eq.estado === 'mantenimiento' ? 'Mant.' : 'Oficina'}${f.eq.ciudad_actual ? ' · ' + f.eq.ciudad_actual : ''}`;
   const calTexto = f => {
     const g = f.cal.grupo;
+    if (f.veh) {
+      const mas = f.cal.extra ? ` (+${f.cal.extra})` : '';
+      const nom = (f.cal.doc || '').split(' / ')[0], fem = !/^seguro/i.test(nom);
+      if (g === 'vigente') return `${nom} vigente · ${fLargaAnio(f.cal.fecha)}`;
+      if (g === 'porVencer') return `${nom} por vencer · ${f.cal.dias === 0 ? 'hoy' : f.cal.dias + ' d'} (${fCorta(f.cal.fecha)})${mas}`;
+      if (g === 'vencida') return `${nom} ${fem ? 'vencida' : 'vencido'} · ${-f.cal.dias} d de retraso${mas}`;
+      return 'Sin documentos con vigencia';
+    }
     if (g === 'vigente') return `Vigente · ${fLargaAnio(f.cal.fecha)}`;
     if (g === 'porVencer') return f.cal.dias === 0 ? `Por vencer · hoy (${fCorta(f.cal.fecha)})` : `Por vencer · ${f.cal.dias} d (${fCorta(f.cal.fecha)})`;
     if (g === 'vencida') return `Vencida · ${-f.cal.dias} d de retraso`;
@@ -9094,10 +9118,10 @@ async function exportarInventarioEquiposPDF() {
   const pad = Math.max(0.35, Math.min(1.6, (altoFila - fs * 0.42) / 2));
   doc.autoTable({
     startY: y - 3.5, margin: { left: M, right: M, top: 20, bottom: 24 }, theme: 'plain', ...estilosBase(fs, pad),
-    head: [['Tipo', 'Equipo', 'Apodo', 'N/S', 'Ubicación / Proyecto', 'Estatus de calibración', 'Accesorios']],
-    body: filas.map(f => [f.tipo, f.eq.nombre, f.eq.apodo || '—', f.eq.numero_serie || '—', ubicacion(f), calTexto(f), f.piezas ? `${f.piezas} pzs` : '—']),
-    columnStyles: { 0: { cellWidth: 34 }, 1: { fontStyle: 'bold', textColor: C.tinta, cellWidth: 43 }, 2: { cellWidth: 26 },
-      3: { font: 'courier', fontSize: fs, cellWidth: 36 }, 4: { cellWidth: 50 }, 5: { cellWidth: 42 }, 6: { halign: 'center' } },
+    head: [['Tipo', 'Equipo / Unidad', 'Apodo', 'N/S · Placas', 'Ubicación / Proyecto', 'Calibración · Documentos', 'Accesorios']],
+    body: filas.map(f => [f.tipo, f.eq.nombre, f.eq.apodo || '—', f.veh ? (f.eq.placas || 'sin placas') : (f.eq.numero_serie || '—'), ubicacion(f), calTexto(f), f.piezas ? `${f.piezas} pzs` : '—']),
+    columnStyles: { 0: { cellWidth: 33 }, 1: { fontStyle: 'bold', textColor: C.tinta, cellWidth: 38 }, 2: { cellWidth: 22 },
+      3: { font: 'courier', fontSize: fs, cellWidth: 38 }, 4: { cellWidth: 45 }, 5: { cellWidth: 53 }, 6: { halign: 'center' } },
     didParseCell: d => {
       if (d.section !== 'body') return;
       const f = filas[d.row.index];
