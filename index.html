@@ -266,9 +266,10 @@ a{text-decoration:none;color:inherit}
 .notif-on-avatar .notif-dropdown{top:calc(100% + 10px);pointer-events:auto}   /* el contenedor deja pasar clics; la lista sí debe recibirlos */
 .notif-trigger:hover{background:var(--surface2);color:var(--text)}
 .notif-badge{position:absolute;top:1px;right:1px;background:var(--red);color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;line-height:15px;border-radius:8px;text-align:center;padding:0 3px;box-shadow:0 0 0 2px var(--bg)}
-.notif-dropdown{width:340px;max-height:420px;display:flex;flex-direction:column}
+.notif-dropdown{width:340px;max-height:min(520px, calc(100vh - 90px));max-height:min(520px, calc(100dvh - 90px));flex-direction:column}
+#notif-dropdown.open{display:flex}
 .notif-dropdown .user-menu-header{padding:10px 12px;flex-shrink:0}
-#notif-list{overflow-y:auto}
+#notif-list{overflow-y:auto;flex:1 1 auto;min-height:0;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .notif-item{padding:10px 12px;border-top:1px solid var(--border);cursor:pointer;transition:background .12s}
 .notif-item:hover{background:var(--surface2)}
 .notif-item{position:relative}
@@ -1653,12 +1654,14 @@ function pintarListaCampana() {
   if (marcar) { marcar.textContent = 'Marcar leídas'; marcar.style.display = STATE._notifNoLeidas ? '' : 'none'; }
   const cont = document.getElementById('notif-list');
   if (!cont) return;
-  const lista = STATE.notificaciones || [];
+  // Primero las que faltan por leer (cada grupo de la más reciente a la más vieja)
+  const lista = [...(STATE.notificaciones || [])].sort((a, b) => (a.leida - b.leida) || String(b.fecha).localeCompare(String(a.fecha)));
   if (!lista.length) {
     cont.innerHTML = `<div class="notif-empty"><i class="ti ti-bell-off" aria-hidden="true" style="font-size:22px;display:block;margin-bottom:6px"></i>Sin notificaciones</div>`;
     return;
   }
-  cont.innerHTML = lista.map(n => `
+  const nSin = lista.filter(n => !n.leida).length;
+  cont.innerHTML = lista.map((n, i) => `${i === 0 && nSin ? `<div class="aviso-sep rojo">Sin leer · ${nSin}</div>` : ''}${i === nSin && nSin ? `<div class="aviso-sep" style="color:var(--text3)">Leídas</div>` : ''}
     <div class="notif-item ${n.leida ? 'leida' : 'unread'}" onclick="clicNotificacion(${n.id}, ${n.entidad_tipo === 'proyecto' ? `'${n.entidad_id}'` : 'null'}, '${n.entidad_tipo||''}')">
       ${n.leida ? '' : '<span class="notif-punto" aria-label="Sin leer"></span>'}
       <div class="notif-title">${escHtml(n.titulo)}</div>
