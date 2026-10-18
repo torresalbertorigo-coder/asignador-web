@@ -426,6 +426,56 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .stat-click.c-green.stat-activa{border-color:var(--green);box-shadow:inset 0 0 0 1px var(--green)}
 .stat-click:not(.stat-activa){opacity:.82}.stat-click:not(.stat-activa):hover{opacity:1}
 .nav-badge-pend{background:var(--amber);color:#111}
+.panel-side.panel-ancho{max-width:1080px}
+.np-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+.np-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.np-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.np-card-tit{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.np-opc{font-size:11px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--text3)}
+.np-fila3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.np-check{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer}
+.np-nota{font-size:11.5px;color:var(--text2);border:1px dashed var(--border2);border-radius:8px;padding:8px 10px}
+.np-req{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;align-items:start;padding:8px 0;border-top:1px solid var(--border)}
+.np-req:first-of-type{border-top:0;padding-top:0}
+.np-req-tit{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--text);padding-top:5px}
+.np-req-tit i{font-size:15px;color:var(--text3)}
+.np-req-chips{display:flex;flex-wrap:wrap;align-items:center;gap:0}
+.np-req-chips>span{display:contents}
+.np-req-chips .chip-termino{margin:0 6px 6px 0}
+.np-add{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;margin:0 0 6px;border:1px dashed var(--border2);border-radius:16px;background:none;color:var(--text2);font:inherit;font-size:12px;cursor:pointer}
+.np-add:hover{border-color:var(--text3);color:var(--text)}
+.bus-alt{margin-top:8px;font-size:12px;color:var(--text2)}
+.bus-alt summary{cursor:pointer;color:var(--amber);font-weight:600;list-style:none;display:inline-flex;align-items:center;gap:6px}
+.bus-alt summary::-webkit-details-marker{display:none}
+@media (max-width:860px){.np-grid{grid-template-columns:1fr}.np-req{grid-template-columns:1fr;gap:4px}}
+.pd-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start;margin-top:4px}
+.pd-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.pd-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;min-width:0}
+.pd-card .panel-section{padding:0;margin:0;border:0}
+.pd-veh .panel-section-title{font-size:10.5px;letter-spacing:.08em;color:var(--text2)}
+.pd-tit{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin-bottom:10px}
+.pd-tit>i{font-size:15px;color:var(--text3)}
+.pd-cuenta{font-family:var(--mono);font-size:12px;letter-spacing:0}
+.pd-datos{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;font-size:12px}
+.pd-datos span{display:block;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.pd-datos b{color:var(--text);font-weight:600}
+.pd-datos>div>div{display:flex;flex-direction:column;align-items:flex-start}
+.pd-link{background:none;border:0;padding:0;margin-left:6px;font:inherit;font-size:11.5px;color:var(--blue,#60a5fa);cursor:pointer;display:inline-flex;align-items:center;gap:3px;text-transform:none;letter-spacing:0;font-weight:500}
+.pd-link:hover{text-decoration:underline}
+.pd-fecha-main{font-size:17px;font-weight:700;color:var(--text);display:flex;align-items:baseline;gap:8px}
+.pd-fecha-main span{font-size:12px;font-weight:500;color:var(--text3)}
+.pd-fecha-real{font-size:12px;color:var(--blue,#60a5fa);margin-top:4px}
+.pd-nota{font-size:11.5px;color:var(--text2);margin-top:6px}
+.pd-btn{margin-top:12px}
+.pd-sub{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 6px}
+.pd-vacio{font-size:12px;color:var(--text3)}
+.pd-persona{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border)}
+.pd-persona:first-of-type{border-top:0}
+.pd-avatar{width:30px;height:30px;border-radius:50%;background:var(--surface);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text2);flex-shrink:0}
+.pd-nom{font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pd-sen{font-size:10.5px;color:var(--text3);text-transform:capitalize}
+.pd-acciones{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+@media (max-width:860px){.pd-grid{grid-template-columns:1fr}}
 .pry-tabs{display:flex;gap:6px;margin:4px 0 12px;flex-wrap:wrap}
 .pry-tab{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:border-color .15s,color .15s}
 .pry-tab span{font-family:var(--mono);font-size:11px;color:var(--text3)}
@@ -791,6 +841,8 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .eq-tab.activa{border-color:var(--red);color:var(--text);box-shadow:inset 0 0 0 1px var(--red)}
 .eq-tab.activa i{color:var(--red)}
 .eq-tab.vacia{opacity:.45}
+.eq-tab-veh{margin-right:6px;position:relative}
+.eq-tab-veh::after{content:'';position:absolute;right:-7px;top:6px;bottom:6px;width:1px;background:var(--border2)}
 .eq-grupo-tit{display:flex;align-items:center;gap:8px;margin:18px 0 10px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text2)}
 .eq-grupo-tit:first-child{margin-top:0}
 .eq-grupo-tit i{font-size:15px;color:var(--red)}
@@ -1344,8 +1396,7 @@ function buildNav() {
       <div class="nav-item" onclick="showSection('clientes')" data-sec="clientes"><i class="ti ti-building" aria-hidden="true"></i> Clientes</div>
       <div class="nav-item" onclick="showSection('gantt')" data-sec="gantt"><i class="ti ti-calendar-stats" aria-hidden="true"></i> Gantt</div>
       <div class="nav-section">OPERACIONES</div>
-      <div class="nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-tool" aria-hidden="true"></i> Equipos</div>
-      <div class="nav-item" onclick="showSection('vehiculos')" data-sec="vehiculos"><i class="ti ti-truck" aria-hidden="true"></i> Vehículos</div>
+      <div class="nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-packages" aria-hidden="true"></i> Activos / Equipos</div>
       <div class="nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Incidencias</div>
       <div class="nav-item" onclick="showSection('inactividad')" data-sec="inactividad"><i class="ti ti-calendar-pause" aria-hidden="true"></i> Días sin trabajo <span id="nav-badge-inactividad" class="nav-badge" style="display:none"></span></div>
       <div class="nav-item" onclick="showSection('metricas')" data-sec="metricas"><i class="ti ti-chart-bar" aria-hidden="true"></i> Métricas</div>`;
@@ -1360,8 +1411,7 @@ function buildNav() {
       <div class="mobile-nav-items">
         <div class="mobile-nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i>Empleados</div>
         <div class="mobile-nav-item" onclick="showSection('proyectos')" data-sec="proyectos"><i class="ti ti-folder" aria-hidden="true"></i>Proyectos</div>
-        <div class="mobile-nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-tool" aria-hidden="true"></i>Equipos</div>
-        <div class="mobile-nav-item" onclick="showSection('vehiculos')" data-sec="vehiculos"><i class="ti ti-truck" aria-hidden="true"></i>Vehículos</div>
+        <div class="mobile-nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-packages" aria-hidden="true"></i>Activos</div>
         <div class="mobile-nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Incidencias</div>
         <div class="mobile-nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i>Perfil</div>
       </div>`;
@@ -1524,8 +1574,7 @@ function buildMobileNavAdmin() {
     <div class="mobile-nav-items">
       <div class="mobile-nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i>Empleados</div>
       <div class="mobile-nav-item" onclick="showSection('proyectos')" data-sec="proyectos"><i class="ti ti-folder" aria-hidden="true"></i>Proyectos</div>
-      <div class="mobile-nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-tool" aria-hidden="true"></i>Equipos</div>
-      <div class="mobile-nav-item" onclick="showSection('vehiculos')" data-sec="vehiculos"><i class="ti ti-truck" aria-hidden="true"></i>Vehículos</div>
+      <div class="mobile-nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-packages" aria-hidden="true"></i>Activos</div>
       <div class="mobile-nav-item" onclick="showSection('incidencias')" data-sec="incidencias"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Incidencias</div>
     </div>`;
 }
@@ -1536,7 +1585,7 @@ const TITLES = {
   'proyectos':        ['ti-folder',             'Proyectos'],
   'gantt':            ['ti-calendar-stats',     'Gantt — Disponibilidad'],
   'evaluar':          ['ti-adjustments-horizontal','Evaluar Candidatos'],
-  'equipos':          ['ti-tool',               'Equipos e Instrumentos'],
+  'equipos':          ['ti-packages',           'Activos / Equipos'],
   'vehiculos':        ['ti-truck',              'Vehículos'],
   'incidencias':      ['ti-alert-triangle',     'Incidencias de Campo'],
   'mapa':             ['ti-home',               'Inicio'],
@@ -1597,7 +1646,7 @@ function showSection(sec) {
   }
   if (window.innerWidth <= 768) cerrarSidebarMovil();   // al elegir una opción del menú en celular, se cierra
   document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.sec === sec || (sec === 'evaluar' && el.dataset.sec === 'proyectos'));
+    el.classList.toggle('active', el.dataset.sec === sec || (sec === 'evaluar' && el.dataset.sec === 'proyectos') || (sec === 'vehiculos' && el.dataset.sec === 'equipos'));
   });
   const [icon, title] = TITLES[sec] || ['ti-home', sec];
   document.getElementById('page-title').innerHTML = `<i class="ti ${icon}" aria-hidden="true"></i><span>${title}</span>`;
@@ -2009,8 +2058,9 @@ function _confirmarSalidaPanel() {
   if (continuar) STATE._panelDirty = false;
   return continuar;
 }
-function openPanel(title, bodyHtml, footerHtml, headerHtml) {
+function openPanel(title, bodyHtml, footerHtml, headerHtml, opciones) {
   if (!_confirmarSalidaPanel()) return;
+  document.getElementById('panel-side')?.classList.toggle('panel-ancho', !!opciones?.ancho);
   document.getElementById('panel-title').textContent = title;
   document.getElementById('panel-body').innerHTML = bodyHtml;
   document.getElementById('panel-footer').innerHTML = footerHtml || '';
@@ -2703,6 +2753,9 @@ async function verProyecto(id) {
   const equipoOk = p.no_requiere_equipo || totalEquipoRequerido === 0 || equiposAsignados.length >= totalEquipoRequerido;
   const editando = STATE._pdEditandoId === id;
 
+  const puedeGestionar = STATE.rol !== 'tecnico' && !['completado', 'cancelado'].includes(p.estado);
+  const durPlan = p.fecha_inicio && p.fecha_fin_estimada ? Math.round((fechaLocal(p.fecha_fin_estimada) - fechaLocal(p.fecha_inicio)) / 86400000) + 1 : null;
+  const reprog = p.reprogramaciones_resumen || [];
   openPanel(p.nombre, `
     <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
       <div style="flex:1;min-width:140px;background:${personalOk?'var(--green-bg)':'var(--amber-bg)'};border:1px solid ${personalOk?'var(--green-border)':'var(--amber-border)'};border-radius:var(--radius);padding:10px 14px">
@@ -2715,52 +2768,57 @@ async function verProyecto(id) {
       </div>
       ${tarjetaVehiculoProyecto(p, vehiculosAsignados)}
     </div>
-    <div class="panel-section">
-      <div class="panel-section-title">DETALLES DEL PROYECTO</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
-        <div><span style="color:var(--text3);font-size:10px">ID</span><div class="td-mono" style="margin-top:2px">${p.id}</div></div>
-        <div><span style="color:var(--text3);font-size:10px">ESTADO</span><div style="margin-top:4px">${badge(estadoProyectoVisible(p))}${textoRetrasoInicio(p)?`<div style="font-size:11px;color:var(--amber);margin-top:4px">${textoRetrasoInicio(p)}</div>`:''}</div></div>
-        <div><span style="color:var(--text3);font-size:10px">CLIENTE</span><div style="margin-top:2px;color:var(--text)">${p.cliente||'—'}</div></div>
-        <div><span style="color:var(--text3);font-size:10px">CRITICIDAD</span><div style="margin-top:2px;color:var(--text)">${(p.criticidad||'—').replace('_',' ').toUpperCase()}</div></div>
-        <div><span style="color:var(--text3);font-size:10px">INICIO</span><div class="td-mono" style="margin-top:2px">${p.fecha_inicio||'—'}${['administrador','director_proyecto'].includes(STATE.rol) && !['completado','cancelado'].includes(p.estado) ? ` <a href="#" onclick="event.preventDefault();abrirReprogramar('${p.id}')" style="color:var(--blue);text-decoration:none;font-size:11px;font-family:var(--sans)">reprogramar</a>` : ''}</div></div>
-        <div><span style="color:var(--text3);font-size:10px">FIN ESTIMADO</span><div class="td-mono" style="margin-top:2px">${p.fecha_fin_estimada||'—'}</div></div>
-        ${(p.reprogramaciones_resumen||[]).length ? `<div style="grid-column:1/-1;font-size:11px;color:var(--text2)"><i class="ti ti-calendar-event" aria-hidden="true"></i> Reprogramado ${p.reprogramaciones_resumen.length} vez${p.reprogramaciones_resumen.length>1?'es':''} · fechas originales ${p.reprogramaciones_resumen[0].inicio_anterior} al ${p.reprogramaciones_resumen[0].fin_anterior}${p.reprogramaciones_resumen.at(-1).motivo ? ` · último motivo: ${escHtml(p.reprogramaciones_resumen.at(-1).motivo)}` : ''}</div>` : ''}
-        ${p.fecha_inicio_real ? `<div><span style="color:var(--text3);font-size:10px">INICIO REAL</span><div class="td-mono" style="margin-top:2px;color:var(--blue)">${p.fecha_inicio_real}</div></div>` : ''}
-        ${p.fecha_fin_real ? `<div><span style="color:var(--text3);font-size:10px">FIN REAL</span><div class="td-mono" style="margin-top:2px;color:var(--green)">${p.fecha_fin_real}</div></div>` : ''}
-        <div><span style="color:var(--text3);font-size:10px">CIUDAD</span><div style="margin-top:2px;color:var(--text)">${p.ciudad||'—'}</div></div>
-        <div><span style="color:var(--text3);font-size:10px">COORDENADAS</span><div style="margin-top:2px;color:var(--text)" class="td-mono">${p.latitud&&p.longitud?`${p.latitud.toFixed(5)}, ${p.longitud.toFixed(5)}`:'sin definir'} <a href="#" onclick="event.preventDefault();abrirEditarCoordenadas('${p.id}')" style="color:var(--blue);text-decoration:none;font-size:11px;font-family:var(--sans)">editar</a></div></div>
-        <div><span style="color:var(--text3);font-size:10px">PERSONAL REQ.</span><div style="margin-top:2px;color:var(--text)">${idsAsignados.length}/${p.personal_requerido||1} técnico(s)</div></div>
+    <div class="pd-grid">
+      <div class="pd-col">
+        <div class="pd-card">
+          <div class="pd-tit"><i class="ti ti-info-circle" aria-hidden="true"></i>Información</div>
+          <div class="pd-datos">
+            <div><span>ID</span><b class="td-mono">${p.id}</b></div>
+            <div><span>Estado</span><div>${badge(estadoProyectoVisible(p))}${textoRetrasoInicio(p)?`<div style="font-size:11px;color:var(--amber);margin-top:4px">${textoRetrasoInicio(p)}</div>`:''}</div></div>
+            <div><span>Cliente</span><b>${escHtml(p.cliente||'—')}</b></div>
+            <div><span>Criticidad</span><b>${(p.criticidad||'—').replace('tipo_','Tipo ').toUpperCase()}</b></div>
+            <div><span>Ciudad</span><b>${escHtml(p.ciudad||'—')}</b></div>
+            <div><span>Coordenadas</span><b class="td-mono">${p.latitud&&p.longitud?`${p.latitud.toFixed(4)}, ${p.longitud.toFixed(4)}`:'sin definir'}</b>
+              <button class="pd-link" onclick="abrirEditarCoordenadas('${p.id}')"><i class="ti ti-map-pin" aria-hidden="true"></i> Editar</button></div>
+          </div>
+        </div>
+        <div class="pd-card">
+          <div class="pd-tit"><i class="ti ti-calendar" aria-hidden="true"></i>Fechas</div>
+          <div class="pd-fechas">
+            <div class="pd-fecha-main">${p.fecha_inicio ? rangoCorto(p.fecha_inicio, p.fecha_fin_estimada || p.fecha_inicio) : 'Sin fechas'}${durPlan ? `<span>${plural(durPlan, 'día')}</span>` : ''}</div>
+            ${p.fecha_inicio_real || p.fecha_fin_real ? `<div class="pd-fecha-real"><i class="ti ti-player-play" aria-hidden="true"></i> Real: ${p.fecha_inicio_real ? fCorta(p.fecha_inicio_real) : '—'} → ${p.fecha_fin_real ? fCorta(p.fecha_fin_real) : 'en curso'}</div>` : ''}
+            ${reprog.length ? `<div class="pd-nota"><i class="ti ti-history" aria-hidden="true"></i> Reagendado ${plural(reprog.length, 'vez', 'veces')} · originalmente ${rangoCorto(reprog[0].inicio_anterior, reprog[0].fin_anterior)}${reprog.at(-1).motivo ? ` · último motivo: ${escHtml(reprog.at(-1).motivo)}` : ''}</div>` : ''}
+          </div>
+          ${['administrador','director_proyecto'].includes(STATE.rol) && !['completado','cancelado'].includes(p.estado) ? `<button class="btn btn-ghost btn-sm pd-btn" onclick="abrirReprogramar('${p.id}')"><i class="ti ti-calendar-event" aria-hidden="true"></i> Reagendar fechas</button>` : ''}
+        </div>
+        <div class="pd-card">
+          <div class="pd-tit"><i class="ti ti-list-check" aria-hidden="true"></i>Requisitos
+            <button class="pd-link" style="margin-left:auto" onclick="toggleEditarRequisitos('${p.id}')"><i class="ti ${editando?'ti-check':'ti-pencil'}" aria-hidden="true"></i> ${editando?'Listo':'Editar'}</button></div>
+          <div class="pd-sub">Habilidades</div>
+          <div>${(p.habilidades_requeridas_items||[]).map(h => chipTermino('habilidad', h.nombre, `nivel ${h.nivel}`, editando ? `ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','habilidad-requerida',${h.id}))` : '')).join('')}
+            ${editando ? `<button type="button" class="np-add" onclick="abrirSelectorTerminos('habilidad','proyecto','${p.id}')"><i class="ti ti-plus" aria-hidden="true"></i> Agregar</button>` : (p.habilidades_requeridas_items||[]).length ? '' : '<span class="pd-vacio">No exige</span>'}</div>
+          <div class="pd-sub">Certificados</div>
+          <div>${(p.certificados_requeridos_items||[]).map(c => chipTermino('certificado', c.nombre, '', editando ? `ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','certificado-requerido',${c.id}))` : '')).join('')}
+            ${editando ? `<button type="button" class="np-add" onclick="abrirSelectorTerminos('certificado','proyecto','${p.id}')"><i class="ti ti-plus" aria-hidden="true"></i> Agregar</button>` : (p.certificados_requeridos_items||[]).length ? '' : '<span class="pd-vacio">No exige</span>'}</div>
+        </div>
       </div>
-    </div>
-    <div class="panel-section">
-      <div class="panel-section-title">REQUISITOS PARA ASIGNACIÓN</div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:6px">HABILIDADES OPERATIVAS MÍNIMAS</div>
-      ${(p.habilidades_requeridas_items||[]).length ? `<div>${p.habilidades_requeridas_items.map(h =>
-        chipTermino('habilidad', h.nombre, `nivel ${h.nivel}`, editando ? `ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','habilidad-requerida',${h.id}))` : '')
-      ).join('')}</div>` : '<div style="font-size:12px;color:var(--text3)">Sin requisitos de habilidad configurados.</div>'}
-      ${editando ? `<button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="abrirSelectorTerminos('habilidad','proyecto','${p.id}')"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Elegir habilidades</button>` : ''}
-      <div style="font-size:11px;color:var(--text3);margin:14px 0 6px">CERTIFICADOS TÉCNICOS REQUERIDOS</div>
-      ${(p.certificados_requeridos_items||[]).length ? `<div>${p.certificados_requeridos_items.map(c =>
-        chipTermino('certificado', c.nombre, '', editando ? `ejecutarConCarga(this, () => quitarRequisitoProyecto('${p.id}','certificado-requerido',${c.id}))` : '')
-      ).join('')}</div>` : '<div style="font-size:12px;color:var(--text3)">Sin certificados requeridos configurados.</div>'}
-      ${editando ? `<button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="abrirSelectorTerminos('certificado','proyecto','${p.id}')"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Elegir certificados</button>` : ''}
-      <button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="toggleEditarRequisitos('${p.id}')"><i class="ti ${editando?'ti-eye-off':'ti-pencil'}" aria-hidden="true"></i> ${editando?'Ocultar edición':'Editar requisitos'}</button>
-    </div>
-    <div class="panel-section">
-      <div class="panel-section-title">PERSONAL ASIGNADO</div>
-      ${tecnicos.length ? tecnicos.map(e=>`
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
-          <div><div style="color:var(--text);font-weight:600">${e.nombre} ${e.apellido}</div><div style="color:var(--text3);font-size:10px">${(e.seniority||'').replace('_',' ')}</div></div>
-          ${badge(estadoVisible(e))}
-        </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Aún no hay técnicos asignados a este proyecto.</div>'}
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-        ${!['completado', 'cancelado'].includes(p.estado) && idsAsignados.length < (p.personal_requerido || 1) && STATE.rol !== 'tecnico'
-          ? `<button class="btn btn-sm pry-btn-eval" onclick="closePanel(null,true);irAEvaluar('${p.id}')"><i class="ti ti-bolt" aria-hidden="true"></i> Evaluar personal</button>` : ''}
-        <button class="btn btn-ghost btn-sm" onclick="abrirAsignacionDirecta('${p.id}')"><i class="ti ti-user-plus" aria-hidden="true"></i> Asignar técnico directamente</button>
-      </div>
-    </div>
-    <div class="panel-section">
-      <div class="panel-section-title">EQUIPO Y HERRAMIENTAS</div>
+      <div class="pd-col">
+        <div class="pd-card">
+          <div class="pd-tit"><i class="ti ti-users" aria-hidden="true"></i>Personal asignado <span class="pd-cuenta" style="color:${personalOk ? 'var(--green)' : 'var(--amber)'}">${idsAsignados.length}/${p.personal_requerido||1}</span></div>
+          ${tecnicos.length ? tecnicos.map(e => `
+            <div class="pd-persona">
+              <div class="pd-avatar">${escHtml((e.nombre||'?')[0])}${escHtml((e.apellido||'')[0]||'')}</div>
+              <div style="flex:1;min-width:0"><div class="pd-nom">${escHtml(e.nombre)} ${escHtml(e.apellido)}</div><div class="pd-sen">${escHtml((e.seniority||'').replace('_',' '))}</div></div>
+              ${badge(estadoVisible(e))}
+              ${puedeGestionar ? `<button class="pd-link" title="Quitar y elegir a otra persona" onclick="cambiarTecnicoProyecto('${p.id}','${e.id}')"><i class="ti ti-switch-horizontal" aria-hidden="true"></i> Cambiar</button>` : ''}
+            </div>`).join('') : '<div class="pd-vacio">Aún no hay técnicos asignados.</div>'}
+          ${puedeGestionar ? `<div class="pd-acciones">
+            <button class="btn btn-sm pry-btn-eval" onclick="closePanel(null,true);irAEvaluar('${p.id}')"><i class="ti ${personalOk ? 'ti-refresh' : 'ti-bolt'}" aria-hidden="true"></i> ${personalOk ? 'Reevaluar / cambiar técnico' : 'Evaluar personal'}</button>
+            <button class="btn btn-ghost btn-sm" onclick="abrirAsignacionDirecta('${p.id}')"><i class="ti ti-user-plus" aria-hidden="true"></i> Asignar directamente</button>
+          </div>` : ''}
+        </div>
+        <div class="pd-card">
+          <div class="pd-tit"><i class="ti ti-tool" aria-hidden="true"></i>Equipo y herramientas</div>
       ${p.no_requiere_equipo ? '<div style="font-size:12px;color:var(--text3)">Este proyecto no requiere equipo.</div>' : `
         ${(p.equipo_requerido_items||[]).length ? p.equipo_requerido_items.map(it=>{
           const dispInfo = dispEquipo ? dispEquipo.items.find(d=>d.tipo===it.tipo) : null;
@@ -2789,11 +2847,26 @@ async function verProyecto(id) {
         <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="abrirAsignacionEquipo('${p.id}')"><i class="ti ti-tool" aria-hidden="true"></i> Asignar equipo específico</button>
         <button class="btn btn-ghost btn-sm" style="margin-top:10px;margin-left:8px" onclick="toggleEditarRequisitos('${p.id}')"><i class="ti ${editando?'ti-eye-off':'ti-pencil'}" aria-hidden="true"></i> ${editando?'Ocultar edición':'Editar requisitos'}</button>
       `}
-    </div>
-    ${seccionVehiculosProyecto(p, vehiculosAsignados, dispVehiculo, editando)}`,
+    
+        </div>
+        <div class="pd-card pd-veh">${seccionVehiculosProyecto(p, vehiculosAsignados, dispVehiculo, editando)}</div>
+      </div>
+    </div>`,
     footerBtns,
     STATE.rol !== 'tecnico' ? `<button class="btn btn-ghost btn-sm" onclick="exportarGanttProyectoPDF('${p.id}')" title="Generar Gantt en PDF"><i class="ti ti-file-download" aria-hidden="true"></i> PDF</button>
-     <button class="btn btn-ghost btn-sm" onclick="descargarKitDocumentos('${p.id}','${escHtml(p.nombre)}')" title="Descargar documentación de personal, equipo y vehículos asignados"><i class="ti ti-folder-download" aria-hidden="true"></i> Kit de documentos</button>` : '');
+     <button class="btn btn-ghost btn-sm" onclick="descargarKitDocumentos('${p.id}','${escHtml(p.nombre)}')" title="Descargar documentación de personal, equipo y vehículos asignados"><i class="ti ti-folder-download" aria-hidden="true"></i> Kit de documentos</button>` : '', { ancho: true });
+}
+// Cambiar técnico: lo quita del proyecto y abre la evaluación para elegir a otra persona
+async function cambiarTecnicoProyecto(pid, empId) {
+  const p = (STATE.proyectos || []).find(x => x.id === pid), e = (STATE.empleados || []).find(x => x.id === empId);
+  const nombre = e ? `${e.nombre} ${e.apellido}` : 'esta persona';
+  if (!confirm(`¿Quitar a ${nombre} de "${p?.nombre || 'este proyecto'}" y elegir a alguien más?${p?.fecha_inicio_real ? '\n\nEl proyecto ya inició: sus checadas se conservan.' : ''}\n\nSe le avisará con una notificación.`)) return;
+  const r = await api('DELETE', `/proyectos/proyectos/${encodeURIComponent(pid)}/personal/${encodeURIComponent(empId)}`);
+  if (!r) return;
+  toast(r.mensaje || 'Técnico quitado del proyecto');
+  await Promise.all([loadProyectos(true), loadEmpleados(true)]);
+  closePanel(null, true);
+  irAEvaluar(pid);
 }
 
 function toggleEditarRequisitos(proyectoId) {
@@ -3078,98 +3151,95 @@ function openNuevoProyecto() {
   STATE._np_certificados = [];
   STATE._np_equipo = [];
   STATE._np_vehiculo = [];
+  const filaReq = (id, icono, titulo, lista, tipoSel) => `
+    <div class="np-req" id="np-sec-${id}">
+      <div class="np-req-tit"><i class="ti ti-${icono}" aria-hidden="true"></i>${titulo}</div>
+      <div class="np-req-chips"><span id="np-${lista}-list">${({ habs: renderListaHabilidadesProyecto, certs: renderListaCertificadosProyecto, equipo: renderListaEquipoProyecto, vehiculo: renderListaVehiculoProyecto })[lista]()}</span>
+        <button type="button" class="np-add" onclick="abrirSelectorTerminos('${tipoSel}','nuevo')"><i class="ti ti-plus" aria-hidden="true"></i> Agregar</button></div>
+    </div>`;
   openPanel('Nuevo proyecto', `
-    <div class="panel-section">
-      <div class="panel-section-title">INFORMACIÓN GENERAL</div>
-      <div class="field-row full"><div class="field-group"><label class="field-label">NOMBRE DEL PROYECTO</label><input class="field-input" id="np-nombre" placeholder="Ej: Inspección Palas — PE Ingenio"></div></div>
-      <div class="field-row full"><div class="field-group"><label class="field-label">CLIENTE</label><input class="field-input" id="np-cliente" list="dl-clientes" placeholder="Nombre del cliente" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div></div>
-      <div class="field-row">
-        <div class="field-group"><label class="field-label">CRITICIDAD</label><select class="field-select" id="np-crit"><option value="tipo_a">Tipo A — Crítico</option><option value="tipo_b" selected>Tipo B — Moderado</option><option value="tipo_c">Tipo C — Estándar</option></select></div>
-        <div class="field-group"><label class="field-label">INTENSIDAD</label><select class="field-select" id="np-intens"><option value="alta">Alta</option><option value="media" selected>Media</option><option value="baja">Baja</option></select></div>
-      </div>
-    </div>
-    <div class="panel-section">
-      <div class="panel-section-title">FECHAS Y PERSONAL</div>
-      <div class="field-row" style="margin-bottom:10px"><div class="field-group"><label class="field-label">PERSONAL REQUERIDO</label><input class="field-input" id="np-personal" type="number" value="1" min="1"></div><div class="field-group"></div></div>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);cursor:pointer;margin-bottom:10px">
-        <input type="checkbox" id="np-buscar" onchange="alternarBuscadorFechas(this.checked)">
-        <span><i class="ti ti-calendar-search" aria-hidden="true"></i> No tengo fechas fijas: <strong>buscar la fecha más próxima</strong></span>
-      </label>
-      <div class="field-row" id="np-fechas-fijas">
-        <div class="field-group"><label class="field-label">FECHA INICIO</label><input class="field-input" id="np-inicio" type="date"></div>
-        <div class="field-group"><label class="field-label">FECHA FIN EST.</label><input class="field-input" id="np-fin" type="date"></div>
-      </div>
-      <div id="np-bus-nota" style="display:none;font-size:12px;color:var(--text2);background:var(--input-bg);border:1px dashed var(--border2);border-radius:8px;padding:10px 12px;margin-bottom:10px"><i class="ti ti-arrow-down" aria-hidden="true"></i> Primero elige los requisitos abajo; la búsqueda de fechas está <strong>al final del formulario</strong>.</div>
-      <div id="np-buscador" style="display:none;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px">
-        <div class="panel-section-title" style="margin-bottom:8px">BUSCAR FECHA MÁS PRÓXIMA</div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.45">Con el personal requerido y los requisitos que elegiste arriba, busca la <strong>fecha más próxima en que todo cuadra</strong>. Buscar no guarda nada.</div>
-        <div class="field-row">
-          <div class="field-group"><label class="field-label">DURACIÓN (DÍAS)</label><input class="field-input" id="np-bus-dur" type="number" min="1" max="365" value="3"></div>
-          <div class="field-group"><label class="field-label">A PARTIR DE <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">(mín. 2 días de anticipación)</span></label><input class="field-input" id="np-bus-desde" type="date"></div>
+    <div class="np-grid">
+      <div class="np-col">
+        <div class="np-card">
+          <div class="np-card-tit">Datos generales</div>
+          <div class="field-group"><label class="field-label">NOMBRE DEL PROYECTO</label><input class="field-input" id="np-nombre" placeholder="Ej: Inspección Palas — PE Ingenio"></div>
+          <div class="field-group"><label class="field-label">CLIENTE</label><input class="field-input" id="np-cliente" list="dl-clientes" placeholder="Nombre del cliente" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
+          <div class="np-fila3">
+            <div class="field-group"><label class="field-label">CRITICIDAD</label><select class="field-select" id="np-crit"><option value="tipo_a">A — Crítico</option><option value="tipo_b" selected>B — Moderado</option><option value="tipo_c">C — Estándar</option></select></div>
+            <div class="field-group"><label class="field-label">INTENSIDAD</label><select class="field-select" id="np-intens"><option value="alta">Alta</option><option value="media" selected>Media</option><option value="baja">Baja</option></select></div>
+            <div class="field-group"><label class="field-label">PERSONAL</label><input class="field-input" id="np-personal" type="number" value="1" min="1"></div>
+          </div>
         </div>
-        <div class="field-row" style="margin-top:8px">
-          <div class="field-group"><label class="field-label">TERMINAR A MÁS TARDAR (OPCIONAL)</label><input class="field-input" id="np-bus-hasta" type="date"></div>
+        <div class="np-card">
+          <div class="np-card-tit">Fechas</div>
+          <div class="field-row" id="np-fechas-fijas">
+            <div class="field-group"><label class="field-label">INICIO</label><input class="field-input" id="np-inicio" type="date" onchange="fechasNuevoProyectoCambiadas()"></div>
+            <div class="field-group"><label class="field-label">FIN ESTIMADO</label><input class="field-input" id="np-fin" type="date" onchange="fechasNuevoProyectoCambiadas()"></div>
+          </div>
+          <label class="np-check"><input type="checkbox" id="np-buscar" onchange="alternarBuscadorFechas(this.checked)"><i class="ti ti-calendar-search" aria-hidden="true"></i> No tengo fechas fijas: buscar la más próxima</label>
+          <div id="np-bus-nota" class="np-nota" style="display:none"><i class="ti ti-arrow-right" aria-hidden="true"></i> Elige los requisitos y busca las fechas en la columna de la derecha.</div>
+          <div id="np-sugerido"></div>
         </div>
-        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--text2)">
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="np-bus-eq" checked> Considerar equipo</label>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="np-bus-veh" checked> Considerar vehículos</label>
+        <div class="np-card" id="np-sec-ubic">
+          <div class="np-card-tit">Ubicación</div>
+          <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD</label><input class="field-input" id="np-ciudad" placeholder="Ciudad del proyecto"></div><div class="field-group"><label class="field-label">ESTADO</label><select class="field-select" id="np-estado"><option value="">Selecciona...</option>${ESTADOS_MX.map(e=>`<option value="${e}">${e}</option>`).join('')}</select></div></div>
+          <div class="field-group" style="margin-top:8px"><label class="field-label">COORDENADAS <span class="np-opc">opcional · se pegan tal cual de Google Maps</span></label><input class="field-input" id="np-coords" placeholder="21.9111, -102.2973"></div>
         </div>
-        <button class="btn btn-primary btn-sm" id="np-bus-btn" style="margin-top:12px" onclick="ejecutarConCarga(this, buscarFechasProyecto, 'Buscando...')"><i class="ti ti-calendar-search" aria-hidden="true"></i> Buscar fechas</button>
-        <div id="np-bus-res" style="margin-top:12px"></div>
       </div>
-      <div id="np-sugerido"></div>
-    </div>
-    <div class="panel-section" id="np-sec-habs">
-      <div class="panel-section-title">HABILIDADES OPERATIVAS REQUERIDAS</div>
-      <div id="np-habs-list" style="margin-bottom:8px">${renderListaHabilidadesProyecto()}</div>
-      <button class="btn btn-ghost btn-sm" onclick="abrirSelectorTerminos('habilidad','nuevo')"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Elegir habilidades</button>
-    </div>
-    <div class="panel-section" id="np-sec-certs">
-      <div class="panel-section-title">CERTIFICADOS TÉCNICOS REQUERIDOS</div>
-      <div id="np-certs-list" style="margin-bottom:8px">${renderListaCertificadosProyecto()}</div>
-      <button class="btn btn-ghost btn-sm" onclick="abrirSelectorTerminos('certificado','nuevo')"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Elegir certificados</button>
-    </div>
-    <div class="panel-section" id="np-sec-equipo">
-      <div class="panel-section-title">EQUIPO REQUERIDO</div>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);margin-bottom:12px;cursor:pointer">
-        <input type="checkbox" id="np-sin-equipo" onchange="document.getElementById('np-equipo-section').style.display=this.checked?'none':'block'">
-        Este proyecto no requiere equipo (ej: capacitaciones)
-      </label>
-      <div id="np-equipo-section">
-        <div id="np-equipo-list" style="margin-bottom:8px">${renderListaEquipoProyecto()}</div>
-        <button class="btn btn-ghost btn-sm" onclick="abrirSelectorTerminos('equipo','nuevo')"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Elegir equipo</button>
-      </div>
-    </div>
-    <div class="panel-section" id="np-sec-veh">
-      <div class="panel-section-title">VEHÍCULOS REQUERIDOS</div>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);margin-bottom:12px;cursor:pointer">
-        <input type="checkbox" id="np-sin-vehiculo" checked onchange="document.getElementById('np-vehiculo-section').style.display=this.checked?'none':'block'">
-        Este proyecto no requiere vehículo
-      </label>
-      <div id="np-vehiculo-section" style="display:none">
-        <div id="np-vehiculo-list" style="margin-bottom:8px">${renderListaVehiculoProyecto()}</div>
-        <button class="btn btn-ghost btn-sm" onclick="abrirSelectorTerminos('vehiculo','nuevo')"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Elegir vehículos</button>
+      <div class="np-col">
+        <div class="np-card">
+          <div class="np-card-tit">Requisitos <span class="np-opc">lo que no elijas no se exige</span></div>
+          ${filaReq('habs', 'star', 'Habilidades', 'habs', 'habilidad')}
+          ${filaReq('certs', 'certificate', 'Certificados', 'certs', 'certificado')}
+          ${filaReq('equipo', 'tool', 'Equipo', 'equipo', 'equipo')}
+          ${filaReq('veh', 'car', 'Vehículos', 'vehiculo', 'vehiculo')}
+        </div>
+        <div id="np-buscador" class="np-card" style="display:none">
+          <div class="np-card-tit">Buscar fecha más próxima <span class="np-opc">buscar no guarda nada</span></div>
+          <div class="np-fila3">
+            <div class="field-group"><label class="field-label">DURACIÓN (DÍAS)</label><input class="field-input" id="np-bus-dur" type="number" min="1" max="365" value="3"></div>
+            <div class="field-group"><label class="field-label">A PARTIR DE</label><input class="field-input" id="np-bus-desde" type="date"></div>
+            <div class="field-group"><label class="field-label">A MÁS TARDAR</label><input class="field-input" id="np-bus-hasta" type="date"></div>
+          </div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--text2)">
+            <label class="np-check" style="margin:0"><input type="checkbox" id="np-bus-eq" checked> Considerar equipo</label>
+            <label class="np-check" style="margin:0"><input type="checkbox" id="np-bus-veh" checked> Considerar vehículos</label>
+          </div>
+          <button class="btn btn-primary btn-sm" id="np-bus-btn" style="margin-top:12px" onclick="ejecutarConCarga(this, buscarFechasProyecto, 'Buscando...')"><i class="ti ti-calendar-search" aria-hidden="true"></i> Buscar fechas</button>
+          <div id="np-bus-res" style="margin-top:12px"></div>
+        </div>
+        <div id="np-buscador-final"></div>
       </div>
     </div>
-    <div class="panel-section" id="np-sec-ubic">
-      <div class="panel-section-title">UBICACIÓN</div>
-      <div class="field-row"><div class="field-group"><label class="field-label">CIUDAD</label><input class="field-input" id="np-ciudad" placeholder="Ciudad del proyecto"></div><div class="field-group"><label class="field-label">ESTADO</label><select class="field-select" id="np-estado"><option value="">Selecciona...</option>${ESTADOS_MX.map(e=>`<option value="${e}">${e}</option>`).join('')}</select></div></div>
-      <div class="field-row" style="margin-top:8px">
-        <div class="field-group"><label class="field-label">COORDENADAS (OPCIONAL)</label><input class="field-input" id="np-coords" placeholder="ej. 21.91114227818028, -102.2973348126625"></div>
-      </div>
-      <p style="font-size:11px;color:var(--text3);margin-top:6px">Si el sitio está retirado de la ciudad (línea de transmisión, parque eólico, etc.), pega aquí el par de números tal cual te lo da Google Maps (mantén presionado el punto en el mapa y cópialo). Si lo dejas vacío, se calcula automáticamente a partir de la ciudad.</p>
-    </div>
-    <div id="np-buscador-final"></div>
     <div id="np-guia-lugar"></div>
     <div id="np-err" style="color:var(--red-text);font-size:12px;margin-top:8px"></div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button>
-     <button class="btn btn-ghost btn-sm np-btn-pend" onclick="ejecutarConCarga(this, () => guardarNuevoProyecto(false))"><i class="ti ti-device-floppy" aria-hidden="true"></i> Guardar como pendiente</button>
-     <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarNuevoProyecto(true))"><i class="ti ti-bolt" aria-hidden="true"></i> Crear y evaluar personal</button>`);
+    pieNuevoProyecto(), '', { ancho: true });
+}
+// Botones del pie: con personal sugerido por el buscador → "Crear y asignar"; si no → pendiente / evaluar
+function pieNuevoProyecto() {
+  const conSugerido = !!(STATE._np_sugerido && (document.getElementById('np-asignar-sugerido')?.checked ?? true));
+  return `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button>
+    ${conSugerido
+      ? `<button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarNuevoProyecto('asignar'))"><i class="ti ti-bolt" aria-hidden="true"></i> Crear y asignar proyecto</button>`
+      : `<button class="btn btn-ghost btn-sm np-btn-pend" onclick="ejecutarConCarga(this, () => guardarNuevoProyecto(false))"><i class="ti ti-device-floppy" aria-hidden="true"></i> Guardar como pendiente</button>
+         <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarNuevoProyecto(true))"><i class="ti ti-bolt" aria-hidden="true"></i> Crear y evaluar personal</button>`}`;
+}
+function pintarPieNuevoProyecto() {
+  const pie = document.getElementById('panel-footer');
+  if (pie && document.getElementById('np-nombre')) pie.innerHTML = pieNuevoProyecto();
+}
+// Si cambian las fechas a mano después de usar una sugerencia, el personal sugerido ya no aplica
+function fechasNuevoProyectoCambiadas() {
+  if (!STATE._np_sugerido) return;
+  STATE._np_sugerido = null;
+  const s = document.getElementById('np-sugerido'); if (s) s.innerHTML = '';
+  pintarPieNuevoProyecto();
+  toast('Cambiaste las fechas: se quitó el personal sugerido');
 }
 
 function renderListaHabilidadesProyecto() {
   const list = STATE._np_habilidades || [];
-  if (!list.length) return '<div style="font-size:12px;color:var(--text3)">Ninguna elegida — el proyecto no exigirá nivel mínimo de habilidades.</div>';
+  if (!list.length) return '';
   return list.map((h,i) => chipTermino('habilidad', h.nombre, `nivel ${h.nivel}`, `quitarHabilidadProyecto(${i})`)).join('');
 }
 function agregarHabilidadProyecto() {
@@ -3189,7 +3259,7 @@ function quitarHabilidadProyecto(i) {
 
 function renderListaCertificadosProyecto() {
   const list = STATE._np_certificados || [];
-  if (!list.length) return '<div style="font-size:12px;color:var(--text3)">Ninguno elegido — el proyecto no exigirá certificados.</div>';
+  if (!list.length) return '';
   return list.map((c,i) => chipTermino('certificado', c, '', `quitarCertificadoProyecto(${i})`)).join('');
 }
 function agregarCertificadoProyecto() {
@@ -3207,7 +3277,7 @@ function quitarCertificadoProyecto(i) {
 
 function renderListaEquipoProyecto() {
   const list = STATE._np_equipo || [];
-  if (!list.length) return '<div style="font-size:12px;color:var(--text3)">Ninguno elegido.</div>';
+  if (!list.length) return '';
   return list.map((e,i) => chipIcono(iconoEquipo(e.tipo), etiquetaEquipo(e.tipo), `× ${e.cantidad}`, `quitarEquipoProyecto(${i})`)).join('');
 }
 function agregarEquipoProyecto() {
@@ -3223,7 +3293,7 @@ function quitarEquipoProyecto(i) {
   document.getElementById('np-equipo-list').innerHTML = renderListaEquipoProyecto();
 }
 
-async function guardarNuevoProyecto(evaluar = false) {
+async function guardarNuevoProyecto(evaluar = false) {   // false = pendiente · true = evaluar · 'asignar' = con el personal sugerido
   const nombre   = document.getElementById('np-nombre')?.value.trim();
   const cliente  = document.getElementById('np-cliente')?.value.trim();
   const crit     = document.getElementById('np-crit')?.value;
@@ -3249,10 +3319,10 @@ async function guardarNuevoProyecto(evaluar = false) {
   const habilidades_requeridas = {};
   (STATE._np_habilidades||[]).forEach(h=>{ habilidades_requeridas[h.nombre] = h.nivel; });
   const certificados_requeridos = (STATE._np_certificados||[]).slice();
-  const no_requiere_equipo = document.getElementById('np-sin-equipo')?.checked || false;
-  const equipo_requerido = no_requiere_equipo ? [] : (STATE._np_equipo||[]).slice();
-  const no_requiere_vehiculo = document.getElementById('np-sin-vehiculo')?.checked ?? true;
-  const vehiculo_requerido = no_requiere_vehiculo ? [] : (STATE._np_vehiculo||[]).slice();
+  const equipo_requerido = (STATE._np_equipo||[]).slice();
+  const no_requiere_equipo = !equipo_requerido.length;      // nada elegido = no requiere
+  const vehiculo_requerido = (STATE._np_vehiculo||[]).slice();
+  const no_requiere_vehiculo = !vehiculo_requerido.length;
   const r = await api('POST', '/proyectos/proyectos', {
     id: id_pry, nombre, cliente, cliente_id, criticidad: crit, intensidad: intens,
     fecha_inicio: inicio, fecha_fin_estimada: fin,
@@ -3266,7 +3336,7 @@ async function guardarNuevoProyecto(evaluar = false) {
   if (r) {
     // Personal sugerido por el buscador de fechas (si se eligió asignarlo)
     let asignados = 0;
-    if (STATE._np_sugerido && document.getElementById('np-asignar-sugerido')?.checked) {
+    if (STATE._np_sugerido && (evaluar === 'asignar' || document.getElementById('np-asignar-sugerido')?.checked)) {
       for (const p of STATE._np_sugerido) {
         const a = await api('POST', `/proyectos/proyectos/${encodeURIComponent(id_pry)}/asignar/${encodeURIComponent(p.id)}`);
         if (a) asignados++;
@@ -3277,6 +3347,7 @@ async function guardarNuevoProyecto(evaluar = false) {
     closePanel(null, true);
     toast(`Proyecto "${nombre}" creado${asignados ? ` · ${asignados} persona(s) asignada(s)` : evaluar ? '' : ' como pendiente'}`);
     cargarCatalogos();
+    if (evaluar === 'asignar') { STATE._pryVista = 'activos'; renderProyectos(); verProyecto(id_pry); return; }
     if (evaluar) { irAEvaluar(id_pry); return; }
     STATE._pryVista = 'activos';
     renderProyectos();
@@ -4107,8 +4178,38 @@ async function loadEquipos(forzar) {
 }
 
 async function renderEquipos() {
-  const verArch = STATE._verArchivadosEq || false;
-  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-ghost btn-sm" onclick="toggleVerArchivadosEq()">${verArch?'<i class="ti ti-eye-off" aria-hidden="true"></i> Ocultar archivados':'<i class="ti ti-archive" aria-hidden="true"></i> Ver archivados'}</button><button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, exportarInventarioEquiposPDF, 'Generando…')" title="Reporte general: inventario, calibraciones por vencer, vencidas y sin calibración"><i class="ti ti-file-type-pdf" aria-hidden="true"></i> Inventario PDF</button><button class="btn btn-ghost btn-sm" onclick="loadEquipos(true).then(renderEquipos)"><i class="ti ti-refresh" aria-hidden="true"></i></button><button class="btn btn-primary btn-sm" onclick="openNuevoEquipo()"><i class="ti ti-plus" aria-hidden="true"></i> Nuevo equipo</button>`;
+  const esVeh = STATE._eqTipo === '__veh';
+  const verArch = esVeh ? (STATE._verArchivadosVeh || false) : (STATE._verArchivadosEq || false);
+  if (esVeh) {
+    document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-ghost btn-sm" onclick="toggleVerArchivadosVeh()">${verArch?'<i class="ti ti-eye-off" aria-hidden="true"></i> Ocultar archivados':'<i class="ti ti-archive" aria-hidden="true"></i> Ver archivados'}</button><button class="btn btn-ghost btn-sm" onclick="loadVehiculos(true).then(renderEquipos)"><i class="ti ti-refresh" aria-hidden="true"></i></button><button class="btn btn-primary btn-sm" onclick="openNuevoVehiculo()"><i class="ti ti-plus" aria-hidden="true"></i> Nuevo vehículo</button>`;
+  } else document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-ghost btn-sm" onclick="openNuevoVehiculo()" title="Registrar un vehículo"><i class="ti ti-car" aria-hidden="true"></i> Nuevo vehículo</button>`;
+  if (STATE._verArchivadosVeh) { const d = await api('GET', '/vehiculos?solo_activos=false'); if (d) STATE.vehiculos = d; }
+  else await loadVehiculos();
+  const ahoraVeh = Date.now();
+  if (!STATE._alertasVehCargadasEn || (ahoraVeh - STATE._alertasVehCargadasEn) > 8000) {
+    STATE._alertasVeh = await api('GET', '/vehiculos/alertas/documentos-por-vencer') || [];
+    STATE._alertasVehCargadasEn = ahoraVeh;
+  }
+  if (esVeh) {
+    await loadEquipos();
+    const vehiculos = STATE.vehiculos || [];
+    html(`
+      ${bannerAlertasVehiculos()}
+      <div class="stats-grid">
+        <div class="stat-card c-red"><div class="stat-lbl">TOTAL VEHÍCULOS</div><div class="stat-val">${vehiculos.length}</div><div class="stat-sub">en la flota</div></div>
+        <div class="stat-card c-green"><div class="stat-lbl">DISPONIBLES</div><div class="stat-val">${vehiculos.filter(v => v.estado === 'disponible' && !v.proyecto_actual_nombre).length}</div><div class="stat-sub">listos para uso</div></div>
+        <div class="stat-card c-amber"><div class="stat-lbl">EN MANTENIMIENTO</div><div class="stat-val">${vehiculos.filter(v => v.estado === 'mantenimiento').length}</div><div class="stat-sub">fuera de servicio</div></div>
+        <div class="stat-card"><div class="stat-lbl">EN USO</div><div class="stat-val">${vehiculos.filter(v => v.proyecto_actual_nombre).length}</div><div class="stat-sub">en un proyecto</div></div>
+      </div>
+      <div class="eq-toolbar">
+        <div class="search-box eq-buscar"><i class="ti ti-search" aria-hidden="true"></i><input class="field-input" id="eq-buscar" placeholder="Buscar por nombre, apodo, placas, tipo o ciudad…" value="${escHtml(STATE._eqBuscar || '')}" oninput="STATE._eqBuscar=this.value;pintarListaEquipos()"></div>
+        <div class="eq-tabs" id="eq-tabs"></div>
+      </div>
+      <div id="eq-lista"></div>`);
+    pintarListaEquipos();
+    return;
+  }
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-ghost btn-sm" onclick="toggleVerArchivadosEq()">${verArch?'<i class="ti ti-eye-off" aria-hidden="true"></i> Ocultar archivados':'<i class="ti ti-archive" aria-hidden="true"></i> Ver archivados'}</button><button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, exportarInventarioEquiposPDF, 'Generando…')" title="Reporte general: inventario, calibraciones por vencer, vencidas y sin calibración"><i class="ti ti-file-type-pdf" aria-hidden="true"></i> Inventario PDF</button><button class="btn btn-ghost btn-sm" onclick="loadEquipos(true).then(renderEquipos)"><i class="ti ti-refresh" aria-hidden="true"></i></button><button class="btn btn-primary btn-sm" onclick="openNuevoEquipo()"><i class="ti ti-plus" aria-hidden="true"></i> Nuevo equipo</button>` + document.getElementById('topbar-actions').innerHTML;
   if (verArch) {
     const d = await api('GET', '/equipos?solo_activos=false');
     if (d) STATE.equipos = d;
@@ -4133,6 +4234,7 @@ async function renderEquipos() {
       <strong>${calVencidos ? `${calVencidos} calibración(es) vencida(s)` : ''}${calVencidos && calPorVencer ? ' y ' : ''}${calPorVencer ? `${calPorVencer} por vencer en los próximos 30 días` : ''}</strong>
       <span style="margin-left:auto;color:var(--text3)">Ver detalle →</span>
     </div>` : ''}
+    ${!STATE._eqTipo ? bannerAlertasVehiculos() : ''}
     <div class="stats-grid eq-stats" id="eq-stats">
       ${EQ_FILTROS_ESTADO.map(f => `<div class="stat-card filtrable ${f.clase}${f.k && STATE._eqEstado === f.k ? ' activo' : ''}" data-k="${f.k}" onclick="filtrarEquiposPorEstado('${f.k}')" title="${f.k ? 'Mostrar solo: ' + f.lbl.toLowerCase() : 'Mostrar todos'}">
         <div class="stat-lbl">${f.lbl}</div><div class="stat-val">${equipos.filter(f.fn).length}</div><div class="stat-sub">${f.sub}</div></div>`).join('')}
@@ -4213,20 +4315,38 @@ function pintarListaEquipos() {
   const filtroEst = EQ_FILTROS_ESTADO.find(f => f.k === (STATE._eqEstado || '')) || EQ_FILTROS_ESTADO[0];
   const encontrados = equipos.filter(filtroEst.fn).map(eq => ({ eq, c: coincideEquipo(eq, q) })).filter(x => x.c !== null);
   const tipos = [...new Set(equipos.map(e => e.tipo || 'otro'))].sort((a, b) => cmp(etiquetaEquipo(a), etiquetaEquipo(b)));
-  if (STATE._eqTipo && !tipos.includes(STATE._eqTipo)) STATE._eqTipo = '';
+  if (STATE._eqTipo && STATE._eqTipo !== '__veh' && !tipos.includes(STATE._eqTipo)) STATE._eqTipo = '';
   const tipoSel = STATE._eqTipo || '';
-  const cuenta = t => encontrados.filter(x => !t || (x.eq.tipo || 'otro') === t).length;
-  if (tabsEl) tabsEl.innerHTML = [['', 'Todos', 'ti-layout-grid'], ...tipos.map(t => [t, etiquetaEquipo(t), 'ti-' + iconoEquipo(t)])]
-    .map(([t, lab, ic]) => `<button type="button" class="eq-tab${tipoSel === t ? ' activa' : ''}${q && !cuenta(t) ? ' vacia' : ''}" onclick="STATE._eqTipo='${t}';pintarListaEquipos()"><i class="ti ${ic}" aria-hidden="true"></i>${escHtml(lab)}<span>${cuenta(t)}</span></button>`).join('');
+  // Vehículos: mismo buscador; con un filtro de estado de equipo activo no se mezclan en "Todos"
+  const vehVis = (STATE.vehiculos || []).filter(v => !q || [v.nombre, v.apodo, v.placas, v.tipo, VEH_TIPOS[v.tipo], v.ciudad_actual, v.proyecto_actual_nombre].some(c => normBusq(c).includes(q)))
+    .sort((a, b) => cmp(a.apodo || a.nombre, b.apodo || b.nombre));
+  const vehEnTodos = filtroEst.k ? [] : vehVis;
+  const cuenta = t => t === '__veh' ? vehVis.length : encontrados.filter(x => !t || (x.eq.tipo || 'otro') === t).length + (t ? 0 : vehEnTodos.length);
+  if (tabsEl) tabsEl.innerHTML = [['', 'Todos', 'ti-layout-grid'], ['__veh', 'Vehículos', 'ti-car'], ...tipos.map(t => [t, etiquetaEquipo(t), 'ti-' + iconoEquipo(t)])]
+    .map(([t, lab, ic]) => `<button type="button" class="eq-tab${tipoSel === t ? ' activa' : ''}${q && !cuenta(t) ? ' vacia' : ''}${t === '__veh' ? ' eq-tab-veh' : ''}" onclick="cambiarPestanaActivos('${t}')"><i class="ti ${ic}" aria-hidden="true"></i>${escHtml(lab)}<span>${cuenta(t)}</span></button>`).join('');
+  if (tipoSel === '__veh') {
+    if (!(STATE.vehiculos || []).length) { cont.innerHTML = '<div class="empty-state"><i class="ti ti-car" aria-hidden="true"></i><p>Aún no hay vehículos registrados</p></div>'; return; }
+    cont.innerHTML = vehVis.length ? `<div class="equipo-grid">${vehVis.map(tarjetaVehiculoHTML).join('')}</div>`
+      : `<div class="empty-state"><i class="ti ti-search-off" aria-hidden="true"></i><p>Sin resultados para “${escHtml(STATE._eqBuscar.trim())}”</p></div>`;
+    return;
+  }
   const visibles = encontrados.filter(x => !tipoSel || (x.eq.tipo || 'otro') === tipoSel);
-  if (!equipos.length) { cont.innerHTML = '<div class="empty-state"><i class="ti ti-tool" aria-hidden="true"></i><p>Aún no hay equipo registrado</p></div>'; return; }
-  if (!visibles.length) { cont.innerHTML = `<div class="empty-state"><i class="ti ti-search-off" aria-hidden="true"></i><p>Sin resultados${q ? ` para “${escHtml(STATE._eqBuscar.trim())}”` : ''}${filtroEst.k ? ` en “${filtroEst.lbl.toLowerCase()}”` : ''}</p>${filtroEst.k ? `<button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="filtrarEquiposPorEstado('')">Ver todos</button>` : ''}</div>`; return; }
+  const htmlVehTodos = !tipoSel && vehEnTodos.length ? `<div class="eq-grupo-tit"><i class="ti ti-car" aria-hidden="true"></i>Vehículos<span>${vehEnTodos.length}</span></div><div class="equipo-grid">${vehEnTodos.map(tarjetaVehiculoHTML).join('')}</div>` : '';
+  if (!equipos.length && !htmlVehTodos) { cont.innerHTML = '<div class="empty-state"><i class="ti ti-tool" aria-hidden="true"></i><p>Aún no hay equipo registrado</p></div>'; return; }
+  if (!visibles.length && !htmlVehTodos) { cont.innerHTML = `<div class="empty-state"><i class="ti ti-search-off" aria-hidden="true"></i><p>Sin resultados${q ? ` para “${escHtml(STATE._eqBuscar.trim())}”` : ''}${filtroEst.k ? ` en “${filtroEst.lbl.toLowerCase()}”` : ''}</p>${filtroEst.k ? `<button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="filtrarEquiposPorEstado('')">Ver todos</button>` : ''}</div>`; return; }
   // Agrupado por tipo (en "Todos") y ordenado por apodo dentro de cada grupo
   const grupos = (tipoSel ? [tipoSel] : tipos).map(t => [t, visibles.filter(x => (x.eq.tipo || 'otro') === t)
     .sort((a, b) => cmp(a.eq.apodo || a.eq.nombre, b.eq.apodo || b.eq.nombre))]).filter(([, l]) => l.length);
   cont.innerHTML = grupos.map(([t, l]) => `
     ${tipoSel ? '' : `<div class="eq-grupo-tit"><i class="ti ti-${iconoEquipo(t)}" aria-hidden="true"></i>${escHtml(etiquetaEquipo(t))}<span>${l.length}</span></div>`}
-    <div class="equipo-grid">${l.map(x => tarjetaEquipoHTML(x.eq, x.c)).join('')}</div>`).join('');
+    <div class="equipo-grid">${l.map(x => tarjetaEquipoHTML(x.eq, x.c)).join('')}</div>`).join('') + htmlVehTodos;
+}
+// Cambiar de pestaña: entre equipo y vehículos cambian las tarjetas de arriba, así que se repinta todo
+function cambiarPestanaActivos(t) {
+  const antes = STATE._eqTipo || '';
+  STATE._eqTipo = t;
+  if (antes === '__veh' || t === '__veh' || antes === '' || t === '') renderEquipos();
+  else pintarListaEquipos();
 }
 
 async function archivarEquipo(id) {
@@ -4639,59 +4759,40 @@ function resumenDocsVehiculo(v) {
   return { texto: `${docs.length} al corriente`, color:'var(--green)' };
 }
 
+// Los vehículos ahora viven en "Activos / Equipos" (pestaña Vehículos)
 async function renderVehiculos() {
-  const verArch = STATE._verArchivadosVeh || false;
-  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-ghost btn-sm" onclick="toggleVerArchivadosVeh()">${verArch?'<i class="ti ti-eye-off" aria-hidden="true"></i> Ocultar archivados':'<i class="ti ti-archive" aria-hidden="true"></i> Ver archivados'}</button><button class="btn btn-ghost btn-sm" onclick="loadVehiculos(true).then(renderVehiculos)"><i class="ti ti-refresh" aria-hidden="true"></i></button><button class="btn btn-primary btn-sm" onclick="openNuevoVehiculo()"><i class="ti ti-plus" aria-hidden="true"></i> Nuevo vehículo</button>`;
-  if (verArch) {
-    const d = await api('GET', '/vehiculos?solo_activos=false');
-    if (d) STATE.vehiculos = d;
-  } else {
-    await loadVehiculos();
-  }
-  const vehiculos = STATE.vehiculos || [];
-  const disp = vehiculos.filter(v => v.estado === 'disponible').length;
-  const mant = vehiculos.filter(v => v.estado === 'mantenimiento').length;
-  const ahora = Date.now();
-  if (!STATE._alertasVehCargadasEn || (ahora - STATE._alertasVehCargadasEn) > 8000) {
-    STATE._alertasVeh = await api('GET', '/vehiculos/alertas/documentos-por-vencer') || [];
-    STATE._alertasVehCargadasEn = ahora;
-  }
+  STATE._eqTipo = '__veh';
+  if (STATE.currentSection !== 'equipos') { showSection('equipos'); return; }
+  return renderEquipos();
+}
+function bannerAlertasVehiculos() {
   const alertas = STATE._alertasVeh || [];
-  const vencidos = alertas.filter(a => a.vencido).length;
-  const porVencer = alertas.length - vencidos;
-  html(`
-    ${alertas.length ? `<div style="background:${vencidos?'var(--red-bg)':'var(--amber-bg)'};border:1px solid ${vencidos?'var(--red-border)':'var(--amber-border)'};border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;font-size:12px;color:${vencidos?'var(--red-text)':'var(--amber)'};cursor:pointer;display:flex;align-items:center;gap:8px" onclick="verAlertasVehiculos()">
-      <i class="ti ti-alert-triangle" aria-hidden="true"></i>
-      <strong>${vencidos ? `${vencidos} documento(s) vencido(s)` : ''}${vencidos && porVencer ? ' y ' : ''}${porVencer ? `${porVencer} por vencer en los próximos 30 días` : ''}</strong>
-      <span style="margin-left:auto;color:var(--text3)">Ver detalle →</span>
-    </div>` : ''}
-    <div class="stats-grid">
-      <div class="stat-card c-red"><div class="stat-lbl">TOTAL VEHÍCULOS</div><div class="stat-val">${vehiculos.length}</div><div class="stat-sub">en la flota</div></div>
-      <div class="stat-card c-green"><div class="stat-lbl">DISPONIBLES</div><div class="stat-val">${disp}</div><div class="stat-sub">listos para uso</div></div>
-      <div class="stat-card c-amber"><div class="stat-lbl">EN MANTENIMIENTO</div><div class="stat-val">${mant}</div><div class="stat-sub">fuera de servicio</div></div>
-      <div class="stat-card"><div class="stat-lbl">EN USO</div><div class="stat-val">${vehiculos.filter(v => v.proyecto_actual_nombre).length}</div><div class="stat-sub">en un proyecto</div></div>
+  if (!alertas.length) return '';
+  const vencidos = alertas.filter(a => a.vencido).length, porVencer = alertas.length - vencidos;
+  return `<div style="background:${vencidos?'var(--red-bg)':'var(--amber-bg)'};border:1px solid ${vencidos?'var(--red-border)':'var(--amber-border)'};border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;font-size:12px;color:${vencidos?'var(--red-text)':'var(--amber)'};cursor:pointer;display:flex;align-items:center;gap:8px" onclick="verAlertasVehiculos()">
+    <i class="ti ti-car" aria-hidden="true"></i>
+    <strong>Vehículos: ${vencidos ? `${vencidos} documento(s) vencido(s)` : ''}${vencidos && porVencer ? ' y ' : ''}${porVencer ? `${porVencer} por vencer en los próximos 30 días` : ''}</strong>
+    <span style="margin-left:auto;color:var(--text3)">Ver detalle →</span>
+  </div>`;
+}
+function tarjetaVehiculoHTML(v) {
+  const estadoMostrar = v.proyecto_actual_nombre ? 'en_proyecto' : (v.estado==='mantenimiento' ? 'mantenimiento' : v.estado==='baja' ? 'baja' : 'oficina');
+  const docs = resumenDocsVehiculo(v);
+  return `<div class="equipo-card" onclick="verVehiculo('${v.id}')">
+    <div class="eq-head">
+      <div class="eq-icon"><i class="ti ${VEH_ICONOS[v.tipo]||'ti-car'}" aria-hidden="true"></i></div>
+      ${badge(estadoMostrar)}
     </div>
-    <div class="equipo-grid">
-      ${vehiculos.length ? vehiculos.map(v => {
-        const estadoMostrar = v.proyecto_actual_nombre ? 'en_proyecto' : (v.estado==='mantenimiento' ? 'mantenimiento' : v.estado==='baja' ? 'baja' : 'oficina');
-        const docs = resumenDocsVehiculo(v);
-        return `<div class="equipo-card" onclick="verVehiculo('${v.id}')">
-        <div class="eq-head">
-          <div class="eq-icon"><i class="ti ${VEH_ICONOS[v.tipo]||'ti-car'}" aria-hidden="true"></i></div>
-          ${badge(estadoMostrar)}
-        </div>
-        <div class="eq-name">${escHtml(v.nombre)}</div>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div class="eq-type">${escHtml((VEH_TIPOS[v.tipo]||v.tipo||'').toUpperCase())}</div>
-          ${v.apodo ? `<div style="font-size:12px;font-weight:600;color:var(--text2);font-style:italic">${escHtml(v.apodo)}</div>` : ''}
-        </div>
-        <div class="eq-row"><span>Placas</span><strong>${escHtml(v.placas||'—')}</strong></div>
-        <div class="eq-row"><span>Ubicación</span><strong>${escHtml(v.proyecto_actual_ciudad || v.ciudad_actual || '—')}</strong></div>
-        ${v.proyecto_actual_nombre ? `<div class="eq-row"><span>En proyecto</span><strong>${escHtml(v.proyecto_actual_nombre)}</strong></div>` : ''}
-        <div class="eq-row"><span>Documentos</span><strong style="color:${docs.color}">${docs.texto}</strong></div>
-      </div>`;
-      }).join('') : '<div class="empty-state" style="grid-column:1/-1"><i class="ti ti-truck" aria-hidden="true"></i><p>Aún no hay vehículos registrados</p></div>'}
-    </div>`);
+    <div class="eq-name">${escHtml(v.nombre)}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="eq-type">${escHtml((VEH_TIPOS[v.tipo]||v.tipo||'').toUpperCase())}</div>
+      ${v.apodo ? `<div style="font-size:12px;font-weight:600;color:var(--text2);font-style:italic">${escHtml(v.apodo)}</div>` : ''}
+    </div>
+    <div class="eq-row"><span>Placas</span><strong>${escHtml(v.placas||'—')}</strong></div>
+    <div class="eq-row"><span>Ubicación</span><strong>${escHtml(v.proyecto_actual_ciudad || v.ciudad_actual || '—')}</strong></div>
+    ${v.proyecto_actual_nombre ? `<div class="eq-row"><span>En proyecto</span><strong>${escHtml(v.proyecto_actual_nombre)}</strong></div>` : ''}
+    <div class="eq-row"><span>Documentos</span><strong style="color:${docs.color}">${docs.texto}</strong></div>
+  </div>`;
 }
 
 function toggleVerArchivadosVeh() {
@@ -5439,7 +5540,7 @@ async function liberarVehiculoDeProyecto(proyectoId, vehiculoId) {
 // Formulario "Nuevo proyecto": lista de vehículos requeridos
 function renderListaVehiculoProyecto() {
   const list = STATE._np_vehiculo || [];
-  if (!list.length) return '<div style="font-size:12px;color:var(--text3)">Ninguno elegido.</div>';
+  if (!list.length) return '';
   return list.map((v,i) => chipIcono(iconoVehiculo(v.tipo), etiquetaVehiculo(v.tipo), `× ${v.cantidad}`, `quitarVehiculoProyecto(${i})`)).join('');
 }
 function agregarVehiculoProyecto() {
@@ -7851,11 +7952,9 @@ async function guardarContacto(empId, propio) {
 // ─── BUSCADOR DE FECHAS ("cazar fechas") en Nuevo proyecto ──────────────────
 function alternarBuscadorFechas(activo) {
   const bus = document.getElementById('np-buscador');
-  document.getElementById('np-fechas-fijas').style.display = activo ? 'none' : 'flex';
+  document.getElementById('np-fechas-fijas').style.display = activo ? 'none' : '';
   document.getElementById('np-bus-nota').style.display = activo ? 'block' : 'none';
   // El buscador vive al final: primero se eligen requisitos, al último se busca
-  const destino = document.getElementById('np-buscador-final');
-  if (activo && destino && bus.parentElement !== destino) destino.appendChild(bus);
   bus.style.display = activo ? 'block' : 'none';
   if (activo) {
     const d = document.getElementById('np-bus-desde');
@@ -7870,8 +7969,8 @@ function alternarBuscadorFechas(activo) {
 const PASOS_GUIA_NP = [
   { id: 'np-sec-habs',   titulo: 'Habilidades del personal', texto: 'Elige qué habilidades se necesitan y su nivel mínimo.' },
   { id: 'np-sec-certs',  titulo: 'Certificados',             texto: 'Elige los certificados que debe tener el personal.' },
-  { id: 'np-sec-equipo', titulo: 'Equipo',                   texto: 'Elige el equipo y cuántas unidades. Si no aplica, marca "No requiere equipo".' },
-  { id: 'np-sec-veh',    titulo: 'Vehículos',                texto: 'Desmarca "No requiere vehículo" y elige cuáles, si aplica.' },
+  { id: 'np-sec-equipo', titulo: 'Equipo',                   texto: 'Agrega el equipo y cuántas unidades. Si no aplica, déjalo vacío.' },
+  { id: 'np-sec-veh',    titulo: 'Vehículos',                texto: 'Agrega vehículos solo si el proyecto los necesita.' },
   { id: 'np-sec-ubic',   titulo: 'Ubicación',                texto: 'La ciudad o coordenadas ayudan a priorizar al personal más cercano.' },
   { id: 'np-buscador',   titulo: 'Buscar fechas',            texto: 'Revisa la duración y desde cuándo puede empezar, y busca.' },
 ];
@@ -7926,8 +8025,7 @@ async function buscarFechasProyecto() {
   const hasta = document.getElementById('np-bus-hasta').value || null;
   if (!duracion || duracion < 1) { toast('Indica cuántos días dura el proyecto', 'error'); return; }
   if (!desde) { toast('Indica desde qué fecha puede empezar', 'error'); return; }
-  const sinEquipo = document.getElementById('np-sin-equipo')?.checked;
-  const sinVehiculo = document.getElementById('np-sin-vehiculo')?.checked ?? true;
+  const sinEquipo = !(STATE._np_equipo || []).length, sinVehiculo = !(STATE._np_vehiculo || []).length;
   const coords = parsearCoordenadas(document.getElementById('np-coords')?.value.trim());
   const cuerpo = {
     duracion_dias: duracion, desde, hasta,
@@ -7991,6 +8089,9 @@ function tarjetaOpcionFechas(o, ref, masProxima) {
         <div style="font-size:11px;color:var(--text3)">${o.personas_que_cumplen} persona(s) cumplen todo · necesitas ${o.personas_requeridas}</div>
       </div>
       <div style="margin-top:8px">${o.equipo_de_trabajo.map((p, k) => `<span class="chip-termino chip-clic" onclick="verPersonaRef('${ref}', ${k})" title="Ver detalle"><i class="ti ${p.brecha ? 'ti-alert-triangle' : 'ti-user-check'}" aria-hidden="true" style="color:${p.brecha ? 'var(--amber)' : 'var(--green)'}"></i>${escHtml(p.nombre)}<span class="chip-extra">${Math.round(p.puntaje)} pts${p.brecha ? ' · brecha' : ''}</span></span>`).join('')}</div>
+      ${(o.alternativas_brecha || []).length ? `<details class="bus-alt"><summary><i class="ti ti-users" aria-hidden="true"></i> Ver ${o.alternativas_brecha.length} disponible${o.alternativas_brecha.length === 1 ? '' : 's'} con brecha técnica</summary>
+        <div style="margin-top:8px">${o.alternativas_brecha.map((p, k) => `<span class="chip-termino chip-clic" onclick="verAlternativaRef('${ref}', ${k})" title="${escHtml((p.brecha || []).join(' · '))}"><i class="ti ti-alert-triangle" aria-hidden="true" style="color:var(--amber)"></i>${escHtml(p.nombre)}<span class="chip-extra">${Math.round(p.puntaje)} pts</span></span>`).join('')}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Están libres en esas fechas; les falta algo capacitable. Toca uno para ver qué. Puedes asignarlos después desde Evaluar.</div></details>` : ''}
       ${[...o.equipo.map(e => `${etiquetaEquipo(e.tipo)}: ${e.libres} libre(s) de ${e.requeridos} necesario(s)${e.sugeridos.length ? ' · ' + e.sugeridos.map(escHtml).join(', ') : ''}`),
          ...o.vehiculos.map(v => `${etiquetaVehiculo(v.tipo)}: ${v.libres} libre(s) de ${v.requeridos} necesario(s)${v.sugeridos.length ? ' · ' + v.sugeridos.map(escHtml).join(', ') : ''}`)]
          .map(t => `<div style="font-size:11px;color:var(--text2);margin-top:2px"><i class="ti ti-check" aria-hidden="true" style="color:var(--green)"></i> ${t}</div>`).join('')}
@@ -7999,6 +8100,10 @@ function tarjetaOpcionFechas(o, ref, masProxima) {
         <button class="btn btn-ghost btn-sm" onclick="copiarPropuestaFechas('${ref}')"><i class="ti ti-copy" aria-hidden="true"></i> Copiar propuesta tentativa</button>
       </div>
     </div>`;
+}
+function verAlternativaRef(ref, k) {
+  const p = opcionPorRef(ref).alternativas_brecha[k];
+  abrirDetallePersona({ nombre: p.nombre, puntaje: p.puntaje, detalle: p.detalle });
 }
 function verPersonaRef(ref, k) {
   const p = opcionPorRef(ref).equipo_de_trabajo[k];
@@ -8081,9 +8186,10 @@ function usarOpcionFechas(ref) {
   STATE._np_sugerido = o.equipo_de_trabajo;
   document.getElementById('np-sugerido').innerHTML = `
     <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--text2);margin-top:10px;cursor:pointer;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px">
-      <input type="checkbox" id="np-asignar-sugerido" checked style="margin-top:2px">
+      <input type="checkbox" id="np-asignar-sugerido" checked style="margin-top:2px" onchange="pintarPieNuevoProyecto()">
       <span>Al crear el proyecto, <strong>asignar al personal sugerido</strong>: ${o.equipo_de_trabajo.map(p => escHtml(p.nombre)).join(', ')}.</span>
     </label>`;
+  pintarPieNuevoProyecto();
   toast(`Fechas: ${fechaLarga(o.inicio)} → ${fechaLarga(o.fin)}`);
   const fijas = document.getElementById('np-fechas-fijas');
   fijas.classList.add('np-guia-on');
