@@ -3807,8 +3807,8 @@ function leyendaGantt(usados) {
     ['conflicto', item('<div class="gantt-cell ausencia conflicto" style="width:12px;height:8px;padding:0"></div> ', 'Ausencia que choca con un proyecto')],
   ].filter(([clase]) => usados.has(clase)).map(([, h]) => h);
   items.push(item('<div style="width:12px;height:8px;background:var(--input-bg);border:1px solid var(--border)"></div> ', 'Fin de semana'));
-  items.push(item('<div style="width:2px;height:16px;background:var(--red)"></div> ', 'Hoy'));
-  return `<div style="padding:12px 16px;display:flex;gap:16px;flex-wrap:wrap">${items.join('')}</div>`;
+  if (usados.has('today')) items.push(item('<div style="width:2px;height:16px;background:var(--red)"></div> ', 'Hoy'));
+  return `<div id="gantt-ley" style="padding:12px 16px;display:flex;gap:16px;flex-wrap:wrap">${items.join('')}</div>`;
 }
 
 // ─── GANTT: rango navegable (7/30/60 días), scroll continuo y nombres fijos ──
@@ -3858,6 +3858,7 @@ async function renderGantt() {
   const meses = [];
   cols.forEach(d => { const k = `${d.getFullYear()}-${d.getMonth()}`; if (meses.length && meses.at(-1).k === k) meses.at(-1).n++; else meses.push({ k, n: 1, d }); });
   const usados = new Set();   // tipos de celda que aparecen: la leyenda solo muestra esos
+  const usadosCol = cols.map(() => new Set());   // por columna: la leyenda se ajusta a los días que se ven
   html(`
     <div class="table-section" id="gantt-export-area">
       <div class="gantt-barra">
@@ -3883,7 +3884,7 @@ async function renderGantt() {
           <tbody>
             ${empsGantt.map(e=>`<tr>
               <td class="gantt-name" style="cursor:pointer" onclick="abrirCalendarioMensual('${e.id}','${(e.nombre+' '+e.apellido).replace(/'/g,"\\'")}',0)"><span class="gantt-nom">${e.nombre} ${e.apellido}</span></td>
-              ${cols.map(d=>{
+              ${cols.map((d, ci)=>{
                 const isHoy = d.toDateString() === hoy;
                 const isWknd = d.getDay()===0||d.getDay()===6;
                 const pry = proyectoEnDia(e.id, d);
@@ -3899,7 +3900,7 @@ async function renderGantt() {
                 else if (tipoDia) cls += ' ' + tipoDia;
                 else if (finalizado) cls += trabajado ? ' past' : ' tenue';
                 else if (pry) cls += d < hoy00 ? ' past' : ' occupied';
-                cls.split(' ').forEach(c => usados.add(c));
+                cls.split(' ').forEach(c => { usados.add(c); usadosCol[ci].add(c); });
                 let tip = pry ? `${pry.nombre}${pry.cliente?' · '+pry.cliente:''} (${pry.fecha_inicio_real||pry.fecha_inicio} → ${pry.fecha_fin_real||(pry.fecha_inicio_real?'sin finalizar · estimado '+pry.fecha_fin_estimada:pry.fecha_fin_estimada)})${tipoDia?' · '+ETIQ_TIPO_DIA[tipoDia]:''}${pry && trabajados.has(`${e.id}|${pry.id}|${isoLocal(d)}`)?' · trabajado (checada)':''}` : '';
                 if (aus) tip = `${aus.motivo} (${aus.fecha_inicio} → ${aus.fecha_fin})` + (pry ? ` · CHOCA con ${tip}` : '');
                 tip = tip.replace(/"/g,'&quot;');
@@ -3913,6 +3914,7 @@ async function renderGantt() {
       </div>
       ${leyendaGantt(usados)}
     </div>`);
+  STATE._ganttUsadosCol = usadosCol;
   // Arrancar mostrando el rango elegido (el tercio de en medio) y activar el arrastre
   const wrap = document.getElementById('gantt-wrap');
   STATE._ganttCols = cols;
@@ -3929,6 +3931,14 @@ function actualizarRangoVisibleGantt() {
   const a = Math.max(0, Math.floor(wrap.scrollLeft / cw)), b = Math.min(cols.length - 1, Math.floor((wrap.scrollLeft + wrap.clientWidth - nombre) / cw) - 1);
   STATE._ganttVisible = { desde: cols[a], hasta: cols[Math.max(a, b)] };
   el.textContent = `${fCorta(cols[a])} – ${fLargaAnio(cols[Math.max(a, b)])}`;
+  // Simbología: solo lo que aparece en los días visibles (no lo que quedó antes o después del rango)
+  const porCol = STATE._ganttUsadosCol, ley = document.getElementById('gantt-ley');
+  if (porCol && ley) {
+    const vis = new Set();
+    for (let i = a; i <= Math.max(a, b); i++) (porCol[i] || []).forEach(c => vis.add(c));
+    const clave = [...vis].sort().join(',');
+    if (clave !== STATE._ganttLeyClave) { STATE._ganttLeyClave = clave; ley.outerHTML = leyendaGantt(vis); }
+  }
 }
 // Arrastrar con el mouse para desplazar (en celular ya se desliza con el dedo)
 function activarArrastreGantt(wrap) {
@@ -9496,16 +9506,21 @@ async function exportarGanttPDF() {
     return { e, barras };
   });
   const programados = [...proyectosPeriodo.values()].filter(p => ['asignado', 'prep'].includes(grupoEstadoPDF(p))).length;
-  const enCampo = (STATE.proyectos || []).filter(p => estadoProyectoVisible(p) === 'en_progreso').length;
-  const libresHoy = emps.filter(e => !ausenciaEn(e, hoy) && !proyectoEnDia(e.id, hoy)).length;
+  // Contadores: solo lo que cae dentro del periodo del reporte
+  const hoyEnRango = HOY >= 0;
+  const enCampo = hoyEnRango
+    ? [...proyectosPeriodo.values()].filter(p => estadoProyectoVisible(p) === 'en_progreso' && filas.some(f => f.barras.some(b => b.pry === p && b.a <= HOY && b.b >= HOY))).length
+    : [...proyectosPeriodo.values()].filter(p => estadoProyectoVisible(p) === 'en_progreso').length;
+  const libresHoy = hoyEnRango ? emps.filter(e => !ausenciaEn(e, hoy) && !proyectoEnDia(e.id, hoy)).length
+    : filas.filter(f => !f.barras.length).length;
 
   T.encabezado('Calendario de disponibilidad', `${fCorta(dias[0]).toUpperCase()} – ${fLargaAnio(dias.at(-1)).toUpperCase()}`,
     'Disponibilidad del personal', `${dias.length} días  ·  hoy ${hoy.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}`);
   let y = 33;
   T.relleno(C.fondo); doc.roundedRect(M, y, T.W - 2 * M, 8, 1.6, 1.6, 'F');
   [[proyectosPeriodo.size, 'proyectos en el periodo', C.tinta], [programados, 'programados', PDF_EST.asignado.c],
-   [enCampo, 'en campo hoy', PDF_EST.progreso.c], [ausenciasPeriodo.length, ausenciasPeriodo.length === 1 ? 'ausencia' : 'ausencias', PDF_EST.ausencia.c],
-   [libresHoy, 'técnicos libres hoy', C.tinta]].reduce((xx, [n, t, c]) => {
+   [enCampo, hoyEnRango ? 'en campo hoy' : 'en curso en el periodo', PDF_EST.progreso.c], [ausenciasPeriodo.length, ausenciasPeriodo.length === 1 ? 'ausencia' : 'ausencias', PDF_EST.ausencia.c],
+   [libresHoy, hoyEnRango ? 'técnicos libres hoy' : 'técnicos sin asignación en el periodo', C.tinta]].reduce((xx, [n, t, c]) => {
     T.relleno(c); doc.circle(xx, y + 4, 1, 'F');
     T.font('bold', 8.6, C.tinta); doc.text(String(n), xx + 2.6, y + 5.2);
     const an = doc.getTextWidth(String(n));
@@ -9523,7 +9538,14 @@ async function exportarGanttPDF() {
         if (p.fecha_fin_real && p.fecha_fin_real !== p.fecha_fin_estimada) fechas += `  ·  fin real ${fCorta(p.fecha_fin_real)}`;
         return [p.nombre, fechas, [...personasPorProyecto.get(p.id)]];
       })]).filter(([, it]) => it.length);
-  if (ausenciasPeriodo.length) grupos.push(['ausencia', ausenciasPeriodo.map(({ e, aus }) => [tipoAusencia(aus), rangoCorto(aus.fecha_inicio, aus.fecha_fin), [`${e.nombre} ${e.apellido}`]])]);
+  // Ausencias: se muestran los días que caen dentro del periodo (y desde/hasta cuándo, si se sale)
+  const recorteAus = aus => {
+    const ai = fechaLocal(aus.fecha_inicio), af = fechaLocal(aus.fecha_fin), pi = dias[0], pf = dias.at(-1);
+    const a = ai < pi ? pi : ai, b = af > pf ? pf : af;
+    const notas = [ai < pi ? `desde ${fCorta(ai)}` : '', af > pf ? `hasta ${fCorta(af)}` : ''].filter(Boolean).join(' · ');
+    return rangoCorto(a, b) + (notas ? `  ·  ${notas}` : '');
+  };
+  if (ausenciasPeriodo.length) grupos.push(['ausencia', ausenciasPeriodo.map(({ e, aus }) => [tipoAusencia(aus), recorteAus(aus), [`${e.nombre} ${e.apellido}`]])]);
   const ncol = 3, gapCol = 8, colW = (T.W - 2 * M - gapCol * (ncol - 1)) / ncol, colX = Array.from({ length: ncol }, (_, k) => M + k * (colW + gapCol));
   const armarBloques = (esp) => {
     const out = [];
@@ -9543,7 +9565,7 @@ async function exportarGanttPDF() {
   const leyGrupos = [
     ['Proyectos', estUsados.map(k => ({ t: PDF_EST[k].nombre, c: PDF_EST[k].c }))],
     ['Personal', tiposAus.length ? [{ t: `Ausencia (${tiposAus.join(', ').toLowerCase()})`, c: PDF_EST.ausencia.c }] : [{ t: 'Sin ausencias en el periodo', c: null }]],
-    ['Referencias', [{ t: 'Fin de semana', c: C.finde, borde: true }, ...(HOY >= 0 ? [{ t: 'Hoy', linea: true }] : [])]],
+    ['Referencias', [...(dias.some(d => [0, 6].includes(d.getDay())) ? [{ t: 'Fin de semana', c: C.finde, borde: true }] : []), ...(HOY >= 0 ? [{ t: 'Hoy', linea: true }] : [])]],
   ].filter(([, it]) => it.length);
   const leyFilas = Math.max(1, ...leyGrupos.map(([n, it]) => Math.ceil(it.length / (n === 'Proyectos' ? 2 : 1))));
   const leyAlto = 8.5 + leyFilas * 4.4;
