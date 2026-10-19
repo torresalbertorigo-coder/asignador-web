@@ -5515,7 +5515,7 @@ async function subirArchivoVehiculo(file, nombre, carpeta) {
   try {
     const fd = new FormData();
     fd.append('file', file);
-    const url = `${API}/storage/upload?empleado_id=${encodeURIComponent(carpeta)}&nombre_doc=${encodeURIComponent(nombre)}`;
+    const url = `${API}/storage/upload?empleado_id=${encodeURIComponent(nombreArchivoSeguro(carpeta))}&nombre_doc=${encodeURIComponent(nombreArchivoSeguro(nombre))}`;
     const r = await fetch(url, { method: 'POST', headers: { 'Authorization': `Bearer ${STATE.token}` }, body: fd });
     if (!r.ok) { console.error('Upload error:', r.status, await r.text()); return null; }
     const d = await r.json();
@@ -8244,12 +8244,15 @@ async function subirFotoPerfil(input) {
   }
 }
 
+// Nombre de archivo seguro para el almacenamiento (sin acentos, ñ ni símbolos): "TERMÓGRAFO" → "termografo"
+const nombreArchivoSeguro = t => String(t || 'documento').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^A-Za-z0-9._-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 80) || 'documento';
 async function subirArchivoAPI(file, nombre) {
   try {
     const fd = new FormData();
     fd.append('file', file);
     const empId = STATE.user?.empleado_id || 'USR-TEMP';
-    const url = `${API}/storage/upload?empleado_id=${encodeURIComponent(empId)}&nombre_doc=${encodeURIComponent(nombre)}`;
+    const url = `${API}/storage/upload?empleado_id=${encodeURIComponent(nombreArchivoSeguro(empId))}&nombre_doc=${encodeURIComponent(nombreArchivoSeguro(nombre))}`;
     const r = await fetch(url, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${STATE.token}` },
@@ -8261,12 +8264,14 @@ async function subirArchivoAPI(file, nombre) {
     } else {
       const txt = await r.text();
       console.error('Upload error:', r.status, txt);
-      // Si falla la API, guardar como base64 local temporalmente
-      return await fileToBase64(file);
+      // Antes se guardaba el archivo "en texto" (base64) dentro de la petición: la volvía enorme y el servidor la rechazaba
+      toast('No se pudo subir el archivo al almacenamiento. Intenta de nuevo.', 'error');
+      return null;
     }
   } catch(e) {
     console.error('Upload exception:', e);
-    return await fileToBase64(file);
+    toast('No se pudo subir el archivo: revisa tu conexión.', 'error');
+    return null;
   }
 }
 
