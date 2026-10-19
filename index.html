@@ -1203,6 +1203,98 @@ tbody tr:hover .td-action i{color:var(--text2)}
 :root[data-theme="light"] .cal-det.aus .cal-det-tag{background:#EDE7FB;color:#6D4FC2}
 @media (max-width:768px){.cal-pry{font-size:7.5px;padding:0 2px;margin-top:2px}.cal-cell{font-size:11px}}
 .cal-dot{width:4px;height:4px;border-radius:50%;background:var(--red-text);position:absolute;bottom:4px}
+/* ─── AVANCE DE OPERADORES ("To Flama") — piloto ─── */
+.av-wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px;padding-bottom:84px}
+.av-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+.av-card-tit{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:12px}
+.av-card-tit .av-der{margin-left:auto;display:flex;gap:6px;align-items:center;text-transform:none;letter-spacing:0;font-weight:500}
+.av-top{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.av-top .field-group{flex:1;min-width:220px;margin:0}
+.av-piloto{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border)}
+.av-tipo{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.av-kpi{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;align-items:center}
+.av-kpi-pct{font-size:44px;font-weight:800;line-height:1;color:var(--text);letter-spacing:-.02em}
+.av-kpi-pct small{font-size:20px;font-weight:700;color:var(--text3);margin-left:2px}
+.av-kpi-main{font-size:15px;font-weight:700;color:var(--text)}
+.av-kpi-sub{font-size:12px;color:var(--text3);margin-top:3px}
+.av-barra{grid-column:1/-1;display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--surface2);margin-top:8px}
+.av-barra span{display:block;height:100%}
+.av-barra .ok{background:var(--green)}.av-barra .inc{background:var(--red-text)}
+.av-chips{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.av-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:4px 10px}
+.av-chip b{color:var(--text);font-weight:700}
+.av-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0}
+.av-dot.ok{background:var(--green)}.av-dot.inc{background:var(--red-text)}.av-dot.pend{background:var(--amber)}.av-dot.sel{background:var(--blue)}
+.av-seg{display:inline-flex;border:1px solid var(--border2);border-radius:8px;overflow:hidden}
+.av-seg button{border:0;background:transparent;color:var(--text2);font:inherit;font-size:13px;font-weight:600;padding:9px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;min-height:42px}
+.av-seg button + button{border-left:1px solid var(--border2)}
+.av-seg button.on.ok{background:var(--green-bg);color:var(--green)}
+.av-seg button.on.inc{background:var(--red-bg);color:var(--red-text)}
+.av-seg button.on.neu{background:var(--surface2);color:var(--text)}
+.av-fila{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.av-fila .field-input{min-height:42px}
+.av-ley{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--text3);margin:10px 0 8px}
+.av-ley span{display:inline-flex;align-items:center;gap:5px}
+.av-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px}
+.av-tile{position:relative;border-radius:8px;border:1px solid var(--amber-border);background:var(--amber-bg);color:var(--amber);font-family:var(--mono);font-size:12px;font-weight:700;padding:12px 4px;text-align:center;cursor:pointer;user-select:none;-webkit-user-select:none;transition:transform .08s ease,box-shadow .08s ease;min-height:44px}
+.av-tile.ok{border-color:var(--green-border);background:var(--green-bg);color:var(--green)}
+.av-tile.inc{border-color:var(--red-border);background:var(--red-bg);color:var(--red-text)}
+.av-tile.sel{box-shadow:0 0 0 2px var(--blue);transform:scale(.96)}
+.av-tile.sel::after{content:'';position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--blue)}
+.av-tile.hoy::before{content:'HOY';position:absolute;bottom:2px;left:0;right:0;font-size:8px;letter-spacing:.08em;opacity:.8}
+.av-mapa{position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:var(--surface2);touch-action:manipulation}
+.av-mapa img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none}
+.av-pin{position:absolute;transform:translate(-50%,-50%);min-width:24px;height:24px;padding:0 5px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10.5px;font-weight:700;color:#fff;background:#d97706;border:2px solid rgba(255,255,255,.9);box-shadow:0 1px 4px rgba(0,0,0,.45);cursor:pointer;user-select:none}
+.av-pin.ok{background:#16a34a}.av-pin.inc{background:#dc2626}
+.av-pin.sel{outline:3px solid #3b82f6;outline-offset:1px;transform:translate(-50%,-50%) scale(1.15)}
+.av-pin.actual{background:#3b82f6;animation:avPulso 1s ease-in-out infinite}
+@keyframes avPulso{50%{box-shadow:0 0 0 6px rgba(59,130,246,.35)}}
+.av-vistas{display:flex;gap:6px}
+.av-registrar{position:static;z-index:5;display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:10px 12px;box-shadow:0 8px 28px rgba(0,0,0,.35);margin-top:14px}
+.av-registrar.flota{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom))}
+.av-registrar .btn{min-height:44px;font-size:14px}
+.av-registrar-txt{font-size:12.5px;color:var(--text2);min-width:0}
+.av-registrar-txt b{color:var(--text)}
+.av-dia{border-top:1px solid var(--border);padding:12px 0 4px}
+.av-dia:first-child{border-top:0;padding-top:0}
+.av-dia-tit{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:8px}
+.av-dia-tit span{font-weight:500;color:var(--text3);font-size:11.5px}
+.av-reg{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:8px;background:var(--surface2);margin-bottom:6px}
+.av-reg-cuerpo{flex:1;min-width:0;font-size:12.5px;color:var(--text2);line-height:1.5}
+.av-reg-cuerpo b{color:var(--text);font-family:var(--mono);font-size:12px}
+.av-reg-cuerpo em{font-style:normal;color:var(--text3);font-size:11.5px}
+.av-salida{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.av-salida .btn{min-height:48px;justify-content:center;font-size:14px}
+.av-btn-wa{background:#128C7E !important;border-color:#128C7E !important;color:#fff !important}
+.av-tipos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.av-tipo-op{border:1.5px solid var(--border2);border-radius:10px;padding:14px;cursor:pointer;background:var(--surface2);text-align:left;font:inherit;color:var(--text2)}
+.av-tipo-op i{font-size:26px;display:block;margin-bottom:6px}
+.av-tipo-op b{display:block;color:var(--text);font-size:14px;margin-bottom:2px}
+.av-tipo-op span{font-size:11.5px;line-height:1.4}
+.av-tipo-op.on{border-color:var(--red);background:var(--red-bg)}
+.av-tipo-op.on i{color:var(--red)}
+.av-nota{font-size:12px;color:var(--text3);line-height:1.5}
+.av-ubic{position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.82);display:flex;flex-direction:column}
+.av-ubic-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border)}
+.av-ubic-bar .av-ubic-txt{flex:1;min-width:180px;font-size:13px;color:var(--text2)}
+.av-ubic-bar .av-ubic-txt b{color:var(--text);font-family:var(--mono)}
+.av-ubic-lienzo{flex:1;overflow:auto;padding:14px;display:flex;justify-content:center;align-items:flex-start}
+.av-ubic-lienzo .av-mapa{max-width:1100px;width:100%;cursor:crosshair}
+.av-ubic-chips{display:flex;gap:5px;overflow-x:auto;padding:8px 14px;background:var(--surface);border-top:1px solid var(--border)}
+.av-ubic-chips button{flex-shrink:0;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font-family:var(--mono);font-size:11.5px;font-weight:700;border-radius:999px;padding:6px 10px;cursor:pointer}
+.av-ubic-chips button.puesto{border-color:var(--green-border);color:var(--green)}
+.av-ubic-chips button.actual{border-color:var(--blue);background:var(--blue-bg);color:var(--blue)}
+.av-banner{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:1px solid var(--orange-border);background:var(--orange-bg);cursor:pointer;margin-bottom:14px}
+.av-banner i{font-size:24px;color:var(--orange)}
+.av-banner b{display:block;color:var(--text);font-size:13.5px}
+.av-banner span{font-size:12px;color:var(--text2)}
+@media (max-width:768px){
+  .av-wrap{padding-bottom:110px}
+  .av-kpi-pct{font-size:36px}
+  .av-grid{grid-template-columns:repeat(auto-fill,minmax(62px,1fr))}
+  .av-pin{min-width:20px;height:20px;font-size:9px;padding:0 3px;border-width:1.5px}
+  .av-seg button{padding:9px 11px}
+}
 </style>
 </head>
 <body>
@@ -1581,6 +1673,7 @@ async function initApp() {
   }
   buildNav();
   cargarCatalogos();
+  cargarAccesoAvance();
   cargarNotificaciones();
   if (STATE._notifInterval) clearInterval(STATE._notifInterval);
   STATE._notifInterval = setInterval(cargarNotificaciones, 60000);
@@ -1664,10 +1757,10 @@ function switchModo() {
       <div class="nav-item" onclick="showSection('mis-asignaciones')" data-sec="mis-asignaciones"><i class="ti ti-briefcase" aria-hidden="true"></i> Mis Asignaciones</div>
       <div class="nav-item" onclick="showSection('mi-gantt')" data-sec="mi-gantt"><i class="ti ti-calendar-stats" aria-hidden="true"></i> Mi Calendario</div>
       <div class="nav-item" onclick="showSection('checador')" data-sec="checador"><i class="ti ti-clock" aria-hidden="true"></i> Reloj Checador</div>
-      <div class="nav-item" onclick="showSection('reportar')" data-sec="reportar"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Reportar</div>`;
+      <div class="nav-item" onclick="showSection('reportar')" data-sec="reportar"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Reportar</div>${navAvanceHTML(false)}`;
     document.getElementById('mobile-nav-bar').innerHTML = `
       <div class="mobile-nav-items">
-        <div class="mobile-nav-item" onclick="showSection('mis-asignaciones')" data-sec="mis-asignaciones"><i class="ti ti-briefcase" aria-hidden="true"></i>Proyectos</div>
+        <div class="mobile-nav-item" onclick="showSection('mis-asignaciones')" data-sec="mis-asignaciones"><i class="ti ti-briefcase" aria-hidden="true"></i>Proyectos</div>${navAvanceHTML(true)}
         <div class="mobile-nav-item" onclick="showSection('checador')" data-sec="checador"><i class="ti ti-clock" aria-hidden="true"></i>Checador</div>
         <div class="mobile-nav-item" onclick="showSection('reportar')" data-sec="reportar"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Reportar</div>
         <div class="mobile-nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i>Mi Perfil</div>
@@ -1850,6 +1943,7 @@ const TITLES = {
   'reportar':         ['ti-alert-triangle',     'Reportar Incidencia'],
   'mi-perfil':        ['ti-user-circle',        'Mi Perfil'],
   'mi-cuenta':        ['ti-user-circle',        'Mi Cuenta'],
+  'avance':           ['ti-flame',              'Avance de obra'],
 };
 
 const RENDERERS = {
@@ -1872,6 +1966,7 @@ const RENDERERS = {
   checador:         renderChecador,
   reportar:         renderReportar,
   'mi-perfil':      renderMiPerfil,
+  avance:           renderAvance,
 };
 
 // Abre Evaluar con el proyecto ya cargado (sin pasar por el selector)
@@ -7367,6 +7462,7 @@ async function renderMisAsignaciones() {
   const proyectos = STATE.proyectos.filter(p => (p.tecnicos_asignados||[]).includes(empId));
   html(`
     <div style="margin-bottom:16px"><h2 style="font-size:17px;font-weight:600;margin-bottom:4px">Hola, ${STATE.user?.nombre?.split(' ')[0]||'Técnico'}</h2><p style="font-size:13px;color:var(--text2)">${new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</p></div>
+    ${avanceDisponible()?`<div class="av-banner" onclick="showSection('avance')"><i class="ti ti-flame" aria-hidden="true"></i><div style="flex:1"><b>Avance de obra</b><span>Registra WTGs o bloques concluidos y manda el reporte en 1 clic.</span></div><span class="av-piloto">Piloto</span></div>`:''}
     ${proyectos.length===0?`<div class="empty-state"><i class="ti ti-calendar-off" aria-hidden="true"></i><p>Sin proyectos asignados</p><span>Disfruta tu día libre</span></div>`:
     proyectos.map(p=>`<div class="table-section" style="margin-bottom:12px;cursor:pointer" onclick="verProyectoTecnico('${p.id}')">
       <div style="padding:16px">
@@ -7398,7 +7494,633 @@ function verProyectoTecnico(id) {
         <div>Sitio: <span style="color:var(--text)">${p.ciudad||'—'}${p.estado?', '+p.estado:''}</span></div>
       </div>
     </div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>${p.estado!=='completado'&&p.estado!=='cancelado'&&!p.fecha_inicio_real?`<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="ejecutarConCarga(this, () => iniciarProyecto('${p.id}','tecnico'))"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Iniciar proyecto</button>`:''}${p.estado!=='completado'&&p.estado!=='cancelado'?`<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}','tecnico'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar proyecto</button>`:''}<button class="btn btn-primary btn-sm" onclick="showSection('checador');closePanel(null,true)"><i class="ti ti-clock" aria-hidden="true"></i> Ir al checador</button>`);
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>${p.estado!=='completado'&&p.estado!=='cancelado'&&!p.fecha_inicio_real?`<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="ejecutarConCarga(this, () => iniciarProyecto('${p.id}','tecnico'))"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Iniciar proyecto</button>`:''}${p.estado!=='completado'&&p.estado!=='cancelado'?`<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}','tecnico'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar proyecto</button>`:''}${avanceDisponible()?`<button class="btn btn-ghost btn-sm" style="color:var(--orange)" onclick="irAvance('${p.id}')"><i class="ti ti-flame" aria-hidden="true"></i> Avance</button>`:''}<button class="btn btn-primary btn-sm" onclick="showSection('checador');closePanel(null,true)"><i class="ti ti-clock" aria-hidden="true"></i> Ir al checador</button>`);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// AVANCE DE OPERADORES ("To Flama") — PILOTO
+// Solo el administrador piloto, en Vista Técnico. El servidor decide quién es
+// piloto (GET /avance/acceso) y también bloquea los demás endpoints.
+//  - Eólico: avance por máquina completa (WTG).   - Solar: por bloques.
+//  - El último registro de cada unidad manda (ok / incidencia); sin registro = pendiente.
+// ═════════════════════════════════════════════════════════════════════════════
+const AV_TIPOS = {
+  eolico: { nombre: 'Eólico', icono: 'building-wind-turbine', uno: 'WTG', varios: 'WTGs', prefijo: 'WTG-', ok: 'Inspección concluida / OK' },
+  solar:  { nombre: 'Solar',  icono: 'solar-panel',           uno: 'bloque', varios: 'bloques', prefijo: 'B-', ok: 'Bloque concluido' },
+};
+const avanceDisponible = () => !!STATE._avancePiloto && STATE.rol === 'administrador' && STATE.modoTecnico;
+
+async function cargarAccesoAvance() {
+  if (STATE.rol !== 'administrador') { STATE._avancePiloto = false; return; }
+  const r = await api('GET', '/avance/acceso');
+  STATE._avancePiloto = !!r?.piloto;
+  refrescarNavAvance();
+}
+function navAvanceHTML(movil) {
+  if (!STATE._avancePiloto) return '';
+  return movil
+    ? `<div class="mobile-nav-item" onclick="showSection('avance')" data-sec="avance"><i class="ti ti-flame" aria-hidden="true"></i>Avance</div>`
+    : `<div class="nav-item" onclick="showSection('avance')" data-sec="avance"><i class="ti ti-flame" aria-hidden="true"></i> Avance de obra</div>`;
+}
+// Si el permiso llega después de armar el menú técnico, se agrega sin recargar
+function refrescarNavAvance() {
+  if (!STATE.modoTecnico || !STATE._avancePiloto) return;
+  const tn = document.getElementById('tecnico-nav');
+  if (tn && !tn.querySelector('[data-sec="avance"]')) tn.insertAdjacentHTML('beforeend', navAvanceHTML(false));
+  const mn = document.querySelector('#mobile-nav-bar .mobile-nav-items');
+  if (mn && !mn.querySelector('[data-sec="avance"]')) {
+    const ref = mn.querySelector('[data-sec="checador"]');
+    ref ? ref.insertAdjacentHTML('beforebegin', navAvanceHTML(true)) : mn.insertAdjacentHTML('beforeend', navAvanceHTML(true));
+  }
+}
+function irAvance(pid) {
+  STATE._av = Object.assign(STATE._av || {}, { pid, sel: new Set() });
+  try { localStorage.setItem('ws_av_pid', pid); } catch (e) {}
+  closePanel(null, true);
+  showSection('avance');
+}
+
+// ── Cálculos ──
+function tipoSugeridoAvance(p) {
+  const t = sinAcentos(JSON.stringify(p || {}));
+  if (/EOLIC|WTG|AEROGENER|PALAS?\b|TURBIN|WIND/.test(t)) return 'eolico';
+  if (/SOLAR|FOTOVOLT|PFV|PANEL|MODULO|TERMOGRAF|STRING/.test(t)) return 'solar';
+  return 'eolico';
+}
+const numUnidad = id => { const m = String(id).match(/(\d+)(?!.*\d)/); return m ? parseInt(m[1], 10) : null; };
+const etqCorta = id => { const m = String(id).match(/(\d+[A-Za-z]?)(?!.*\d)/); return m ? m[1] : String(id).slice(0, 4); };
+function ordenRegistros(regs) {
+  return [...regs].sort((a, b) => (a.fecha || '').localeCompare(b.fecha || '') || (a.creado_en || '').localeCompare(b.creado_en || '') || a.id - b.id);
+}
+function calcAvance(cfg, regs) {
+  const ids = (cfg?.unidades || []).map(u => u.id), validas = new Set(ids);
+  const estado = {};
+  ordenRegistros(regs).forEach(r => (r.unidades || []).forEach(u => {
+    if (validas.has(u)) estado[u] = { estatus: r.estatus, fecha: r.fecha, nota: r.nota, tecnico: r.tecnico };
+  }));
+  const ok = ids.filter(u => estado[u]?.estatus === 'ok').length;
+  const inc = ids.filter(u => estado[u]?.estatus === 'incidencia').length;
+  const total = ids.length;
+  return { estado, total, ok, inc, pend: total - ok - inc, pct: total ? Math.round(ok * 100 / total) : 0 };
+}
+// "B-23, B-24, B-25, B-26" → "B-23 a B-26" (según el orden configurado)
+function rangosUnidades(cfg, lista) {
+  const orden = (cfg?.unidades || []).map(u => u.id), pos = id => orden.indexOf(id);
+  const xs = [...new Set(lista)].sort((a, b) => pos(a) - pos(b));
+  const out = []; let i = 0;
+  while (i < xs.length) {
+    let j = i;
+    while (j + 1 < xs.length && pos(xs[j + 1]) === pos(xs[j]) + 1 && pos(xs[j]) >= 0) j++;
+    if (j - i >= 2) out.push(`${xs[i]} a ${xs[j]}`); else for (let k = i; k <= j; k++) out.push(xs[k]);
+    i = j + 1;
+  }
+  return out.join(', ');
+}
+const fechaLargaAv = iso => fechaLocal(iso).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+// ── Sección ──
+async function renderAvance() {
+  if (!avanceDisponible()) {
+    html(`<div class="empty-state"><i class="ti ti-lock" aria-hidden="true"></i><p>Módulo en pruebas</p><span>Aún no está disponible para tu cuenta.</span></div>`);
+    return;
+  }
+  await loadProyectos();
+  const A = STATE._av = Object.assign({ sel: new Set(), estatus: 'ok', fecha: isoLocal(new Date()), todos: false, vista: null }, STATE._av || {});
+  const empId = STATE.user?.empleado_id;
+  const visibles = STATE.proyectos.filter(p => p.estado !== 'cancelado' && (A.todos || (p.tecnicos_asignados || []).includes(empId)));
+  let pid = A.pid || (() => { try { return localStorage.getItem('ws_av_pid'); } catch (e) { return null; } })();
+  if (pid && !STATE.proyectos.some(p => p.id === pid)) pid = null;
+  if (pid && !visibles.some(p => p.id === pid)) visibles.unshift(STATE.proyectos.find(p => p.id === pid));
+  if (!pid && visibles.length) pid = (visibles.find(p => estadoProyectoVisible(p) === 'en_progreso') || visibles[0]).id;
+  A.pid = pid;
+  const selector = `
+    <div class="av-card"><div class="av-top">
+      <div class="field-group"><label class="field-label">PROYECTO</label>
+        <select class="field-select" onchange="cambiarProyectoAvance(this.value)">${visibles.length ? '' : '<option value="">Sin proyectos asignados</option>'}
+          ${visibles.map(p => `<option value="${escHtml(p.id)}" ${p.id === pid ? 'selected' : ''}>${escHtml(p.nombre)} — ${escHtml(p.cliente || '')}</option>`).join('')}
+        </select></div>
+      <label class="np-check" style="margin:0 0 10px"><input type="checkbox" ${A.todos ? 'checked' : ''} onchange="STATE._av.todos=this.checked;renderAvance()"> Ver todos los proyectos activos</label>
+      <span class="av-piloto" style="margin-bottom:12px"><i class="ti ti-flask" aria-hidden="true"></i> Piloto</span>
+    </div></div>`;
+  if (!pid) { html(`<div class="av-wrap">${selector}<div class="empty-state"><i class="ti ti-briefcase-off" aria-hidden="true"></i><p>Sin proyectos</p><span>Marca "Ver todos los proyectos activos" para elegir uno.</span></div></div>`); return; }
+  html(`<div class="av-wrap">${selector}<div id="av-cuerpo"><div class="empty-state"><i class="ti ti-loader-2 ti-spin" aria-hidden="true"></i><p>Cargando avance…</p></div></div></div>`);
+  const d = await api('GET', `/avance/${encodeURIComponent(pid)}`);
+  if (STATE._av.pid !== pid || STATE._seccion !== 'avance') return;
+  A.data = d || { config: null, registros: [] };
+  pintarAvance();
+}
+function cambiarProyectoAvance(pid) {
+  STATE._av.pid = pid; STATE._av.sel = new Set(); STATE._av.vista = null;
+  try { localStorage.setItem('ws_av_pid', pid); } catch (e) {}
+  renderAvance();
+}
+function pintarAvance() {
+  const A = STATE._av, cfg = A.data?.config, cont = document.getElementById('av-cuerpo');
+  if (!cont) return;
+  const p = STATE.proyectos.find(x => x.id === A.pid) || {};
+  if (!cfg) {
+    const t = AV_TIPOS[tipoSugeridoAvance(p)];
+    cont.innerHTML = `<div class="av-card" style="text-align:center;padding:28px 18px">
+      <i class="ti ti-${t.icono}" aria-hidden="true" style="font-size:38px;color:var(--text3)"></i>
+      <div style="font-size:15px;font-weight:700;color:var(--text);margin:8px 0 4px">Este proyecto aún no tiene su parque configurado</div>
+      <div class="av-nota" style="max-width:420px;margin:0 auto 16px">Define si es eólico (avance por WTG) o solar (por bloques), cuántas unidades tiene y, si quieres, sube el mapa del parque.</div>
+      <button class="btn btn-primary" onclick="abrirConfigAvance()"><i class="ti ti-settings" aria-hidden="true"></i> Configurar parque</button></div>`;
+    return;
+  }
+  const T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico, R = calcAvance(cfg, A.data.registros), hoy = isoLocal(new Date());
+  const regsHoy = A.data.registros.filter(r => r.fecha === hoy);
+  const hoySet = new Set(regsHoy.flatMap(r => r.unidades));
+  const pctInc = R.total ? R.inc * 100 / R.total : 0;
+  const conMapa = !!cfg.mapa_url && cfg.unidades.some(u => u.x != null);
+  if (A.vista == null) A.vista = conMapa ? 'mapa' : 'grid';
+  const vista = conMapa ? A.vista : 'grid';
+  cont.innerHTML = `
+    <div class="av-card">
+      <div class="av-card-tit"><i class="ti ti-chart-donut" aria-hidden="true"></i> Avance global
+        <div class="av-der"><span class="av-tipo"><i class="ti ti-${T.icono}" aria-hidden="true"></i>${T.nombre}</span>
+        <button class="btn btn-ghost btn-sm" onclick="abrirConfigAvance()" title="Configurar parque"><i class="ti ti-settings" aria-hidden="true"></i></button></div></div>
+      <div class="av-kpi">
+        <div class="av-kpi-pct">${R.pct}<small>%</small></div>
+        <div><div class="av-kpi-main">${R.ok} / ${R.total} ${T.varios} concluidos</div>
+          <div class="av-kpi-sub">${escHtml(p.nombre || '')}${p.cliente ? ' · ' + escHtml(p.cliente) : ''}</div></div>
+        <div class="av-barra" role="img" aria-label="${R.pct}% de avance"><span class="ok" style="width:${R.total ? R.ok * 100 / R.total : 0}%"></span><span class="inc" style="width:${pctInc}%"></span></div>
+        <div class="av-chips">
+          <span class="av-chip"><span class="av-dot ok"></span>Concluidos <b>${R.ok}</b></span>
+          <span class="av-chip"><span class="av-dot pend"></span>Pendientes <b>${R.pend}</b></span>
+          ${R.inc ? `<span class="av-chip"><span class="av-dot inc"></span>Con incidencia <b>${R.inc}</b></span>` : ''}
+          <span class="av-chip"><i class="ti ti-calendar-event" aria-hidden="true"></i>Hoy <b>${hoySet.size}</b></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="av-card">
+      <div class="av-card-tit"><i class="ti ti-hand-finger" aria-hidden="true"></i> Registrar avance
+        <div class="av-der">${conMapa ? `<div class="av-seg"><button class="${vista === 'mapa' ? 'on neu' : ''}" onclick="STATE._av.vista='mapa';pintarAvance()"><i class="ti ti-map" aria-hidden="true"></i>Mapa</button><button class="${vista === 'grid' ? 'on neu' : ''}" onclick="STATE._av.vista='grid';pintarAvance()"><i class="ti ti-layout-grid" aria-hidden="true"></i>Lista</button></div>` : ''}</div></div>
+      <div class="av-fila">
+        <input class="field-input" type="date" id="av-fecha" value="${A.fecha}" max="${hoy}" style="width:auto" onchange="STATE._av.fecha=this.value">
+        <div class="av-seg">
+          <button class="ok ${A.estatus === 'ok' ? 'on' : ''}" onclick="STATE._av.estatus='ok';pintarAvance()"><i class="ti ti-circle-check" aria-hidden="true"></i>${cfg.tipo === 'eolico' ? 'Concluida / OK' : 'Concluido'}</button>
+          <button class="inc ${A.estatus === 'incidencia' ? 'on' : ''}" onclick="STATE._av.estatus='incidencia';pintarAvance()"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Con incidencia</button>
+        </div>
+      </div>
+      <div class="av-fila" style="margin-top:10px">
+        <input class="field-input" id="av-rango" placeholder="Rápido: ${cfg.tipo === 'solar' ? '23-28, 31' : '1-4, 7'}" style="flex:1;min-width:150px" onkeydown="if(event.key==='Enter'){aplicarRangoAvance();}">
+        <button class="btn btn-ghost btn-sm" style="min-height:42px" onclick="aplicarRangoAvance()"><i class="ti ti-select" aria-hidden="true"></i> Marcar</button>
+        <button class="btn btn-ghost btn-sm" style="min-height:42px" onclick="seleccionarPendientesAvance()" title="Marcar todos los pendientes">Pendientes</button>
+        <button class="btn btn-ghost btn-sm" style="min-height:42px" onclick="STATE._av.sel=new Set();pintarAvance()">Limpiar</button>
+      </div>
+      <div class="av-ley">
+        <span><span class="av-dot ok"></span>Concluido</span><span><span class="av-dot pend"></span>Pendiente</span><span><span class="av-dot inc"></span>Con incidencia</span><span><span class="av-dot sel"></span>Seleccionado</span>
+      </div>
+      ${vista === 'mapa' ? htmlMapaAvance(cfg, R, 'captura') : ''}
+      ${vista === 'mapa' && cfg.unidades.some(u => u.x == null) ? `<div class="av-nota" style="margin:12px 0 6px">Sin ubicar en el mapa:</div>` : ''}
+      <div class="av-grid" ${vista === 'mapa' ? '' : ''}>${cfg.unidades.map((u, i) => (vista === 'mapa' && u.x != null) ? '' :
+        `<div class="av-tile ${claseUnidadAv(R, u.id)} ${A.sel.has(u.id) ? 'sel' : ''} ${hoySet.has(u.id) ? 'hoy' : ''}" onclick="alternarUnidadAvance(${i})" title="${escHtml(tituloUnidadAv(R, u.id))}">${escHtml(u.id)}</div>`).join('')}</div>
+      <input class="field-input" id="av-nota" placeholder="Nota corta (opcional)" maxlength="500" style="margin-top:12px;width:100%" value="${escHtml(A.nota || '')}" oninput="STATE._av.nota=this.value">
+      <div class="av-registrar ${A.sel.size ? 'flota' : ''}">
+        <div class="av-registrar-txt">${A.sel.size ? `<b>${A.sel.size} ${A.sel.size === 1 ? T.uno : T.varios}</b> · ${escHtml(rangosUnidades(cfg, [...A.sel]))}` : `Toca los ${T.varios} atendidos`}</div>
+        <button class="btn btn-primary" ${A.sel.size ? '' : 'disabled'} onclick="ejecutarConCarga(this, registrarAvance)"><i class="ti ti-${A.estatus === 'ok' ? 'check' : 'alert-triangle'}" aria-hidden="true"></i> Registrar</button>
+      </div>
+    </div>
+
+    <div class="av-card">
+      <div class="av-card-tit"><i class="ti ti-send" aria-hidden="true"></i> Reporte en 1 clic</div>
+      <div class="av-salida">
+        <button class="btn av-btn-wa" onclick="abrirWhatsAppAvance()"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i> WhatsApp</button>
+        <button class="btn btn-ghost" onclick="ejecutarConCarga(this, exportarAvancePDF, 'Generando…')"><i class="ti ti-file-type-pdf" aria-hidden="true"></i> PDF / Imagen</button>
+      </div>
+    </div>
+
+    <div class="av-card">
+      <div class="av-card-tit"><i class="ti ti-list-details" aria-hidden="true"></i> Bitácora diaria <div class="av-der">${A.data.registros.length} registro${A.data.registros.length === 1 ? '' : 's'}</div></div>
+      ${htmlHistorialAvance(cfg)}
+    </div>`;
+}
+function claseUnidadAv(R, id) { const e = R.estado[id]?.estatus; return e === 'ok' ? 'ok' : e === 'incidencia' ? 'inc' : 'pend'; }
+function tituloUnidadAv(R, id) {
+  const e = R.estado[id];
+  if (!e) return `${id} · pendiente`;
+  return `${id} · ${e.estatus === 'ok' ? 'concluido' : 'con incidencia'} el ${fCorta(e.fecha)}${e.nota ? ' — ' + e.nota : ''}`;
+}
+// modo: 'captura' (toca para seleccionar) | 'ubicar' (editor de posiciones)
+function htmlMapaAvance(cfg, R, modo, actual) {
+  const A = STATE._av;
+  return `<div class="av-mapa" id="av-mapa-${modo}" ${modo === 'ubicar' ? 'onclick="clicMapaUbicar(event)"' : ''}>
+    <img src="${escHtml(cfg.mapa_url)}" alt="Mapa del parque" draggable="false">
+    ${cfg.unidades.map((u, i) => u.x == null ? '' : `<div class="av-pin ${modo === 'ubicar' ? (i === actual ? 'actual' : 'ok') : claseUnidadAv(R, u.id) + (A.sel.has(u.id) ? ' sel' : '')}" style="left:${u.x}%;top:${u.y}%"
+      ${modo === 'ubicar' ? `onclick="event.stopPropagation();STATE._avUb.i=${i};pintarUbicador()"` : `onclick="alternarUnidadAvance(${i})"`} title="${escHtml(modo === 'ubicar' ? u.id : tituloUnidadAv(R, u.id))}">${escHtml(etqCorta(u.id))}</div>`).join('')}
+  </div>`;
+}
+function htmlHistorialAvance(cfg) {
+  const regs = ordenRegistros(STATE._av.data.registros).reverse();
+  if (!regs.length) return `<div class="av-nota">Aún no hay registros. Lo que captures aparece aquí, agrupado por día.</div>`;
+  const T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico, dias = {};
+  regs.forEach(r => (dias[r.fecha] = dias[r.fecha] || []).push(r));
+  return Object.entries(dias).map(([f, rs]) => {
+    const n = new Set(rs.flatMap(r => r.unidades)).size;
+    return `<div class="av-dia"><div class="av-dia-tit"><i class="ti ti-calendar" aria-hidden="true"></i>${escHtml(fechaLargaAv(f))}<span>· ${n} ${n === 1 ? T.uno : T.varios}</span></div>
+      ${rs.map(r => `<div class="av-reg">
+        <span class="av-dot ${r.estatus === 'ok' ? 'ok' : 'inc'}" style="margin-top:6px"></span>
+        <div class="av-reg-cuerpo"><b>${escHtml(rangosUnidades(cfg, r.unidades))}</b> · ${r.estatus === 'ok' ? 'Concluido' : '<span style="color:var(--red-text)">Con incidencia</span>'}
+          ${r.nota ? `<div>${escHtml(r.nota)}</div>` : ''}<em>${escHtml(r.tecnico || '')}${r.creado_en ? ' · ' + new Date(r.creado_en + 'Z').toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : ''}</em></div>
+        <button class="btn btn-ghost btn-sm" title="Borrar registro" onclick="borrarRegistroAvance(${r.id})"><i class="ti ti-trash" aria-hidden="true"></i></button>
+      </div>`).join('')}</div>`;
+  }).join('');
+}
+
+// ── Captura ──
+function alternarUnidadAvance(i) {
+  const A = STATE._av, id = A.data.config.unidades[i]?.id;
+  if (!id) return;
+  A.sel.has(id) ? A.sel.delete(id) : A.sel.add(id);
+  const y = window.scrollY, c = document.querySelector('.content'), cy = c?.scrollTop;
+  pintarAvance();
+  if (c) c.scrollTop = cy; window.scrollTo(0, y);
+}
+function aplicarRangoAvance() {
+  const A = STATE._av, cfg = A.data.config, txt = document.getElementById('av-rango')?.value || '';
+  const nums = new Set();
+  txt.split(/[,;\s]+/).filter(Boolean).forEach(parte => {
+    const m = parte.match(/^(\d+)\s*(?:-|a|al)\s*(\d+)$/i) || parte.match(/^(\d+)-(\d+)$/);
+    if (m) { let a = +m[1], b = +m[2]; if (a > b) [a, b] = [b, a]; for (let k = a; k <= b && k - a < 2000; k++) nums.add(k); }
+    else if (/^\d+$/.test(parte)) nums.add(+parte);
+  });
+  // también acepta nombres completos ("WTG-07")
+  const nombres = new Set(txt.split(/[,;]+/).map(s => s.trim().toUpperCase()).filter(Boolean));
+  let n = 0;
+  cfg.unidades.forEach(u => { if (nums.has(numUnidad(u.id)) || nombres.has(u.id.toUpperCase())) { A.sel.add(u.id); n++; } });
+  if (!n) { toast('No encontré esas unidades. Ej: 23-28, 31', 'error'); return; }
+  pintarAvance();
+}
+function seleccionarPendientesAvance() {
+  const A = STATE._av, R = calcAvance(A.data.config, A.data.registros);
+  A.data.config.unidades.forEach(u => { if (!R.estado[u.id]) A.sel.add(u.id); });
+  pintarAvance();
+}
+async function registrarAvance() {
+  const A = STATE._av;
+  const fecha = document.getElementById('av-fecha')?.value || A.fecha;
+  if (!fecha) { toast('Elige la fecha.', 'error'); return; }
+  if (A.estatus === 'incidencia' && !(A.nota || '').trim()) { toast('Escribe una nota corta de la incidencia.', 'error'); document.getElementById('av-nota')?.focus(); return; }
+  const r = await api('POST', `/avance/${encodeURIComponent(A.pid)}/registros`, { fecha, unidades: [...A.sel], estatus: A.estatus, nota: (A.nota || '').trim() || null });
+  if (!r) return;
+  A.data.registros.push(r);
+  const T = AV_TIPOS[A.data.config.tipo] || AV_TIPOS.eolico;
+  toast(`${r.unidades.length} ${r.unidades.length === 1 ? T.uno : T.varios} registrado${r.unidades.length === 1 ? '' : 's'}`);
+  A.sel = new Set(); A.nota = ''; A.estatus = 'ok'; A.fecha = fecha;
+  pintarAvance();
+}
+async function borrarRegistroAvance(rid) {
+  if (!confirm('¿Borrar este registro de avance?')) return;
+  const r = await api('DELETE', `/avance/registros/${rid}`);
+  if (!r) return;
+  STATE._av.data.registros = STATE._av.data.registros.filter(x => x.id !== rid);
+  toast('Registro borrado');
+  pintarAvance();
+}
+
+// ── Configuración del parque ──
+function abrirConfigAvance() {
+  const A = STATE._av, p = STATE.proyectos.find(x => x.id === A.pid) || {}, cfg = A.data?.config;
+  const tipo = cfg?.tipo || tipoSugeridoAvance(p);
+  STATE._avCfg = { tipo, mapa_url: cfg?.mapa_url || null, pos: Object.fromEntries((cfg?.unidades || []).filter(u => u.x != null).map(u => [u.id, { x: u.x, y: u.y }])) };
+  const lista = (cfg?.unidades || []).map(u => u.id).join('\n');
+  openPanel('Configurar parque', `
+    <div class="panel-section">
+      <div class="panel-section-title">TIPO DE PROYECTO</div>
+      <div class="av-tipos">${Object.entries(AV_TIPOS).map(([k, t]) => `<button type="button" class="av-tipo-op ${k === tipo ? 'on' : ''}" data-tipo="${k}" onclick="elegirTipoAvance('${k}')">
+        <i class="ti ti-${t.icono}" aria-hidden="true"></i><b>${t.nombre}</b><span>${k === 'eolico' ? 'Avance por máquina completa (WTG). Sin desglose por pala.' : 'Avance por bloques o secciones del parque.'}</span></button>`).join('')}</div>
+      ${!cfg ? `<div class="av-nota" style="margin-top:8px"><i class="ti ti-sparkles" aria-hidden="true"></i> Sugerido según el proyecto.</div>` : ''}
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title" id="av-cfg-tit-unid">${tipo === 'solar' ? 'BLOQUES DEL PARQUE' : 'AEROGENERADORES (WTGs)'}</div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">CANTIDAD</label><input class="field-input" id="av-cfg-n" type="number" min="1" max="2000" placeholder="30"></div>
+        <div class="field-group"><label class="field-label">PREFIJO</label><input class="field-input" id="av-cfg-pre" value="${AV_TIPOS[tipo].prefijo}"></div>
+        <div class="field-group"><label class="field-label">EMPIEZA EN</label><input class="field-input" id="av-cfg-ini" type="number" value="1" min="0"></div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="generarListaAvance()"><i class="ti ti-list-numbers" aria-hidden="true"></i> Generar lista</button>
+      <div class="field-group" style="margin-top:10px"><label class="field-label">LISTA <span class="np-opc">una por renglón o separadas por coma · puedes editarla</span></label>
+        <textarea class="field-input" id="av-cfg-lista" rows="6" style="font-family:var(--mono);font-size:12.5px" oninput="contarListaAvance()">${escHtml(lista)}</textarea>
+        <div class="av-nota" id="av-cfg-cuenta" style="margin-top:4px"></div></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">MAPA DEL PARQUE <span class="np-opc" style="text-transform:none;letter-spacing:0">opcional</span></div>
+      <div class="av-nota" style="margin-bottom:8px">Sube una imagen o esquema (JPG/PNG). Después ubicas cada ${tipo === 'solar' ? 'bloque' : 'WTG'} con un toque y el sistema lo pinta verde o amarillo solo.</div>
+      <div id="av-cfg-mapa"></div>
+      <input type="file" id="av-cfg-file" accept="image/png,image/jpeg" style="display:none" onchange="subirMapaAvance(this)">
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarConfigAvance(false))"><i class="ti ti-device-floppy" aria-hidden="true"></i> Guardar</button>`);
+  pintarMapaConfigAvance(); contarListaAvance();
+}
+function elegirTipoAvance(k) {
+  const prev = STATE._avCfg.tipo; STATE._avCfg.tipo = k;
+  document.querySelectorAll('.av-tipo-op').forEach(b => b.classList.toggle('on', b.dataset.tipo === k));
+  const pre = document.getElementById('av-cfg-pre');
+  if (pre && (!pre.value || pre.value === AV_TIPOS[prev].prefijo)) pre.value = AV_TIPOS[k].prefijo;
+  const t = document.getElementById('av-cfg-tit-unid'); if (t) t.textContent = k === 'solar' ? 'BLOQUES DEL PARQUE' : 'AEROGENERADORES (WTGs)';
+  STATE._panelDirty = true;
+}
+function listaConfigAvance() {
+  const vistos = new Set();
+  return (document.getElementById('av-cfg-lista')?.value || '').split(/[\n,;]+/).map(s => s.trim().replace(/\s+/g, ' ')).filter(s => s && !vistos.has(s.toUpperCase()) && vistos.add(s.toUpperCase()));
+}
+function contarListaAvance() {
+  const n = listaConfigAvance().length, el = document.getElementById('av-cfg-cuenta');
+  if (el) el.textContent = n ? `${n} unidad${n === 1 ? '' : 'es'}` : 'Lista vacía: usa "Generar lista" o escríbela.';
+}
+function generarListaAvance() {
+  const n = Math.min(2000, parseInt(document.getElementById('av-cfg-n').value, 10) || 0);
+  if (!n) { toast('Escribe la cantidad.', 'error'); return; }
+  const pre = document.getElementById('av-cfg-pre').value || '', ini = parseInt(document.getElementById('av-cfg-ini').value, 10) || 0;
+  const ancho = Math.max(2, String(ini + n - 1).length);
+  document.getElementById('av-cfg-lista').value = Array.from({ length: n }, (_, k) => `${pre}${String(ini + k).padStart(ancho, '0')}`).join('\n');
+  contarListaAvance(); STATE._panelDirty = true;
+}
+function pintarMapaConfigAvance() {
+  const C = STATE._avCfg, el = document.getElementById('av-cfg-mapa'); if (!el) return;
+  const nPos = Object.keys(C.pos).length;
+  el.innerHTML = C.mapa_url
+    ? `<div class="av-mapa" style="max-width:420px"><img src="${escHtml(C.mapa_url)}" alt="Mapa del parque"></div>
+       <div class="av-fila" style="margin-top:8px">
+         <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarConfigAvance(true))"><i class="ti ti-map-pin" aria-hidden="true"></i> Ubicar en el mapa</button>
+         <button class="btn btn-ghost btn-sm" onclick="document.getElementById('av-cfg-file').click()"><i class="ti ti-replace" aria-hidden="true"></i> Cambiar</button>
+         <button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="STATE._avCfg.mapa_url=null;pintarMapaConfigAvance();STATE._panelDirty=true"><i class="ti ti-trash" aria-hidden="true"></i> Quitar</button>
+       </div><div class="av-nota" style="margin-top:4px">${nPos ? `${nPos} unidad${nPos === 1 ? '' : 'es'} ubicada${nPos === 1 ? '' : 's'}.` : 'Aún no hay unidades ubicadas.'}</div>`
+    : `<button class="btn btn-ghost btn-sm" onclick="document.getElementById('av-cfg-file').click()"><i class="ti ti-upload" aria-hidden="true"></i> Subir mapa</button>`;
+}
+async function subirMapaAvance(input) {
+  const f = input.files?.[0]; input.value = '';
+  if (!f) return;
+  if (!/^image\/(png|jpe?g)$/.test(f.type)) { toast('Usa una imagen JPG o PNG.', 'error'); return; }
+  const el = document.getElementById('av-cfg-mapa'); if (el) el.innerHTML = `<div class="av-nota"><i class="ti ti-loader-2 ti-spin" aria-hidden="true"></i> Subiendo mapa…</div>`;
+  const url = await subirArchivoAPI(f, `avance-mapa-${STATE._av.pid}-${Date.now()}`);
+  if (url) { STATE._avCfg.mapa_url = url; STATE._panelDirty = true; }
+  pintarMapaConfigAvance();
+}
+async function guardarConfigAvance(luegoUbicar) {
+  const C = STATE._avCfg, ids = listaConfigAvance();
+  if (!ids.length) { toast('Agrega al menos un aerogenerador o bloque.', 'error'); return; }
+  const unidades = ids.map(id => C.pos[id] ? { id, x: C.pos[id].x, y: C.pos[id].y } : { id });
+  const r = await api('PUT', `/avance/${encodeURIComponent(STATE._av.pid)}/config`, { tipo: C.tipo, unidades, mapa_url: C.mapa_url });
+  if (!r) return;
+  STATE._av.data.config = r; STATE._av.vista = null;
+  const validas = new Set(ids); STATE._av.sel = new Set([...STATE._av.sel].filter(x => validas.has(x)));
+  STATE._panelDirty = false; closePanel(null, true);
+  if (luegoUbicar) abrirUbicadorAvance(); else { toast('Parque configurado'); pintarAvance(); }
+}
+
+// ── Ubicar unidades en el mapa: un toque por unidad, avanza sola a la siguiente ──
+function abrirUbicadorAvance() {
+  const cfg = STATE._av.data.config;
+  if (!cfg?.mapa_url) return;
+  const primeraSin = cfg.unidades.findIndex(u => u.x == null);
+  STATE._avUb = { unidades: cfg.unidades.map(u => ({ ...u })), i: primeraSin >= 0 ? primeraSin : 0 };
+  let ov = document.getElementById('av-ubic');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'av-ubic'; ov.className = 'av-ubic'; document.body.appendChild(ov); }
+  ov.style.display = 'flex'; ov.innerHTML = '';
+  pintarUbicador();
+}
+function pintarUbicador() {
+  const U = STATE._avUb, ov = document.getElementById('av-ubic'), cfg = STATE._av.data.config;
+  const actual = U.unidades[U.i], puestas = U.unidades.filter(u => u.x != null).length;
+  if (!ov.querySelector('#av-mapa-ubicar')) {   // la imagen se pinta una sola vez; luego solo se actualizan los puntos
+    ov.innerHTML = `
+      <div class="av-ubic-bar">
+        <div class="av-ubic-txt" id="av-ub-txt"></div>
+        <button class="btn btn-ghost btn-sm" onclick="moverUbicador(-1)" title="Anterior"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+        <button class="btn btn-ghost btn-sm" onclick="moverUbicador(1)" title="Siguiente"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+        <button class="btn btn-ghost btn-sm" id="av-ub-quitar" onclick="delete STATE._avUb.unidades[STATE._avUb.i].x;delete STATE._avUb.unidades[STATE._avUb.i].y;pintarUbicador()"><i class="ti ti-eraser" aria-hidden="true"></i> Quitar</button>
+        <button class="btn btn-ghost btn-sm" onclick="cerrarUbicadorAvance()">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, guardarUbicadorAvance)"><i class="ti ti-device-floppy" aria-hidden="true"></i> Guardar</button>
+      </div>
+      <div class="av-ubic-lienzo">${htmlMapaAvance({ ...cfg, unidades: [] }, null, 'ubicar', -1)}</div>
+      <div class="av-ubic-chips" id="av-ub-chips"></div>`;
+  }
+  ov.querySelector('#av-ub-txt').innerHTML = `Toca el mapa para ubicar <b>${escHtml(actual?.id || '')}</b> · ${puestas}/${U.unidades.length} ubicadas`;
+  ov.querySelector('#av-ub-quitar').disabled = actual?.x == null;
+  const mapa = ov.querySelector('#av-mapa-ubicar');
+  mapa.querySelectorAll('.av-pin').forEach(el => el.remove());
+  mapa.insertAdjacentHTML('beforeend', U.unidades.map((u, i) => u.x == null ? '' :
+    `<div class="av-pin ${i === U.i ? 'actual' : 'ok'}" style="left:${u.x}%;top:${u.y}%" onclick="event.stopPropagation();STATE._avUb.i=${i};pintarUbicador()" title="${escHtml(u.id)}">${escHtml(etqCorta(u.id))}</div>`).join(''));
+  const ch = ov.querySelector('#av-ub-chips'), x = ch.scrollLeft;
+  ch.innerHTML = U.unidades.map((u, i) => `<button class="${i === U.i ? 'actual' : u.x != null ? 'puesto' : ''}" onclick="STATE._avUb.i=${i};pintarUbicador()">${escHtml(u.id)}</button>`).join('');
+  ch.scrollLeft = x;
+  const act = ch.querySelector('.actual');
+  if (act && (act.offsetLeft < ch.scrollLeft || act.offsetLeft + act.offsetWidth > ch.scrollLeft + ch.clientWidth)) ch.scrollLeft = act.offsetLeft - ch.clientWidth / 2;
+}
+function moverUbicador(d) { const U = STATE._avUb; U.i = (U.i + d + U.unidades.length) % U.unidades.length; pintarUbicador(); }
+function clicMapaUbicar(ev) {
+  const U = STATE._avUb, box = ev.currentTarget.getBoundingClientRect();
+  const u = U.unidades[U.i]; if (!u) return;
+  u.x = Math.round((ev.clientX - box.left) * 10000 / box.width) / 100;
+  u.y = Math.round((ev.clientY - box.top) * 10000 / box.height) / 100;
+  const sig = U.unidades.findIndex((x, k) => k > U.i && x.x == null);
+  if (sig >= 0) U.i = sig; else if (U.i < U.unidades.length - 1) U.i++;
+  pintarUbicador();
+}
+function cerrarUbicadorAvance() { const ov = document.getElementById('av-ubic'); if (ov) ov.style.display = 'none'; pintarAvance(); }
+async function guardarUbicadorAvance() {
+  const cfg = STATE._av.data.config;
+  const r = await api('PUT', `/avance/${encodeURIComponent(STATE._av.pid)}/config`, { tipo: cfg.tipo, unidades: STATE._avUb.unidades, mapa_url: cfg.mapa_url });
+  if (!r) return;
+  STATE._av.data.config = r; STATE._av.vista = 'mapa';
+  toast('Ubicaciones guardadas');
+  cerrarUbicadorAvance();
+}
+
+// ── Salida: WhatsApp ──
+function textoWhatsAppAvance(fecha) {
+  const A = STATE._av, cfg = A.data.config, T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico;
+  const p = STATE.proyectos.find(x => x.id === A.pid) || {};
+  const regsHasta = A.data.registros.filter(r => r.fecha <= fecha);
+  const R = calcAvance(cfg, regsHasta), delDia = A.data.registros.filter(r => r.fecha === fecha);
+  const okDia = [...new Set(delDia.filter(r => r.estatus === 'ok').flatMap(r => r.unidades))];
+  const incDia = [...new Set(delDia.filter(r => r.estatus === 'incidencia').flatMap(r => r.unidades))];
+  const tecnicos = [...new Set(delDia.map(r => r.tecnico).filter(Boolean))];
+  const notas = delDia.filter(r => r.nota).map(r => `• ${rangosUnidades(cfg, r.unidades)}: ${r.nota}`);
+  const Tit = T.varios.charAt(0).toUpperCase() + T.varios.slice(1);
+  const lineas = [
+    `🔥 *Avance de obra — ${p.nombre || ''}*`,
+    p.cliente || p.ciudad ? `🏭 ${[p.cliente, p.ciudad].filter(Boolean).join(' · ')}` : null,
+    `📅 ${fechaLargaAv(fecha).replace(/^./, c => c.toUpperCase())}`,
+    `👷 ${tecnicos.length ? tecnicos.join(', ') : (STATE.user?.nombre || '')}`,
+    '',
+    okDia.length ? `✅ ${Tit} concluidos hoy (${okDia.length}): ${rangosUnidades(cfg, okDia)}` : `✅ Sin ${T.varios} concluidos en el día`,
+    incDia.length ? `⚠️ Con incidencia (${incDia.length}): ${rangosUnidades(cfg, incDia)}` : null,
+    '',
+    `📊 *Avance global: ${R.ok}/${R.total} ${T.varios} (${R.pct}%)*`,
+    `${barraTextoAvance(R.pct)}`,
+    `⏳ Pendientes: ${R.pend}${R.inc ? ` · ⚠️ Con incidencia: ${R.inc}` : ''}`,
+    notas.length ? '' : null,
+    notas.length ? `📝 Notas:\n${notas.join('\n')}` : null,
+  ].filter(l => l !== null);
+  return lineas.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+const barraTextoAvance = pct => { const n = Math.round(pct / 10); return '🟩'.repeat(n) + '⬜'.repeat(10 - n); };
+function abrirWhatsAppAvance() {
+  const A = STATE._av, fechas = [...new Set(A.data.registros.map(r => r.fecha))].sort().reverse();
+  const hoy = isoLocal(new Date());
+  const f = fechas.includes(A.fecha) ? A.fecha : (fechas.includes(hoy) ? hoy : (fechas[0] || hoy));
+  let ov = document.getElementById('selector-overlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; ov.style.zIndex = 1100; document.body.appendChild(ov); }
+  ov.className = 'modal-overlay open';
+  ov.onclick = e => { if (e.target === ov) cerrarSelectorTerminos(); };
+  ov.innerHTML = `
+    <div class="sel-card" style="max-width:460px;padding:18px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <i class="ti ti-brand-whatsapp" aria-hidden="true" style="font-size:26px;color:#25D366"></i>
+        <div style="flex:1;font-weight:700;color:var(--text);font-size:14px">Resumen para WhatsApp</div>
+        <button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button>
+      </div>
+      <div class="field-group"><label class="field-label">DÍA DEL REPORTE</label>
+        <select class="field-select" id="av-wa-fecha" onchange="document.getElementById('av-wa-txt').value=textoWhatsAppAvance(this.value)">
+          ${(fechas.includes(hoy) ? fechas : [hoy, ...fechas]).map(x => `<option value="${x}" ${x === f ? 'selected' : ''}>${escHtml(fechaLargaAv(x))}${x === hoy ? ' (hoy)' : ''}</option>`).join('')}
+        </select></div>
+      <textarea class="field-input" id="av-wa-txt" rows="13" style="width:100%;font-size:12.5px;line-height:1.45;margin-top:8px">${escHtml(textoWhatsAppAvance(f))}</textarea>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+        <button class="btn btn-ghost" style="min-height:44px;justify-content:center" onclick="copiarWhatsAppAvance(this)"><i class="ti ti-copy" aria-hidden="true"></i> Copiar</button>
+        <button class="btn av-btn-wa" style="min-height:44px;justify-content:center" onclick="window.open('https://wa.me/?text='+encodeURIComponent(document.getElementById('av-wa-txt').value),'_blank')"><i class="ti ti-send" aria-hidden="true"></i> Abrir WhatsApp</button>
+      </div>
+    </div>`;
+}
+async function copiarWhatsAppAvance(btn) {
+  const t = document.getElementById('av-wa-txt');
+  try { await navigator.clipboard.writeText(t.value); }
+  catch (e) { t.select(); document.execCommand('copy'); }
+  btn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Copiado';
+  setTimeout(() => { if (btn.isConnected) btn.innerHTML = '<i class="ti ti-copy" aria-hidden="true"></i> Copiar'; }, 1800);
+}
+
+// ── Salida: PDF / imagen (1 página, plantilla WorkSync) ──
+async function mapaAvanceCanvas(cfg, R) {
+  const img = await new Promise((ok, no) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => ok(i); i.onerror = no; i.src = cfg.mapa_url; });
+  const k = Math.min(1, 1800 / img.naturalWidth), w = Math.round(img.naturalWidth * k), h = Math.round(img.naturalHeight * k);
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0, w, h);
+  const rad = Math.max(12, Math.round(w / 62));
+  cfg.unidades.forEach(u => {
+    if (u.x == null) return;
+    const e = R.estado[u.id]?.estatus, col = e === 'ok' ? '#16a34a' : e === 'incidencia' ? '#dc2626' : '#d97706';
+    const x = u.x * w / 100, y = u.y * h / 100, t = etqCorta(u.id);
+    cx.font = `700 ${Math.round(rad * 0.95)}px Montserrat, Arial, sans-serif`;
+    const tw = Math.max(rad * 2, cx.measureText(t).width + rad * 0.9);
+    cx.beginPath(); cx.roundRect ? cx.roundRect(x - tw / 2, y - rad, tw, rad * 2, rad) : cx.rect(x - tw / 2, y - rad, tw, rad * 2);
+    cx.fillStyle = col; cx.fill(); cx.lineWidth = Math.max(2, rad / 5); cx.strokeStyle = '#ffffff'; cx.stroke();
+    cx.fillStyle = '#ffffff'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(t, x, y + 1);
+  });
+  return { url: cv.toDataURL('image/jpeg', 0.9), ratio: h / w };
+}
+async function exportarAvancePDF() {
+  const A = STATE._av, cfg = A.data?.config; if (!cfg) return;
+  const p = STATE.proyectos.find(x => x.id === A.pid) || {}, T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico;
+  const R = calcAvance(cfg, A.data.registros), regs = ordenRegistros(A.data.registros);
+  const P = await nuevaPlantillaPDF('portrait'), { doc, C } = P, { W, H, M } = P;
+  const ancho = W - 2 * M;
+  P.encabezado('Reporte de avance', p.id || '', p.nombre || 'Proyecto', [p.cliente, p.ciudad, `${T.nombre} · avance por ${cfg.tipo === 'solar' ? 'bloques' : 'WTG'}`].filter(Boolean).join(' · '));
+  // KPIs
+  const ultimo = regs.length ? regs[regs.length - 1].fecha : null;
+  const nUlt = ultimo ? new Set(regs.filter(r => r.fecha === ultimo).flatMap(r => r.unidades)).size : 0;
+  const dias = new Set(regs.map(r => r.fecha)).size;
+  let y = P.tarjetas(33, [
+    ['Avance global', `${R.pct} %`, `${R.ok} de ${R.total} ${T.varios}`, C.verde],
+    ['Pendientes', R.pend, T.varios, C.ambar],
+    ['Con incidencia', R.inc, R.inc ? 'requieren atención' : 'sin incidencias', R.inc ? C.rojo : C.gris],
+    ['Último día', ultimo ? fCorta(ultimo) : '—', ultimo ? `${nUlt} ${nUlt === 1 ? T.uno : T.varios} · ${dias} día${dias === 1 ? '' : 's'} de trabajo` : 'sin registros', C.tinta],
+  ], 19);
+  // Barra de avance
+  y += 5;
+  P.relleno(C.fondo); doc.roundedRect(M, y, ancho, 3.2, 1.6, 1.6, 'F');
+  if (R.ok) { P.relleno(C.verde); doc.roundedRect(M, y, ancho * R.ok / R.total, 3.2, 1.6, 1.6, 'F'); }
+  if (R.inc) { P.relleno([220, 38, 38]); doc.rect(M + ancho * R.ok / R.total, y, ancho * R.inc / R.total, 3.2, 'F'); }
+  y += 9;
+  // Soporte visual
+  y = P.seccion('SOPORTE VISUAL', y, `${cfg.tipo === 'solar' ? 'Mapa de bloques' : 'Aerogeneradores'} al ${fLargaAnio(new Date())}`);
+  const ley = [['Concluido', [22, 163, 74]], ['Pendiente', [217, 119, 6]], ['Con incidencia', [220, 38, 38]]];
+  let lx = M; P.font('medium', 6.8, C.texto);
+  ley.forEach(([t, c]) => { P.relleno(c); doc.circle(lx + 1.3, y - 1.1, 1.3, 'F'); doc.text(t, lx + 3.6, y); lx += 6 + doc.getTextWidth(t) + 4; });
+  y += 3.5;
+  // Alto del mapa según lo que necesitan la gráfica y la bitácora para que todo quepa en 1 hoja
+  const nDias = new Set(regs.map(r => r.fecha)).size;
+  const reservaGraf = nDias ? 52 : 0, reservaTabla = 20 + Math.min(Math.max(regs.length, 1), 12) * 5.9;
+  const maxVis = Math.max(50, Math.min(105, H - 22 - y - reservaGraf - reservaTabla - 6));
+  let dibujado = false;
+  if (cfg.mapa_url && cfg.unidades.some(u => u.x != null)) {
+    try {
+      const m = await mapaAvanceCanvas(cfg, R);
+      let w = ancho, h = w * m.ratio; if (h > maxVis) { h = maxVis; w = h / m.ratio; }
+      doc.addImage(m.url, 'JPEG', M + (ancho - w) / 2, y, w, h);
+      P.trazo(C.linea, 0.25); doc.rect(M + (ancho - w) / 2, y, w, h);
+      y += h + 6; dibujado = true;
+    } catch (e) { console.warn('Mapa no disponible para el PDF', e); }
+  }
+  if (!dibujado) {
+    const n = cfg.unidades.length, gap = 1.4;
+    let cols = Math.min(n, 10), th = 7.5;
+    while (Math.ceil(n / cols) * (th + gap) > maxVis && cols < 30) { cols++; th = Math.max(4.6, th - 0.25); }
+    const tw = (ancho - gap * (cols - 1)) / cols, tam = Math.max(4.6, Math.min(7.4, tw * 0.62));
+    cfg.unidades.forEach((u, i) => {
+      const x = M + (i % cols) * (tw + gap), yy = y + Math.floor(i / cols) * (th + gap);
+      const e = R.estado[u.id]?.estatus;
+      const [fg, bg] = e === 'ok' ? [C.verde, C.verdeBg] : e === 'incidencia' ? [[185, 28, 28], C.rojoBg] : [C.ambar, C.ambarBg];
+      P.relleno(bg); doc.roundedRect(x, yy, tw, th, 1, 1, 'F');
+      P.font('bold', tam, fg); doc.text(recortarTexto(doc, cols > 14 ? etqCorta(u.id) : u.id, tw - 1.5), x + tw / 2, yy + th / 2 + tam * 0.13, { align: 'center' });
+    });
+    y += Math.ceil(n / cols) * (th + gap) + 5;
+  }
+  // Gráfica: concluidos por día + avance acumulado (últimos 20 días con registro)
+  const porDia = [...new Set(regs.map(r => r.fecha))].sort();
+  if (porDia.length) {
+    y = P.seccion('AVANCE POR DÍA', y, `Barras: ${T.varios} concluidos en el día · línea: avance acumulado`);
+    const dd = porDia.slice(-20), gh = 30, base = y + gh, ejeX = M + 8, gw = ancho - 16;
+    const serie = dd.map(f => {
+      const Rf = calcAvance(cfg, regs.filter(r => r.fecha <= f));
+      const nOk = new Set(regs.filter(r => r.fecha === f && r.estatus === 'ok').flatMap(r => r.unidades)).size;
+      return { f, n: nOk, pct: Rf.pct };
+    });
+    const maxN = Math.max(1, ...serie.map(s => s.n)), paso = gw / dd.length, bw = Math.min(14, paso * 0.55);
+    P.trazo(C.linea, 0.2); [0, 50, 100].forEach(v => { const yy = base - gh * v / 100; doc.line(ejeX, yy, ejeX + gw, yy); P.font('normal', 5.6, C.grisClaro); doc.text(`${v}%`, ejeX + gw + 1, yy + 0.8); });
+    serie.forEach((s, i) => {
+      const cx = ejeX + paso * (i + 0.5), bh = (gh - 6) * s.n / maxN;
+      if (s.n) { P.relleno(C.verdeBg); doc.rect(cx - bw / 2, base - bh, bw, bh, 'F'); P.font('bold', 6, C.verde); doc.text(String(s.n), cx, base - bh - 1, { align: 'center' }); }
+      P.font('normal', 5.6, C.gris); doc.text(fCorta(s.f), cx, base + 3.4, { align: 'center' });
+    });
+    P.trazo(C.rojo, 0.5);
+    serie.forEach((s, i) => { if (i) { const a = serie[i - 1]; doc.line(ejeX + paso * (i - 0.5), base - gh * a.pct / 100, ejeX + paso * (i + 0.5), base - gh * s.pct / 100); } });
+    serie.forEach((s, i) => { const cx = ejeX + paso * (i + 0.5), cy = base - gh * s.pct / 100; P.relleno(C.rojo); doc.circle(cx, cy, 0.8, 'F'); });
+    const ult = serie[serie.length - 1]; P.font('bold', 6.4, C.rojo);
+    doc.text(`${ult.pct}%`, Math.min(ejeX + paso * (serie.length - 0.5) + 1.5, ejeX + gw - 6), base - gh * ult.pct / 100 - 1.6);
+    y = base + 9;
+  }
+  // Bitácora diaria (cronológica), recortada para que todo quepa en 1 hoja
+  y = P.seccion('BITÁCORA DIARIA DE ACTIVIDADES', y, `${regs.length} registro${regs.length === 1 ? '' : 's'}`);
+  const filaH = 5.9, disp = H - 22 - y - 7;
+  const maxFilas = Math.max(1, Math.floor(disp / filaH));
+  let filas = regs, omitidas = 0;
+  if (filas.length > maxFilas) { omitidas = filas.length - (maxFilas - 1); filas = filas.slice(-(maxFilas - 1)); }
+  if (!regs.length) { P.font('normal', 8, C.gris); doc.text('Aún no hay registros de avance.', M, y + 2); }
+  else {
+    if (omitidas) { P.font('normal', 6.8, C.gris); doc.text(`Se muestran los ${filas.length} registros más recientes (${omitidas} anteriores no caben en la hoja; ver plataforma).`, M, y); y += 3; }
+    let fechaPrev = null;
+    const body = filas.map(r => {
+      const f = r.fecha !== fechaPrev ? fCorta(r.fecha) : ''; fechaPrev = r.fecha;
+      return [f, r.tecnico || '—', `${rangosUnidades(cfg, r.unidades)} (${r.unidades.length})`, r.estatus === 'ok' ? 'Concluido' : 'Incidencia', r.nota || '—'];
+    });
+    doc.autoTable({
+      startY: y, margin: { left: M, right: M, bottom: 20 }, head: [['Fecha', 'Técnico', T.varios.charAt(0).toUpperCase() + T.varios.slice(1), 'Estatus', 'Nota']], body,
+      theme: 'plain', pageBreak: 'avoid', rowPageBreak: 'avoid',
+      styles: { font: window._fuentesPDF ? 'Montserrat' : 'helvetica', fontSize: 7, textColor: C.texto, cellPadding: { top: 1.5, bottom: 1.5, left: 2, right: 2 }, overflow: 'ellipsize', lineColor: C.linea },
+      headStyles: { fontStyle: 'bold', textColor: C.gris, fontSize: 6.4, fillColor: C.fondo },
+      columnStyles: { 0: { cellWidth: 15, fontStyle: 'bold', textColor: C.tinta }, 1: { cellWidth: 46 }, 2: { cellWidth: 52 }, 3: { cellWidth: 19 } },
+      didParseCell: d => {
+        if (d.section === 'body' && d.column.index === 3) { d.cell.styles.fontStyle = 'bold'; d.cell.styles.textColor = d.cell.raw === 'Concluido' ? C.verde : [185, 28, 28]; }
+        if (d.section === 'body') d.cell.styles.lineWidth = { bottom: 0.15 };
+      },
+    });
+  }
+  // Seguridad: el reporte es de 1 hoja
+  while (doc.internal.getNumberOfPages() > 1) doc.deletePage(doc.internal.getNumberOfPages());
+  P.cerrar(limpiarNombreArchivo(`Avance ${p.nombre || A.pid} ${isoLocal(new Date())}.pdf`), false);
 }
 
 // ─── SECCIÓN: CHECADOR ────────────────────────────────────────────────────────
