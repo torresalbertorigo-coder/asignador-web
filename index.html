@@ -7808,7 +7808,7 @@ function abrirConfigAvance() {
       <div class="panel-section-title">MAPA DEL PARQUE <span class="np-opc" style="text-transform:none;letter-spacing:0">opcional</span></div>
       <div class="av-nota" style="margin-bottom:8px">Sube una imagen o esquema (JPG/PNG). Después ubicas cada ${tipo === 'solar' ? 'bloque' : 'WTG'} con un toque y el sistema lo pinta verde o amarillo solo.</div>
       <div id="av-cfg-mapa"></div>
-      <input type="file" id="av-cfg-file" accept="image/png,image/jpeg" style="display:none" onchange="subirMapaAvance(this)">
+      <input type="file" id="av-cfg-file" accept="image/*" style="display:none" onchange="subirMapaAvance(this)">
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarConfigAvance(false))"><i class="ti ti-device-floppy" aria-hidden="true"></i> Guardar</button>`);
   pintarMapaConfigAvance(); contarListaAvance();
@@ -7849,13 +7849,29 @@ function pintarMapaConfigAvance() {
        </div><div class="av-nota" style="margin-top:4px">${nPos ? `${nPos} unidad${nPos === 1 ? '' : 'es'} ubicada${nPos === 1 ? '' : 's'}.` : 'Aún no hay unidades ubicadas.'}</div>`
     : `<button class="btn btn-ghost btn-sm" onclick="document.getElementById('av-cfg-file').click()"><i class="ti ti-upload" aria-hidden="true"></i> Subir mapa</button>`;
 }
+// El servidor (Vercel) rechaza archivos de más de ~4.5 MB: el mapa se reduce y se convierte a JPG antes de subirlo
+async function comprimirImagenMapa(file, maxLado = 2400, calidad = 0.85) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = url; });
+    const k = Math.min(1, maxLado / Math.max(img.naturalWidth, img.naturalHeight));
+    const cv = document.createElement('canvas'); cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k);
+    const cx = cv.getContext('2d'); cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(img, 0, 0, cv.width, cv.height);
+    let q = calidad, blob = await new Promise(ok => cv.toBlob(ok, 'image/jpeg', q));
+    while (blob && blob.size > 3.5e6 && q > 0.45) { q -= 0.1; blob = await new Promise(ok => cv.toBlob(ok, 'image/jpeg', q)); }
+    return blob ? new File([blob], 'mapa.jpg', { type: 'image/jpeg' }) : null;
+  } catch (e) { return null; }
+  finally { URL.revokeObjectURL(url); }
+}
 async function subirMapaAvance(input) {
   const f = input.files?.[0]; input.value = '';
   if (!f) return;
-  if (!/^image\/(png|jpe?g)$/.test(f.type)) { toast('Usa una imagen JPG o PNG.', 'error'); return; }
-  const el = document.getElementById('av-cfg-mapa'); if (el) el.innerHTML = `<div class="av-nota"><i class="ti ti-loader-2 ti-spin" aria-hidden="true"></i> Subiendo mapa…</div>`;
-  const url = await subirArchivoAPI(f, `avance-mapa-${STATE._av.pid}-${Date.now()}`);
-  if (url) { STATE._avCfg.mapa_url = url; STATE._panelDirty = true; }
+  if (!/^image\//.test(f.type)) { toast('Usa una imagen (JPG o PNG). Si el layout es PDF, toma captura de pantalla.', 'error'); return; }
+  const el = document.getElementById('av-cfg-mapa'); if (el) el.innerHTML = `<div class="av-nota"><i class="ti ti-loader-2 ti-spin" aria-hidden="true"></i> Preparando y subiendo mapa…</div>`;
+  const listo = await comprimirImagenMapa(f);
+  if (!listo) { toast('No se pudo leer la imagen. Prueba con JPG o PNG.', 'error'); pintarMapaConfigAvance(); return; }
+  const url = await subirArchivoAPI(listo, `avance-mapa-${STATE._av.pid}-${Date.now()}`);
+  if (url) { STATE._avCfg.mapa_url = url; STATE._panelDirty = true; toast('Mapa subido'); }
   pintarMapaConfigAvance();
 }
 async function guardarConfigAvance(luegoUbicar) {
