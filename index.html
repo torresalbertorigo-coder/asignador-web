@@ -6257,10 +6257,91 @@ async function verCliente(id) {
         </div>
       `).join('')
     }
-  `, puedeEditar ? `
+  `, (puedeEditar ? `
     <button class="btn btn-ghost" style="color:var(--red-text)" onclick="eliminarClienteConfirm('${c.id}')"><i class="ti ti-trash" aria-hidden="true"></i> Eliminar</button>
     <button class="btn btn-ghost" onclick="abrirEditarCliente('${c.id}')">Editar</button>
-  ` : '');
+  ` : '') + (historial.length && STATE.rol !== 'tecnico' ? `<button class="btn btn-primary" onclick="ejecutarConCarga(this, () => exportarHistorialClientePDF('${c.id}'), 'Generando…')"><i class="ti ti-file-type-pdf" aria-hidden="true"></i> Exportar historial (PDF)</button>` : ''));
+}
+
+// ─── HISTORIAL DE CLIENTE (debrief en PDF / imagen) ───────────────────────────
+async function exportarHistorialClientePDF(id) {
+  const [c] = await Promise.all([api('GET', `/clientes/${id}`), loadProyectos(), loadEmpleados()]);
+  if (!c) { toast('No se pudo cargar el cliente', 'error'); return; }
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const SIGLAS = ['RPAS', 'GWO', 'DC-3', 'LOTO', 'LOTTO', 'LIDAR', 'NDT', 'UAV', 'DJI', 'IRATA', 'EPP', 'STPS'];
+  const oracion = t => { const s2 = String(t).toLowerCase(); return (s2.charAt(0).toUpperCase() + s2.slice(1)).split(' ').map(w => SIGLAS.includes(w.toUpperCase()) ? w.toUpperCase() : w).join(' '); };
+  const diasEntre = (a, b) => Math.round((fechaLocal(b) - fechaLocal(a)) / 86400000) + 1;
+  // Se completa cada proyecto con lo que ya conoce la plataforma (personal, ciudad, requisitos)
+  const filas = (c.historial_proyectos || []).map(h => {
+    const p = { ...h, ...((STATE.proyectos || []).find(x => x.id === h.id) || {}) };
+    const est = estadoProyectoVisible(p);
+    const ini = p.fecha_inicio_real || p.fecha_inicio, fin = p.fecha_fin_real || p.fecha_fin_estimada;
+    // días en sitio: finalizados = reales; en curso = transcurridos hasta hoy; por venir = 0 (se informan aparte)
+    let enSitio = 0;
+    if (est === 'completado') enSitio = diasEntre(ini, fin);
+    else if (est === 'en_progreso' || est === 'pausado') enSitio = p.fecha_inicio_real ? Math.max(0, Math.min(diasEntre(p.fecha_inicio_real, isoLocal(hoy)), diasEntre(p.fecha_inicio_real, p.fecha_fin_estimada) + 60)) : 0;
+    const habs = (p.habilidades_requeridas_items || []).map(x => oracion(x.nombre)).slice(0, 3).join(' · ');
+    const tipoServ = habs || (p.descripcion ? String(p.descripcion).split('\n')[0].slice(0, 60) : '—');
+    const gente = (p.tecnicos_asignados || []).map(eid => (STATE.empleados || []).find(e => e.id === eid)).filter(Boolean).map(e => `${e.nombre} ${e.apellido}`);
+    return { p, est, ini, fin, enSitio, planeados: diasEntre(p.fecha_inicio, p.fecha_fin_estimada), tipoServ, gente };
+  }).sort((a, b) => String(b.ini).localeCompare(String(a.ini)));
+  const EST = {
+    completado: ['Completado', 'completado'], en_progreso: ['En progreso', 'progreso'], pausado: ['Pausado', 'pausa'],
+    en_preparacion: ['En preparación', 'prep'], asignado: ['Asignado', 'asignado'], en_espera_inicio: ['Asignado', 'asignado'],
+    pendiente_asignacion: ['Por asignar', 'prep'], cancelado: ['Cancelado', 'pausa'],
+  };
+  const etq = e => (EST[e] || [prettyTipo ? prettyTipo(e) : e, 'asignado']);
+  const cuenta = k => filas.filter(f => f.est === k).length;
+  const totalSitio = filas.reduce((a, f) => a + f.enSitio, 0);
+  const porVenir = filas.filter(f => ['asignado', 'en_preparacion', 'en_espera_inicio', 'pendiente_asignacion'].includes(f.est));
+  const activos = cuenta('en_progreso') + cuenta('pausado') + porVenir.length;
+
+  const T = await nuevaPlantillaPDF('portrait'), { doc, C, M } = T, W = T.W;
+  const fuente = doc.getFontList()['Montserrat'] ? 'Montserrat' : 'helvetica';
+  const contacto = [c.contacto_nombre, c.contacto_telefono, c.contacto_email].filter(Boolean).join('  ·  ');
+  T.encabezado('Historial de cliente', recortarTexto((T.font('semibold', 9.5), doc), String(c.nombre).toUpperCase(), 70), c.nombre, contacto || `${plural(filas.length, 'proyecto')} registrados`);
+
+  // Resumen ejecutivo: 3 tarjetas
+  const primero = filas.length ? filas[filas.length - 1].ini : null;
+  let y = T.tarjetas(34, [
+    ['Total de proyectos', String(filas.length), primero ? `desde ${fLargaAnio(primero)}` : 'sin proyectos', C.tinta],
+    ['Días en sitio acumulados', `${totalSitio} día${totalSitio === 1 ? '' : 's'}`, porVenir.length ? `+ ${porVenir.reduce((a, f) => a + f.planeados, 0)} días programados` : 'finalizados y en curso', PDF_EST.asignado.c],
+    ['Estatus general', activos ? `${activos} activo${activos === 1 ? '' : 's'}` : 'Sin pendientes',
+      [cuenta('completado') ? `${cuenta('completado')} completado(s)` : '', cuenta('en_progreso') ? `${cuenta('en_progreso')} en curso` : '', porVenir.length ? `${porVenir.length} por iniciar` : '', cuenta('pausado') ? `${cuenta('pausado')} en pausa` : ''].filter(Boolean).join(' · ') || '—',
+      activos ? PDF_EST.progreso.c : PDF_EST.completado.c],
+  ]) + 9;
+
+  // Tabla de debrief
+  y = T.seccion('PROYECTOS REALIZADOS', y, plural(filas.length, 'proyecto'));
+  doc.autoTable({
+    startY: y - 3.5, margin: { left: M, right: M, top: 38, bottom: 24 }, theme: 'plain',
+    styles: { font: fuente, fontSize: 7.2, textColor: C.texto, cellPadding: { top: 2.2, bottom: 2.2, left: 2, right: 2 },
+      lineColor: C.linea, lineWidth: { bottom: 0.2 }, valign: 'top', overflow: 'linebreak' },
+    headStyles: { font: fuente, fontStyle: 'bold', fontSize: 6.4, textColor: C.gris, fillColor: C.fondo, lineWidth: 0, cellPadding: { top: 1.6, bottom: 1.6, left: 2, right: 2 } },
+    head: [['Proyecto / servicio', 'Fechas · días', 'Tipo de servicio', 'Personal técnico', 'Estatus']],
+    body: filas.map(f => [
+      `${f.p.nombre}${f.p.ciudad ? '\n ' : ''}`,   // el renglón extra se ocupa con la ciudad (en gris, ver didDrawCell)
+      `${rangoCorto(f.ini, f.fin)} ${fechaLocal(f.fin).getFullYear()}\n${f.est === 'completado' ? `${f.enSitio} día(s) en sitio` : f.enSitio ? `${f.enSitio} día(s) a la fecha` : `${f.planeados} día(s) programados`}`,
+      f.tipoServ,
+      f.gente.length ? f.gente.join('\n') : 'Sin asignar',
+      etq(f.est)[0],
+    ]),
+    columnStyles: { 0: { cellWidth: 52, textColor: C.tinta }, 1: { cellWidth: 34 }, 2: { cellWidth: 36 }, 3: { cellWidth: 40 }, 4: { cellWidth: 'auto' } },
+    didParseCell: d => {
+      if (d.section !== 'body') return;
+      if (d.column.index === 0) d.cell.styles.fontStyle = 'bold';
+      if (d.column.index === 4) { const k = etq(filas[d.row.index].est)[1]; d.cell.styles.textColor = tonoLegible(PDF_EST[k].c, C.blanco); d.cell.styles.fontStyle = 'bold'; }
+    },
+    didDrawCell: d => {
+      if (d.section !== 'body' || d.column.index !== 0) return;
+      const ciudad = filas[d.row.index].p.ciudad; if (!ciudad) return;
+      T.font('medium', 6.6, C.gris);
+      const lh = d.cell.styles.fontSize * 1.15 / doc.internal.scaleFactor, n = (d.cell.text || []).length || 2;
+      doc.text(recortarTexto(doc, ciudad, d.cell.width - 4), d.cell.x + 2, d.cell.y + 2.2 + (n - 1) * lh + lh * 0.82);
+    },
+    willDrawPage: dd => { if (doc.internal.getCurrentPageInfo().pageNumber > 1) { T.medir(); T.encabezado('Historial de cliente', recortarTexto((T.font('semibold', 9.5), doc), String(c.nombre).toUpperCase(), 70), c.nombre, 'continuación'); } },
+  });
+  T.cerrar(limpiarNombreArchivo(`Historial de cliente - ${c.nombre} - ${isoLocal(hoy)}.pdf`), false);
 }
 
 async function abrirEditarCliente(id) {
