@@ -9511,6 +9511,10 @@ async function exportarGanttPDF() {
   const enCampo = hoyEnRango
     ? [...proyectosPeriodo.values()].filter(p => estadoProyectoVisible(p) === 'en_progreso' && filas.some(f => f.barras.some(b => b.pry === p && b.a <= HOY && b.b >= HOY))).length
     : [...proyectosPeriodo.values()].filter(p => estadoProyectoVisible(p) === 'en_progreso').length;
+  // Resumen de ausencias = quién está ausente HOY (una ausencia ya terminada solo aparece en la lista de abajo);
+  // si el periodo no incluye hoy, las ausencias que caen en el periodo
+  const ausResumen = hoyEnRango ? emps.filter(e => ausenciaEn(e, hoy)).length : ausenciasPeriodo.length;
+  const ausTexto = hoyEnRango ? (ausResumen === 1 ? 'ausente hoy' : 'ausentes hoy') : (ausResumen === 1 ? 'ausencia en el periodo' : 'ausencias en el periodo');
   const libresHoy = hoyEnRango ? emps.filter(e => !ausenciaEn(e, hoy) && !proyectoEnDia(e.id, hoy)).length
     : filas.filter(f => !f.barras.length).length;
 
@@ -9519,7 +9523,7 @@ async function exportarGanttPDF() {
   let y = 33;
   T.relleno(C.fondo); doc.roundedRect(M, y, T.W - 2 * M, 8, 1.6, 1.6, 'F');
   [[proyectosPeriodo.size, 'proyectos en el periodo', C.tinta], [programados, 'programados', PDF_EST.asignado.c],
-   [enCampo, hoyEnRango ? 'en campo hoy' : 'en curso en el periodo', PDF_EST.progreso.c], [ausenciasPeriodo.length, ausenciasPeriodo.length === 1 ? 'ausencia' : 'ausencias', PDF_EST.ausencia.c],
+   [enCampo, hoyEnRango ? 'en campo hoy' : 'en curso en el periodo', PDF_EST.progreso.c], [ausResumen, ausTexto, PDF_EST.ausencia.c],
    [libresHoy, hoyEnRango ? 'técnicos libres hoy' : 'técnicos sin asignación en el periodo', C.tinta]].reduce((xx, [n, t, c]) => {
     T.relleno(c); doc.circle(xx, y + 4, 1, 'F');
     T.font('bold', 8.6, C.tinta); doc.text(String(n), xx + 2.6, y + 5.2);
@@ -9572,19 +9576,25 @@ async function exportarGanttPDF() {
   // Espacio disponible: de la franja de resumen al pie
   const espacioTotal = (T.H - 21) - (y + 8) - 5 - leyAlto - 6 - 8 - 2;     // encabezados de rejilla, simbología y título de sección
   let esp = { f: 1, persona: 3.5, extra: 3.4 }, bloques = armarBloques(esp);
-  // Alto real que ocupará la lista: simula el mismo reparto en columnas que se usa al dibujar
-  const porColumna = b => {
-    const meta = b.reduce((a, x) => a + x.alto, 0) / ncol;
-    let col = 0, acum = 0, maxH = 0;
+  // Reparto en columnas tipo periódico: llena cada columna hasta "cap" (sin dejar un título solo al final);
+  // con búsqueda binaria se halla el alto mínimo que reparte todo en 3 columnas → columnas parejas
+  const repartir = (b, cap) => {
+    let cols = 1, acum = 0, maxH = 0;
     b.forEach((x, n) => {
       const altoEval = x.tipo === 'grupo' && b[n + 1] ? x.alto + b[n + 1].alto : x.alto;
       const trasTitulo = n > 0 && b[n - 1].tipo === 'grupo';
-      const rebasa = acum > 0 && !trasTitulo && acum + altoEval > meta + 3 && !(x.tipo === 'item' && acum + x.alto <= meta + 8);
-      if (col < ncol - 1 && rebasa) { col++; acum = x.tipo === 'item' ? 5.6 * esp.f : 0; }
+      if (acum > 0 && !trasTitulo && acum + altoEval > cap) { cols++; acum = x.tipo === 'item' ? 5.6 * esp.f : 0; }
       acum += x.alto; maxH = Math.max(maxH, acum);
     });
-    return maxH + 2;
+    return { cols, h: maxH };
   };
+  const altoLista = b => {
+    if (!b.length) return 0;
+    let lo = Math.max(...b.map(x => x.alto)), hi = b.reduce((a, x) => a + x.alto, 0) + 12;
+    for (let i = 0; i < 28 && hi - lo > 0.2; i++) { const mid = (lo + hi) / 2; if (repartir(b, mid).cols <= ncol) hi = mid; else lo = mid; }
+    return repartir(b, hi).h;
+  };
+  const porColumna = b => altoLista(b) + 2;
   let rh = Math.max(6, Math.min(9.6, (espacioTotal - porColumna(bloques)) / Math.max(1, filas.length)));
   if (rh * filas.length + porColumna(bloques) > espacioTotal) {    // aún no cabe: lista más compacta
     esp = { f: 0.9, persona: 3.1, extra: 1.8 }; bloques = armarBloques(esp);
@@ -9653,17 +9663,18 @@ async function exportarGanttPDF() {
 
   // Asignaciones: por estado y proyecto, una persona por renglón, en 3 columnas tipo periódico
   y = T.seccion('ASIGNACIONES DEL PERIODO', y);
-  const limite = T.H - 21, meta = bloques.reduce((a, b) => a + b.alto, 0) / ncol;
+  const limite = T.H - 21, altoIdeal = altoLista(bloques) + 0.5;
+  // si todo cabe en la hoja, columnas parejas; si no, se llena la hoja y se continúa en otra
+  let cap = Math.min(Math.max(altoIdeal, 10), limite - y);
   let col = 0, yIni = y, yy = y, acum = 0;
   const encabezadoGrupo = (k, txt) => { const st = PDF_EST[k]; T.relleno(st.c); doc.circle(colX[col] + 1.2, yy - 1.1, 1.1, 'F'); T.font('bold', 6.6, C.texto); doc.text(txt, colX[col] + 3.6, yy, { charSpace: 0.4 }); yy += 5.6 * esp.f; acum += 5.6 * esp.f; };
   bloques.forEach((b, n) => {
     const altoEval = b.tipo === 'grupo' && bloques[n + 1] ? b.alto + bloques[n + 1].alto : b.alto;
     // nunca se brinca de columna con la columna vacía, ni deja un título de grupo solo al final de una columna
     const trasTitulo = n > 0 && bloques[n - 1].tipo === 'grupo';
-    const rebasaMeta = acum > 0 && !trasTitulo && acum + altoEval > meta + 3 && !(b.tipo === 'item' && acum + b.alto <= meta + 8);
-    if ((col < ncol - 1 && rebasaMeta) || (yy + altoEval > limite && !trasTitulo)) {
+    if (acum > 0 && !trasTitulo && (acum + altoEval > cap || yy + altoEval > limite)) {
       col++; acum = 0; yy = yIni;
-      if (col >= ncol) { T.nuevaPagina(); T.encabezado('Calendario de disponibilidad', 'ASIGNACIONES (CONT.)', 'Disponibilidad del personal', 'continuación'); col = 0; yIni = yy = 38; }
+      if (col >= ncol) { T.nuevaPagina(); T.encabezado('Calendario de disponibilidad', 'ASIGNACIONES (CONT.)', 'Disponibilidad del personal', 'continuación'); col = 0; yIni = yy = 38; cap = limite - 38; }
       if (b.tipo === 'item') encabezadoGrupo(b.k, `${PDF_EST[b.k].nombre.toUpperCase()} (CONT.)`);
     }
     const st = PDF_EST[b.k];
