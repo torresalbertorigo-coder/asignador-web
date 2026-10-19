@@ -8446,11 +8446,24 @@ async function guardarDocumento() {
   if (!sinVig && hasta) params.set('fecha_vencimiento', hasta);
   if (desde) params.set('fecha_expedicion', desde);
   if (ruta_pdf) params.set('ruta_pdf', ruta_pdf);
-  const r = await fetch(`${API}/empleados/${empId}/certificados?${params.toString()}`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${STATE.token}` }
-  });
-  if (!r.ok) { err.textContent = 'Error al guardar el documento.'; return; }
+  let r;
+  try {
+    r = await fetch(`${API}/empleados/${empId}/certificados?${params.toString()}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${STATE.token}` }
+    });
+  } catch (e) {
+    // Sin respuesta legible: casi siempre es un error 500 del servidor (el navegador lo reporta como fallo de red)
+    console.error('POST certificados falló:', e);
+    err.textContent = 'El servidor no respondió al guardar (error interno). El archivo sí se subió; intenta de nuevo y, si persiste, revisa los Logs del backend.';
+    return;
+  }
+  if (!r.ok) {
+    let det = ''; try { det = (await r.json()).detail || ''; } catch (e) {}
+    console.error('POST certificados', r.status, det);
+    err.textContent = `Error al guardar el documento (${r.status})${det ? ': ' + (typeof det === 'string' ? det : JSON.stringify(det)) : ''}`;
+    return;
+  }
   closePanel(null, true);
   toast(STATE._docTargetEmpId || ['administrador', 'director_proyecto'].includes(STATE.rol) ? `Documento "${nombre}" guardado` : `"${nombre}" enviado a revisión: tu gerente lo autorizará`);
   if (STATE._docTargetEmpId) { await loadEmpleados(true); verDocumentosEmpleado(STATE._docTargetEmpId); }
