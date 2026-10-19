@@ -1103,6 +1103,46 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .cal-aus{font-size:8.5px;font-weight:500;line-height:1;margin-top:2px;opacity:.9;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px}
 .cal-cell.ocupado.hoy{outline:1.5px solid var(--red-text)}
 .cal-pry{font-size:10px;font-weight:600;line-height:1.15;max-width:100%;padding:0 5px;margin-top:4px;text-align:center;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.doc-bloque{padding:4px 0 10px}
+.doc-bloque + .doc-bloque{border-top:1px solid var(--border);margin-top:4px;padding-top:10px}
+.doc-bloque-tit{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding:6px 16px 8px;font-size:10.5px;font-weight:700;letter-spacing:.08em;color:var(--text2)}
+.doc-bloque.adm .doc-bloque-tit{padding:6px 0 6px}
+.doc-bloque-tit i{font-size:15px;color:var(--text3);align-self:center}
+.doc-bloque-tit em{font-style:normal;font-family:var(--mono);font-size:10px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:0 6px}
+.doc-bloque-tit small{font-size:11px;font-weight:400;letter-spacing:0;color:var(--text3)}
+.doc-vacio{font-size:12px;color:var(--text3);padding:4px 16px 6px}
+.doc-bloque.adm .doc-vacio{padding:4px 0}
+.doc-fila{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.doc-fila.doc-pend{background:linear-gradient(90deg, color-mix(in srgb, var(--amber) 8%, transparent), transparent 60%)}
+.doc-fila.doc-rech,tr.doc-rech td{background:color-mix(in srgb, var(--red) 6%, transparent)}
+.doc-nota{margin-top:3px;font-size:11px;color:var(--red-text);font-weight:500;line-height:1.35}
+.rev-badge{display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;white-space:nowrap;vertical-align:1px}
+.rev-badge i{font-size:11px}
+.rev-badge.pend{background:color-mix(in srgb, var(--amber) 16%, transparent);color:var(--amber);border:1px solid color-mix(in srgb, var(--amber) 40%, transparent)}
+.rev-badge.ok{background:color-mix(in srgb, var(--green) 13%, transparent);color:var(--green);border:1px solid color-mix(in srgb, var(--green) 35%, transparent)}
+.rev-badge.rech{background:color-mix(in srgb, var(--red) 14%, transparent);color:var(--red-text);border:1px solid color-mix(in srgb, var(--red) 40%, transparent)}
+.rev-aviso{display:flex;gap:8px;align-items:flex-start;margin:0 16px 10px;padding:9px 12px;border-radius:8px;font-size:12px;line-height:1.4;color:var(--text2);background:color-mix(in srgb, var(--amber) 9%, transparent);border:1px solid color-mix(in srgb, var(--amber) 30%, transparent)}
+.rev-aviso i{color:var(--amber);font-size:16px;margin-top:-1px}
+.rev-aviso.rojo{background:color-mix(in srgb, var(--red) 8%, transparent);border-color:color-mix(in srgb, var(--red) 30%, transparent)}
+.rev-aviso.rojo > i{color:var(--red-text)}
+.doc-resubir{color:var(--red-text)!important;border-color:color-mix(in srgb, var(--red) 40%, transparent)!important}
+.rev-ok-btn{background:var(--green);border:1px solid var(--green);color:#fff;font-weight:600}
+.rev-ok-btn:hover{filter:brightness(1.08)}
+.rech-sug{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.rech-sug button{font:inherit;font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);cursor:pointer}
+.rech-sug button:hover{color:var(--text);border-color:var(--text3)}
+.bd-intro{font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.45}
+.bd-card{display:flex;gap:12px;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);margin-bottom:10px}
+.bd-prev{flex-shrink:0;width:86px;height:86px;border-radius:8px;border:1px solid var(--border2);background:var(--surface);color:var(--text3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font:inherit;font-size:10.5px;cursor:pointer;overflow:hidden;padding:0}
+.bd-prev i{font-size:26px;color:var(--red-text)}
+.bd-prev:disabled{cursor:default}.bd-prev:disabled i{color:var(--text3)}
+.bd-prev img{width:100%;height:100%;object-fit:cover}
+.bd-info{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px}
+.bd-nom{font-size:13.5px;font-weight:700;color:var(--text)}
+.bd-meta{font-size:11.5px;color:var(--text3)}
+.bd-meta i{font-size:12px;vertical-align:-1px}
+.bd-acc{display:flex;gap:8px;margin-top:auto;padding-top:6px}
+.btn-docs-pend{border-color:color-mix(in srgb, var(--amber) 45%, transparent)!important;color:var(--amber)!important}
 .cal-mas{font-size:9px;font-weight:700;opacity:.8;margin-top:1px}
 .cal-resumen{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--text3);margin:-2px 0 10px}
 .cal-resumen b{color:var(--text);font-size:13px}
@@ -1723,6 +1763,12 @@ async function clicNotificacion(id, proyectoId, entidadTipo) {
   const n = (STATE.notificaciones || []).find(x => x.id === id);
   if (n && !n.leida) { n.leida = true; STATE._notifNoLeidas = Math.max(0, (STATE._notifNoLeidas || 0) - 1); pintarCampana(); pintarListaCampana(); }
   api('POST', `/notificaciones/${id}/marcar-leida`).catch(() => {});
+  if (entidadTipo === 'certificado') {
+    document.getElementById('notif-dropdown').classList.remove('open');
+    showSection('mi-perfil');
+    setTimeout(() => document.getElementById('sec-certificados')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 500);
+    return;
+  }
   if (entidadTipo === 'inactividad') {
     document.getElementById('notif-dropdown').classList.remove('open');
     showSection((STATE.rol === 'tecnico' || STATE.modoTecnico) ? 'checador' : 'inactividad');
@@ -2244,7 +2290,8 @@ async function cargarPerfil() {
       STATE.perfil_docs = (d.certificados || []).map(c => ({
         id: c.id, nombre: c.nombre, tipo: c.tipo || '—', institucion: c.institucion,
         sin_vigencia: !c.fecha_vencimiento, vigencia: c.fecha_vencimiento,
-        desde: c.fecha_expedicion, url: c.ruta_pdf
+        desde: c.fecha_expedicion, url: c.ruta_pdf,
+        revision: c.estado_revision || 'autorizado', nota: c.nota_revision || '', revisado_por: c.revisado_por || ''
       }));
     }
   } catch(e) { console.error('Error cargando perfil:', e); }
@@ -2386,6 +2433,7 @@ function htmlUltimaVez(iso, sinCuentaTexto) {
 
 async function renderEmpleados() {
   const verArch = STATE._verArchivados || false;
+  setTimeout(actualizarBotonPendientesDocs, 0);
   document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-ghost btn-sm" onclick="toggleVerArchivados()">${verArch?'<i class="ti ti-eye-off" aria-hidden="true"></i> Ocultar archivados':'<i class="ti ti-archive" aria-hidden="true"></i> Ver archivados'}</button><button class="btn btn-ghost btn-sm" onclick="loadEmpleados(true).then(renderEmpleados)"><i class="ti ti-refresh" aria-hidden="true"></i></button><button class="btn btn-primary btn-sm" onclick="openNuevoTecnico()"><i class="ti ti-plus" aria-hidden="true"></i> Nuevo miembro</button>`;
   await loadProyectos();
   if (verArch) {
@@ -2719,24 +2767,117 @@ function verDocumentosEmpleado(id) {
           <button class="btn btn-ghost btn-sm" onclick="openAgregarDocumento('${e.id}','${escHtml(e.nombre+' '+e.apellido)}')"><i class="ti ti-plus" aria-hidden="true"></i> Agregar</button>
         </div>
       </div>
-      ${certs.length ? certs.map(c=>`
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
-          <div style="display:flex;align-items:center;gap:10px">
-            ${c.ruta_pdf ? `<input type="checkbox" class="doc-check" data-url="${c.ruta_pdf}" data-nombre="${c.nombre.replace(/"/g,'&quot;')}" onchange="actualizarSeleccionDocs()">` : '<span style="width:13px;display:inline-block"></span>'}
-            <div>
-              <div style="color:var(--text);font-weight:600">${c.nombre}${c.tipo?` <span style="color:var(--text3);font-weight:400">(${c.tipo})</span>`:''}</div>
-              <div style="color:${c.vigenciaColor};font-size:11px">${c.vigenciaTexto}</div>
+      ${certs.length ? [['legal', 'DOCUMENTOS LEGALES E IDENTIDAD', 'ti-id'], ['cert', 'CERTIFICACIONES, CURSOS Y APTITUDES', 'ti-certificate']].map(([cat, tit, ico]) => {
+        const lista = certs.filter(c => categoriaDoc(c) === cat);
+        return `<div class="doc-bloque adm">
+          <div class="doc-bloque-tit"><i class="ti ${ico}" aria-hidden="true"></i><span>${tit}</span><em>${lista.length}</em></div>
+          ${lista.length ? lista.map(c => `
+          <div class="doc-fila${c.estado_revision === 'rechazado' ? ' doc-rech' : c.estado_revision === 'pendiente' ? ' doc-pend' : ''}">
+            <div style="display:flex;align-items:center;gap:10px;min-width:0">
+              ${c.ruta_pdf ? `<input type="checkbox" class="doc-check" data-url="${c.ruta_pdf}" data-nombre="${c.nombre.replace(/"/g,'&quot;')}" onchange="actualizarSeleccionDocs()">` : '<span style="width:13px;display:inline-block"></span>'}
+              <div style="min-width:0">
+                <div style="color:var(--text);font-weight:600">${escHtml(c.nombre)}${c.tipo?` <span style="color:var(--text3);font-weight:400">(${escHtml(c.tipo)})</span>`:''} ${badgeRevision(c.estado_revision)}</div>
+                <div style="color:${c.vigenciaColor};font-size:11px">${c.vigenciaTexto}</div>
+                ${c.estado_revision === 'rechazado' && c.nota_revision ? `<div class="doc-nota"><i class="ti ti-message-exclamation" aria-hidden="true"></i> ${escHtml(c.nota_revision)}</div>` : ''}
+              </div>
             </div>
-          </div>
-          <div style="display:flex;gap:4px;flex-shrink:0">
-            ${c.ruta_pdf ? `<button class="btn btn-ghost btn-sm" onclick="abrirVisor('${c.ruta_pdf}','${c.nombre}')" style="padding:3px 10px;font-size:11px"><i class="ti ti-eye" aria-hidden="true"></i></button>` : ''}
-            <button class="btn btn-ghost btn-sm" onclick="reemplazarDocumentoAdmin('${e.id}',${c.id},'${escHtml(c.nombre)}','${c.fecha_vencimiento||''}')" title="Reemplazar archivo" style="padding:3px 10px;font-size:11px"><i class="ti ti-replace" aria-hidden="true"></i></button>
-            <button class="btn btn-ghost btn-sm" style="color:var(--red-text);padding:3px 10px;font-size:11px" onclick="eliminarDocumentoAdmin('${e.id}',${c.id},'${escHtml(c.nombre)}')" title="Eliminar"><i class="ti ti-trash" aria-hidden="true"></i></button>
-          </div>
-        </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Sin documentos registrados.</div>'}
+            <div style="display:flex;gap:4px;flex-shrink:0;align-items:center">
+              ${c.estado_revision === 'pendiente' ? `<button class="btn btn-sm rev-ok-btn" onclick="ejecutarConCarga(this, () => revisarDocumento('${e.id}',${c.id},'aprobar'))" title="Aprobar"><i class="ti ti-check" aria-hidden="true"></i> Aprobar</button><button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="abrirRechazoDocumento('${e.id}',${c.id},'${escHtml(c.nombre.replace(/'/g, "\\'"))}')" title="Rechazar"><i class="ti ti-x" aria-hidden="true"></i></button>` : ''}
+              ${c.ruta_pdf ? `<button class="btn btn-ghost btn-sm" onclick="abrirVisor('${c.ruta_pdf}','${escHtml(c.nombre)}')" style="padding:3px 10px;font-size:11px"><i class="ti ti-eye" aria-hidden="true"></i></button>` : ''}
+              <button class="btn btn-ghost btn-sm" onclick="reemplazarDocumentoAdmin('${e.id}',${c.id},'${escHtml(c.nombre)}','${c.fecha_vencimiento||''}')" title="Reemplazar archivo" style="padding:3px 10px;font-size:11px"><i class="ti ti-replace" aria-hidden="true"></i></button>
+              <button class="btn btn-ghost btn-sm" style="color:var(--red-text);padding:3px 10px;font-size:11px" onclick="eliminarDocumentoAdmin('${e.id}',${c.id},'${escHtml(c.nombre)}')" title="Eliminar"><i class="ti ti-trash" aria-hidden="true"></i></button>
+            </div>
+          </div>`).join('') : '<div class="doc-vacio">Sin documentos en este bloque.</div>'}
+        </div>`;
+      }).join('') : '<div style="font-size:12px;color:var(--text3)">Sin documentos registrados.</div>'}
       <div id="doc-descarga-msg" style="font-size:11px;color:var(--text3);margin-top:10px"></div>
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="verEmpleado('${e.id}')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Volver</button><button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>${certsConArchivo.length ? `<button class="btn btn-primary btn-sm" id="btn-descargar-docs" disabled onclick="ejecutarConCarga(this, descargarDocumentosSeleccionados)"><i class="ti ti-download" aria-hidden="true"></i> Descargar seleccionados (0)</button>` : ''}`);
+}
+
+// ─── REVISIÓN DE DOCUMENTOS (admin / director) ────────────────────────────────
+async function revisarDocumento(empId, certId, accion, nota) {
+  const r = await api('POST', `/empleados/${empId}/certificados/${certId}/revision`, { accion, nota: nota || null });
+  if (!r) return false;
+  toast(accion === 'aprobar' ? 'Documento autorizado' : 'Documento rechazado: se le avisó al técnico');
+  STATE._docsPendientes = (STATE._docsPendientes || []).filter(d => d.id !== certId);
+  await loadEmpleados(true);
+  cargarNotificaciones();
+  // refresca la vista desde la que se revisó
+  if (document.getElementById('bandeja-docs')) pintarBandejaDocumentos();
+  else if (STATE.empleados.some(x => x.id === empId) && document.querySelector('.doc-bloque.adm')) verDocumentosEmpleado(empId);
+  actualizarBotonPendientesDocs();
+  return true;
+}
+// Rechazo con nota (qué debe corregir); sugerencias de un toque
+function abrirRechazoDocumento(empId, certId, nombre) {
+  let ov = document.getElementById('selector-overlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; ov.style.zIndex = 1100; document.body.appendChild(ov); }
+  ov.className = 'modal-overlay open';
+  ov.onclick = ev => { if (ev.target === ov) cerrarSelectorTerminos(); };
+  const sug = ['Ilegible o borroso', 'Falta el reverso', 'Documento vencido', 'No corresponde al documento', 'Formato incorrecto', 'Datos no coinciden'];
+  ov.innerHTML = `
+    <div class="sel-card" style="max-width:440px;padding:18px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <i class="ti ti-file-x" aria-hidden="true" style="font-size:24px;color:var(--red-text)"></i>
+        <div style="min-width:0;flex:1"><div style="font-weight:700;color:var(--text);font-size:14px">Rechazar documento</div>
+          <div style="font-size:12px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(nombre)}</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button>
+      </div>
+      <label class="field-label" style="margin-top:12px;display:block">¿QUÉ DEBE CORREGIR? <span style="font-weight:400;text-transform:none;letter-spacing:0">(opcional, lo verá el técnico)</span></label>
+      <textarea class="field-input" id="rech-nota" rows="3" maxlength="500" placeholder="Ej. Subir INE por ambos lados" style="resize:vertical;min-height:70px"></textarea>
+      <div class="rech-sug">${sug.map(t => `<button type="button" onclick="const n=document.getElementById('rech-nota');n.value=n.value?n.value+'. '+'${t}':'${t}';n.focus()">${t}</button>`).join('')}</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+        <button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, async () => { const ok = await revisarDocumento('${empId}', ${certId}, 'rechazar', document.getElementById('rech-nota').value.trim()); if (ok) cerrarSelectorTerminos(); })"><i class="ti ti-x" aria-hidden="true"></i> Rechazar</button>
+      </div>
+    </div>`;
+  setTimeout(() => document.getElementById('rech-nota')?.focus(), 50);
+}
+// Bandeja: todos los documentos que esperan autorización
+async function openBandejaDocumentos() {
+  openPanel('Documentos por autorizar', '<div id="bandeja-docs"><div class="ev-bar-hint" style="padding:16px 0"><i class="ti ti-loader-2 ti-spin" aria-hidden="true"></i> Cargando…</div></div>',
+    '<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>');
+  STATE._docsPendientes = await api('GET', '/empleados/revision/documentos-pendientes') || [];
+  pintarBandejaDocumentos();
+}
+function pintarBandejaDocumentos() {
+  const cont = document.getElementById('bandeja-docs'); if (!cont) return;
+  const lista = STATE._docsPendientes || [];
+  if (!lista.length) { cont.innerHTML = '<div class="notif-empty" style="padding:30px 12px"><i class="ti ti-circle-check" aria-hidden="true" style="font-size:26px;display:block;margin-bottom:8px;color:var(--green)"></i>No hay documentos pendientes de revisión.</div>'; return; }
+  const esImg = u => /\.(jpe?g|png|gif|webp)(\?|$)/i.test(u || '');
+  cont.innerHTML = `<div class="bd-intro">${lista.length} documento(s) subidos por el personal. Ábrelos para revisarlos y apruébalos o recházalos; el técnico recibe el aviso en su campana.</div>` + lista.map(d => {
+    const vig = d.fecha_vencimiento ? `Vigente hasta ${fLargaAnio(d.fecha_vencimiento)}` : 'Sin vigencia';
+    const nomJs = escHtml(d.nombre.replace(/'/g, "\\'"));
+    return `<div class="bd-card">
+      <button type="button" class="bd-prev" ${d.ruta_pdf ? `onclick="abrirVisor('${d.ruta_pdf}','${escHtml(d.nombre)}')" title="Ver archivo"` : 'disabled title="Sin archivo"'}>
+        ${d.ruta_pdf ? (esImg(d.ruta_pdf) ? `<img src="${d.ruta_pdf}" alt="" loading="lazy" onerror="this.parentNode.innerHTML='<i class=&quot;ti ti-photo&quot; aria-hidden=&quot;true&quot;></i><span>Ver imagen</span>'">` : '<i class="ti ti-file-type-pdf" aria-hidden="true"></i><span>Ver PDF</span>') : '<i class="ti ti-file-off" aria-hidden="true"></i><span>Sin archivo</span>'}
+      </button>
+      <div class="bd-info">
+        <div class="bd-nom">${escHtml(d.nombre)}</div>
+        <div class="bd-meta">${escHtml(d.empleado_nombre)}${d.tipo ? ' · ' + escHtml(d.tipo) : ''}</div>
+        <div class="bd-meta">${categoriaDoc(d) === 'legal' ? '<i class="ti ti-id" aria-hidden="true"></i> Legal e identidad' : '<i class="ti ti-certificate" aria-hidden="true"></i> Certificación / curso'} · ${vig}${d.subido_en ? ' · subido ' + tiempoRelativo(String(d.subido_en).replace(/Z$/, '')) : ''}</div>
+        <div class="bd-acc">
+          <button class="btn btn-sm rev-ok-btn" onclick="ejecutarConCarga(this, () => revisarDocumento('${d.empleado_id}',${d.id},'aprobar'))"><i class="ti ti-check" aria-hidden="true"></i> Aprobar</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="abrirRechazoDocumento('${d.empleado_id}',${d.id},'${nomJs}')"><i class="ti ti-x" aria-hidden="true"></i> Rechazar</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+// Botón "Por autorizar (n)" en Personal
+async function actualizarBotonPendientesDocs() {
+  if (!['administrador', 'director_proyecto'].includes(STATE.rol) || STATE._seccion !== 'empleados') return;
+  const lista = await api('GET', '/empleados/revision/documentos-pendientes') || [];
+  STATE._docsPendientes = lista;
+  let b = document.getElementById('btn-docs-pend');
+  if (!lista.length) { b?.remove(); return; }
+  if (!b) {
+    b = document.createElement('button'); b.id = 'btn-docs-pend'; b.className = 'btn btn-ghost btn-sm btn-docs-pend';
+    b.onclick = openBandejaDocumentos;
+    document.getElementById('topbar-actions')?.prepend(b);
+  }
+  b.innerHTML = `<i class="ti ti-file-search" aria-hidden="true"></i> Por autorizar <span class="notif-tab-n">${lista.length}</span>`;
 }
 
 async function eliminarDocumentoAdmin(empId, docId, nombre) {
@@ -8027,29 +8168,34 @@ async function renderMiPerfil() {
         <div><span class="table-title">DOCUMENTOS Y CERTIFICADOS TÉCNICOS</span><div class="table-meta" style="margin-top:2px">con constancia o vigencia</div></div>
         <button class="btn btn-ghost btn-sm" onclick="openAgregarDocumento()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar</button>
       </div>
+      ${docs.some(d => d.revision === 'pendiente') ? `<div class="rev-aviso"><i class="ti ti-clock-hour-4" aria-hidden="true"></i><span><b>${docs.filter(d => d.revision === 'pendiente').length} documento(s) en revisión.</b> Tu gerente los autoriza antes de que cuenten como vigentes.</span></div>` : ''}
+      ${docs.some(d => d.revision === 'rechazado') ? `<div class="rev-aviso rojo"><i class="ti ti-alert-triangle" aria-hidden="true"></i><span><b>${docs.filter(d => d.revision === 'rechazado').length} documento(s) rechazado(s).</b> Revisa la nota y vuelve a subir el archivo con <i class="ti ti-replace" aria-hidden="true"></i>.</span></div>` : ''}
       <div id="docs-list" style="overflow-x:auto">
         ${docs.length===0
           ? '<div class="empty-state" style="padding:20px"><i class="ti ti-file-certificate" aria-hidden="true"></i><p style="font-size:12px">Agrega tus certificaciones, licencias y documentos</p></div>'
-          : `<table><thead><tr><th>DOCUMENTO</th><th>TIPO</th><th>VIGENCIA</th><th>ARCHIVO</th><th></th></tr></thead><tbody>
-            ${docs.map((d,i)=>{
-              const sinVig = d.sin_vigencia;
-              const hoy = new Date();
-              const venc = d.vigencia ? new Date(d.vigencia) : null;
-              const dias = venc ? Math.floor((venc-hoy)/86400000) : null;
-              let vigBadge = sinVig ? '<span class="badge" style="background:#1a1a1a;color:var(--text3);border:1px solid var(--border)">SIN VIG.</span>'
-                : dias===null ? '—'
-                : dias < 0 ? '<span class="badge badge-proy">VENCIDO</span>'
-                : dias < 90 ? `<span class="badge badge-mant">${dias}d</span>`
-                : '<span class="badge badge-libre">VIGENTE</span>';
-              return `<tr>
-                <td class="td-name">${d.nombre}</td>
-                <td style="font-size:12px;color:var(--text2)">${d.tipo||'—'}</td>
-                <td>${vigBadge}</td>
-                <td>${d.url?`<div style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="abrirVisor('${d.url}','${d.nombre}')" style="padding:4px 8px"><i class="ti ti-eye" aria-hidden="true"></i></button><a href="${d.url}" download="${d.nombre}" class="btn btn-ghost btn-sm" style="padding:4px 8px"><i class="ti ti-download" aria-hidden="true"></i></a></div>`:'<span style="color:var(--text3);font-size:12px">Sin archivo</span>'}</td>
-                <td><button class="btn btn-ghost btn-sm" onclick="reemplazarDocumento(${i})" title="Reemplazar archivo" style="padding:3px 6px"><i class="ti ti-replace" aria-hidden="true"></i></button> <button class="btn btn-ghost btn-sm" onclick="eliminarDocumento(${i})" style="padding:3px 6px"><i class="ti ti-trash" aria-hidden="true"></i></button></td>
-              </tr>`;
+          : [['legal', 'DOCUMENTOS LEGALES E IDENTIDAD', 'INE, pasaporte, licencia de conducir, CURP, comprobante de domicilio…', 'ti-id'],
+             ['cert', 'CERTIFICACIONES, CURSOS Y APTITUDES', 'DC-3, GWO, LOTTO, apto médico, antidoping…', 'ti-certificate']].map(([cat, tit, sub, ico]) => {
+              const lista = docs.map((d, i) => ({ d, i })).filter(({ d }) => categoriaDoc(d) === cat);
+              return `<div class="doc-bloque">
+                <div class="doc-bloque-tit"><i class="ti ${ico}" aria-hidden="true"></i><span>${tit}</span><em>${lista.length}</em><small>${sub}</small></div>
+                ${lista.length ? `<table><thead><tr><th>DOCUMENTO</th><th>TIPO</th><th>VIGENCIA</th><th>REVISIÓN</th><th>ARCHIVO</th><th></th></tr></thead><tbody>
+                ${lista.map(({ d, i }) => {
+                  const dias = d.vigencia ? Math.floor((fechaLocal(d.vigencia) - new Date()) / 86400000) : null;
+                  const vigBadge = d.sin_vigencia ? '<span class="badge" style="background:var(--surface2);color:var(--text3);border:1px solid var(--border)">SIN VIG.</span>'
+                    : dias === null ? '—' : dias < 0 ? '<span class="badge badge-proy">VENCIDO</span>'
+                    : dias < 90 ? `<span class="badge badge-mant">${dias}d</span>` : '<span class="badge badge-libre">VIGENTE</span>';
+                  return `<tr class="${d.revision === 'rechazado' ? 'doc-rech' : ''}">
+                    <td class="td-name">${escHtml(d.nombre)}${d.revision === 'rechazado' && d.nota ? `<div class="doc-nota"><i class="ti ti-message-exclamation" aria-hidden="true"></i> ${escHtml(d.nota)}</div>` : ''}</td>
+                    <td style="font-size:12px;color:var(--text2)">${escHtml(d.tipo||'—')}</td>
+                    <td>${vigBadge}</td>
+                    <td>${badgeRevision(d.revision)}</td>
+                    <td>${d.url?`<div style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="abrirVisor('${d.url}','${escHtml(d.nombre)}')" style="padding:4px 8px"><i class="ti ti-eye" aria-hidden="true"></i></button><a href="${d.url}" download="${escHtml(d.nombre)}" class="btn btn-ghost btn-sm" style="padding:4px 8px"><i class="ti ti-download" aria-hidden="true"></i></a></div>`:'<span style="color:var(--text3);font-size:12px">Sin archivo</span>'}</td>
+                    <td style="white-space:nowrap"><button class="btn btn-ghost btn-sm${d.revision === 'rechazado' ? ' doc-resubir' : ''}" onclick="reemplazarDocumento(${i})" title="${d.revision === 'rechazado' ? 'Volver a subir' : 'Reemplazar archivo'}" style="padding:3px 6px"><i class="ti ti-replace" aria-hidden="true"></i>${d.revision === 'rechazado' ? ' Volver a subir' : ''}</button> <button class="btn btn-ghost btn-sm" onclick="eliminarDocumento(${i})" style="padding:3px 6px"><i class="ti ti-trash" aria-hidden="true"></i></button></td>
+                  </tr>`;
+                }).join('')}
+                </tbody></table>` : `<div class="doc-vacio">Sin documentos en este bloque.</div>`}
+              </div>`;
             }).join('')}
-          </tbody></table>`}
       </div>
     </div>
 
@@ -8181,7 +8327,24 @@ async function sincronizarHabilidades() {
   return !!r;
 }
 
-const TIPOS_DOC = ['Certificado / Curso','Licencia de Conducir','CURP','RFC','Identificación Oficial','GWO','DC3','Otro'];
+const TIPOS_DOC_LEGALES = ['Identificación Oficial','Pasaporte','Licencia de Conducir','CURP','RFC','Comprobante de domicilio','Acta de nacimiento'];
+const TIPOS_DOC_CERT = ['Certificado / Curso','DC3','GWO','Examen médico / Apto','Antidoping','Otro'];
+const TIPOS_DOC = [...TIPOS_DOC_CERT.slice(0, 1), ...TIPOS_DOC_LEGALES, ...TIPOS_DOC_CERT.slice(1)];
+// Bloque al que pertenece un documento: legal/identidad o certificación/curso/aptitud
+const RX_DOC_LEGAL = /\b(INE|IFE|PASAPORTE|CURP|RFC|ACTA DE NACIMIENTO|COMPROBANTE DE DOMICILIO|DOMICILIO|NSS|IMSS|CARTILLA|IDENTIFICACI[OÓ]N|CONSTANCIA DE SITUACI[OÓ]N FISCAL|VISA|LICENCIA DE (CONDUCIR|MANEJO|MANEJAR)|LICENCIA FEDERAL)\b/i;
+function categoriaDoc(d) {
+  const tipo = d.tipo && d.tipo !== '—' ? d.tipo : '';
+  if (TIPOS_DOC_LEGALES.includes(tipo)) return 'legal';
+  if (tipo && TIPOS_DOC_CERT.includes(tipo) && tipo !== 'Otro') return 'cert';
+  return RX_DOC_LEGAL.test(d.nombre || '') ? 'legal' : 'cert';
+}
+// Estatus de revisión gerencial: pendiente · autorizado · rechazado
+function badgeRevision(estado) {
+  const e = estado || 'autorizado';
+  if (e === 'pendiente') return '<span class="rev-badge pend"><i class="ti ti-clock-hour-4" aria-hidden="true"></i> En revisión</span>';
+  if (e === 'rechazado') return '<span class="rev-badge rech"><i class="ti ti-x" aria-hidden="true"></i> Rechazado</span>';
+  return '<span class="rev-badge ok"><i class="ti ti-check" aria-hidden="true"></i> Autorizado</span>';
+}
 const ESTADOS_MX = ['Aguascalientes','Baja California','Baja California Sur','Campeche','Chiapas','Chihuahua',
   'Ciudad de México','Coahuila','Colima','Durango','Estado de México','Guanajuato','Guerrero','Hidalgo',
   'Jalisco','Michoacán','Morelos','Nayarit','Nuevo León','Oaxaca','Puebla','Querétaro','Quintana Roo',
@@ -8196,7 +8359,9 @@ function openAgregarDocumento(empIdObjetivo, nombreObjetivo) {
       <div class="panel-section-title">DATOS DEL DOCUMENTO</div>
       <div class="field-row full"><div class="field-group"><label class="field-label">TIPO</label>
         <select class="field-select" id="doc-tipo" onchange="toggleVigencia(this.value)">
-          ${TIPOS_DOC.map(t=>`<option value="${t}">${t}</option>`).join('')}
+          <optgroup label="Certificaciones, cursos y aptitudes">${TIPOS_DOC_CERT.slice(0, -1).map(t=>`<option value="${t}">${t}</option>`).join('')}</optgroup>
+          <optgroup label="Documentos legales e identidad">${TIPOS_DOC_LEGALES.map(t=>`<option value="${t}">${t}</option>`).join('')}</optgroup>
+          <option value="Otro">Otro</option>
         </select>
       </div></div>
       <div class="field-row full"><div class="field-group"><label class="field-label">CERTIFICADO / DOCUMENTO</label>${campoElegirTermino('certificado', 'doc-nombre', 'Elige de la lista…')}</div></div>
@@ -8234,7 +8399,7 @@ function toggleFechaVig(checked) {
 }
 
 function toggleVigencia(tipo) {
-  const noVig = ['CURP','RFC'];
+  const noVig = ['CURP','RFC','Acta de nacimiento'];
   const cb = document.getElementById('doc-sinvig');
   if (cb && noVig.includes(tipo)) { cb.checked = true; toggleFechaVig(true); }
 }
@@ -8277,7 +8442,7 @@ async function guardarDocumento() {
   });
   if (!r.ok) { err.textContent = 'Error al guardar el documento.'; return; }
   closePanel(null, true);
-  toast(`Documento "${nombre}" guardado`);
+  toast(STATE._docTargetEmpId || ['administrador', 'director_proyecto'].includes(STATE.rol) ? `Documento "${nombre}" guardado` : `"${nombre}" enviado a revisión: tu gerente lo autorizará`);
   if (STATE._docTargetEmpId) { await loadEmpleados(true); verDocumentosEmpleado(STATE._docTargetEmpId); }
   else renderMiPerfil();
 }
@@ -8319,7 +8484,7 @@ async function reemplazarDocumento(i) {
       method: 'PUT', headers: { 'Authorization': `Bearer ${STATE.token}` }
     });
     if (!r.ok) { toast('Error al reemplazar el documento', 'error'); return; }
-    toast('Documento reemplazado');
+    toast(['administrador', 'director_proyecto'].includes(STATE.rol) ? 'Documento reemplazado' : 'Archivo enviado a revisión');
     renderMiPerfil();
   };
   input.click();
@@ -10159,6 +10324,7 @@ async function abrirAviso(i, directo) {
   const a = directo || STATE.avisos.avisos[i];
   if (!directo && !a.visto) marcarAvisosVistos([a.clave]);
   document.getElementById('notif-dropdown').classList.remove('open');
+  if (a.seccion === 'revision_docs') { openBandejaDocumentos(); return; }
   showSection(a.seccion);
   if (!a.entidad_id) return;
   setTimeout(async () => {
