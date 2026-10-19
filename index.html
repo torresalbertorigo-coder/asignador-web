@@ -478,6 +478,30 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .np-fila3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .np-check{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer}
 .np-nota{font-size:11.5px;color:var(--text2);border:1px dashed var(--border2);border-radius:8px;padding:8px 10px}
+.np-pl{display:flex;align-items:center;gap:8px;margin:8px 0 4px}
+.np-pl i{font-size:16px;color:var(--text3)}
+.np-pl .field-select{height:34px;font-size:12.5px}
+.np-pl-nota{display:flex;align-items:center;gap:8px;margin:4px 0 6px;padding:7px 10px;border-radius:8px;font-size:11.5px;color:var(--text2);background:color-mix(in srgb, var(--green) 8%, transparent);border:1px solid color-mix(in srgb, var(--green) 28%, transparent)}
+.np-pl-nota.sug{background:var(--surface2);border-color:var(--border2)}
+.np-pl-nota i{font-size:15px;color:var(--green)}.np-pl-nota.sug i{color:var(--text3)}
+.np-pl-nota span{flex:1;min-width:0}
+.np-pl-nota button{font:inherit;font-size:11.5px;font-weight:600;color:var(--text);background:none;border:1px solid var(--border2);border-radius:6px;padding:3px 9px;cursor:pointer;white-space:nowrap}
+.np-pl-nota button:hover{border-color:var(--text3)}
+.pl-intro{font-size:12px;color:var(--text3);line-height:1.45;margin-bottom:12px}
+.pl-sec{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin:4px 0 8px}
+.pl-card{border:1px solid var(--border);border-radius:10px;background:var(--surface2);padding:11px 12px;margin-bottom:8px}
+.pl-card.auto{background:transparent}
+.pl-card-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.pl-nom{font-size:13.5px;font-weight:700;color:var(--text)}
+.pl-meta{font-size:11.5px;color:var(--text3);margin-top:2px}
+.pl-acc{display:flex;gap:2px;flex-shrink:0}
+.pl-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.pl-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:2px 8px}
+.pl-chip i{font-size:12px;color:var(--text3)}.pl-chip em{font-style:normal;color:var(--text3);font-family:var(--mono);font-size:10px}
+.pl-vacio{font-size:12px;color:var(--text3);padding:6px 0 10px}
+.pl-auto{margin-top:14px;border-top:1px solid var(--border);padding-top:10px}
+.pl-auto summary{cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);list-style:none;display:flex;align-items:center;gap:6px}
+.pl-auto summary::-webkit-details-marker{display:none}
 .np-req{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;align-items:start;padding:8px 0;border-top:1px solid var(--border)}
 .np-req:first-of-type{border-top:0;padding-top:0}
 .np-req-tit{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--text);padding-top:5px}
@@ -1264,6 +1288,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
                 <div class="user-menu-item" id="um-mi-perfil" onclick="showSection('mi-perfil');toggleUserMenu()"><i class="ti ti-user-circle" aria-hidden="true"></i> Mi Perfil</div>
                 <div class="user-menu-item" onclick="switchModo();toggleUserMenu()" id="um-switch-modo" style="display:none"><i class="ti ti-arrows-exchange" aria-hidden="true"></i> <span id="um-switch-label">Vista Técnico</span></div>
                 <div class="user-menu-item" onclick="showSection('bitacora');toggleUserMenu()" id="um-bitacora" style="display:none"><i class="ti ti-history" aria-hidden="true"></i> Bitácora de cambios</div>
+                <div class="user-menu-item" onclick="toggleUserMenu();abrirPlantillas()" id="um-plantillas" style="display:none"><i class="ti ti-template" aria-hidden="true"></i> Plantillas de proyecto</div>
                 <div class="user-menu-item" onclick="showSection('catalogo');toggleUserMenu()" id="um-catalogo" style="display:none"><i class="ti ti-tags" aria-hidden="true"></i> Catálogo de términos</div>
                 <div class="user-menu-item" onclick="showSection('permisos');toggleUserMenu()" id="um-permisos" style="display:none"><i class="ti ti-key" aria-hidden="true"></i> Cuentas y permisos</div>
                 <div class="user-menu-item" onclick="iniciarTutorial()" id="um-tutorial" style="display:none"><i class="ti ti-school" aria-hidden="true"></i> Ver tutorial</div>
@@ -1597,6 +1622,7 @@ function buildNav() {
     document.getElementById('um-switch-modo').style.display = STATE.user?.empleado_id ? 'flex' : 'none';
     document.getElementById('um-bitacora').style.display = STATE.rol === 'administrador' ? 'flex' : 'none';
     document.getElementById('um-catalogo').style.display = STATE.rol === 'administrador' ? 'flex' : 'none';
+    document.getElementById('um-plantillas').style.display = 'flex';
     document.getElementById('um-permisos').style.display = STATE.rol === 'administrador' ? 'flex' : 'none';
     document.getElementById('um-tutorial').style.display = STATE.user?.empleado_id ? 'flex' : 'none';
     document.getElementById('mobile-nav-bar').innerHTML = `
@@ -3598,7 +3624,7 @@ function openNuevoProyecto() {
         <div class="np-card">
           <div class="np-card-tit">Datos generales</div>
           <div class="field-group"><label class="field-label">NOMBRE DEL PROYECTO</label><input class="field-input" id="np-nombre" placeholder="Ej: Inspección Palas — PE Ingenio"></div>
-          <div class="field-group"><label class="field-label">CLIENTE</label><input class="field-input" id="np-cliente" list="dl-clientes" placeholder="Nombre del cliente" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
+          <div class="field-group"><label class="field-label">CLIENTE</label><input class="field-input" id="np-cliente" list="dl-clientes" placeholder="Nombre del cliente" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" onchange="clienteNuevoProyectoCambiado()"></div>
           <div class="np-fila3">
             <div class="field-group"><label class="field-label">CRITICIDAD</label><select class="field-select" id="np-crit"><option value="tipo_a">A — Crítico</option><option value="tipo_b" selected>B — Moderado</option><option value="tipo_c">C — Estándar</option></select></div>
             <div class="field-group"><label class="field-label">INTENSIDAD</label><select class="field-select" id="np-intens"><option value="alta">Alta</option><option value="media" selected>Media</option><option value="baja">Baja</option></select></div>
@@ -3624,6 +3650,11 @@ function openNuevoProyecto() {
       <div class="np-col">
         <div class="np-card">
           <div class="np-card-tit">Requisitos <span class="np-opc">lo que no elijas no se exige</span></div>
+          <div class="np-pl">
+            <i class="ti ti-template" aria-hidden="true"></i>
+            <select class="field-select" id="np-plantilla" onchange="cargarPlantillaNuevoProyecto(this.value)"><option value="">Cargar desde plantilla…</option></select>
+          </div>
+          <div id="np-pl-nota"></div>
           ${filaReq('habs', 'star', 'Habilidades', 'habs', 'habilidad')}
           ${filaReq('certs', 'certificate', 'Certificados', 'certs', 'certificado')}
           ${filaReq('equipo', 'tool', 'Equipo', 'equipo', 'equipo')}
@@ -3649,7 +3680,214 @@ function openNuevoProyecto() {
     <div id="np-guia-lugar"></div>
     <div id="np-err" style="color:var(--red-text);font-size:12px;margin-top:8px"></div>`,
     pieNuevoProyecto(), '', { ancho: true });
+  STATE._np_perfilCliente = null; STATE._np_plDeshacer = null;
+  poblarSelectorPlantillas();
 }
+// ─── PLANTILLAS DE PROYECTO (base) Y PERFIL AUTOMÁTICO POR CLIENTE ─────────────
+// Formato de "datos": { criticidad, intensidad, personal_requerido, duracion_dias, habilidades:[{nombre,nivel}],
+//   certificados:[..], equipo:[{tipo,cantidad}], vehiculos:[{tipo,cantidad}] }
+// Todo lo que se carga queda editable: se puede quitar o agregar antes de guardar.
+const reqVacios = () => !(STATE._np_habilidades || []).length && !(STATE._np_certificados || []).length && !(STATE._np_equipo || []).length && !(STATE._np_vehiculo || []).length;
+function resumenDatosPlantilla(d) {
+  d = d || {};
+  const n = (a, s, p2) => a ? plural(a, s, p2) : '';
+  return [n((d.habilidades || []).length, 'habilidad', 'habilidades'), n((d.certificados || []).length, 'certificado'),
+    n((d.equipo || []).reduce((a, e) => a + (e.cantidad || 1), 0), 'equipo', 'equipos'), n((d.vehiculos || []).reduce((a, v) => a + (v.cantidad || 1), 0), 'vehículo')]
+    .filter(Boolean).join(' · ') || 'Sin requisitos';
+}
+function chipsDatosPlantilla(d) {
+  d = d || {};
+  return [...(d.habilidades || []).map(h => `<span class="pl-chip"><i class="ti ti-star" aria-hidden="true"></i>${escHtml(h.nombre)} <em>${h.nivel}</em></span>`),
+    ...(d.certificados || []).map(c => `<span class="pl-chip"><i class="ti ti-certificate" aria-hidden="true"></i>${escHtml(c)}</span>`),
+    ...(d.equipo || []).map(e => `<span class="pl-chip"><i class="ti ti-tool" aria-hidden="true"></i>${escHtml(etiquetaEquipo(e.tipo))} <em>×${e.cantidad}</em></span>`),
+    ...(d.vehiculos || []).map(v => `<span class="pl-chip"><i class="ti ti-car" aria-hidden="true"></i>${escHtml(etiquetaVehiculo(v.tipo))} <em>×${v.cantidad}</em></span>`)].join('');
+}
+async function cargarPlantillasBase(forzar) {
+  if (!forzar && STATE._plantillas) return STATE._plantillas;
+  STATE._plantillas = await api('GET', '/plantillas') || [];
+  return STATE._plantillas;
+}
+// Selector "Cargar desde plantilla…" del formulario de proyecto nuevo
+async function poblarSelectorPlantillas() {
+  const lista = await cargarPlantillasBase(true);
+  const sel = document.getElementById('np-plantilla'); if (!sel) return;
+  const pc = STATE._np_perfilCliente;
+  sel.innerHTML = `<option value="">${lista.length || pc ? 'Cargar desde plantilla…' : 'Sin plantillas todavía'}</option>`
+    + (pc ? `<optgroup label="Del cliente"><option value="cliente">Último proyecto con ${escHtml(pc.cliente)}</option></optgroup>` : '')
+    + (lista.length ? `<optgroup label="Plantillas base">${lista.map(t => `<option value="${t.id}">${escHtml(t.nombre)}</option>`).join('')}</optgroup>` : '');
+}
+function cargarPlantillaNuevoProyecto(valor) {
+  if (!valor) return;
+  const t = valor === 'cliente' ? STATE._np_perfilCliente : (STATE._plantillas || []).find(x => String(x.id) === String(valor));
+  if (!t) return;
+  aplicarDatosNuevoProyecto(t.datos, valor === 'cliente'
+    ? `Requisitos del último proyecto con <b>${escHtml(t.cliente)}</b>${t.datos?.origen?.proyecto ? ` (${escHtml(t.datos.origen.proyecto)})` : ''}`
+    : `Requisitos de la plantilla <b>${escHtml(t.nombre)}</b>`);
+  const sel = document.getElementById('np-plantilla'); if (sel) sel.value = '';
+}
+// Copia los datos al formulario (todo queda editable) y guarda cómo estaba para poder deshacer
+function aplicarDatosNuevoProyecto(d, texto) {
+  d = d || {};
+  STATE._np_plDeshacer = {
+    habs: [...(STATE._np_habilidades || [])], certs: [...(STATE._np_certificados || [])], eq: [...(STATE._np_equipo || [])], veh: [...(STATE._np_vehiculo || [])],
+    crit: document.getElementById('np-crit')?.value, intens: document.getElementById('np-intens')?.value, personal: document.getElementById('np-personal')?.value,
+  };
+  STATE._np_habilidades = (d.habilidades || []).map(h => ({ nombre: h.nombre, nivel: h.nivel }));
+  STATE._np_certificados = [...(d.certificados || [])];
+  STATE._np_equipo = (d.equipo || []).map(e => ({ tipo: e.tipo, cantidad: e.cantidad || 1 }));
+  STATE._np_vehiculo = (d.vehiculos || []).map(v => ({ tipo: v.tipo, cantidad: v.cantidad || 1 }));
+  const setv = (id, v) => { const el = document.getElementById(id); if (el && v != null && v !== '') el.value = v; };
+  setv('np-crit', d.criticidad); setv('np-intens', d.intensidad); setv('np-personal', d.personal_requerido);
+  if (d.duracion_dias) {
+    setv('np-bus-dur', d.duracion_dias);
+    const ini = document.getElementById('np-inicio')?.value, fin = document.getElementById('np-fin');
+    if (ini && fin && !fin.value) { const f = fechaLocal(ini); f.setDate(f.getDate() + d.duracion_dias - 1); fin.value = isoLocal(f); }
+  }
+  repintarRequisitosNuevoProyecto();
+  const nota = document.getElementById('np-pl-nota');
+  if (nota) nota.innerHTML = `<div class="np-pl-nota"><i class="ti ti-wand" aria-hidden="true"></i><span>${texto}. Puedes quitar o agregar lo que necesites.</span><button type="button" onclick="deshacerPlantillaNuevoProyecto()">Deshacer</button></div>`;
+}
+function deshacerPlantillaNuevoProyecto() {
+  const u = STATE._np_plDeshacer; if (!u) return;
+  STATE._np_habilidades = u.habs; STATE._np_certificados = u.certs; STATE._np_equipo = u.eq; STATE._np_vehiculo = u.veh;
+  const setv = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
+  setv('np-crit', u.crit); setv('np-intens', u.intens); setv('np-personal', u.personal);
+  STATE._np_plDeshacer = null;
+  repintarRequisitosNuevoProyecto();
+  const nota = document.getElementById('np-pl-nota'); if (nota) nota.innerHTML = '';
+}
+function repintarRequisitosNuevoProyecto() {
+  const pon = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+  pon('np-habs-list', renderListaHabilidadesProyecto()); pon('np-certs-list', renderListaCertificadosProyecto());
+  pon('np-equipo-list', renderListaEquipoProyecto()); pon('np-vehiculo-list', renderListaVehiculoProyecto());
+}
+// Al elegir el cliente: si ya trabajamos con él, se precargan sus requisitos (solo si aún no se eligió ninguno)
+async function clienteNuevoProyectoCambiado() {
+  const nombre = document.getElementById('np-cliente')?.value.trim();
+  STATE._np_perfilCliente = null;
+  if (nombre) {
+    const pc = await api('GET', `/plantillas/cliente?nombre=${encodeURIComponent(nombre)}`);
+    if (pc && pc.datos && document.getElementById('np-cliente')?.value.trim() === nombre) STATE._np_perfilCliente = pc;
+  }
+  poblarSelectorPlantillas();
+  const pc = STATE._np_perfilCliente; if (!pc) return;
+  const texto = `Requisitos del último proyecto con <b>${escHtml(pc.cliente)}</b>${pc.datos?.origen?.proyecto ? ` (${escHtml(pc.datos.origen.proyecto)})` : ''}`;
+  if (reqVacios()) aplicarDatosNuevoProyecto(pc.datos, texto);
+  else {
+    const nota = document.getElementById('np-pl-nota');
+    if (nota) nota.innerHTML = `<div class="np-pl-nota sug"><i class="ti ti-history" aria-hidden="true"></i><span>${escHtml(pc.cliente)} ya tiene requisitos de su último proyecto.</span><button type="button" onclick="cargarPlantillaNuevoProyecto('cliente')">Usarlos</button></div>`;
+  }
+}
+
+// Administración: lista de plantillas base + perfiles automáticos por cliente
+async function abrirPlantillas() {
+  if (!['administrador', 'director_proyecto'].includes(STATE.rol)) return;
+  openPanel('Plantillas de proyecto', '<div id="pl-lista"><div class="ev-bar-hint" style="padding:16px 0"><i class="ti ti-loader-2 ti-spin" aria-hidden="true"></i> Cargando…</div></div>',
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button><button class="btn btn-primary btn-sm" onclick="abrirEditorPlantilla()"><i class="ti ti-plus" aria-hidden="true"></i> Nueva plantilla</button>`);
+  const [base, clientes] = await Promise.all([cargarPlantillasBase(true), api('GET', '/plantillas/clientes')]);
+  STATE._perfilesCliente = clientes || [];
+  const cont = document.getElementById('pl-lista'); if (!cont) return;
+  const fechaAct = t => t.actualizado_en ? tiempoRelativo(String(t.actualizado_en).replace(/Z$/, '')) : '';
+  cont.innerHTML = `
+    <div class="pl-intro">Al crear un proyecto puedes cargar una plantilla para llenar sus requisitos de un jalón. Todo queda editable.</div>
+    <div class="pl-sec">Plantillas base · ${base.length}</div>
+    ${base.length ? base.map(t => `
+      <div class="pl-card">
+        <div class="pl-card-top">
+          <div style="min-width:0"><div class="pl-nom">${escHtml(t.nombre)}</div>
+            <div class="pl-meta">${resumenDatosPlantilla(t.datos)}${t.datos?.duracion_dias ? ` · ${t.datos.duracion_dias} día(s) típicos` : ''}${t.actualizado_por ? ` · editada por ${escHtml(t.actualizado_por)} ${fechaAct(t)}` : ''}</div></div>
+          <div class="pl-acc">
+            <button class="btn btn-ghost btn-sm" onclick="abrirEditorPlantilla(${t.id})" title="Editar"><i class="ti ti-pencil" aria-hidden="true"></i></button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="eliminarPlantilla(${t.id})" title="Eliminar"><i class="ti ti-trash" aria-hidden="true"></i></button>
+          </div>
+        </div>
+        <div class="pl-chips">${chipsDatosPlantilla(t.datos)}</div>
+      </div>`).join('') : '<div class="pl-vacio">Todavía no hay plantillas. Crea una para tus servicios más comunes (ej. Termografía aérea, Inspección interna de palas).</div>'}
+    <details class="pl-auto"${base.length ? '' : ' open'}>
+      <summary><i class="ti ti-refresh-dot" aria-hidden="true"></i> Perfiles automáticos por cliente · ${STATE._perfilesCliente.length}</summary>
+      <div class="pl-intro" style="margin-top:8px">Se actualizan solos con los requisitos del último proyecto de cada cliente y se precargan al elegir ese cliente en un proyecto nuevo.</div>
+      ${STATE._perfilesCliente.length ? STATE._perfilesCliente.map((t, i) => `
+        <div class="pl-card auto">
+          <div class="pl-card-top">
+            <div style="min-width:0"><div class="pl-nom">${escHtml(t.cliente)}</div>
+              <div class="pl-meta">${resumenDatosPlantilla(t.datos)}${t.datos?.origen?.proyecto ? ` · de <b>${escHtml(t.datos.origen.proyecto)}</b>` : ''} · ${fechaAct(t)}</div></div>
+            <div class="pl-acc">
+              <button class="btn btn-ghost btn-sm" onclick="perfilAPlantilla(${i})" title="Guardar como plantilla base"><i class="ti ti-template" aria-hidden="true"></i></button>
+              <button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="eliminarPlantilla(${t.id}, true)" title="Olvidar este perfil"><i class="ti ti-trash" aria-hidden="true"></i></button>
+            </div>
+          </div>
+          <div class="pl-chips">${chipsDatosPlantilla(t.datos)}</div>
+        </div>`).join('') : '<div class="pl-vacio">Se irán creando solos conforme se registren proyectos con cada cliente.</div>'}
+    </details>`;
+}
+async function eliminarPlantilla(id, esPerfil) {
+  if (!confirm(esPerfil ? '¿Olvidar los requisitos guardados de este cliente? Se volverán a crear con su siguiente proyecto.' : '¿Eliminar esta plantilla? Los proyectos ya creados no cambian.')) return;
+  const r = await api('DELETE', `/plantillas/${id}`);
+  if (!r) return;
+  toast(esPerfil ? 'Perfil del cliente olvidado' : 'Plantilla eliminada');
+  abrirPlantillas();
+}
+function perfilAPlantilla(i) {
+  const t = (STATE._perfilesCliente || [])[i]; if (!t) return;
+  abrirEditorPlantilla(null, { nombre: '', datos: t.datos, sugerido: t.cliente });
+}
+// Editor de plantilla: mismos selectores que el proyecto nuevo
+async function abrirEditorPlantilla(id, base) {
+  cargarCatalogos();
+  const t = id ? (STATE._plantillas || []).find(x => x.id === id) : base || null;
+  const d = t?.datos || {};
+  STATE._pl_editando = id || null;
+  STATE._np_habilidades = (d.habilidades || []).map(h => ({ nombre: h.nombre, nivel: h.nivel }));
+  STATE._np_certificados = [...(d.certificados || [])];
+  STATE._np_equipo = (d.equipo || []).map(e => ({ tipo: e.tipo, cantidad: e.cantidad || 1 }));
+  STATE._np_vehiculo = (d.vehiculos || []).map(v => ({ tipo: v.tipo, cantidad: v.cantidad || 1 }));
+  const filaReq = (sec, icono, titulo, lista, tipoSel) => `
+    <div class="np-req" id="np-sec-${sec}">
+      <div class="np-req-tit"><i class="ti ti-${icono}" aria-hidden="true"></i>${titulo}</div>
+      <div class="np-req-chips"><span id="np-${lista}-list">${({ habs: renderListaHabilidadesProyecto, certs: renderListaCertificadosProyecto, equipo: renderListaEquipoProyecto, vehiculo: renderListaVehiculoProyecto })[lista]()}</span>
+        <button type="button" class="np-add" onclick="abrirSelectorTerminos('${tipoSel}','nuevo')"><i class="ti ti-plus" aria-hidden="true"></i> Agregar</button></div>
+    </div>`;
+  const opt = (v, txt, sel) => `<option value="${v}"${sel ? ' selected' : ''}>${txt}</option>`;
+  openPanel(id ? 'Editar plantilla' : 'Nueva plantilla', `
+    <div class="np-card" style="margin-bottom:12px">
+      <div class="field-group"><label class="field-label">NOMBRE DE LA PLANTILLA</label><input class="field-input" id="pl-nombre" value="${escHtml(t?.nombre || '')}" placeholder="${base?.sugerido ? 'Ej: ' + escHtml(base.sugerido) + ' — termografía' : 'Ej: Termografía aérea'}"></div>
+      <div class="np-fila3" style="margin-top:8px">
+        <div class="field-group"><label class="field-label">CRITICIDAD</label><select class="field-select" id="np-crit">${opt('tipo_a', 'A — Crítico', d.criticidad === 'tipo_a')}${opt('tipo_b', 'B — Moderado', !d.criticidad || d.criticidad === 'tipo_b')}${opt('tipo_c', 'C — Estándar', d.criticidad === 'tipo_c')}</select></div>
+        <div class="field-group"><label class="field-label">INTENSIDAD</label><select class="field-select" id="np-intens">${opt('alta', 'Alta', d.intensidad === 'alta')}${opt('media', 'Media', !d.intensidad || d.intensidad === 'media')}${opt('baja', 'Baja', d.intensidad === 'baja')}</select></div>
+        <div class="field-group"><label class="field-label">PERSONAL</label><input class="field-input" id="np-personal" type="number" min="1" value="${d.personal_requerido || 1}"></div>
+      </div>
+      <div class="field-group" style="margin-top:8px;max-width:220px"><label class="field-label">DURACIÓN TÍPICA (DÍAS) <span class="np-opc">opcional</span></label><input class="field-input" id="pl-dur" type="number" min="1" max="365" value="${d.duracion_dias || ''}"></div>
+    </div>
+    <div class="np-card">
+      <div class="np-card-tit">Requisitos <span class="np-opc">al usarla en un proyecto, todo se puede cambiar</span></div>
+      ${filaReq('habs', 'star', 'Habilidades', 'habs', 'habilidad')}
+      ${filaReq('certs', 'certificate', 'Certificados', 'certs', 'certificado')}
+      ${filaReq('equipo', 'tool', 'Equipo', 'equipo', 'equipo')}
+      ${filaReq('veh', 'car', 'Vehículos', 'vehiculo', 'vehiculo')}
+    </div>
+    <div id="pl-err" style="color:var(--red-text);font-size:12px;margin-top:8px"></div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="abrirPlantillas()"><i class="ti ti-arrow-left" aria-hidden="true"></i> Plantillas</button>
+     <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, guardarPlantilla)"><i class="ti ti-device-floppy" aria-hidden="true"></i> Guardar plantilla</button>`);
+}
+async function guardarPlantilla() {
+  const nombre = document.getElementById('pl-nombre')?.value.trim();
+  const err = document.getElementById('pl-err');
+  if (!nombre) { err.textContent = 'Ponle un nombre a la plantilla.'; return; }
+  const dur = parseInt(document.getElementById('pl-dur')?.value || '');
+  const datos = {
+    criticidad: document.getElementById('np-crit')?.value, intensidad: document.getElementById('np-intens')?.value,
+    personal_requerido: parseInt(document.getElementById('np-personal')?.value) || 1, duracion_dias: dur > 0 ? dur : null,
+    habilidades: (STATE._np_habilidades || []).map(h => ({ nombre: h.nombre, nivel: h.nivel })), certificados: [...(STATE._np_certificados || [])],
+    equipo: [...(STATE._np_equipo || [])], no_requiere_equipo: !(STATE._np_equipo || []).length,
+    vehiculos: [...(STATE._np_vehiculo || [])], no_requiere_vehiculo: !(STATE._np_vehiculo || []).length,
+  };
+  const id = STATE._pl_editando;
+  const r = id ? await api('PUT', `/plantillas/${id}`, { nombre, datos }) : await api('POST', '/plantillas', { nombre, datos });
+  if (!r) { err.textContent = 'No se pudo guardar (¿ya existe una plantilla con ese nombre?).'; return; }
+  toast(id ? 'Plantilla actualizada' : 'Plantilla creada');
+  abrirPlantillas();
+}
+
 // Botones del pie: con personal sugerido por el buscador → "Crear y asignar"; si no → pendiente / evaluar
 function pieNuevoProyecto() {
   const conSugerido = !!(STATE._np_sugerido && (document.getElementById('np-asignar-sugerido')?.checked ?? true));
