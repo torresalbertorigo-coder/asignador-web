@@ -6428,6 +6428,13 @@ async function armarReporteWhatsApp() {
   const fechaTxt = hoy.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const punto = t => { t = String(t || '').trim(); return !t || /[.!?…]$/.test(t) ? t : t + '.'; };
   const plural = (n, s, p) => `${n} ${n === 1 ? s : (p || s + 's')}`;
+  // Última reprogramación del proyecto: fechas anteriores → nuevas y el motivo capturado
+  const lineaReprog = p => {
+    const rs = p.reprogramaciones_resumen || []; if (!rs.length) return null;
+    const r = rs[rs.length - 1];
+    const veces = rs.length > 1 ? ` (${rs.length} veces)` : '';
+    return `   Reprogramado${veces}: antes ${rangoCorto(r.inicio_anterior, r.fin_anterior)}, ahora ${rangoCorto(r.inicio_nuevo, r.fin_nuevo)}.${r.motivo ? ` Motivo: ${punto(r.motivo)}` : ''}`;
+  };
   L.push('📋 ¿QUÉ TENEMOS HOY? | WORKSYNC', `Fecha: ${fechaTxt.charAt(0).toUpperCase() + fechaTxt.slice(1)}`, '');
 
   L.push(`1. PROYECTOS EN EJECUCIÓN (${activos.length})`);
@@ -6448,6 +6455,7 @@ async function armarReporteWhatsApp() {
     L.push(`• ${p.nombre}${ubic ? ` (${ubic})` : ''}`,
       `   Personal: ${personal.length ? personal.join(', ') : 'Sin personal asignado'}`,
       `   Estatus: ${estado}`);
+    const rp = lineaReprog(p); if (rp) L.push(rp);
   });
 
   // Standby/descanso de hoy, proyectos pausados e incidencias abiertas
@@ -6474,7 +6482,10 @@ async function armarReporteWhatsApp() {
 
   L.push('', '4. PRÓXIMOS INICIOS (7 DÍAS)');
   if (!proximos.length) L.push('• Sin inicios programados.');
-  proximos.slice(0, 6).forEach(p => L.push(`• ${fCorta(p.fecha_inicio)} — ${p.nombre}${p.ciudad ? ` · ${p.ciudad}` : ''} (personal ${(p.tecnicos_asignados || []).length}/${p.personal_requerido || 1})`));
+  proximos.slice(0, 6).forEach(p => {
+    L.push(`• ${fCorta(p.fecha_inicio)} — ${p.nombre}${p.ciudad ? ` · ${p.ciudad}` : ''} (personal ${(p.tecnicos_asignados || []).length}/${p.personal_requerido || 1})`);
+    const rp = lineaReprog(p); if (rp) L.push(rp);
+  });
   if (proximos.length > 6) L.push(`• … y ${plural(proximos.length - 6, 'proyecto')} más.`);
 
   L.push('', '────────────────────────', 'Documento emitido vía WorkSync');
