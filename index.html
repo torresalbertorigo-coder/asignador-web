@@ -8212,34 +8212,46 @@ async function guardarUbicadorAvance() {
 }
 
 // ── Salida: WhatsApp ──
+// Reporte diario para WhatsApp: formato B2B sobrio (sin barras de cuadritos ni emojis decorativos)
 function textoWhatsAppAvance(fecha) {
   const A = STATE._av, cfg = A.data.config, T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico;
   const p = STATE.proyectos.find(x => x.id === A.pid) || {};
-  const regsHasta = A.data.registros.filter(r => r.fecha <= fecha);
-  const R = calcAvance(cfg, regsHasta), delDia = A.data.registros.filter(r => r.fecha === fecha);
+  const R = calcAvance(cfg, A.data.registros.filter(r => r.fecha <= fecha));   // estatus al cierre de esa fecha
+  const delDia = ordenRegistros(A.data.registros.filter(r => r.fecha === fecha));
   const okDia = [...new Set(delDia.filter(r => r.estatus === 'ok').flatMap(r => r.unidades))];
   const incDia = [...new Set(delDia.filter(r => r.estatus === 'incidencia').flatMap(r => r.unidades))];
   const tecnicos = [...new Set(delDia.map(r => r.tecnico).filter(Boolean))];
-  const notas = delDia.filter(r => r.nota).map(r => `• ${rangosUnidades(cfg, r.unidades)}: ${r.nota}`);
-  const Tit = T.varios.charAt(0).toUpperCase() + T.varios.slice(1);
-  const lineas = [
-    `🔥 *Avance de obra — ${p.nombre || ''}*`,
-    p.cliente || p.ciudad ? `🏭 ${[p.cliente, p.ciudad].filter(Boolean).join(' · ')}` : null,
-    `📅 ${fechaLargaAv(fecha).replace(/^./, c => c.toUpperCase())}`,
-    `👷 ${tecnicos.length ? tecnicos.join(', ') : (STATE.user?.nombre || '')}`,
+  const unidad = cfg.tipo === 'solar' ? 'bloques' : 'WTGs';
+  const lista = ids => ids.length ? rangosCortosAv(cfg, ids) : '—';
+  const punto = t => /[.!?…]$/.test(t.trim()) ? t.trim() : t.trim() + '.';
+  // Observaciones: primero los hallazgos (uno por unidad), luego notas de lo concluido
+  const obs = [
+    ...delDia.filter(r => r.estatus === 'incidencia').map(r => `• ${rangosCortosAv(cfg, r.unidades)}: ${punto(r.nota || 'Incidencia sin descripción')}`),
+    ...delDia.filter(r => r.estatus === 'ok' && r.nota).map(r => `• ${rangosCortosAv(cfg, r.unidades)}: ${punto(r.nota)}`),
+  ];
+  const ubic = [p.cliente, p.ciudad].filter(Boolean).join(' · ');
+  return [
+    '📋 REPORTE DE AVANCE DIARIO | WORKSYNC',
+    `Proyecto: ${p.nombre || ''}${ubic ? ` (${ubic})` : ''}`,
+    `Fecha: ${fechaLargaAv(fecha).replace(/^./, c => c.toUpperCase())}`,
+    `Técnico: ${tecnicos.length ? tecnicos.join(', ') : (STATE.user?.nombre || '—')}`,
     '',
-    okDia.length ? `✅ ${Tit} concluidos hoy (${okDia.length}): ${rangosUnidades(cfg, okDia)}` : `✅ Sin ${T.varios} concluidos en el día`,
-    incDia.length ? `⚠️ Con incidencia (${incDia.length}): ${rangosUnidades(cfg, incDia)}` : null,
+    '1. RESUMEN DE LA JORNADA',
+    `• Concluidos (${okDia.length}): ${lista(okDia)}`,
+    `• Incidencias (${incDia.length}): ${lista(incDia)}`,
     '',
-    `📊 *Avance global: ${R.ok}/${R.total} ${T.varios} (${R.pct}%)*`,
-    `${barraTextoAvance(R.pct)}`,
-    `⏳ Pendientes: ${R.pend}${R.inc ? ` · ⚠️ Con incidencia: ${R.inc}` : ''}`,
-    notas.length ? '' : null,
-    notas.length ? `📝 Notas:\n${notas.join('\n')}` : null,
-  ].filter(l => l !== null);
-  return lineas.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    '2. ESTATUS GLOBAL DEL PROYECTO',
+    `• Avance acumulado: ${R.pct}% (${R.ok} de ${R.total} ${unidad})`,
+    `• Pendientes: ${R.pend} ${unidad}`,
+    `• Incidencias activas: ${R.inc} ${unidad}`,
+    '',
+    '3. OBSERVACIONES / INCIDENCIAS',
+    ...(obs.length ? obs : ['• Sin observaciones en la jornada.']),
+    '',
+    '────────────────────────',
+    'Documento emitido vía WorkSync',
+  ].join('\n');
 }
-const barraTextoAvance = pct => { const n = Math.round(pct / 10); return '🟩'.repeat(n) + '⬜'.repeat(10 - n); };
 function abrirWhatsAppAvance() {
   const A = STATE._av, fechas = [...new Set(A.data.registros.map(r => r.fecha))].sort().reverse();
   const hoy = isoLocal(new Date());
@@ -8259,7 +8271,7 @@ function abrirWhatsAppAvance() {
         <select class="field-select" id="av-wa-fecha" onchange="document.getElementById('av-wa-txt').value=textoWhatsAppAvance(this.value)">
           ${(fechas.includes(hoy) ? fechas : [hoy, ...fechas]).map(x => `<option value="${x}" ${x === f ? 'selected' : ''}>${escHtml(fechaLargaAv(x))}${x === hoy ? ' (hoy)' : ''}</option>`).join('')}
         </select></div>
-      <textarea class="field-input" id="av-wa-txt" rows="13" style="width:100%;font-size:12.5px;line-height:1.45;margin-top:8px">${escHtml(textoWhatsAppAvance(f))}</textarea>
+      <textarea class="field-input" id="av-wa-txt" rows="20" style="width:100%;font-size:12.5px;line-height:1.45;margin-top:8px">${escHtml(textoWhatsAppAvance(f))}</textarea>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
         <button class="btn btn-ghost" style="min-height:44px;justify-content:center" onclick="copiarWhatsAppAvance(this)"><i class="ti ti-copy" aria-hidden="true"></i> Copiar</button>
         <button class="btn av-btn-wa" style="min-height:44px;justify-content:center" onclick="window.open('https://wa.me/?text='+encodeURIComponent(document.getElementById('av-wa-txt').value),'_blank')"><i class="ti ti-send" aria-hidden="true"></i> Abrir WhatsApp</button>
