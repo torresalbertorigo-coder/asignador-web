@@ -1219,12 +1219,17 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .av-kpi-sub{font-size:12px;color:var(--text3);margin-top:3px}
 .av-barra{grid-column:1/-1;display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--surface2);margin-top:8px}
 .av-barra span{display:block;height:100%}
-.av-barra .ok{background:var(--green)}.av-barra .inc{background:var(--red-text)}
+:root{--av-ok:#16A34A;--av-ok-bg:rgba(22,163,74,.16);--av-ok-bd:rgba(22,163,74,.45);--av-ok-tx:#4ADE80;
+  --av-inc:#DC2626;--av-inc-bg:rgba(220,38,38,.16);--av-inc-bd:rgba(220,38,38,.5);--av-inc-tx:#F87171;
+  --av-pend:#64748B;--av-pend-bg:rgba(100,116,139,.14);--av-pend-bd:rgba(100,116,139,.45);--av-pend-tx:#94A3B8}
+:root[data-theme="light"]{--av-ok-bg:#DCFCE7;--av-ok-bd:#86EFAC;--av-ok-tx:#15803D;--av-inc-bg:#FEE2E2;--av-inc-bd:#FCA5A5;--av-inc-tx:#B91C1C;
+  --av-pend-bg:#F1F5F9;--av-pend-bd:#CBD5E1;--av-pend-tx:#475569}
+.av-barra .ok{background:var(--av-ok)}.av-barra .inc{background:var(--av-inc)}
 .av-chips{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 .av-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:4px 10px}
 .av-chip b{color:var(--text);font-weight:700}
 .av-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0}
-.av-dot.ok{background:var(--green)}.av-dot.inc{background:var(--red-text)}.av-dot.pend{background:var(--amber)}.av-dot.sel{background:var(--blue)}
+.av-dot.ok{background:var(--av-ok)}.av-dot.inc{background:var(--av-inc)}.av-dot.pend{background:var(--av-pend)}.av-dot.sel{background:var(--blue)}
 .av-seg{display:inline-flex;border:1px solid var(--border2);border-radius:8px;overflow:hidden}
 .av-seg button{border:0;background:transparent;color:var(--text2);font:inherit;font-size:13px;font-weight:600;padding:9px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;min-height:42px}
 .av-seg button + button{border-left:1px solid var(--border2)}
@@ -1236,9 +1241,9 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .av-ley{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--text3);margin:10px 0 8px}
 .av-ley span{display:inline-flex;align-items:center;gap:5px}
 .av-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px}
-.av-tile{position:relative;border-radius:8px;border:1px solid var(--amber-border);background:var(--amber-bg);color:var(--amber);font-family:var(--mono);font-size:12px;font-weight:700;padding:12px 4px;text-align:center;cursor:pointer;user-select:none;-webkit-user-select:none;transition:transform .08s ease,box-shadow .08s ease;min-height:44px}
-.av-tile.ok{border-color:var(--green-border);background:var(--green-bg);color:var(--green)}
-.av-tile.inc{border-color:var(--red-border);background:var(--red-bg);color:var(--red-text)}
+.av-tile{position:relative;border-radius:8px;border:1px solid var(--av-pend-bd);background:var(--av-pend-bg);color:var(--av-pend-tx);font-family:var(--mono);font-size:12px;font-weight:700;padding:12px 4px;text-align:center;cursor:pointer;user-select:none;-webkit-user-select:none;transition:transform .08s ease,box-shadow .08s ease;min-height:44px}
+.av-tile.ok{border-color:var(--av-ok-bd);background:var(--av-ok-bg);color:var(--av-ok-tx)}
+.av-tile.inc{border-color:var(--av-inc-bd);background:var(--av-inc-bg);color:var(--av-inc-tx)}
 .av-tile.sel{box-shadow:0 0 0 2px var(--blue);transform:scale(.96)}
 .av-tile.selinc{box-shadow:0 0 0 2px var(--red-text)}
 .av-tile.selinc::after{background:var(--red-text) !important}
@@ -1262,8 +1267,8 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .av-tile.hoy::before{content:'HOY';position:absolute;bottom:2px;left:0;right:0;font-size:8px;letter-spacing:.08em;opacity:.8}
 .av-mapa{position:relative;border-radius:8px;overflow:visible;border:1px solid var(--border);background:var(--surface2);touch-action:manipulation}
 .av-mapa img{border-radius:8px;display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none}
-.av-pin{position:absolute;transform:translate(-50%,-50%);min-width:var(--av-pin,24px);height:var(--av-pin,24px);padding:0 calc(var(--av-pin,24px)*.2);border-radius:999px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:calc(var(--av-pin,24px)*.44);font-weight:700;color:#fff;background:#d97706;border:2px solid rgba(255,255,255,.9);box-shadow:0 1px 4px rgba(0,0,0,.45);cursor:pointer;user-select:none}
-.av-pin.ok{background:#16a34a}.av-pin.inc{background:#dc2626}
+.av-pin{position:absolute;transform:translate(-50%,-50%);min-width:var(--av-pin,24px);height:var(--av-pin,24px);padding:0 calc(var(--av-pin,24px)*.2);border-radius:999px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:calc(var(--av-pin,24px)*.44);font-weight:700;color:#fff;background:#64748B;border:2px solid rgba(255,255,255,.9);box-shadow:0 1px 4px rgba(0,0,0,.45);cursor:pointer;user-select:none}
+.av-pin.ok{background:#16A34A}.av-pin.inc{background:#DC2626}
 .av-pin.sel{outline:3px solid #3b82f6;outline-offset:1px;transform:translate(-50%,-50%) scale(1.15);background:#2563eb;z-index:5}
 .av-pin.sel.selinc{outline-color:#ef4444;background:#dc2626}
 .av-elige{position:absolute;z-index:20;transform:translate(-50%,8px);background:var(--surface);border:1px solid var(--border2);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.5);padding:8px;display:flex;flex-direction:column;gap:6px;min-width:150px}
@@ -7531,6 +7536,13 @@ function verProyectoTecnico(id) {
 //  - Eólico: avance por máquina completa (WTG).   - Solar: por bloques.
 //  - El último registro de cada unidad manda (ok / incidencia); sin registro = pendiente.
 // ═════════════════════════════════════════════════════════════════════════════
+// Paleta única de estatus (plataforma y PDF): c = color, bg = fondo, tx = texto legible sobre el fondo
+const AV_COL = {
+  ok:   { c: [22, 163, 74],   bg: [220, 252, 231], tx: [21, 128, 61] },    // #16A34A / #DCFCE7
+  inc:  { c: [220, 38, 38],   bg: [254, 226, 226], tx: [185, 28, 28] },    // #DC2626 / #FEE2E2
+  pend: { c: [100, 116, 139], bg: [241, 245, 249], tx: [71, 85, 105] },    // #64748B / #F1F5F9
+};
+const avHex = rgb => '#' + rgb.map(v => v.toString(16).padStart(2, '0')).join('');
 const AV_TIPOS = {
   eolico: { nombre: 'Eólico', icono: 'building-wind-turbine', uno: 'WTG', varios: 'WTGs', prefijo: 'WTG-', ok: 'Inspección concluida / OK' },
   solar:  { nombre: 'Solar',  icono: 'solar-panel',           uno: 'bloque', varios: 'bloques', prefijo: 'B-', ok: 'Bloque concluido' },
@@ -8210,7 +8222,7 @@ async function mapaAvanceCanvas(cfg, R) {
   const prio = u => ({ incidencia: 2, ok: 1 })[R.estado[u.id]?.estatus] || 0;
   const puestos = [];
   [...ubic].sort((a, b) => prio(a) - prio(b)).forEach(u => {
-    const e = R.estado[u.id]?.estatus, col = e === 'ok' ? '#15803d' : e === 'incidencia' ? '#b91c1c' : '#b45309';
+    const e = R.estado[u.id]?.estatus, col = avHex((e === 'ok' ? AV_COL.ok : e === 'incidencia' ? AV_COL.inc : AV_COL.pend).c);
     const x = pad + u.x * w / 100, y = pad + u.y * h / 100, t = etqCorta(u.id);
     cx.font = `800 ${Math.round(rad * 0.92)}px Montserrat, Arial, sans-serif`;
     const tw = Math.max(rad * 2.1, cx.measureText(t).width + rad * 1.3);
@@ -8258,20 +8270,20 @@ async function exportarAvancePDF() {
   const nUlt = ultimo ? new Set(regs.filter(r => r.fecha === ultimo).flatMap(r => r.unidades)).size : 0;
   const dias = new Set(regs.map(r => r.fecha)).size;
   let y = P.tarjetas(33, [
-    ['Avance global', `${R.pct} %`, `${R.ok} de ${R.total} ${T.varios}`, C.verde],
-    ['Pendientes', R.pend, T.varios, C.ambar],
-    ['Con incidencia', R.inc, R.inc ? 'requieren atención' : 'sin incidencias', R.inc ? C.rojo : C.gris],
+    ['Avance global', `${R.pct} %`, `${R.ok} de ${R.total} ${T.varios}`, AV_COL.ok.tx],
+    ['Pendientes', R.pend, T.varios, AV_COL.pend.tx],
+    ['Con incidencia', R.inc, R.inc ? 'requieren atención' : 'sin incidencias', R.inc ? AV_COL.inc.tx : C.gris],
     ['Último día', ultimo ? fCorta(ultimo) : '—', ultimo ? `${nUlt} ${nUlt === 1 ? T.uno : T.varios} · ${dias} día${dias === 1 ? '' : 's'} de trabajo` : 'sin registros', C.tinta],
   ], 19);
   // Barra de avance
   y += 5;
-  P.relleno(C.fondo); doc.roundedRect(M, y, ancho, 3.2, 1.6, 1.6, 'F');
-  if (R.ok) { P.relleno(C.verde); doc.roundedRect(M, y, ancho * R.ok / R.total, 3.2, 1.6, 1.6, 'F'); }
-  if (R.inc) { P.relleno([220, 38, 38]); doc.rect(M + ancho * R.ok / R.total, y, ancho * R.inc / R.total, 3.2, 'F'); }
+  P.relleno(AV_COL.pend.bg); doc.roundedRect(M, y, ancho, 3.2, 1.6, 1.6, 'F');
+  if (R.ok) { P.relleno(AV_COL.ok.c); doc.roundedRect(M, y, ancho * R.ok / R.total, 3.2, 1.6, 1.6, 'F'); }
+  if (R.inc) { P.relleno(AV_COL.inc.c); doc.rect(M + ancho * R.ok / R.total, y, ancho * R.inc / R.total, 3.2, 'F'); }
   y += 9;
   // Soporte visual
   y = P.seccion('SOPORTE VISUAL', y, `${cfg.tipo === 'solar' ? 'Mapa de bloques' : 'Aerogeneradores'} al ${fLargaAnio(new Date())}`);
-  const ley = [['Concluido', R.ok, [21, 128, 61]], ['Pendiente', R.pend, [180, 83, 9]], ['Con incidencia', R.inc, [185, 28, 28]]];
+  const ley = [['Concluido', R.ok, AV_COL.ok.c], ['Pendiente', R.pend, AV_COL.pend.c], ['Con incidencia', R.inc, AV_COL.inc.c]];
   let lx = M;
   ley.forEach(([t, n, c]) => {
     P.relleno(c); doc.circle(lx + 1.3, y - 1.1, 1.3, 'F');
@@ -8302,7 +8314,7 @@ async function exportarAvancePDF() {
     cfg.unidades.forEach((u, i) => {
       const x = M + (i % cols) * (tw + gap), yy = y + Math.floor(i / cols) * (th + gap);
       const e = R.estado[u.id]?.estatus;
-      const [fg, bg] = e === 'ok' ? [C.verde, C.verdeBg] : e === 'incidencia' ? [[185, 28, 28], C.rojoBg] : [C.ambar, C.ambarBg];
+      const k = e === 'ok' ? AV_COL.ok : e === 'incidencia' ? AV_COL.inc : AV_COL.pend, fg = k.tx, bg = k.bg;
       P.relleno(bg); doc.roundedRect(x, yy, tw, th, 1, 1, 'F');
       P.font('bold', tam, fg); doc.text(recortarTexto(doc, cols > 14 ? etqCorta(u.id) : u.id, tw - 1.5), x + tw / 2, yy + th / 2 + tam * 0.13, { align: 'center' });
     });
@@ -8318,7 +8330,7 @@ async function exportarAvancePDF() {
     P.font('medium', 6.4, C.gris);
     let lx = W - M; const t2 = 'Avance acumulado', t1 = `${T.varios.charAt(0).toUpperCase() + T.varios.slice(1)} concluidos en el día`;
     lx -= doc.getTextWidth(t2); doc.text(t2, lx, y - 1.2); P.trazo(TEND, 0.6); doc.line(lx - 6, y - 2.1, lx - 1.5, y - 2.1); P.relleno(TEND); doc.circle(lx - 3.75, y - 2.1, 0.7, 'F');
-    lx -= 10 + doc.getTextWidth(t1); P.font('medium', 6.4, C.gris); doc.text(t1, lx, y - 1.2); P.relleno(C.verdeBg); doc.rect(lx - 4.5, y - 3.3, 3, 2.6, 'F');
+    lx -= 10 + doc.getTextWidth(t1); P.font('medium', 6.4, C.gris); doc.text(t1, lx, y - 1.2); P.relleno(AV_COL.ok.bg); doc.rect(lx - 4.5, y - 3.3, 3, 2.6, 'F');
     const top = y + 4, gh = 28, base = top + gh, ejeX = M + 9, gw = ancho - 11;
     const dd = porDia.slice(-20);
     const serie = dd.map(f => {
@@ -8330,10 +8342,10 @@ async function exportarAvancePDF() {
     [0, 50, 100].forEach(v => { const yy = base - gh * v / 100; P.trazo(C.linea, 0.2); doc.line(ejeX, yy, ejeX + gw, yy); P.font('normal', 5.6, C.grisClaro); doc.text(`${v}%`, ejeX - 1.5, yy + 0.8, { align: 'right' }); });
     serie.forEach((s, i) => {
       const cx = ejeX + paso * (i + 0.5), bh = (gh * 0.8) * s.n / maxN;
-      if (s.n) { P.relleno(C.verdeBg); doc.rect(cx - bw / 2, base - bh, bw, bh, 'F'); }
+      if (s.n) { P.relleno(AV_COL.ok.bg); doc.rect(cx - bw / 2, base - bh, bw, bh, 'F'); }
       // fecha y, debajo, cuántos se concluyeron ese día (fuera del área de la gráfica: nada se encima)
       P.font('normal', 5.6, C.gris); doc.text(fCorta(s.f), cx, base + 3.6, { align: 'center' });
-      P.font('bold', 6, s.n ? C.verde : C.grisClaro); doc.text(s.n ? `+${s.n}` : '0', cx, base + 7, { align: 'center' });
+      P.font('bold', 6, s.n ? AV_COL.ok.tx : C.grisClaro); doc.text(s.n ? `+${s.n}` : '0', cx, base + 7, { align: 'center' });
     });
     P.trazo(TEND, 0.55);
     serie.forEach((s, i) => { if (i) { const a = serie[i - 1]; doc.line(ejeX + paso * (i - 0.5), base - gh * a.pct / 100, ejeX + paso * (i + 0.5), base - gh * s.pct / 100); } });
@@ -8386,9 +8398,9 @@ async function exportarAvancePDF() {
       didDrawCell: d => {
         if (d.section !== 'body' || d.column.index !== 3) return;
         const ok = d.row.raw[3] === 'Concluido', t = d.row.raw[3];
-        P.font('bold', 5.8, ok ? C.verde : C.blanco);
+        P.font('bold', 5.8, ok ? AV_COL.ok.tx : C.blanco);
         const w = doc.getTextWidth(t) + 4, h = 3.9, x = d.cell.x + 2, yy = d.cell.y + (d.cell.height - h) / 2;
-        P.relleno(ok ? C.verdeBg : [220, 38, 38]); doc.roundedRect(x, yy, w, h, 1.9, 1.9, 'F');
+        P.relleno(ok ? AV_COL.ok.bg : AV_COL.inc.c); doc.roundedRect(x, yy, w, h, 1.9, 1.9, 'F');
         doc.text(t, x + 2, yy + 2.75);
       },
     });
