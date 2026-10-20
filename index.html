@@ -1235,6 +1235,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .av-chips{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 .av-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:4px 10px}
 .av-chip b{color:var(--text);font-weight:700}
+.av-chip-det{font-size:11.5px;color:var(--text3)}
 .av-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0}
 .av-dot.ok{background:var(--av-ok)}.av-dot.inc{background:var(--av-inc)}.av-dot.pend{background:var(--av-pend)}.av-dot.sel{background:var(--blue)}
 .av-seg{display:inline-flex;border:1px solid var(--border2);border-radius:8px;overflow:hidden}
@@ -1245,7 +1246,9 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .av-seg button.on.neu{background:var(--surface2);color:var(--text)}
 .av-fila{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .av-fila .field-input{min-height:42px}
-.av-ley{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--text3);margin:10px 0 8px}
+.av-ley-barra{display:flex;gap:6px 14px;flex-wrap:wrap;align-items:center;font-size:11.5px;color:var(--text2);margin:12px 0 8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2)}
+.av-ley-barra > span{display:inline-flex;align-items:center;gap:6px}
+.av-ley-barra .av-ley-sep{width:1px;height:14px;background:var(--border2);padding:0}
 .av-ley span{display:inline-flex;align-items:center;gap:5px}
 .av-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px}
 .av-tile{position:relative;border-radius:8px;border:1px solid var(--av-pend-bd);background:var(--av-pend-bg);color:var(--av-pend-tx);font-family:var(--mono);font-size:12px;font-weight:700;padding:12px 4px;text-align:center;cursor:pointer;user-select:none;-webkit-user-select:none;transition:transform .08s ease,box-shadow .08s ease;min-height:44px}
@@ -7747,6 +7750,9 @@ function pintarAvance() {
   const T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico, R = calcAvance(cfg, A.data.registros), hoy = isoLocal(new Date());
   const regsHoy = A.data.registros.filter(r => r.fecha === hoy);
   const hoySet = new Set(regsHoy.flatMap(r => r.unidades));
+  // de lo intervenido hoy, cuántos quedaron OK y cuántos con incidencia (último registro del día manda)
+  const estHoy = {}; ordenRegistros(regsHoy).forEach(r => r.unidades.forEach(u => { estHoy[u] = r.estatus; }));
+  const hoyOk = Object.values(estHoy).filter(e => e === 'ok').length, hoyInc = Object.values(estHoy).filter(e => e === 'incidencia').length;
   const pctInc = R.total ? R.inc * 100 / R.total : 0;
   const conMapa = !!cfg.mapa_url && cfg.unidades.some(u => u.x != null);
   if (A.vista == null) A.vista = conMapa ? 'mapa' : 'grid';
@@ -7765,7 +7771,8 @@ function pintarAvance() {
           <span class="av-chip"><span class="av-dot ok"></span>Concluidos <b>${R.ok}</b></span>
           <span class="av-chip"><span class="av-dot pend"></span>Pendientes <b>${R.pend}</b></span>
           ${R.inc ? `<span class="av-chip"><span class="av-dot inc"></span>Con incidencia <b>${R.inc}</b></span>` : ''}
-          <span class="av-chip"><i class="ti ti-calendar-event" aria-hidden="true"></i>Hoy <b>${hoySet.size}</b></span>
+          <span class="av-chip av-chip-hoy"><i class="ti ti-calendar-event" aria-hidden="true"></i>Intervenidos hoy <b>${hoySet.size}</b>
+            <span class="av-chip-det">(<span style="color:var(--av-ok-tx)">${hoyOk} OK</span>, <span style="color:var(--av-inc-tx)">${hoyInc} ${hoyInc === 1 ? 'incidencia' : 'incidencias'}</span>)</span></span>
         </div>
       </div>
     </div>
@@ -7787,8 +7794,10 @@ function pintarAvance() {
         <button class="btn btn-ghost btn-sm" style="min-height:42px" onclick="seleccionarPendientesAvance()" title="Marcar todos los pendientes">Pendientes</button>
         <button class="btn btn-ghost btn-sm" style="min-height:42px" onclick="STATE._av.sel=new Set();STATE._av.inc=new Set();STATE._av.ofrecerModo=null;pintarAvance()">Limpiar</button>
       </div>
-      <div class="av-ley">
-        <span><span class="av-dot ok"></span>Concluido</span><span><span class="av-dot pend"></span>Pendiente</span><span><span class="av-dot inc"></span>Con incidencia</span><span><span class="av-dot sel"></span>Marcado OK</span><span><span class="av-dot selinc"></span>Marcado con incidencia</span>
+      <div class="av-ley-barra">
+        <span><span class="av-dot ok"></span>Concluido</span><span><span class="av-dot pend"></span>Pendiente</span><span><span class="av-dot inc"></span>Con incidencia</span>
+        <span class="av-ley-sep"></span>
+        <span><span class="av-dot sel"></span>Marcado OK</span><span><span class="av-dot selinc"></span>Marcado incidencia</span>
       </div>
       ${vista === 'mapa' ? `<div style="position:relative"><div class="av-zoom ${A.zoom ? 'on' : ''}" id="av-zoom">${htmlMapaAvance(cfg, R, 'captura')}</div>
         <button class="btn btn-ghost btn-sm av-lupa" onclick="STATE._av.zoom=!STATE._av.zoom;pintarAvance()" title="${A.zoom ? 'Alejar' : 'Acercar'}"><i class="ti ti-zoom-${A.zoom ? 'out' : 'in'}" aria-hidden="true"></i> ${A.zoom ? 'Alejar' : 'Acercar'}</button></div>
@@ -8628,9 +8637,8 @@ async function exportarAvancePDF() {
         const ok = d.row.raw.est === 'Concluido', k = ok ? AV_COL.ok : AV_COL.inc, t = d.row.raw.est;
         const h = 4.2, x = d.cell.x + 2, yy = d.cell.y + (d.cell.height - h) / 2;
         // badge uniforme: mismo ancho y estilo para todos (fondo suave, borde y texto del color del estatus)
-        P.relleno(k.bg); P.trazo(k.c, 0.25); doc.roundedRect(x, yy, BADGE_W, h, 2.1, 2.1, 'FD');
-        P.relleno(k.c); doc.circle(x + 2.6, yy + h / 2, 0.75, 'F');
-        P.font('bold', 5.8, k.tx); doc.text(t, x + 4.4, yy + 2.95);
+        P.relleno(ok ? k.bg : [254, 202, 202]); doc.roundedRect(x, yy, BADGE_W, h, 1.4, 1.4, 'F');   // en la fila rosa, rojo claro un tono más firme
+        P.font('bold', 5.8, k.tx); doc.text(t, x + BADGE_W / 2, yy + 2.95, { align: 'center' });
       },
     });
   }
