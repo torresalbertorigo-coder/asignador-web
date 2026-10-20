@@ -1244,6 +1244,13 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .av-tile.selinc::after{background:var(--red-text) !important}
 .av-dot.selinc{background:transparent;box-shadow:inset 0 0 0 2px var(--red-text)}
 .av-pin.selinc{outline-color:#ef4444}
+.av-aviso-modo{margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-radius:10px;border:1px solid var(--amber-border);background:var(--amber-bg);font-size:12.5px;color:var(--text2)}
+.av-aviso-modo span{flex:1;min-width:200px}.av-aviso-modo b{color:var(--text)}.av-aviso-modo > i{color:var(--amber);font-size:18px}
+.av-btn-inc{background:#dc2626 !important;border-color:#dc2626 !important;color:#fff !important}
+.av-marcados{margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.av-marcados-tit{font-size:11.5px;font-weight:700;color:var(--green);display:inline-flex;align-items:center;gap:5px;margin-right:4px}
+.av-chip-ok{border:1px solid var(--green-border);background:var(--green-bg);color:var(--green);font-family:var(--mono);font-size:11.5px;font-weight:700;border-radius:999px;padding:5px 9px;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+.av-chip-ok i{opacity:.55;font-size:12px}.av-chip-ok:hover i{opacity:1;color:var(--red-text)}
 .av-hallazgos{margin-top:12px;border:1px solid var(--red-border);background:var(--red-bg);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
 .av-hallazgos-tit{font-size:11.5px;font-weight:700;color:var(--red-text);display:flex;align-items:center;gap:6px}
 .av-hallazgo{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
@@ -7673,15 +7680,15 @@ function pintarAvance() {
         <input class="field-input" type="date" id="av-fecha" value="${A.fecha}" max="${hoy}" style="width:auto" onchange="STATE._av.fecha=this.value">
         <span class="av-nota" style="margin-right:-4px">Marcar como:</span>
         <div class="av-seg">
-          <button class="ok ${A.estatus === 'ok' ? 'on' : ''}" onclick="STATE._av.estatus='ok';pintarAvance()"><i class="ti ti-circle-check" aria-hidden="true"></i>${cfg.tipo === 'eolico' ? 'Concluida / OK' : 'Concluido'}</button>
-          <button class="inc ${A.estatus === 'incidencia' ? 'on' : ''}" onclick="STATE._av.estatus='incidencia';pintarAvance()"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Con incidencia</button>
+          <button class="ok ${A.estatus === 'ok' ? 'on' : ''}" onclick="cambiarModoAvance('ok')"><i class="ti ti-circle-check" aria-hidden="true"></i>${cfg.tipo === 'eolico' ? 'Concluida / OK' : 'Concluido'}</button>
+          <button class="inc ${A.estatus === 'incidencia' ? 'on' : ''}" onclick="cambiarModoAvance('incidencia')"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Con incidencia</button>
         </div>
       </div>
       <div class="av-fila" style="margin-top:10px">
         <input class="field-input" id="av-rango" placeholder="Rápido: ${cfg.tipo === 'solar' ? '23-28, 31' : '1-4, 7'}" style="flex:1;min-width:150px" onkeydown="if(event.key==='Enter'){aplicarRangoAvance();}">
         <button class="btn btn-ghost btn-sm" style="min-height:42px" onclick="aplicarRangoAvance()"><i class="ti ti-select" aria-hidden="true"></i> Marcar</button>
         <button class="btn btn-ghost btn-sm" style="min-height:42px" onclick="seleccionarPendientesAvance()" title="Marcar todos los pendientes">Pendientes</button>
-        <button class="btn btn-ghost btn-sm" style="min-height:42px" onclick="STATE._av.sel=new Set();STATE._av.inc=new Set();pintarAvance()">Limpiar</button>
+        <button class="btn btn-ghost btn-sm" style="min-height:42px" onclick="STATE._av.sel=new Set();STATE._av.inc=new Set();STATE._av.ofrecerModo=null;pintarAvance()">Limpiar</button>
       </div>
       <div class="av-ley">
         <span><span class="av-dot ok"></span>Concluido</span><span><span class="av-dot pend"></span>Pendiente</span><span><span class="av-dot inc"></span>Con incidencia</span><span><span class="av-dot sel"></span>Marcado OK</span><span><span class="av-dot selinc"></span>Marcado con incidencia</span>
@@ -7713,18 +7720,50 @@ function pintarAvance() {
   estadoBotonAvance();
 }
 // Un campo obligatorio por cada unidad marcada con incidencia
+function cambiarModoAvance(modo) {
+  const A = STATE._av; A.estatus = modo;
+  // ¿hay unidades ya marcadas con el otro estatus? → se ofrece pasarlas (antes se quedaban como OK sin avisar)
+  const otras = [...A.sel].filter(id => (modo === 'incidencia') !== A.inc.has(id));
+  A.ofrecerModo = otras.length ? modo : null;
+  pintarAvance();
+}
+function aplicarModoATodosAvance() {
+  const A = STATE._av;
+  const nota = (A.nota || '').trim();
+  [...A.sel].forEach(id => {
+    if (A.estatus === 'incidencia') {
+      // la nota que ya se había escrito en el campo general pasa como hallazgo de cada unidad (no se pierde)
+      if (!A.inc.has(id) && nota && !(A.notasInc[id] || '').trim()) A.notasInc[id] = nota;
+      A.inc.add(id);
+    } else A.inc.delete(id);
+  });
+  if (A.estatus === 'incidencia' && nota) A.nota = '';
+  A.ofrecerModo = null; pintarAvance();
+  setTimeout(() => document.querySelector('.av-hallazgo.falta input')?.focus(), 50);
+}
+// Lista de lo marcado: cada unidad se puede cambiar OK ⇄ incidencia; las de incidencia piden su nota
 function htmlHallazgosAvance(cfg) {
-  const A = STATE._av, orden = cfg.unidades.map(u => u.id);
-  const ids = [...A.inc].filter(id => A.sel.has(id)).sort((a, b) => orden.indexOf(a) - orden.indexOf(b));
-  if (!ids.length) return '';
-  return `<div class="av-hallazgos">
-    <div class="av-hallazgos-tit"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Hallazgos · la nota es obligatoria por cada ${cfg.tipo === 'solar' ? 'bloque' : 'WTG'} con incidencia</div>
+  const A = STATE._av, orden = cfg.unidades.map(u => u.id), porOrden = (a, b) => orden.indexOf(a) - orden.indexOf(b);
+  const ids = [...A.inc].filter(id => A.sel.has(id)).sort(porOrden);
+  const oks = [...A.sel].filter(id => !A.inc.has(id)).sort(porOrden);
+  if (!A.sel.size) return '';
+  const uno = cfg.tipo === 'solar' ? 'bloque' : 'WTG';
+  const otras = A.ofrecerModo === A.estatus ? [...A.sel].filter(id => (A.estatus === 'incidencia') !== A.inc.has(id)) : [];
+  return `
+    ${otras.length ? `<div class="av-aviso-modo"><i class="ti ti-info-circle" aria-hidden="true"></i>
+      <span>Ya tienes ${otras.length} ${otras.length === 1 ? uno : uno + 's'} marcado${otras.length === 1 ? '' : 's'} como <b>${A.estatus === 'incidencia' ? 'OK' : 'incidencia'}</b>. Lo que toques ahora se marca como <b>${A.estatus === 'incidencia' ? 'incidencia' : 'OK'}</b>.</span>
+      <button class="btn btn-sm ${A.estatus === 'incidencia' ? 'av-btn-inc' : 'btn-ghost'}" onclick="aplicarModoATodosAvance()">Pasar ${otras.length === 1 ? 'ese' : 'los ' + otras.length} a ${A.estatus === 'incidencia' ? 'incidencia' : 'OK'}</button></div>` : ''}
+    ${oks.length ? `<div class="av-marcados"><span class="av-marcados-tit"><i class="ti ti-circle-check" aria-hidden="true"></i> OK (${oks.length})</span>
+      ${oks.map(id => `<button class="av-chip-ok" title="Cambiar ${escHtml(id)} a incidencia" onclick="STATE._av.inc.add(${escHtml(JSON.stringify(id))});pintarAvance();setTimeout(()=>document.querySelector('.av-hallazgo.falta input')?.focus(),50)">${escHtml(id)} <i class="ti ti-alert-triangle" aria-hidden="true"></i></button>`).join('')}
+      <span class="av-nota" style="font-size:11px">Toca uno para pasarlo a incidencia</span></div>` : ''}
+    ${ids.length ? `<div class="av-hallazgos">
+    <div class="av-hallazgos-tit"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Con incidencia (${ids.length}) · la nota es obligatoria por cada ${uno}</div>
     ${ids.map(id => `<div class="av-hallazgo ${(A.notasInc[id] || '').trim() ? '' : 'falta'}" data-id="${escHtml(id)}">
       <label>Nota para <b>${escHtml(id)}</b></label>
       <input class="field-input" maxlength="500" placeholder="Escriba el hallazgo…" value="${escHtml(A.notasInc[id] || '')}" oninput="notaHallazgoAvance(this)">
       <button class="btn btn-ghost btn-sm" title="Cambiar a concluido OK" onclick="STATE._av.inc.delete(${escHtml(JSON.stringify(id))});pintarAvance()"><i class="ti ti-circle-check" aria-hidden="true"></i> OK</button>
     </div>`).join('')}
-  </div>`;
+  </div>` : ''}`;
 }
 function notaHallazgoAvance(el) {
   const fila = el.closest('.av-hallazgo'); STATE._av.notasInc[fila.dataset.id] = el.value;
@@ -7821,6 +7860,9 @@ async function registrarAvance() {
   if (!fecha) { toast('Elige la fecha.', 'error'); return; }
   const orden = cfg.unidades.map(u => u.id), porOrden = (a, b) => orden.indexOf(a) - orden.indexOf(b);
   const inc = [...A.inc].filter(id => A.sel.has(id)).sort(porOrden), ok = [...A.sel].filter(id => !A.inc.has(id)).sort(porOrden);
+  if (A.estatus === 'incidencia' && !inc.length && ok.length) {
+    if (confirm(`Tienes "Con incidencia" elegido, pero ${ok.length === 1 ? 'la unidad marcada está' : `las ${ok.length} unidades marcadas están`} como OK.\n\n¿Pasarlas a incidencia para escribir el hallazgo?`)) { A.ofrecerModo = A.estatus; aplicarModoATodosAvance(); return; }
+  }
   const faltan = inc.filter(id => !(A.notasInc[id] || '').trim());
   if (faltan.length) {
     toast(`Falta la nota del hallazgo: ${faltan.join(', ')}`, 'error');
@@ -7840,7 +7882,7 @@ async function registrarAvance() {
   }
   if (guardadas) toast(`${guardadas} ${guardadas === 1 ? T.uno : T.varios} registrado${guardadas === 1 ? '' : 's'}`);
   A.fecha = fecha;
-  if (!A.sel.size) A.estatus = 'ok';
+  if (!A.sel.size) { A.estatus = 'ok'; A.ofrecerModo = null; }
   pintarAvance();
 }
 async function borrarRegistroAvance(rid) {
@@ -8085,23 +8127,34 @@ async function copiarWhatsAppAvance(btn) {
 async function mapaAvanceCanvas(cfg, R) {
   const img = await new Promise((ok, no) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => ok(i); i.onerror = no; i.src = cfg.mapa_url; });
   const k = Math.min(1, 1800 / img.naturalWidth), w = Math.round(img.naturalWidth * k), h = Math.round(img.naturalHeight * k);
-  // radio según la distancia mínima entre pines (para que no se enciman)
-  const pts = cfg.unidades.filter(u => u.x != null).map(u => [u.x * w / 100, u.y * h / 100]);
-  let dMin = Infinity;
-  if (pts.length <= 800) for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) dMin = Math.min(dMin, Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1]));
-  const rad = Math.round(Math.max(9, Math.min(Math.max(13, w / 58), isFinite(dMin) ? dMin * 0.4 : 99)));
+  // solo posiciones válidas (0–100 %)
+  const ubic = cfg.unidades.filter(u => Number.isFinite(u.x) && Number.isFinite(u.y) && u.x >= 0 && u.x <= 100 && u.y >= 0 && u.y <= 100);
+  // radio según la separación típica entre pines (mediana del vecino más cercano; los puestos encima de otro no cuentan)
+  const pts = ubic.map(u => [u.x * w / 100, u.y * h / 100]), vecinos = [];
+  if (pts.length <= 800) pts.forEach((a, i) => { let m = Infinity; pts.forEach((b, j) => { if (i !== j) { const d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (d > 4 && d < m) m = d; } }); if (isFinite(m)) vecinos.push(m); });
+  vecinos.sort((a, b) => a - b);
+  const sep = vecinos.length ? vecinos[Math.floor(vecinos.length / 2)] : 999;
+  const rad = Math.round(Math.max(10, Math.min(Math.max(13, w / 58), sep * 0.42)));
   const pad = Math.round(rad * 1.9);          // margen interno: los pines de las orillas no se cortan
   const cv = document.createElement('canvas'); cv.width = w + pad * 2; cv.height = h + pad * 2;
   const cx = cv.getContext('2d');
   cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, cv.width, cv.height);
   cx.drawImage(img, pad, pad, w, h);
   cx.strokeStyle = '#e4e4e7'; cx.lineWidth = 2; cx.strokeRect(pad, pad, w, h);
-  cfg.unidades.forEach(u => {
-    if (u.x == null) return;
+  // pendientes → concluidas → incidencias (las rojas quedan siempre encima). Si un pin cae encima de otro, va como punto sin número
+  const prio = u => ({ incidencia: 2, ok: 1 })[R.estado[u.id]?.estatus] || 0;
+  const puestos = [];
+  [...ubic].sort((a, b) => prio(a) - prio(b)).forEach(u => {
     const e = R.estado[u.id]?.estatus, col = e === 'ok' ? '#15803d' : e === 'incidencia' ? '#b91c1c' : '#b45309';
     const x = pad + u.x * w / 100, y = pad + u.y * h / 100, t = etqCorta(u.id);
     cx.font = `800 ${Math.round(rad * 0.92)}px Montserrat, Arial, sans-serif`;
     const tw = Math.max(rad * 2.1, cx.measureText(t).width + rad * 1.3);
+    const choca = puestos.some(q => Math.abs(q.x - x) < (q.w + tw) / 2 * 0.8 && Math.abs(q.y - y) < rad * 1.6);
+    if (choca) {
+      cx.beginPath(); cx.arc(x, y, rad * 0.45, 0, Math.PI * 2); cx.fillStyle = col; cx.fill();
+      cx.lineWidth = 2; cx.strokeStyle = '#ffffff'; cx.stroke(); return;
+    }
+    puestos.push({ x, y, w: tw });
     // sombra suave del pin para despegarlo del mapa
     cx.save(); cx.shadowColor = 'rgba(0,0,0,.28)'; cx.shadowBlur = rad * 0.35; cx.shadowOffsetY = rad * 0.08;
     cx.beginPath(); cx.roundRect ? cx.roundRect(x - tw / 2, y - rad, tw, rad * 2, rad) : cx.rect(x - tw / 2, y - rad, tw, rad * 2);
@@ -8153,16 +8206,21 @@ async function exportarAvancePDF() {
   y += 9;
   // Soporte visual
   y = P.seccion('SOPORTE VISUAL', y, `${cfg.tipo === 'solar' ? 'Mapa de bloques' : 'Aerogeneradores'} al ${fLargaAnio(new Date())}`);
-  const ley = [['Concluido', [21, 128, 61]], ['Pendiente', [180, 83, 9]], ['Con incidencia', [185, 28, 28]]];
-  let lx = M; P.font('medium', 6.8, C.texto);
-  ley.forEach(([t, c]) => { P.relleno(c); doc.circle(lx + 1.3, y - 1.1, 1.3, 'F'); doc.text(t, lx + 3.6, y); lx += 6 + doc.getTextWidth(t) + 4; });
-  y += 3.5;
+  const ley = [['Concluido', R.ok, [21, 128, 61]], ['Pendiente', R.pend, [180, 83, 9]], ['Con incidencia', R.inc, [185, 28, 28]]];
+  let lx = M;
+  ley.forEach(([t, n, c]) => {
+    P.relleno(c); doc.circle(lx + 1.3, y - 1.1, 1.3, 'F');
+    P.font('medium', 6.8, C.texto); doc.text(t, lx + 3.6, y); const wt = doc.getTextWidth(t);
+    P.font('bold', 6.8, C.tinta); doc.text(String(n), lx + 3.6 + wt + 1.5, y);
+    lx += 3.6 + wt + 1.5 + doc.getTextWidth(String(n)) + 7;
+  });
+  y += 4;
   // Alto del mapa según lo que necesitan la gráfica y la bitácora para que todo quepa en 1 hoja
   const nDias = new Set(regs.map(r => r.fecha)).size;
   const reservaGraf = nDias ? 57 : 0, reservaTabla = 20 + Math.min(Math.max(agruparRegistrosDia(regs).length, 1), 12) * 5.9;
   const maxVis = Math.max(50, Math.min(105, H - 22 - y - reservaGraf - reservaTabla - 6));
   let dibujado = false;
-  if (cfg.mapa_url && cfg.unidades.some(u => u.x != null)) {
+  if (cfg.mapa_url && cfg.unidades.some(u => Number.isFinite(u.x) && Number.isFinite(u.y))) {
     try {
       const m = await mapaAvanceCanvas(cfg, R);
       let w = ancho, h = w * m.ratio; if (h > maxVis) { h = maxVis; w = h / m.ratio; }
