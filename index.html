@@ -1263,12 +1263,16 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .av-tile.hoy::before{content:'HOY';position:absolute;bottom:2px;left:0;right:0;font-size:8px;letter-spacing:.08em;opacity:.8}
 .av-mapa{position:relative;border-radius:8px;overflow:visible;border:1px solid var(--border);background:var(--surface2);touch-action:manipulation}
 .av-mapa img{border-radius:8px;display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none}
-.av-pin{position:absolute;transform:translate(-50%,-50%);min-width:24px;height:24px;padding:0 5px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10.5px;font-weight:700;color:#fff;background:#d97706;border:2px solid rgba(255,255,255,.9);box-shadow:0 1px 4px rgba(0,0,0,.45);cursor:pointer;user-select:none}
+.av-pin{position:absolute;transform:translate(-50%,-50%);min-width:var(--av-pin,24px);height:var(--av-pin,24px);padding:0 calc(var(--av-pin,24px)*.2);border-radius:999px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:calc(var(--av-pin,24px)*.44);font-weight:700;color:#fff;background:#d97706;border:2px solid rgba(255,255,255,.9);box-shadow:0 1px 4px rgba(0,0,0,.45);cursor:pointer;user-select:none}
 .av-pin.ok{background:#16a34a}.av-pin.inc{background:#dc2626}
 .av-pin.sel{outline:3px solid #3b82f6;outline-offset:1px;transform:translate(-50%,-50%) scale(1.15)}
 .av-pin.actual{background:#3b82f6;animation:avPulso 1s ease-in-out infinite}
 @keyframes avPulso{50%{box-shadow:0 0 0 6px rgba(59,130,246,.35)}}
 .av-vistas{display:flex;gap:6px}
+.av-pin.sel{z-index:3}
+.av-zoom{overflow:auto;-webkit-overflow-scrolling:touch;border-radius:8px}
+.av-zoom.on .av-mapa{width:220%}
+.av-lupa{position:absolute;top:8px;right:8px;z-index:4}
 .av-registrar{position:static;z-index:5;display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:10px 12px;box-shadow:0 8px 28px rgba(0,0,0,.35);margin-top:14px}
 .av-registrar.flota{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom))}
 .av-registrar .btn{min-height:44px;font-size:14px}
@@ -1311,7 +1315,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
   .av-wrap{padding-bottom:110px}
   .av-kpi-pct{font-size:36px}
   .av-grid{grid-template-columns:repeat(auto-fill,minmax(62px,1fr))}
-  .av-pin{min-width:20px;height:20px;font-size:9px;padding:0 3px;border-width:1.5px}
+  .av-pin{border-width:1.5px}
   .av-seg button{padding:9px 11px}
 }
 </style>
@@ -7693,7 +7697,10 @@ function pintarAvance() {
       <div class="av-ley">
         <span><span class="av-dot ok"></span>Concluido</span><span><span class="av-dot pend"></span>Pendiente</span><span><span class="av-dot inc"></span>Con incidencia</span><span><span class="av-dot sel"></span>Marcado OK</span><span><span class="av-dot selinc"></span>Marcado con incidencia</span>
       </div>
-      ${vista === 'mapa' ? htmlMapaAvance(cfg, R, 'captura') : ''}
+      ${vista === 'mapa' ? `<div style="position:relative"><div class="av-zoom ${A.zoom ? 'on' : ''}" id="av-zoom">${htmlMapaAvance(cfg, R, 'captura')}</div>
+        <button class="btn btn-ghost btn-sm av-lupa" onclick="STATE._av.zoom=!STATE._av.zoom;pintarAvance()" title="${A.zoom ? 'Alejar' : 'Acercar'}"><i class="ti ti-zoom-${A.zoom ? 'out' : 'in'}" aria-hidden="true"></i> ${A.zoom ? 'Alejar' : 'Acercar'}</button></div>
+        <div class="av-aviso-modo" id="av-pines-aviso" style="display:none"><i class="ti ti-hand-finger" aria-hidden="true"></i><span>Los ${T.varios} están muy juntos para tocarlos con precisión. Usa <b>Acercar</b> o la vista <b>Lista</b>.</span>
+          <button class="btn btn-ghost btn-sm" onclick="STATE._av.vista='grid';pintarAvance()"><i class="ti ti-layout-grid" aria-hidden="true"></i> Lista</button></div>` : ''}
       ${vista === 'mapa' && cfg.unidades.some(u => u.x == null) ? `<div class="av-nota" style="margin:12px 0 6px">Sin ubicar en el mapa:</div>` : ''}
       <div class="av-grid" ${vista === 'mapa' ? '' : ''}>${cfg.unidades.map((u, i) => (vista === 'mapa' && u.x != null) ? '' :
         `<div class="av-tile ${claseUnidadAv(R, u.id)} ${A.sel.has(u.id) ? (A.inc.has(u.id) ? 'sel selinc' : 'sel') : ''} ${hoySet.has(u.id) ? 'hoy' : ''}" onclick="alternarUnidadAvance(${i})" title="${escHtml(tituloUnidadAv(R, u.id))}">${escHtml(u.id)}</div>`).join('')}</div>
@@ -7718,6 +7725,20 @@ function pintarAvance() {
       ${htmlHistorialAvance(cfg)}
     </div>`;
   estadoBotonAvance();
+  ajustarPinesAvance();
+}
+// Pines del tamaño que permite la separación real entre WTGs (en parques en línea quedan muy juntos)
+function ajustarPinesAvance() {
+  const m = document.getElementById('av-mapa-captura'); if (!m) return;
+  const cfg = STATE._av.data.config, Wm = m.clientWidth, Hm = m.clientHeight;
+  if (!Wm || !Hm) { m.querySelector('img')?.addEventListener('load', ajustarPinesAvance, { once: true }); return; }
+  const pts = cfg.unidades.filter(u => u.x != null).map(u => [u.x * Wm / 100, u.y * Hm / 100]);
+  const vec = pts.map((a, i) => Math.min(...pts.map((b, j) => i === j ? Infinity : (Math.hypot(a[0] - b[0], a[1] - b[1]) || Infinity)))).filter(isFinite).sort((a, b) => a - b);
+  const sep = vec.length ? vec[Math.floor(vec.length * 0.25)] : 99;
+  const tam = Math.max(15, Math.min(24, Math.floor(sep * 0.92)));
+  m.style.setProperty('--av-pin', tam + 'px');
+  const av = document.getElementById('av-pines-aviso');
+  if (av) av.style.display = (sep < 14 && !STATE._av.zoom) ? 'flex' : 'none';   // demasiado juntos para el dedo
 }
 // Un campo obligatorio por cada unidad marcada con incidencia
 function cambiarModoAvance(modo) {
@@ -7778,13 +7799,14 @@ function estadoBotonAvance() {
   const inc = [...A.inc].filter(id => A.sel.has(id)), ok = [...A.sel].filter(id => !A.inc.has(id));
   const faltan = inc.filter(id => !(A.notasInc[id] || '').trim());
   btn.disabled = !A.sel.size || faltan.length > 0;
-  if (!A.sel.size) { txt.innerHTML = `Toca los ${T.varios} atendidos`; return; }
+  const err = A.errorGuardado ? `<div style="color:var(--red-text);font-size:11.5px;margin-top:3px;font-weight:600"><i class="ti ti-alert-circle" aria-hidden="true"></i> ${escHtml(A.errorGuardado)}</div>` : '';
+  if (!A.sel.size) { txt.innerHTML = `Toca los ${T.varios} atendidos` + err; return; }
   const partes = [];
   if (ok.length) partes.push(`<b style="color:var(--green)">${ok.length} OK</b>`);
   if (inc.length) partes.push(`<b style="color:var(--red-text)">${inc.length} con incidencia</b>`);
   txt.innerHTML = partes.join(' · ') + (faltan.length
     ? `<div style="color:var(--red-text);font-size:11.5px;margin-top:2px"><i class="ti ti-pencil" aria-hidden="true"></i> Falta la nota de ${escHtml(faltan.join(', '))}</div>`
-    : `<div style="font-size:11.5px;color:var(--text3);margin-top:2px">${escHtml(rangosUnidades(cfg, [...A.sel]))}</div>`);
+    : `<div style="font-size:11.5px;color:var(--text3);margin-top:2px">${escHtml(rangosUnidades(cfg, [...A.sel]))}</div>`) + err;
 }
 function claseUnidadAv(R, id) { const e = R.estado[id]?.estatus; return e === 'ok' ? 'ok' : e === 'incidencia' ? 'inc' : 'pend'; }
 function tituloUnidadAv(R, id) {
@@ -7854,6 +7876,16 @@ function seleccionarPendientesAvance() {
   A.data.config.unidades.forEach(u => { if (!R.estado[u.id]) marcarUnidadAvance(u.id, false); });
   pintarAvance();
 }
+// POST con el motivo exacto si falla (el aviso normal dura 3 s y se pierde)
+async function postAvance(path, body) {
+  try {
+    const r = await fetch(API + path, { method: 'POST', headers: { 'Authorization': `Bearer ${STATE.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    let j = null; try { j = await r.json(); } catch (e) {}
+    if (r.ok && j) return { ok: true, data: j };
+    const det = typeof j?.detail === 'string' ? j.detail : Array.isArray(j?.detail) ? j.detail.map(d => d.msg).join('; ') : '';
+    return { ok: false, error: `error ${r.status}${det ? ' — ' + det : ''}` };
+  } catch (e) { return { ok: false, error: 'sin conexión con el servidor' }; }
+}
 async function registrarAvance() {
   const A = STATE._av, cfg = A.data.config, T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico;
   const fecha = document.getElementById('av-fecha')?.value || A.fecha;
@@ -7861,7 +7893,8 @@ async function registrarAvance() {
   const orden = cfg.unidades.map(u => u.id), porOrden = (a, b) => orden.indexOf(a) - orden.indexOf(b);
   const inc = [...A.inc].filter(id => A.sel.has(id)).sort(porOrden), ok = [...A.sel].filter(id => !A.inc.has(id)).sort(porOrden);
   if (A.estatus === 'incidencia' && !inc.length && ok.length) {
-    if (confirm(`Tienes "Con incidencia" elegido, pero ${ok.length === 1 ? 'la unidad marcada está' : `las ${ok.length} unidades marcadas están`} como OK.\n\n¿Pasarlas a incidencia para escribir el hallazgo?`)) { A.ofrecerModo = A.estatus; aplicarModoATodosAvance(); return; }
+    if (confirm(`Tienes "Con incidencia" elegido, pero ${ok.length === 1 ? 'la unidad marcada está' : `las ${ok.length} unidades marcadas están`} como OK.\n\n¿Pasarlas a incidencia para escribir el hallazgo?\n\n(Cancelar = no se guarda nada todavía)`)) { A.ofrecerModo = A.estatus; aplicarModoATodosAvance(); return; }
+    A.errorGuardado = 'No se guardó nada. Elige qué WTGs van con incidencia o cambia a "Concluida / OK".'; estadoBotonAvance(); return;
   }
   const faltan = inc.filter(id => !(A.notasInc[id] || '').trim());
   if (faltan.length) {
@@ -7873,9 +7906,14 @@ async function registrarAvance() {
   inc.forEach(id => lotes.push({ unidades: [id], estatus: 'incidencia', nota: A.notasInc[id].trim() }));
   let guardadas = 0;
   for (const l of lotes) {
-    const r = await api('POST', `/avance/${encodeURIComponent(A.pid)}/registros`, { fecha, ...l });
-    if (!r) break;   // lo que no se guardó se queda marcado para reintentar
-    A.data.registros.push(r);
+    const r = await postAvance(`/avance/${encodeURIComponent(A.pid)}/registros`, { fecha, ...l });
+    if (!r.ok) {   // lo que no se guardó se queda marcado para reintentar, con el motivo a la vista
+      A.errorGuardado = `No se guardó ${l.unidades.join(', ')} (${l.estatus === 'ok' ? 'OK' : 'incidencia'}): ${r.error}`;
+      console.error('[Avance] registro rechazado', { enviado: { fecha, ...l }, respuesta: r });
+      break;
+    }
+    A.errorGuardado = null;
+    A.data.registros.push(r.data);
     l.unidades.forEach(id => { A.sel.delete(id); A.inc.delete(id); delete A.notasInc[id]; });
     if (l.estatus === 'ok') A.nota = '';
     guardadas += l.unidades.length;
@@ -8133,8 +8171,8 @@ async function mapaAvanceCanvas(cfg, R) {
   const pts = ubic.map(u => [u.x * w / 100, u.y * h / 100]), vecinos = [];
   if (pts.length <= 800) pts.forEach((a, i) => { let m = Infinity; pts.forEach((b, j) => { if (i !== j) { const d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (d > 4 && d < m) m = d; } }); if (isFinite(m)) vecinos.push(m); });
   vecinos.sort((a, b) => a - b);
-  const sep = vecinos.length ? vecinos[Math.floor(vecinos.length / 2)] : 999;
-  const rad = Math.round(Math.max(10, Math.min(Math.max(13, w / 58), sep * 0.42)));
+  const sep = vecinos.length ? vecinos[Math.floor(vecinos.length * 0.25)] : 999;
+  const rad = Math.round(Math.max(8, Math.min(Math.max(13, w / 58), sep * 0.46)));
   const pad = Math.round(rad * 1.9);          // margen interno: los pines de las orillas no se cortan
   const cv = document.createElement('canvas'); cv.width = w + pad * 2; cv.height = h + pad * 2;
   const cx = cv.getContext('2d');
@@ -8149,7 +8187,7 @@ async function mapaAvanceCanvas(cfg, R) {
     const x = pad + u.x * w / 100, y = pad + u.y * h / 100, t = etqCorta(u.id);
     cx.font = `800 ${Math.round(rad * 0.92)}px Montserrat, Arial, sans-serif`;
     const tw = Math.max(rad * 2.1, cx.measureText(t).width + rad * 1.3);
-    const choca = puestos.some(q => Math.abs(q.x - x) < (q.w + tw) / 2 * 0.8 && Math.abs(q.y - y) < rad * 1.6);
+    const choca = puestos.some(q => Math.hypot(q.x - x, q.y - y) < rad * 0.9);
     if (choca) {
       cx.beginPath(); cx.arc(x, y, rad * 0.45, 0, Math.PI * 2); cx.fillStyle = col; cx.fill();
       cx.lineWidth = 2; cx.strokeStyle = '#ffffff'; cx.stroke(); return;
