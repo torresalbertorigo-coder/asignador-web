@@ -8258,120 +8258,159 @@ function agruparRegistrosDia(regs) {
   // dentro de cada día: primero lo concluido, luego las incidencias
   return grupos.map((g, i) => ({ g, i })).sort((a, b) => a.g.fecha.localeCompare(b.g.fecha) || (a.g.estatus === 'ok' ? 0 : 1) - (b.g.estatus === 'ok' ? 0 : 1) || a.i - b.i).map(x => x.g);
 }
+// Dona de avance (canvas → PNG nítido): verde concluido, rojo incidencia, gris pendiente
+function donaAvanceCanvas(R) {
+  const S = 640, cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const cx = cv.getContext('2d'), r = S / 2 - 6, grosor = r * 0.3;
+  const partes = [[R.ok, AV_COL.ok.c], [R.inc, AV_COL.inc.c], [R.pend, AV_COL.pend.c]].filter(([n]) => n > 0);
+  const total = R.total || 1;
+  let a = -Math.PI / 2;
+  if (!partes.length) partes.push([1, AV_COL.pend.bg]);
+  partes.forEach(([n, c]) => {
+    const da = Math.PI * 2 * n / total;
+    cx.beginPath(); cx.arc(S / 2, S / 2, r, a, a + da); cx.arc(S / 2, S / 2, r - grosor, a + da, a, true); cx.closePath();
+    cx.fillStyle = avHex(c); cx.fill();
+    if (partes.length > 1) { cx.lineWidth = 6; cx.strokeStyle = '#ffffff'; cx.stroke(); }   // separación blanca entre rebanadas
+    a += da;
+  });
+  return cv.toDataURL('image/png');
+}
 async function exportarAvancePDF() {
   const A = STATE._av, cfg = A.data?.config; if (!cfg) return;
   const p = STATE.proyectos.find(x => x.id === A.pid) || {}, T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico;
   const R = calcAvance(cfg, A.data.registros), regs = ordenRegistros(A.data.registros);
-  const P = await nuevaPlantillaPDF('portrait'), { doc, C } = P, { W, H, M } = P;
-  const ancho = W - 2 * M;
+  const P = await nuevaPlantillaPDF('landscape', 'a4'), { doc, C } = P, { W, H, M } = P;
+  const ancho = W - 2 * M, GAP = 8, colL = (ancho - GAP) * 0.55, colR = ancho - GAP - colL, xR = M + colL + GAP;
+  const Tit = T.varios.charAt(0).toUpperCase() + T.varios.slice(1);
   P.encabezado('Reporte de avance', p.id || '', p.nombre || 'Proyecto', [p.cliente, p.ciudad, `${T.nombre} · avance por ${cfg.tipo === 'solar' ? 'bloques' : 'WTG'}`].filter(Boolean).join(' · '));
-  // KPIs
-  const ultimo = regs.length ? regs[regs.length - 1].fecha : null;
-  const nUlt = ultimo ? new Set(regs.filter(r => r.fecha === ultimo).flatMap(r => r.unidades)).size : 0;
-  const dias = new Set(regs.map(r => r.fecha)).size;
-  let y = P.tarjetas(33, [
-    ['Avance global', `${R.pct} %`, `${R.ok} de ${R.total} ${T.varios}`, AV_COL.ok.tx],
-    ['Pendientes', R.pend, T.varios, AV_COL.pend.tx],
-    ['Con incidencia', R.inc, R.inc ? 'requieren atención' : 'sin incidencias', R.inc ? AV_COL.inc.tx : C.gris],
-    ['Último día', ultimo ? fCorta(ultimo) : '—', ultimo ? `${nUlt} ${nUlt === 1 ? T.uno : T.varios} · ${dias} día${dias === 1 ? '' : 's'} de trabajo` : 'sin registros', C.tinta],
-  ], 19);
-  // Barra de avance
-  y += 5;
-  P.relleno(AV_COL.pend.bg); doc.roundedRect(M, y, ancho, 3.2, 1.6, 1.6, 'F');
-  if (R.ok) { P.relleno(AV_COL.ok.c); doc.roundedRect(M, y, ancho * R.ok / R.total, 3.2, 1.6, 1.6, 'F'); }
-  if (R.inc) { P.relleno(AV_COL.inc.c); doc.rect(M + ancho * R.ok / R.total, y, ancho * R.inc / R.total, 3.2, 'F'); }
-  y += 9;
-  // Soporte visual
-  y = P.seccion('SOPORTE VISUAL', y, `${cfg.tipo === 'solar' ? 'Mapa de bloques' : 'Aerogeneradores'} al ${fLargaAnio(new Date())}`);
-  const ley = [['Concluido', R.ok, AV_COL.ok.c], ['Pendiente', R.pend, AV_COL.pend.c], ['Con incidencia', R.inc, AV_COL.inc.c]];
+  // Título de sección dentro de una columna
+  const secCol = (titulo, x, w, y, extra) => {
+    P.relleno(C.rojo); doc.rect(x, y - 3.1, 1.3, 3.8, 'F');
+    P.font('bold', 8.2, C.tinta); doc.text(titulo, x + 3.6, y, { charSpace: 0.55 });
+    if (extra) { P.font('medium', 6.8, C.gris); doc.text(extra, x + w, y, { align: 'right' }); }
+    P.trazo(C.linea, 0.25); doc.line(x, y + 2.4, x + w, y + 2.4);
+    return y + 8;
+  };
+
+  // ── 1) Bitácora (abajo, ancho completo): se calcula primero cuánto espacio necesita ──
+  const grupos = agruparRegistrosDia(regs), nInc = grupos.filter(g => g.estatus !== 'ok').length;
+  const filaH = 5.9, Y_TOP = 35, ALTO_ARRIBA_MIN = 100, PIE = H - 20;
+  const pesoFila = g => (g.estatus !== 'ok' && g.notas.join(' · ').length > 95) ? 1.7 : 1;
+  const maxPeso = Math.max(1, Math.floor((PIE - (Y_TOP + ALTO_ARRIBA_MIN) - 4 - 8 - 6.5) / filaH));
+  let filas = grupos, omitidas = 0;
+  if (grupos.reduce((a, g) => a + pesoFila(g), 0) > maxPeso) {
+    let suma = 0, k = grupos.length;
+    while (k > 0 && suma + pesoFila(grupos[k - 1]) <= maxPeso - 0.6) { suma += pesoFila(grupos[k - 1]); k--; }
+    filas = grupos.slice(k); omitidas = k;
+  }
+  const altoTabla = 8 + 6.5 + Math.max(1, filas.reduce((a, g) => a + pesoFila(g), 0)) * filaH + (omitidas ? 3 : 0);
+  const yTabla = PIE - altoTabla;
+  const yFinArriba = Math.min(yTabla - 5, Y_TOP + 128);
+
+  // ── 2) Columna izquierda (55 %): soporte visual ──
+  let y = secCol('SOPORTE VISUAL', M, colL, Y_TOP, `${cfg.tipo === 'solar' ? 'Mapa de bloques' : 'Aerogeneradores'} al ${fLargaAnio(new Date())}`);
   let lx = M;
-  ley.forEach(([t, n, c]) => {
+  [['Concluido', R.ok, AV_COL.ok.c], ['Pendiente', R.pend, AV_COL.pend.c], ['Con incidencia', R.inc, AV_COL.inc.c]].forEach(([t, n, c]) => {
     P.relleno(c); doc.circle(lx + 1.3, y - 1.1, 1.3, 'F');
     P.font('medium', 6.8, C.texto); doc.text(t, lx + 3.6, y); const wt = doc.getTextWidth(t);
     P.font('bold', 6.8, C.tinta); doc.text(String(n), lx + 3.6 + wt + 1.5, y);
     lx += 3.6 + wt + 1.5 + doc.getTextWidth(String(n)) + 7;
   });
   y += 4;
-  // Alto del mapa según lo que necesitan la gráfica y la bitácora para que todo quepa en 1 hoja
-  const nDias = new Set(regs.map(r => r.fecha)).size;
-  const reservaGraf = nDias ? 57 : 0, reservaTabla = 20 + Math.min(Math.max(agruparRegistrosDia(regs).length, 1), 12) * 5.9;
-  const maxVis = Math.max(50, Math.min(105, H - 22 - y - reservaGraf - reservaTabla - 6));
+  const altoVis = yFinArriba - y;
   let dibujado = false;
   if (cfg.mapa_url && cfg.unidades.some(u => Number.isFinite(u.x) && Number.isFinite(u.y))) {
     try {
       const m = await mapaAvanceCanvas(cfg, R);
-      let w = ancho, h = w * m.ratio; if (h > maxVis) { h = maxVis; w = h / m.ratio; }
-      doc.addImage(m.url, 'JPEG', M + (ancho - w) / 2, y, w, h);
-      P.trazo(C.linea, 0.25); doc.rect(M + (ancho - w) / 2, y, w, h);
-      y += h + 6; dibujado = true;
+      let w = colL, h = w * m.ratio; if (h > altoVis) { h = altoVis; w = h / m.ratio; }
+      const x = M + (colL - w) / 2;
+      doc.addImage(m.url, 'JPEG', x, y, w, h);
+      P.trazo(C.linea, 0.25); doc.rect(x, y, w, h);
+      dibujado = true;
     } catch (e) { console.warn('Mapa no disponible para el PDF', e); }
   }
   if (!dibujado) {
-    const n = cfg.unidades.length, gap = 1.4;
-    let cols = Math.min(n, 10), th = 7.5;
-    while (Math.ceil(n / cols) * (th + gap) > maxVis && cols < 30) { cols++; th = Math.max(4.6, th - 0.25); }
-    const tw = (ancho - gap * (cols - 1)) / cols, tam = Math.max(4.6, Math.min(7.4, tw * 0.62));
+    // se elige el número de columnas que da los cuadros más grandes y aprovecha todo el espacio de la columna
+    const n = cfg.unidades.length, gap = 1.6;
+    let mejor = null;
+    for (let c = 1; c <= Math.min(n, 30); c++) {
+      const w = (colL - gap * (c - 1)) / c, filasG = Math.ceil(n / c);
+      const h = Math.min(w * 0.5, (altoVis - gap * (filasG - 1)) / filasG, 11);
+      if (h < 4.6 || w < 9) continue;
+      const util = Math.min(w, h * 2.2) * h;          // cuadros proporcionados (ni tiras largas ni diminutos)
+      if (!mejor || util >= mejor.util) mejor = { c, w, h, util };
+    }
+    if (!mejor) mejor = { c: 30, w: (colL - gap * 29) / 30, h: 4.6 };
+    const cols = mejor.c, tw = mejor.w, th = mejor.h, tam = Math.max(4.6, Math.min(9.5, th * 0.78, tw * 0.42));
     cfg.unidades.forEach((u, i) => {
       const x = M + (i % cols) * (tw + gap), yy = y + Math.floor(i / cols) * (th + gap);
-      const e = R.estado[u.id]?.estatus;
-      const k = e === 'ok' ? AV_COL.ok : e === 'incidencia' ? AV_COL.inc : AV_COL.pend, fg = k.tx, bg = k.bg;
-      P.relleno(bg); doc.roundedRect(x, yy, tw, th, 1, 1, 'F');
-      P.font('bold', tam, fg); doc.text(recortarTexto(doc, cols > 14 ? etqCorta(u.id) : u.id, tw - 1.5), x + tw / 2, yy + th / 2 + tam * 0.13, { align: 'center' });
+      const e = R.estado[u.id]?.estatus, k = e === 'ok' ? AV_COL.ok : e === 'incidencia' ? AV_COL.inc : AV_COL.pend;
+      P.relleno(k.bg); doc.roundedRect(x, yy, tw, th, 1, 1, 'F');
+      P.font('bold', tam, k.tx); doc.text(recortarTexto(doc, cols > 12 ? etqCorta(u.id) : u.id, tw - 1.5), x + tw / 2, yy + th / 2 + tam * 0.13, { align: 'center' });
     });
-    y += Math.ceil(n / cols) * (th + gap) + 5;
   }
-  // Gráfica: concluidos por día (barras) + avance acumulado (línea), últimos 20 días con registro.
-  // Cifras de las barras dentro de la barra (abajo) y % de la línea arriba del punto: nunca se enciman.
+
+  // ── 3) Columna derecha (45 %): dona + KPIs ──
+  y = secCol('AVANCE GLOBAL', xR, colR, Y_TOP);
+  const D = 36, dx = xR + 1, dy = y - 1;
+  doc.addImage(donaAvanceCanvas(R), 'PNG', dx, dy, D, D);
+  P.font('black', 15, AV_COL.ok.tx); doc.text(`${R.pct}%`, dx + D / 2, dy + D / 2 + 1.6, { align: 'center' });
+  P.font('semibold', 5.8, C.gris); doc.text('AVANCE', dx + D / 2, dy + D / 2 + 5.6, { align: 'center', charSpace: 0.4 });
+  const pc = n => R.total ? Math.round(n * 100 / R.total) : 0;
+  const kx = dx + D + 7, kw = xR + colR - kx;
+  const ultimo = regs.length ? regs[regs.length - 1].fecha : null;
+  const nUlt = ultimo ? new Set(regs.filter(r => r.fecha === ultimo).flatMap(r => r.unidades)).size : 0;
+  const dias = new Set(regs.map(r => r.fecha)).size;
+  const kpis = [
+    ['Concluidos', `${R.ok}`, `${pc(R.ok)}%`, AV_COL.ok],
+    ['Con incidencia', `${R.inc}`, `${pc(R.inc)}%`, AV_COL.inc],
+    ['Pendientes', `${R.pend}`, `${pc(R.pend)}%`, AV_COL.pend],
+  ];
+  let ky = dy + 2;
+  kpis.forEach(([t, n, pct, k]) => {
+    P.relleno(k.bg); doc.roundedRect(kx, ky, kw, 7.6, 1.6, 1.6, 'F');
+    P.relleno(k.c); doc.rect(kx, ky + 1.6, 0.9, 4.4, 'F');
+    P.font('medium', 7, C.texto); doc.text(t, kx + 3.4, ky + 5);
+    P.font('bold', 9.5, k.tx); doc.text(n, kx + kw - 14, ky + 5.2, { align: 'right' });
+    P.font('semibold', 6.8, k.tx); doc.text(pct, kx + kw - 3, ky + 5.1, { align: 'right' });
+    ky += 9.2;
+  });
+  P.font('normal', 6.6, C.gris);
+  doc.text(`${R.total} ${T.varios} en total · último día ${ultimo ? fCorta(ultimo) : '—'}${ultimo ? ` (${nUlt} ${nUlt === 1 ? T.uno : T.varios})` : ''} · ${dias} día${dias === 1 ? '' : 's'} de trabajo`, kx, ky + 2.4, { maxWidth: kw });
+  y = Math.max(dy + D, ky + 4) + 6;
+
+  // ── 4) Columna derecha: avance por día ──
   const porDia = [...new Set(regs.map(r => r.fecha))].sort();
-  if (porDia.length) {
-    y = P.seccion('AVANCE POR DÍA', y);
-    const TEND = [71, 85, 105];   // #475569 — el rojo queda solo para incidencias
-    // leyenda propia (arriba, a la derecha)
-    P.font('medium', 6.4, C.gris);
-    let lx = W - M; const t2 = 'Avance acumulado', t1 = `${T.varios.charAt(0).toUpperCase() + T.varios.slice(1)} concluidos en el día`;
-    lx -= doc.getTextWidth(t2); doc.text(t2, lx, y - 1.2); P.trazo(TEND, 0.6); doc.line(lx - 6, y - 2.1, lx - 1.5, y - 2.1); P.relleno(TEND); doc.circle(lx - 3.75, y - 2.1, 0.7, 'F');
-    lx -= 10 + doc.getTextWidth(t1); P.font('medium', 6.4, C.gris); doc.text(t1, lx, y - 1.2); P.relleno(AV_COL.ok.bg); doc.rect(lx - 4.5, y - 3.3, 3, 2.6, 'F');
-    const top = y + 4, gh = 28, base = top + gh, ejeX = M + 9, gw = ancho - 11;
-    const dd = porDia.slice(-20);
-    const serie = dd.map(f => {
-      const Rf = calcAvance(cfg, regs.filter(r => r.fecha <= f));
-      const nOk = new Set(regs.filter(r => r.fecha === f && r.estatus === 'ok').flatMap(r => r.unidades)).size;
-      return { f, n: nOk, pct: Rf.pct };
-    });
-    const maxN = Math.max(1, ...serie.map(s => s.n)), paso = gw / dd.length, bw = Math.min(14, paso * 0.55);
-    [0, 50, 100].forEach(v => { const yy = base - gh * v / 100; P.trazo(C.linea, 0.2); doc.line(ejeX, yy, ejeX + gw, yy); P.font('normal', 5.6, C.grisClaro); doc.text(`${v}%`, ejeX - 1.5, yy + 0.8, { align: 'right' }); });
+  if (porDia.length && yFinArriba - y > 30) {
+    y = secCol('AVANCE POR DÍA', xR, colR, y);
+    const TEND = [71, 85, 105];
+    P.font('medium', 6, C.gris);
+    let lx2 = xR + colR; const t2 = 'Avance acumulado', t1 = `${Tit} concluidos en el día`;
+    lx2 -= doc.getTextWidth(t2); doc.text(t2, lx2, y - 1.4); P.trazo(TEND, 0.6); doc.line(lx2 - 6, y - 2.3, lx2 - 1.5, y - 2.3); P.relleno(TEND); doc.circle(lx2 - 3.75, y - 2.3, 0.7, 'F');
+    lx2 -= 10 + doc.getTextWidth(t1); P.font('medium', 6, C.gris); doc.text(t1, lx2, y - 1.4); P.relleno(AV_COL.ok.bg); doc.rect(lx2 - 4.5, y - 3.5, 3, 2.6, 'F');
+    const top = y + 3, gh = Math.max(14, Math.min(34, yFinArriba - top - 9)), base = top + gh, ejeX = xR + 8, gw = colR - 9;
+    const dd = porDia.slice(-12);
+    const serie = dd.map(f => ({ f, n: new Set(regs.filter(r => r.fecha === f && r.estatus === 'ok').flatMap(r => r.unidades)).size, pct: calcAvance(cfg, regs.filter(r => r.fecha <= f)).pct }));
+    const maxN = Math.max(1, ...serie.map(s => s.n)), paso = gw / dd.length, bw = Math.min(11, paso * 0.55);
+    [0, 50, 100].forEach(v => { const yy = base - gh * v / 100; P.trazo(C.linea, 0.2); doc.line(ejeX, yy, ejeX + gw, yy); P.font('normal', 5.4, C.grisClaro); doc.text(`${v}%`, ejeX - 1.5, yy + 0.8, { align: 'right' }); });
     serie.forEach((s, i) => {
       const cx = ejeX + paso * (i + 0.5), bh = (gh * 0.8) * s.n / maxN;
       if (s.n) { P.relleno(AV_COL.ok.bg); doc.rect(cx - bw / 2, base - bh, bw, bh, 'F'); }
-      // fecha y, debajo, cuántos se concluyeron ese día (fuera del área de la gráfica: nada se encima)
-      P.font('normal', 5.6, C.gris); doc.text(fCorta(s.f), cx, base + 3.6, { align: 'center' });
-      P.font('bold', 6, s.n ? AV_COL.ok.tx : C.grisClaro); doc.text(s.n ? `+${s.n}` : '0', cx, base + 7, { align: 'center' });
+      P.font('normal', 5.4, C.gris); doc.text(fCorta(s.f), cx, base + 3.4, { align: 'center' });
+      P.font('bold', 5.8, s.n ? AV_COL.ok.tx : C.grisClaro); doc.text(s.n ? `+${s.n}` : '0', cx, base + 6.6, { align: 'center' });
     });
     P.trazo(TEND, 0.55);
     serie.forEach((s, i) => { if (i) { const a = serie[i - 1]; doc.line(ejeX + paso * (i - 0.5), base - gh * a.pct / 100, ejeX + paso * (i + 0.5), base - gh * s.pct / 100); } });
     serie.forEach((s, i) => { const cx = ejeX + paso * (i + 0.5), cy = base - gh * s.pct / 100; P.relleno(C.blanco); doc.circle(cx, cy, 1.1, 'F'); P.relleno(TEND); doc.circle(cx, cy, 0.75, 'F'); });
-    // % solo del último punto, en una pastilla blanca arriba del punto (o debajo si está pegado al tope)
     const ult = serie[serie.length - 1], ux = ejeX + paso * (serie.length - 0.5), uy = base - gh * ult.pct / 100;
-    P.font('bold', 6.4, TEND); const txt = `${ult.pct}%`, tw = doc.getTextWidth(txt) + 2.4;
+    P.font('bold', 6.2, TEND); const txt = `${ult.pct}%`, tw = doc.getTextWidth(txt) + 2.4;
     const py = uy - 4.6 < top - 1 ? uy + 1.6 : uy - 4.6, px = Math.min(Math.max(ux - tw / 2, ejeX), ejeX + gw - tw);
     P.relleno(C.blanco); P.trazo(TEND, 0.25); doc.roundedRect(px, py, tw, 3.4, 1, 1, 'FD');
     doc.text(txt, px + tw / 2, py + 2.5, { align: 'center' });
-    y = base + 16;   // aire limpio antes de la bitácora
   }
-  // Bitácora diaria (cronológica), recortada para que todo quepa en 1 hoja
-  const grupos = agruparRegistrosDia(regs);
-  const nInc = grupos.filter(g => g.estatus !== 'ok').length;
-  y = P.seccion('BITÁCORA DIARIA DE ACTIVIDADES', y, `${regs.length} registro${regs.length === 1 ? '' : 's'}${nInc ? ` · ${nInc} hallazgo${nInc === 1 ? '' : 's'}` : ''}`);
-  const filaH = 5.9, disp = H - 22 - y - 7;
-  const maxFilas = Math.max(1, Math.floor(disp / filaH));
-  // los hallazgos con nota larga ocupan 2 renglones; se toman las filas más recientes que quepan
-  const pesoFila = g => (g.estatus !== 'ok' && g.notas.join(' · ').length > 52) ? 1.7 : 1;
-  let filas = grupos, omitidas = 0;
-  if (grupos.reduce((a, g) => a + pesoFila(g), 0) > maxFilas) {
-    let suma = 0, k = grupos.length;
-    while (k > 0 && suma + pesoFila(grupos[k - 1]) <= maxFilas - 1) { suma += pesoFila(grupos[k - 1]); k--; }
-    filas = grupos.slice(k); omitidas = k;
-  }
+
+  // ── 5) Bitácora diaria (ancho completo) ──
+  y = P.seccion('BITÁCORA DIARIA DE ACTIVIDADES', yTabla, `${regs.length} registro${regs.length === 1 ? '' : 's'}${nInc ? ` · ${nInc} hallazgo${nInc === 1 ? '' : 's'}` : ''}`);
   if (!regs.length) { P.font('normal', 8, C.gris); doc.text('Aún no hay registros de avance.', M, y + 2); }
   else {
     if (omitidas) { P.font('normal', 6.8, C.gris); doc.text(`Se muestran las ${filas.length} filas más recientes (${omitidas} anteriores no caben en la hoja; ver plataforma).`, M, y); y += 3; }
@@ -8381,16 +8420,16 @@ async function exportarAvancePDF() {
       return [f, r.tecnico || '—', `${rangosUnidades(cfg, r.unidades)} (${r.unidades.length})`, r.estatus === 'ok' ? 'Concluido' : 'Con incidencia', recortarNotaAv(r.notas.join(' · ')) || '—'];
     });
     doc.autoTable({
-      startY: y, margin: { left: M, right: M, bottom: 20 }, head: [['Fecha', 'Técnico', T.varios.charAt(0).toUpperCase() + T.varios.slice(1), 'Estatus', 'Nota']], body,
+      startY: y, margin: { left: M, right: M, bottom: 18 }, head: [['Fecha', 'Técnico', Tit, 'Estatus', 'Nota']], body,
       theme: 'plain', pageBreak: 'avoid', rowPageBreak: 'avoid',
       styles: { font: window._fuentesPDF ? 'Montserrat' : 'helvetica', fontSize: 7, textColor: C.texto, cellPadding: { top: 1.5, bottom: 1.5, left: 2, right: 2 }, overflow: 'ellipsize', lineColor: C.linea },
       headStyles: { fontStyle: 'bold', textColor: C.gris, fontSize: 6.4, fillColor: C.fondo },
-      columnStyles: { 0: { cellWidth: 15, fontStyle: 'bold', textColor: C.tinta }, 1: { cellWidth: 42 }, 2: { cellWidth: 48 }, 3: { cellWidth: 26 } },
+      columnStyles: { 0: { cellWidth: 16, fontStyle: 'bold', textColor: C.tinta }, 1: { cellWidth: 50 }, 2: { cellWidth: 72 }, 3: { cellWidth: 28 } },
       didParseCell: d => {
         if (d.section !== 'body') return;
         d.cell.styles.lineWidth = { bottom: 0.15 };
-        if (d.column.index === 3) d.cell.text = [''];          // se dibuja como badge
-        if (d.row.raw[3] !== 'Concluido') {                     // fila de hallazgo: fondo rojo muy suave
+        if (d.column.index === 3) d.cell.text = [''];
+        if (d.row.raw[3] !== 'Concluido') {
           d.cell.styles.fillColor = [254, 242, 242];
           if (d.column.index === 4) { d.cell.styles.overflow = 'linebreak'; d.cell.styles.textColor = [127, 29, 29]; d.cell.styles.fontStyle = window._fuentesPDF ? 'semibold' : 'bold'; }
         }
@@ -8405,7 +8444,6 @@ async function exportarAvancePDF() {
       },
     });
   }
-  // Seguridad: el reporte es de 1 hoja
   while (doc.internal.getNumberOfPages() > 1) doc.deletePage(doc.internal.getNumberOfPages());
   P.cerrar(limpiarNombreArchivo(`Avance ${p.nombre || A.pid} ${isoLocal(new Date())}.pdf`), false);
 }
@@ -10364,10 +10402,10 @@ async function fotoCircularPDF(url) {
 }
 
 // ── Plantilla ──
-async function nuevaPlantillaPDF(orientacion = 'portrait') {
+async function nuevaPlantillaPDF(orientacion = 'portrait', formato = 'letter') {
   const [fuentes, logo] = await Promise.all([cargarFuentesPDF(), cargarLogoPDF()]);
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: orientacion, unit: 'mm', format: 'letter' });
+  const doc = new jsPDF({ orientation: orientacion, unit: 'mm', format: formato });
   if (fuentes) fuentes.forEach(f => { doc.addFileToVFS(f.archivo, f.b64); doc.addFont(f.archivo, 'Montserrat', f.estilo); });
   const T = { doc, C: PDF_C, M: 16 };
   T.medir = () => { T.W = doc.internal.pageSize.getWidth(); T.H = doc.internal.pageSize.getHeight(); };
@@ -10443,7 +10481,7 @@ async function nuevaPlantillaPDF(orientacion = 'portrait') {
     });
     return y + h;
   };
-  T.nuevaPagina = (orient) => { doc.addPage('letter', orient || orientacion); T.medir(); };
+  T.nuevaPagina = (orient) => { doc.addPage(formato, orient || orientacion); T.medir(); };
   T.cabe = (y, alto) => y + alto <= T.H - 20;
   // Pie en todas las páginas, con X / Y
   T.cerrar = (nombreArchivo, paraCliente) => {
