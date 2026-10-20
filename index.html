@@ -1271,6 +1271,14 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .av-pin.ok{background:#16A34A}.av-pin.inc{background:#DC2626}
 .av-pin.sel{outline:3px solid #3b82f6;outline-offset:1px;transform:translate(-50%,-50%) scale(1.15);background:#2563eb;z-index:5}
 .av-pin.sel.selinc{outline-color:#ef4444;background:#dc2626}
+.av-polys{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.av-polys polygon{stroke-width:2;vector-effect:non-scaling-stroke;fill-opacity:.55;stroke-linejoin:round}
+.av-polys .ok{fill:#16A34A;stroke:#15803D}.av-polys .inc{fill:#DC2626;stroke:#B91C1C}.av-polys .pend{fill:#64748B;stroke:#475569;fill-opacity:.3}
+.av-polys .sel{fill:#2563EB;stroke:#1D4ED8;stroke-width:3;fill-opacity:.5}.av-polys .sel.selinc{fill:#DC2626;stroke:#EF4444}
+.av-polys .ub{fill:#16A34A;stroke:#15803D;fill-opacity:.28}.av-polys .ub.actual{fill:#3B82F6;stroke:#1D4ED8;fill-opacity:.4}
+.av-polys polyline{fill:none;stroke:#3B82F6;stroke-width:2.5;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
+.av-vert{position:absolute;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:#3B82F6;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.5);pointer-events:none}
+.av-vert.primero{width:14px;height:14px;margin:-7px 0 0 -7px;background:#fff;border-color:#3B82F6}
 .av-elige{position:absolute;z-index:20;transform:translate(-50%,8px);background:var(--surface);border:1px solid var(--border2);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.5);padding:8px;display:flex;flex-direction:column;gap:6px;min-width:150px}
 .av-elige-tit{font-size:11px;color:var(--text3);font-weight:600;padding:0 2px}
 .av-elige button{display:flex;align-items:center;gap:8px;justify-content:flex-start;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:var(--mono);font-weight:700;font-size:13px;border-radius:8px;padding:9px 10px;cursor:pointer;min-height:40px}
@@ -1315,6 +1323,8 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .av-ubic-chips{display:flex;gap:5px;overflow-x:auto;padding:8px 14px;background:var(--surface);border-top:1px solid var(--border)}
 .av-ubic-chips button{flex-shrink:0;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font-family:var(--mono);font-size:11.5px;font-weight:700;border-radius:999px;padding:6px 10px;cursor:pointer}
 .av-ubic-chips button.puesto{border-color:var(--green-border);color:var(--green)}
+.av-btn-cerrar{background:#2563EB !important;border-color:#2563EB !important;color:#fff !important}
+.av-btn-cerrar:disabled{opacity:.45}
 .av-ubic-chips button.actual{border-color:var(--blue);background:var(--blue-bg);color:var(--blue)}
 .av-banner{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:1px solid var(--orange-border);background:var(--orange-bg);cursor:pointer;margin-bottom:14px}
 .av-banner i{font-size:24px;color:var(--orange)}
@@ -7832,10 +7842,33 @@ function tituloUnidadAv(R, id) {
   return `${id} · ${e.estatus === 'ok' ? 'concluido' : 'con incidencia'} el ${fCorta(e.fecha)}${e.nota ? ' — ' + e.nota : ''}`;
 }
 // modo: 'captura' (toca para seleccionar) | 'ubicar' (editor de posiciones)
+// Áreas (polígonos) dibujadas sobre el mapa, como en Google Earth. Coordenadas en % de la imagen.
+function centroPoly(pts) {
+  let a = 0, cx = 0, cy = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const [x1, y1] = pts[i], [x2, y2] = pts[(i + 1) % pts.length], f = x1 * y2 - x2 * y1;
+    a += f; cx += (x1 + x2) * f; cy += (y1 + y2) * f;
+  }
+  if (Math.abs(a) < 1e-6) return [pts.reduce((s, p) => s + p[0], 0) / pts.length, pts.reduce((s, p) => s + p[1], 0) / pts.length];
+  return [Math.round(cx / (3 * a) * 100) / 100, Math.round(cy / (3 * a) * 100) / 100];
+}
+function dentroPoly([x, y], pts) {
+  let d = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i], [xj, yj] = pts[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) d = !d;
+  }
+  return d;
+}
+function svgPolysAvance(unidades, clase, borrador) {
+  return `<svg class="av-polys" viewBox="0 0 100 100" preserveAspectRatio="none">${unidades.map((u, i) => u.poly?.length >= 3
+    ? `<polygon class="${clase(u, i)}" points="${u.poly.map(p => p.join(',')).join(' ')}"/>` : '').join('')}${borrador?.length ? `<polyline points="${borrador.map(p => p.join(',')).join(' ')}"/>` : ''}</svg>`;
+}
 function htmlMapaAvance(cfg, R, modo, actual) {
   const A = STATE._av;
   return `<div class="av-mapa" id="av-mapa-${modo}" onclick="${modo === 'ubicar' ? 'clicMapaUbicar(event)' : 'clicMapaCaptura(event)'}">
     <img src="${escHtml(cfg.mapa_url)}" alt="Mapa del parque" draggable="false">
+    ${modo === 'captura' ? svgPolysAvance(cfg.unidades, u => claseUnidadAv(R, u.id) + (A.sel.has(u.id) ? (A.inc?.has(u.id) ? ' sel selinc' : ' sel') : '')) : ''}
     ${cfg.unidades.map((u, i) => u.x == null ? '' : `<div class="av-pin ${modo === 'ubicar' ? (i === actual ? 'actual' : 'ok') : claseUnidadAv(R, u.id) + (A.sel.has(u.id) ? (A.inc?.has(u.id) ? ' sel selinc' : ' sel') : '')}" style="left:${u.x}%;top:${u.y}%"
       ${modo === 'ubicar' ? `onclick="event.stopPropagation();STATE._avUb.i=${i};pintarUbicador()"` : `data-i="${i}"`} title="${escHtml(modo === 'ubicar' ? u.id : tituloUnidadAv(R, u.id))}">${escHtml(etqCorta(u.id))}</div>`).join('')}
   </div>`;
@@ -7863,21 +7896,25 @@ function clicMapaCaptura(ev) {
   const mapa = ev.currentTarget;
   if (ev.target.closest('.av-elige')) return;
   mapa.querySelector('.av-elige')?.remove();
+  const A = STATE._av, cfg = A.data.config, R = calcAvance(cfg, A.data.registros);
   const pines = [...mapa.querySelectorAll('.av-pin[data-i]')];
   const radio = Math.max(16, (pines[0]?.offsetHeight || 20) * 0.75);
-  const cerca = pines.map(el => { const r = el.getBoundingClientRect(); return { el, d: Math.hypot(r.left + r.width / 2 - ev.clientX, r.top + r.height / 2 - ev.clientY) }; })
-    .filter(x => x.d <= radio).sort((a, b) => a.d - b.d);
-  if (!cerca.length) return;
-  if (cerca.length === 1) { alternarUnidadAvance(+cerca[0].el.dataset.i); return; }
-  const A = STATE._av, cfg = A.data.config, R = calcAvance(cfg, A.data.registros);
+  const cand = new Map();
+  pines.forEach(el => { const r = el.getBoundingClientRect(), d = Math.hypot(r.left + r.width / 2 - ev.clientX, r.top + r.height / 2 - ev.clientY); if (d <= radio) cand.set(+el.dataset.i, d); });
+  if (!cand.size) {   // sin pin bajo el dedo: ¿cayó dentro de un área?
+    const box = mapa.getBoundingClientRect(), pt = [(ev.clientX - box.left) * 100 / box.width, (ev.clientY - box.top) * 100 / box.height];
+    cfg.unidades.forEach((u, i) => { if (u.poly?.length >= 3 && dentroPoly(pt, u.poly)) cand.set(i, 999); });
+  }
+  const lista = [...cand.entries()].sort((a, b) => a[1] - b[1]).map(([i]) => i);
+  if (!lista.length) return;
+  if (lista.length === 1) { alternarUnidadAvance(lista[0]); return; }
   const box = mapa.getBoundingClientRect();
-  const html = `<div class="av-elige" style="left:${ev.clientX - box.left}px;top:${ev.clientY - box.top}px">
-    <div class="av-elige-tit">Hay ${cerca.length} juntos, ¿cuál?</div>
-    ${cerca.map(x => { const i = +x.el.dataset.i, id = cfg.unidades[i].id;
+  mapa.insertAdjacentHTML('beforeend', `<div class="av-elige" style="left:${ev.clientX - box.left}px;top:${ev.clientY - box.top}px">
+    <div class="av-elige-tit">Hay ${lista.length} juntos, ¿cuál?</div>
+    ${lista.map(i => { const id = cfg.unidades[i].id;
       const marca = A.sel.has(id) ? (A.inc.has(id) ? ' · marcado incidencia' : ' · marcado OK') : '';
       return `<button onclick="event.stopPropagation();this.closest('.av-elige').remove();alternarUnidadAvance(${i})"><span class="av-dot ${claseUnidadAv(R, id)}"></span>${escHtml(id)}<span style="font-family:var(--sans);font-weight:500;font-size:11px;color:var(--text3)">${marca}</span></button>`; }).join('')}
-  </div>`;
-  mapa.insertAdjacentHTML('beforeend', html);
+  </div>`);
 }
 function alternarUnidadAvance(i) {
   const A = STATE._av, id = A.data.config.unidades[i]?.id;
@@ -7975,7 +8012,7 @@ async function borrarRegistroAvance(rid) {
 function abrirConfigAvance() {
   const A = STATE._av, p = STATE.proyectos.find(x => x.id === A.pid) || {}, cfg = A.data?.config;
   const tipo = cfg?.tipo || tipoSugeridoAvance(p);
-  STATE._avCfg = { tipo, mapa_url: cfg?.mapa_url || null, pos: Object.fromEntries((cfg?.unidades || []).filter(u => u.x != null).map(u => [u.id, { x: u.x, y: u.y }])) };
+  STATE._avCfg = { tipo, mapa_url: cfg?.mapa_url || null, pos: Object.fromEntries((cfg?.unidades || []).filter(u => u.x != null).map(u => [u.id, { x: u.x, y: u.y, poly: u.poly }])) };
   const lista = (cfg?.unidades || []).map(u => u.id).join('\n');
   openPanel('Configurar parque', `
     <div class="panel-section">
@@ -7998,7 +8035,7 @@ function abrirConfigAvance() {
     </div>
     <div class="panel-section">
       <div class="panel-section-title">MAPA DEL PARQUE <span class="np-opc" style="text-transform:none;letter-spacing:0">opcional</span></div>
-      <div class="av-nota" style="margin-bottom:8px">Sube una imagen o esquema (JPG/PNG). Después ubicas cada ${tipo === 'solar' ? 'bloque' : 'WTG'} con un toque y el sistema lo pinta verde o amarillo solo.</div>
+      <div class="av-nota" style="margin-bottom:8px">Sube una imagen o esquema (JPG/PNG). Después ubicas cada ${tipo === 'solar' ? 'bloque (como punto o dibujando su área)' : 'WTG'} y el sistema lo pinta solo: verde concluido, rojo incidencia, gris pendiente.</div>
       <div id="av-cfg-mapa"></div>
       <input type="file" id="av-cfg-file" accept="image/*" style="display:none" onchange="subirMapaAvance(this)">
     </div>`,
@@ -8069,7 +8106,7 @@ async function subirMapaAvance(input) {
 async function guardarConfigAvance(luegoUbicar) {
   const C = STATE._avCfg, ids = listaConfigAvance();
   if (!ids.length) { toast('Agrega al menos un aerogenerador o bloque.', 'error'); return; }
-  const unidades = ids.map(id => C.pos[id] ? { id, x: C.pos[id].x, y: C.pos[id].y } : { id });
+  const unidades = ids.map(id => C.pos[id] ? { id, x: C.pos[id].x, y: C.pos[id].y, ...(C.pos[id].poly ? { poly: C.pos[id].poly } : {}) } : { id });
   const r = await api('PUT', `/avance/${encodeURIComponent(STATE._av.pid)}/config`, { tipo: C.tipo, unidades, mapa_url: C.mapa_url });
   if (!r) return;
   STATE._av.data.config = r; STATE._av.vista = null;
@@ -8083,7 +8120,8 @@ function abrirUbicadorAvance() {
   const cfg = STATE._av.data.config;
   if (!cfg?.mapa_url) return;
   const primeraSin = cfg.unidades.findIndex(u => u.x == null);
-  STATE._avUb = { unidades: cfg.unidades.map(u => ({ ...u })), i: primeraSin >= 0 ? primeraSin : 0 };
+  STATE._avUb = { unidades: cfg.unidades.map(u => ({ ...u, poly: u.poly ? u.poly.map(p => [...p]) : undefined })), i: primeraSin >= 0 ? primeraSin : 0,
+    modo: cfg.tipo === 'solar' ? 'area' : 'punto', borrador: [] };
   let ov = document.getElementById('av-ubic');
   if (!ov) { ov = document.createElement('div'); ov.id = 'av-ubic'; ov.className = 'av-ubic'; document.body.appendChild(ov); }
   ov.style.display = 'flex'; ov.innerHTML = '';
@@ -8098,33 +8136,69 @@ function pintarUbicador() {
         <div class="av-ubic-txt" id="av-ub-txt"></div>
         <button class="btn btn-ghost btn-sm" onclick="moverUbicador(-1)" title="Anterior"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
         <button class="btn btn-ghost btn-sm" onclick="moverUbicador(1)" title="Siguiente"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
-        <button class="btn btn-ghost btn-sm" id="av-ub-quitar" onclick="delete STATE._avUb.unidades[STATE._avUb.i].x;delete STATE._avUb.unidades[STATE._avUb.i].y;pintarUbicador()"><i class="ti ti-eraser" aria-hidden="true"></i> Quitar</button>
+        <div class="av-seg" id="av-ub-modo"></div>
+        <button class="btn btn-ghost btn-sm" id="av-ub-deshacer" onclick="STATE._avUb.borrador.pop();pintarUbicador()"><i class="ti ti-arrow-back-up" aria-hidden="true"></i> Deshacer punto</button>
+        <button class="btn btn-sm av-btn-cerrar" id="av-ub-cerrar" onclick="cerrarAreaUbicador()"><i class="ti ti-polygon" aria-hidden="true"></i> Cerrar área</button>
+        <button class="btn btn-ghost btn-sm" id="av-ub-quitar" onclick="quitarUbicacionUbicador()"><i class="ti ti-eraser" aria-hidden="true"></i> Quitar</button>
         <button class="btn btn-ghost btn-sm" onclick="cerrarUbicadorAvance()">Cancelar</button>
         <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, guardarUbicadorAvance)"><i class="ti ti-device-floppy" aria-hidden="true"></i> Guardar</button>
       </div>
       <div class="av-ubic-lienzo">${htmlMapaAvance({ ...cfg, unidades: [] }, null, 'ubicar', -1)}</div>
       <div class="av-ubic-chips" id="av-ub-chips"></div>`;
   }
-  ov.querySelector('#av-ub-txt').innerHTML = `Toca el mapa para ubicar <b>${escHtml(actual?.id || '')}</b> · ${puestas}/${U.unidades.length} ubicadas`;
-  ov.querySelector('#av-ub-quitar').disabled = actual?.x == null;
+  const area = U.modo === 'area', nb = U.borrador.length;
+  ov.querySelector('#av-ub-txt').innerHTML = area
+    ? (nb ? `Dibujando <b>${escHtml(actual?.id || '')}</b>: ${nb} punto${nb === 1 ? '' : 's'} · toca el primer punto, haz doble clic o «Cerrar área» para terminar`
+          : `Toca las esquinas del área de <b>${escHtml(actual?.id || '')}</b> · ${puestas}/${U.unidades.length} ubicadas`)
+    : `Toca el mapa para ubicar <b>${escHtml(actual?.id || '')}</b> · ${puestas}/${U.unidades.length} ubicadas`;
+  ov.querySelector('#av-ub-modo').innerHTML = `<button class="${!area ? 'on neu' : ''}" onclick="cambiarModoUbicador('punto')"><i class="ti ti-map-pin" aria-hidden="true"></i>Punto</button><button class="${area ? 'on neu' : ''}" onclick="cambiarModoUbicador('area')"><i class="ti ti-polygon" aria-hidden="true"></i>Área</button>`;
+  ov.querySelector('#av-ub-deshacer').style.display = area ? '' : 'none';
+  ov.querySelector('#av-ub-cerrar').style.display = area ? '' : 'none';
+  ov.querySelector('#av-ub-deshacer').disabled = !nb;
+  ov.querySelector('#av-ub-cerrar').disabled = nb < 3;
+  ov.querySelector('#av-ub-quitar').disabled = actual?.x == null && !nb;
   const mapa = ov.querySelector('#av-mapa-ubicar');
-  mapa.querySelectorAll('.av-pin').forEach(el => el.remove());
+  mapa.querySelectorAll('.av-pin, .av-polys, .av-vert').forEach(el => el.remove());
+  mapa.insertAdjacentHTML('beforeend', svgPolysAvance(U.unidades, (u, i) => i === U.i ? 'ub actual' : 'ub', U.borrador)
+    + U.borrador.map((p, k) => `<div class="av-vert ${k === 0 ? 'primero' : ''}" style="left:${p[0]}%;top:${p[1]}%"></div>`).join(''));
   mapa.insertAdjacentHTML('beforeend', U.unidades.map((u, i) => u.x == null ? '' :
-    `<div class="av-pin ${i === U.i ? 'actual' : 'ok'}" style="left:${u.x}%;top:${u.y}%" onclick="event.stopPropagation();STATE._avUb.i=${i};pintarUbicador()" title="${escHtml(u.id)}">${escHtml(etqCorta(u.id))}</div>`).join(''));
+    `<div class="av-pin ${i === U.i ? 'actual' : 'ok'}" style="left:${u.x}%;top:${u.y}%" onclick="event.stopPropagation();if(STATE._avUb.borrador.length)return;STATE._avUb.i=${i};pintarUbicador()" title="${escHtml(u.id)}">${escHtml(etqCorta(u.id))}</div>`).join(''));
   const ch = ov.querySelector('#av-ub-chips'), x = ch.scrollLeft;
-  ch.innerHTML = U.unidades.map((u, i) => `<button class="${i === U.i ? 'actual' : u.x != null ? 'puesto' : ''}" onclick="STATE._avUb.i=${i};pintarUbicador()">${escHtml(u.id)}</button>`).join('');
+  ch.innerHTML = U.unidades.map((u, i) => `<button class="${i === U.i ? 'actual' : u.x != null ? 'puesto' : ''}" onclick="STATE._avUb.i=${i};STATE._avUb.borrador=[];pintarUbicador()">${escHtml(u.id)}</button>`).join('');
   ch.scrollLeft = x;
   const act = ch.querySelector('.actual');
   if (act && (act.offsetLeft < ch.scrollLeft || act.offsetLeft + act.offsetWidth > ch.scrollLeft + ch.clientWidth)) ch.scrollLeft = act.offsetLeft - ch.clientWidth / 2;
 }
-function moverUbicador(d) { const U = STATE._avUb; U.i = (U.i + d + U.unidades.length) % U.unidades.length; pintarUbicador(); }
+function moverUbicador(d) { const U = STATE._avUb; U.borrador = []; U.i = (U.i + d + U.unidades.length) % U.unidades.length; pintarUbicador(); }
+function cambiarModoUbicador(m) { const U = STATE._avUb; U.modo = m; U.borrador = []; pintarUbicador(); }
+function quitarUbicacionUbicador() { const U = STATE._avUb, u = U.unidades[U.i]; delete u.x; delete u.y; delete u.poly; U.borrador = []; pintarUbicador(); }
+function siguienteSinUbicar() {
+  const U = STATE._avUb, sig = U.unidades.findIndex((x, k) => k > U.i && x.x == null);
+  if (sig >= 0) U.i = sig; else if (U.i < U.unidades.length - 1) U.i++;
+}
+function cerrarAreaUbicador() {
+  const U = STATE._avUb, u = U.unidades[U.i];
+  if (!u || U.borrador.length < 3) return;
+  u.poly = U.borrador.map(p => [...p]);
+  [u.x, u.y] = centroPoly(u.poly);       // el número va al centro del área
+  U.borrador = [];
+  siguienteSinUbicar();
+  pintarUbicador();
+}
 function clicMapaUbicar(ev) {
   const U = STATE._avUb, box = ev.currentTarget.getBoundingClientRect();
   const u = U.unidades[U.i]; if (!u) return;
-  u.x = Math.round((ev.clientX - box.left) * 10000 / box.width) / 100;
-  u.y = Math.round((ev.clientY - box.top) * 10000 / box.height) / 100;
-  const sig = U.unidades.findIndex((x, k) => k > U.i && x.x == null);
-  if (sig >= 0) U.i = sig; else if (U.i < U.unidades.length - 1) U.i++;
+  const x = Math.round((ev.clientX - box.left) * 10000 / box.width) / 100;
+  const y = Math.round((ev.clientY - box.top) * 10000 / box.height) / 100;
+  if (U.modo === 'area') {
+    const b = U.borrador;
+    if (ev.detail >= 2 && b.length >= 3) { b.pop(); cerrarAreaUbicador(); return; }   // doble clic = terminar
+    // tocar cerca del primer punto también cierra el área
+    if (b.length >= 3) { const px0 = b[0][0] * box.width / 100, py0 = b[0][1] * box.height / 100; if (Math.hypot(px0 - (ev.clientX - box.left), py0 - (ev.clientY - box.top)) < 12) { cerrarAreaUbicador(); return; } }
+    b.push([x, y]); pintarUbicador(); return;
+  }
+  u.x = x; u.y = y; delete u.poly;
+  siguienteSinUbicar();
   pintarUbicador();
 }
 function cerrarUbicadorAvance() { const ov = document.getElementById('av-ubic'); if (ov) ov.style.display = 'none'; pintarAvance(); }
@@ -8218,6 +8292,14 @@ async function mapaAvanceCanvas(cfg, R) {
   cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, cv.width, cv.height);
   cx.drawImage(img, pad, pad, w, h);
   cx.strokeStyle = '#e4e4e7'; cx.lineWidth = 2; cx.strokeRect(pad, pad, w, h);
+  // áreas (polígonos) con el color del estatus, semitransparentes, debajo de los números
+  cfg.unidades.forEach(u => {
+    if (!(u.poly?.length >= 3)) return;
+    const e = R.estado[u.id]?.estatus, k = e === 'ok' ? AV_COL.ok : e === 'incidencia' ? AV_COL.inc : AV_COL.pend;
+    cx.beginPath(); u.poly.forEach(([px, py], i) => { const X = pad + px * w / 100, Y = pad + py * h / 100; i ? cx.lineTo(X, Y) : cx.moveTo(X, Y); }); cx.closePath();
+    cx.fillStyle = `rgba(${k.c.join(',')},${e ? 0.55 : 0.32})`; cx.fill();
+    cx.lineWidth = Math.max(2, w / 600); cx.strokeStyle = avHex(k.tx); cx.lineJoin = 'round'; cx.stroke();
+  });
   // pendientes → concluidas → incidencias (las rojas quedan siempre encima). Si un pin cae encima de otro, va como punto sin número
   const prio = u => ({ incidencia: 2, ok: 1 })[R.estado[u.id]?.estatus] || 0;
   const puestos = [];
