@@ -1289,6 +1289,32 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .av-polys polyline{fill:none;stroke:#3B82F6;stroke-width:2.5;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
 .av-vert{position:absolute;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:#3B82F6;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.5);pointer-events:none}
 .av-vert.primero{width:14px;height:14px;margin:-7px 0 0 -7px;background:#fff;border-color:#3B82F6}
+.av-btn-fs{width:100%;min-height:48px;justify-content:center;font-size:14.5px;margin:4px 0 10px}
+.av-mini{position:relative;cursor:pointer}
+.av-mini .av-mapa{pointer-events:none}
+.av-mini::after{content:'';position:absolute;inset:0}
+.av-mini-tip{position:absolute;right:8px;bottom:8px;z-index:6;font-size:11.5px;font-weight:600;color:#fff;background:rgba(0,0,0,.6);padding:5px 9px;border-radius:999px;display:inline-flex;gap:5px;align-items:center}
+html.av-fs-abierto, html.av-fs-abierto body{overflow:hidden !important;overscroll-behavior:none}
+html.av-fs-abierto .content{overflow:hidden !important}
+.av-fs{position:fixed;inset:0;z-index:1300;background:#0b0b0c;display:flex;flex-direction:column;touch-action:none}
+.av-fs-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;background:var(--surface);border-bottom:1px solid var(--border)}
+.av-fs-x{width:42px;height:42px;border-radius:10px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:20px;display:inline-flex;align-items:center;justify-content:center}
+.av-fs-vista{flex:1;position:relative;overflow:hidden;touch-action:none;background:#0b0b0c}
+.av-fs-lienzo{position:absolute;left:0;top:0;transform-origin:0 0}   /* sin will-change: así el navegador redibuja nítido al acercar */
+.av-fs-lienzo .av-mapa{border:0;border-radius:0}
+.av-fs-lienzo .av-mapa img{border-radius:0}
+.av-fs .av-pin{min-width:24px;height:24px;font-size:10.5px;transform:translate(-50%,-50%) scale(calc(1 / var(--z, 1)));pointer-events:none}
+.av-fs .av-pin.sel{transform:translate(-50%,-50%) scale(calc(1.18 / var(--z, 1)))}
+.av-fs-zoom{position:absolute;right:12px;top:calc(76px + env(safe-area-inset-top));display:flex;flex-direction:column;gap:6px;z-index:3}
+.av-fs-zoom button{width:44px;height:44px;border-radius:10px;border:1px solid var(--border2);background:rgba(30,30,33,.92);color:var(--text);font-size:20px;display:inline-flex;align-items:center;justify-content:center}
+.av-fs-ayuda{position:absolute;left:12px;right:68px;top:calc(76px + env(safe-area-inset-top));font-size:11.5px;color:#e5e5e5;background:rgba(0,0,0,.55);padding:6px 10px;border-radius:8px;pointer-events:none;z-index:3}
+.av-fs-pie{display:flex;align-items:center;gap:10px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border)}
+.av-fs-cuenta{flex:1;font-size:12.5px;color:var(--text2);min-width:0}
+.av-fs-ok{min-height:48px;font-size:14px;white-space:nowrap}
+.av-fs-elige{position:absolute;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:5;background:var(--surface);border:1px solid var(--border2);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.6);padding:10px;display:flex;flex-direction:column;gap:6px}
+.av-fs-elige[hidden]{display:none}
+.av-fs-elige button{display:flex;align-items:center;gap:8px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:var(--mono);font-weight:700;font-size:14px;border-radius:10px;padding:12px;min-height:46px;text-align:left}
+.av-fs-elige .av-fs-elige-no{justify-content:center;font-family:var(--sans);font-weight:600;color:var(--text2)}
 .av-elige{position:absolute;z-index:20;transform:translate(-50%,8px);background:var(--surface);border:1px solid var(--border2);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.5);padding:8px;display:flex;flex-direction:column;gap:6px;min-width:150px}
 .av-elige-tit{font-size:11px;color:var(--text3);font-weight:600;padding:0 2px}
 .av-elige button{display:flex;align-items:center;gap:8px;justify-content:flex-start;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:var(--mono);font-weight:700;font-size:13px;border-radius:8px;padding:9px 10px;cursor:pointer;min-height:40px}
@@ -7799,7 +7825,9 @@ function pintarAvance() {
         <span class="av-ley-sep"></span>
         <span><span class="av-dot sel"></span>Marcado OK</span><span><span class="av-dot selinc"></span>Marcado incidencia</span>
       </div>
-      ${vista === 'mapa' ? `<div style="position:relative"><div class="av-zoom ${A.zoom ? 'on' : ''}" id="av-zoom">${htmlMapaAvance(cfg, R, 'captura')}</div>
+      ${vista === 'mapa' && esCelular() ? `<button class="btn btn-primary av-btn-fs" onclick="abrirMapaFs()"><i class="ti ti-zoom-in" aria-hidden="true"></i> Abrir mapa en pantalla completa</button>
+        <div class="av-mini" onclick="abrirMapaFs()">${htmlMapaAvance(cfg, R, 'captura')}<span class="av-mini-tip"><i class="ti ti-hand-finger" aria-hidden="true"></i> Toca para seleccionar</span></div>` : ''}
+      ${vista === 'mapa' && !esCelular() ? `<div style="position:relative"><div class="av-zoom ${A.zoom ? 'on' : ''}" id="av-zoom">${htmlMapaAvance(cfg, R, 'captura')}</div>
         <button class="btn btn-ghost btn-sm av-lupa" onclick="STATE._av.zoom=!STATE._av.zoom;pintarAvance()" title="${A.zoom ? 'Alejar' : 'Acercar'}"><i class="ti ti-zoom-${A.zoom ? 'out' : 'in'}" aria-hidden="true"></i> ${A.zoom ? 'Alejar' : 'Acercar'}</button></div>
         <div class="av-aviso-modo" id="av-pines-aviso" style="display:none"><i class="ti ti-hand-finger" aria-hidden="true"></i><span>Los ${T.varios} están muy juntos para tocarlos con precisión. Usa <b>Acercar</b> o la vista <b>Lista</b>.</span>
           <button class="btn btn-ghost btn-sm" onclick="STATE._av.vista='grid';pintarAvance()"><i class="ti ti-layout-grid" aria-hidden="true"></i> Lista</button></div>` : ''}
@@ -7840,7 +7868,7 @@ function ajustarPinesAvance() {
   const tam = Math.max(15, Math.min(24, Math.floor(sep * 0.92)));
   m.style.setProperty('--av-pin', tam + 'px');
   const av = document.getElementById('av-pines-aviso');
-  if (av) av.style.display = (sep < 14 && !STATE._av.zoom) ? 'flex' : 'none';   // demasiado juntos para el dedo
+  if (av) av.style.display = (sep < 14 && !STATE._av.zoom && !esCelular()) ? 'flex' : 'none';   // demasiado juntos para el dedo
 }
 // Un campo obligatorio por cada unidad marcada con incidencia
 function cambiarModoAvance(modo) {
@@ -7940,13 +7968,18 @@ function svgPolysAvance(unidades, clase, borrador) {
   return `<svg class="av-polys" viewBox="0 0 100 100" preserveAspectRatio="none">${unidades.map((u, i) => u.poly?.length >= 3
     ? `<polygon class="${clase(u, i)}" points="${u.poly.map(p => p.join(',')).join(' ')}"/>` : '').join('')}${borrador?.length ? `<polyline points="${borrador.map(p => p.join(',')).join(' ')}"/>` : ''}</svg>`;
 }
+// modo: 'captura' (embebido) | 'fs' (pantalla completa, celular) | 'ubicar' (editor)
+function htmlCapasMapaAvance(cfg, R, modo, actual) {
+  const A = STATE._av, marca = u => A.sel.has(u.id) ? (A.inc?.has(u.id) ? ' sel selinc' : ' sel') : '';
+  return `${modo !== 'ubicar' ? svgPolysAvance(cfg.unidades, u => claseUnidadAv(R, u.id) + marca(u)) : ''}
+    ${cfg.unidades.map((u, i) => u.x == null ? '' : `<div class="av-pin ${modo === 'ubicar' ? (i === actual ? 'actual' : 'ok') : claseUnidadAv(R, u.id) + marca(u)}" style="left:${u.x}%;top:${u.y}%"
+      ${modo === 'ubicar' ? `onclick="event.stopPropagation();STATE._avUb.i=${i};pintarUbicador()"` : `data-i="${i}"`} title="${escHtml(modo === 'ubicar' ? u.id : tituloUnidadAv(R, u.id))}">${escHtml(etqCorta(u.id))}</div>`).join('')}`;
+}
 function htmlMapaAvance(cfg, R, modo, actual) {
-  const A = STATE._av;
-  return `<div class="av-mapa" id="av-mapa-${modo}" onclick="${modo === 'ubicar' ? 'clicMapaUbicar(event)' : 'clicMapaCaptura(event)'}">
+  const click = modo === 'ubicar' ? 'clicMapaUbicar(event)' : modo === 'fs' ? '' : (esCelular() ? 'abrirMapaFs()' : 'clicMapaCaptura(event)');
+  return `<div class="av-mapa" id="av-mapa-${modo}" ${click ? `onclick="${click}"` : ''}>
     <img src="${escHtml(cfg.mapa_url)}" alt="Mapa del parque" draggable="false">
-    ${modo === 'captura' ? svgPolysAvance(cfg.unidades, u => claseUnidadAv(R, u.id) + (A.sel.has(u.id) ? (A.inc?.has(u.id) ? ' sel selinc' : ' sel') : '')) : ''}
-    ${cfg.unidades.map((u, i) => u.x == null ? '' : `<div class="av-pin ${modo === 'ubicar' ? (i === actual ? 'actual' : 'ok') : claseUnidadAv(R, u.id) + (A.sel.has(u.id) ? (A.inc?.has(u.id) ? ' sel selinc' : ' sel') : '')}" style="left:${u.x}%;top:${u.y}%"
-      ${modo === 'ubicar' ? `onclick="event.stopPropagation();STATE._avUb.i=${i};pintarUbicador()"` : `data-i="${i}"`} title="${escHtml(modo === 'ubicar' ? u.id : tituloUnidadAv(R, u.id))}">${escHtml(etqCorta(u.id))}</div>`).join('')}
+    ${htmlCapasMapaAvance(cfg, R, modo, actual)}
   </div>`;
 }
 function htmlHistorialAvance(cfg) {
@@ -7964,6 +7997,165 @@ function htmlHistorialAvance(cfg) {
         <button class="btn btn-ghost btn-sm" title="Borrar registro" onclick="borrarRegistroAvance(${r.id})"><i class="ti ti-trash" aria-hidden="true"></i></button>
       </div>`).join('')}</div>`;
   }).join('');
+}
+
+// ── Celular: mapa en pantalla completa para seleccionar (pellizcar para acercar, arrastrar para mover) ──
+// En el celular, tocar el mapa embebido re-pintaba la página y la hacía brincar. Aquí la selección
+// solo actualiza los puntos del visor; al "Aplicar" se regresa al formulario con todo marcado.
+function abrirMapaFs() {
+  const A = STATE._av, cfg = A.data?.config; if (!cfg?.mapa_url) return;
+  A._fsPrev = { sel: new Set(A.sel), inc: new Set(A.inc), estatus: A.estatus };
+  let ov = document.getElementById('av-fs');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'av-fs'; ov.className = 'av-fs'; document.body.appendChild(ov); }
+  const T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico;
+  ov.innerHTML = `
+    <div class="av-fs-top">
+      <button class="av-fs-x" onclick="cerrarMapaFs(false)" aria-label="Cancelar"><i class="ti ti-x" aria-hidden="true"></i></button>
+      <div class="av-seg" id="av-fs-modo"></div>
+    </div>
+    <div class="av-fs-vista" id="av-fs-vista"><div class="av-fs-lienzo" id="av-fs-lienzo">${htmlMapaAvance(cfg, calcAvance(cfg, A.data.registros), 'fs')}</div></div>
+    <div class="av-fs-zoom">
+      <button onclick="zoomMapaFs(1.6)" aria-label="Acercar"><i class="ti ti-plus" aria-hidden="true"></i></button>
+      <button onclick="zoomMapaFs(1/1.6)" aria-label="Alejar"><i class="ti ti-minus" aria-hidden="true"></i></button>
+      <button onclick="ajustarMapaFs()" aria-label="Ver todo"><i class="ti ti-arrows-minimize" aria-hidden="true"></i></button>
+    </div>
+    <div class="av-fs-ayuda" id="av-fs-ayuda">Pellizca para acercar · arrastra para mover · toca un ${T.uno} para marcarlo</div>
+    <div class="av-fs-elige" id="av-fs-elige" hidden></div>
+    <div class="av-fs-pie">
+      <div class="av-fs-cuenta" id="av-fs-cuenta"></div>
+      <button class="btn btn-primary av-fs-ok" id="av-fs-ok" onclick="cerrarMapaFs(true)"></button>
+    </div>`;
+  ov.style.display = 'flex';
+  document.documentElement.classList.add('av-fs-abierto');   // bloquea el scroll de la página de atrás
+  const Z = STATE._avFs = { s: 1, tx: 0, ty: 0, punteros: new Map() };
+  const vista = ov.querySelector('#av-fs-vista');
+  vista.addEventListener('pointerdown', fsPointerDown);
+  vista.addEventListener('pointermove', fsPointerMove);
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => vista.addEventListener(t, fsPointerUp));
+  vista.addEventListener('wheel', e => { e.preventDefault(); zoomMapaFs(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX, e.clientY); }, { passive: false });
+  const img = ov.querySelector('#av-mapa-fs img');
+  if (img.complete && img.naturalWidth) ajustarMapaFs(); else img.addEventListener('load', ajustarMapaFs, { once: true });
+  pintarFsAvance();
+}
+function cerrarMapaFs(aplicar) {
+  const A = STATE._av, ov = document.getElementById('av-fs');
+  if (!aplicar && A._fsPrev) { A.sel = A._fsPrev.sel; A.inc = A._fsPrev.inc; A.estatus = A._fsPrev.estatus; }
+  A._fsPrev = null; A.ofrecerModo = null;
+  if (ov) { ov.style.display = 'none'; ov.innerHTML = ''; }
+  document.documentElement.classList.remove('av-fs-abierto');
+  pintarAvance();
+  if (aplicar && A.sel.size) {
+    // lleva al técnico directo a las notas de hallazgo (si hay) o a Guardar registro
+    const destino = document.querySelector('.av-hallazgo.falta input') || document.querySelector('.av-registrar');
+    setTimeout(() => destino?.scrollIntoView({ block: 'center' }), 60);
+  }
+}
+function pintarFsAvance() {
+  const A = STATE._av, cfg = A.data.config, R = calcAvance(cfg, A.data.registros), ov = document.getElementById('av-fs'); if (!ov) return;
+  const mapa = ov.querySelector('#av-mapa-fs');
+  mapa.querySelectorAll('.av-pin, .av-polys').forEach(el => el.remove());
+  mapa.insertAdjacentHTML('beforeend', htmlCapasMapaAvance(cfg, R, 'fs'));
+  ov.querySelector('#av-fs-modo').innerHTML = `
+    <button class="ok ${A.estatus === 'ok' ? 'on' : ''}" onclick="STATE._av.estatus='ok';pintarFsAvance()"><i class="ti ti-circle-check" aria-hidden="true"></i>OK</button>
+    <button class="inc ${A.estatus === 'incidencia' ? 'on' : ''}" onclick="STATE._av.estatus='incidencia';pintarFsAvance()"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Incidencia</button>`;
+  const T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico, n = A.sel.size;
+  const nInc = [...A.inc].filter(id => A.sel.has(id)).length, nOk = n - nInc;
+  ov.querySelector('#av-fs-cuenta').innerHTML = n
+    ? `<b style="color:var(--av-ok-tx)">${nOk} OK</b> · <b style="color:var(--av-inc-tx)">${nInc} incidencia${nInc === 1 ? '' : 's'}</b>`
+    : `Toca los ${T.varios} atendidos`;
+  const ok = ov.querySelector('#av-fs-ok');
+  ok.innerHTML = `<i class="ti ti-check" aria-hidden="true"></i> ${n ? `Aplicar selección (${n} ${n === 1 ? T.uno : T.varios})` : 'Listo'}`;
+}
+// Transformación del lienzo (zoom/paneo)
+function aplicarTransformFs() {
+  const Z = STATE._avFs, lz = document.getElementById('av-fs-lienzo'), vista = document.getElementById('av-fs-vista'); if (!lz || !Z) return;
+  const w = lz.offsetWidth * Z.s, h = lz.offsetHeight * Z.s, vw = vista.clientWidth, vh = vista.clientHeight;
+  Z.tx = w <= vw ? (vw - w) / 2 : Math.min(0, Math.max(vw - w, Z.tx));
+  Z.ty = h <= vh ? (vh - h) / 2 : Math.min(0, Math.max(vh - h, Z.ty));
+  lz.style.transform = `translate(${Z.tx}px, ${Z.ty}px) scale(${Z.s})`;
+  lz.style.setProperty('--z', Z.s);
+}
+function ajustarMapaFs() {
+  const Z = STATE._avFs, lz = document.getElementById('av-fs-lienzo'), vista = document.getElementById('av-fs-vista'); if (!lz || !Z) return;
+  lz.style.width = vista.clientWidth + 'px';
+  const h = lz.offsetHeight;
+  Z.s = h > vista.clientHeight ? vista.clientHeight / h : 1; Z.tx = 0; Z.ty = 0;
+  Z.sMin = Z.s;
+  aplicarTransformFs();
+}
+function zoomMapaFs(f, cx, cy) {
+  const Z = STATE._avFs, vista = document.getElementById('av-fs-vista'); if (!Z || !vista) return;
+  const r = vista.getBoundingClientRect();
+  cx = (cx ?? r.left + r.width / 2) - r.left; cy = (cy ?? r.top + r.height / 2) - r.top;
+  const s2 = Math.min(8, Math.max(Z.sMin || 1, Z.s * f)), k = s2 / Z.s;
+  Z.tx = cx - (cx - Z.tx) * k; Z.ty = cy - (cy - Z.ty) * k; Z.s = s2;
+  aplicarTransformFs();
+}
+function fsPointerDown(e) {
+  const Z = STATE._avFs; if (!Z) return;
+  if (e.target.closest('.av-fs-elige')) return;
+  e.currentTarget.setPointerCapture?.(e.pointerId);
+  Z.punteros.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (Z.punteros.size === 1) { Z.toque = { x: e.clientX, y: e.clientY, t: Date.now(), movio: false }; Z.base = { tx: Z.tx, ty: Z.ty }; }
+  if (Z.punteros.size === 2) {
+    const [a, b] = [...Z.punteros.values()];
+    Z.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), s: Z.s, tx: Z.tx, ty: Z.ty, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+    if (Z.toque) Z.toque.movio = true;
+  }
+}
+function fsPointerMove(e) {
+  const Z = STATE._avFs; if (!Z || !Z.punteros.has(e.pointerId)) return;
+  Z.punteros.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  const r = e.currentTarget.getBoundingClientRect();
+  if (Z.punteros.size >= 2 && Z.pinch) {
+    const [a, b] = [...Z.punteros.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+    const s2 = Math.min(8, Math.max(Z.sMin || 1, Z.pinch.s * d / Z.pinch.d)), k = s2 / Z.pinch.s;
+    const mx = (a.x + b.x) / 2 - r.left, my = (a.y + b.y) / 2 - r.top, mx0 = Z.pinch.mx - r.left, my0 = Z.pinch.my - r.top;
+    Z.s = s2; Z.tx = mx - (mx0 - Z.pinch.tx) * k; Z.ty = my - (my0 - Z.pinch.ty) * k;
+    aplicarTransformFs(); return;
+  }
+  if (Z.toque) {
+    const dx = e.clientX - Z.toque.x, dy = e.clientY - Z.toque.y;
+    if (Math.hypot(dx, dy) > 8) Z.toque.movio = true;
+    if (Z.toque.movio) { Z.tx = Z.base.tx + dx; Z.ty = Z.base.ty + dy; aplicarTransformFs(); }
+  }
+}
+function fsPointerUp(e) {
+  const Z = STATE._avFs; if (!Z || !Z.punteros.has(e.pointerId)) return;
+  Z.punteros.delete(e.pointerId);
+  if (Z.punteros.size < 2) Z.pinch = null;
+  if (Z.punteros.size === 0) {
+    const t = Z.toque; Z.toque = null;
+    if (t && !t.movio && e.type === 'pointerup' && Date.now() - t.t < 600) tocarMapaFs(e.clientX, e.clientY);
+  } else {   // quedó un dedo tras pellizcar: sigue como arrastre desde aquí
+    const [p] = [...Z.punteros.values()]; Z.toque = { x: p.x, y: p.y, t: Date.now(), movio: true }; Z.base = { tx: Z.tx, ty: Z.ty };
+  }
+}
+function tocarMapaFs(x, y) {
+  const mapa = document.getElementById('av-mapa-fs'), A = STATE._av, cfg = A.data.config; if (!mapa) return;
+  document.getElementById('av-fs-elige').hidden = true;
+  const lista = candidatosMapaAvance(mapa, x, y);
+  if (!lista.length) return;
+  if (lista.length === 1) { marcarUnidadAvance(cfg.unidades[lista[0]].id, true); pintarFsAvance(); return; }
+  const R = calcAvance(cfg, A.data.registros), el = document.getElementById('av-fs-elige');
+  el.innerHTML = `<div class="av-elige-tit">Hay ${lista.length} juntos, ¿cuál?</div>
+    ${lista.map(i => { const id = cfg.unidades[i].id, marca = A.sel.has(id) ? (A.inc.has(id) ? ' · marcado incidencia' : ' · marcado OK') : '';
+      return `<button onclick="document.getElementById('av-fs-elige').hidden=true;marcarUnidadAvance(${escHtml(JSON.stringify(id))}, true);pintarFsAvance()"><span class="av-dot ${claseUnidadAv(R, id)}"></span>${escHtml(id)}<span style="font-family:var(--sans);font-weight:500;font-size:11px;color:var(--text3)">${marca}</span></button>`; }).join('')}
+    <button class="av-fs-elige-no" onclick="document.getElementById('av-fs-elige').hidden=true">Cancelar</button>`;
+  el.hidden = false;
+}
+// Unidades bajo un punto de la pantalla: pines cercanos (en px reales, con zoom) o áreas que lo contienen
+function candidatosMapaAvance(mapa, x, y) {
+  const cfg = STATE._av.data.config, cand = new Map();
+  mapa.querySelectorAll('.av-pin[data-i]').forEach(el => {
+    const r = el.getBoundingClientRect(), d = Math.hypot(r.left + r.width / 2 - x, r.top + r.height / 2 - y);
+    if (d <= Math.max(16, r.height * 0.8)) cand.set(+el.dataset.i, d);
+  });
+  if (!cand.size) {
+    const box = mapa.getBoundingClientRect(), pt = [(x - box.left) * 100 / box.width, (y - box.top) * 100 / box.height];
+    cfg.unidades.forEach((u, i) => { if (u.poly?.length >= 3 && dentroPoly(pt, u.poly)) cand.set(i, 999); });
+  }
+  return [...cand.entries()].sort((a, b) => a[1] - b[1]).map(([i]) => i);
 }
 
 // ── Captura ──
