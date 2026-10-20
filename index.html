@@ -1243,7 +1243,6 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .av-tile.selinc{box-shadow:0 0 0 2px var(--red-text)}
 .av-tile.selinc::after{background:var(--red-text) !important}
 .av-dot.selinc{background:transparent;box-shadow:inset 0 0 0 2px var(--red-text)}
-.av-pin.selinc{outline-color:#ef4444}
 .av-aviso-modo{margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-radius:10px;border:1px solid var(--amber-border);background:var(--amber-bg);font-size:12.5px;color:var(--text2)}
 .av-aviso-modo span{flex:1;min-width:200px}.av-aviso-modo b{color:var(--text)}.av-aviso-modo > i{color:var(--amber);font-size:18px}
 .av-btn-inc{background:#dc2626 !important;border-color:#dc2626 !important;color:#fff !important}
@@ -1265,7 +1264,12 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .av-mapa img{border-radius:8px;display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none}
 .av-pin{position:absolute;transform:translate(-50%,-50%);min-width:var(--av-pin,24px);height:var(--av-pin,24px);padding:0 calc(var(--av-pin,24px)*.2);border-radius:999px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:calc(var(--av-pin,24px)*.44);font-weight:700;color:#fff;background:#d97706;border:2px solid rgba(255,255,255,.9);box-shadow:0 1px 4px rgba(0,0,0,.45);cursor:pointer;user-select:none}
 .av-pin.ok{background:#16a34a}.av-pin.inc{background:#dc2626}
-.av-pin.sel{outline:3px solid #3b82f6;outline-offset:1px;transform:translate(-50%,-50%) scale(1.15)}
+.av-pin.sel{outline:3px solid #3b82f6;outline-offset:1px;transform:translate(-50%,-50%) scale(1.15);background:#2563eb;z-index:5}
+.av-pin.sel.selinc{outline-color:#ef4444;background:#dc2626}
+.av-elige{position:absolute;z-index:20;transform:translate(-50%,8px);background:var(--surface);border:1px solid var(--border2);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.5);padding:8px;display:flex;flex-direction:column;gap:6px;min-width:150px}
+.av-elige-tit{font-size:11px;color:var(--text3);font-weight:600;padding:0 2px}
+.av-elige button{display:flex;align-items:center;gap:8px;justify-content:flex-start;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:var(--mono);font-weight:700;font-size:13px;border-radius:8px;padding:9px 10px;cursor:pointer;min-height:40px}
+.av-elige button:hover{border-color:var(--blue)}
 .av-pin.actual{background:#3b82f6;animation:avPulso 1s ease-in-out infinite}
 @keyframes avPulso{50%{box-shadow:0 0 0 6px rgba(59,130,246,.35)}}
 .av-vistas{display:flex;gap:6px}
@@ -7779,10 +7783,11 @@ function htmlHallazgosAvance(cfg) {
       <span class="av-nota" style="font-size:11px">Toca uno para pasarlo a incidencia</span></div>` : ''}
     ${ids.length ? `<div class="av-hallazgos">
     <div class="av-hallazgos-tit"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Con incidencia (${ids.length}) · la nota es obligatoria por cada ${uno}</div>
+    <div class="av-nota" style="font-size:11px;margin-top:-4px">Escribe la nota y toca <b>Guardar registro</b>; no hace falta confirmarla.</div>
     ${ids.map(id => `<div class="av-hallazgo ${(A.notasInc[id] || '').trim() ? '' : 'falta'}" data-id="${escHtml(id)}">
       <label>Nota para <b>${escHtml(id)}</b></label>
       <input class="field-input" maxlength="500" placeholder="Escriba el hallazgo…" value="${escHtml(A.notasInc[id] || '')}" oninput="notaHallazgoAvance(this)">
-      <button class="btn btn-ghost btn-sm" title="Cambiar a concluido OK" onclick="STATE._av.inc.delete(${escHtml(JSON.stringify(id))});pintarAvance()"><i class="ti ti-circle-check" aria-hidden="true"></i> OK</button>
+      <button class="btn btn-ghost btn-sm" title="Quitar la incidencia: ${escHtml(id)} pasa a concluido OK" onclick="STATE._av.inc.delete(${escHtml(JSON.stringify(id))});pintarAvance()"><i class="ti ti-arrow-back-up" aria-hidden="true"></i> Quitar incidencia</button>
     </div>`).join('')}
   </div>` : ''}`;
 }
@@ -7817,10 +7822,10 @@ function tituloUnidadAv(R, id) {
 // modo: 'captura' (toca para seleccionar) | 'ubicar' (editor de posiciones)
 function htmlMapaAvance(cfg, R, modo, actual) {
   const A = STATE._av;
-  return `<div class="av-mapa" id="av-mapa-${modo}" ${modo === 'ubicar' ? 'onclick="clicMapaUbicar(event)"' : ''}>
+  return `<div class="av-mapa" id="av-mapa-${modo}" onclick="${modo === 'ubicar' ? 'clicMapaUbicar(event)' : 'clicMapaCaptura(event)'}">
     <img src="${escHtml(cfg.mapa_url)}" alt="Mapa del parque" draggable="false">
     ${cfg.unidades.map((u, i) => u.x == null ? '' : `<div class="av-pin ${modo === 'ubicar' ? (i === actual ? 'actual' : 'ok') : claseUnidadAv(R, u.id) + (A.sel.has(u.id) ? (A.inc?.has(u.id) ? ' sel selinc' : ' sel') : '')}" style="left:${u.x}%;top:${u.y}%"
-      ${modo === 'ubicar' ? `onclick="event.stopPropagation();STATE._avUb.i=${i};pintarUbicador()"` : `onclick="alternarUnidadAvance(${i})"`} title="${escHtml(modo === 'ubicar' ? u.id : tituloUnidadAv(R, u.id))}">${escHtml(etqCorta(u.id))}</div>`).join('')}
+      ${modo === 'ubicar' ? `onclick="event.stopPropagation();STATE._avUb.i=${i};pintarUbicador()"` : `data-i="${i}"`} title="${escHtml(modo === 'ubicar' ? u.id : tituloUnidadAv(R, u.id))}">${escHtml(etqCorta(u.id))}</div>`).join('')}
   </div>`;
 }
 function htmlHistorialAvance(cfg) {
@@ -7841,6 +7846,27 @@ function htmlHistorialAvance(cfg) {
 }
 
 // ── Captura ──
+// Toque en el mapa: se buscan TODOS los pines bajo el dedo. Uno → se marca. Varios (encimados) → se pregunta cuál.
+function clicMapaCaptura(ev) {
+  const mapa = ev.currentTarget;
+  if (ev.target.closest('.av-elige')) return;
+  mapa.querySelector('.av-elige')?.remove();
+  const pines = [...mapa.querySelectorAll('.av-pin[data-i]')];
+  const radio = Math.max(16, (pines[0]?.offsetHeight || 20) * 0.75);
+  const cerca = pines.map(el => { const r = el.getBoundingClientRect(); return { el, d: Math.hypot(r.left + r.width / 2 - ev.clientX, r.top + r.height / 2 - ev.clientY) }; })
+    .filter(x => x.d <= radio).sort((a, b) => a.d - b.d);
+  if (!cerca.length) return;
+  if (cerca.length === 1) { alternarUnidadAvance(+cerca[0].el.dataset.i); return; }
+  const A = STATE._av, cfg = A.data.config, R = calcAvance(cfg, A.data.registros);
+  const box = mapa.getBoundingClientRect();
+  const html = `<div class="av-elige" style="left:${ev.clientX - box.left}px;top:${ev.clientY - box.top}px">
+    <div class="av-elige-tit">Hay ${cerca.length} juntos, ¿cuál?</div>
+    ${cerca.map(x => { const i = +x.el.dataset.i, id = cfg.unidades[i].id;
+      const marca = A.sel.has(id) ? (A.inc.has(id) ? ' · marcado incidencia' : ' · marcado OK') : '';
+      return `<button onclick="event.stopPropagation();this.closest('.av-elige').remove();alternarUnidadAvance(${i})"><span class="av-dot ${claseUnidadAv(R, id)}"></span>${escHtml(id)}<span style="font-family:var(--sans);font-weight:500;font-size:11px;color:var(--text3)">${marca}</span></button>`; }).join('')}
+  </div>`;
+  mapa.insertAdjacentHTML('beforeend', html);
+}
 function alternarUnidadAvance(i) {
   const A = STATE._av, id = A.data.config.unidades[i]?.id;
   if (!id) return;
@@ -7852,6 +7878,7 @@ function alternarUnidadAvance(i) {
 // Modo OK: toca = marcar OK / cambiar a OK / quitar.  Modo incidencia: igual, con incidencia.
 function marcarUnidadAvance(id, alternar) {
   const A = STATE._av, inc = A.estatus === 'incidencia';
+  A.ofrecerModo = null;   // ya está marcando uno por uno: el aviso de "pasar todos" sobra
   const yaIgual = A.sel.has(id) && A.inc.has(id) === inc;
   if (alternar && yaIgual) { A.sel.delete(id); A.inc.delete(id); return; }
   A.sel.add(id); inc ? A.inc.add(id) : A.inc.delete(id);
