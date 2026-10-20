@@ -1240,6 +1240,18 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .av-tile.ok{border-color:var(--green-border);background:var(--green-bg);color:var(--green)}
 .av-tile.inc{border-color:var(--red-border);background:var(--red-bg);color:var(--red-text)}
 .av-tile.sel{box-shadow:0 0 0 2px var(--blue);transform:scale(.96)}
+.av-tile.selinc{box-shadow:0 0 0 2px var(--red-text)}
+.av-tile.selinc::after{background:var(--red-text) !important}
+.av-dot.selinc{background:transparent;box-shadow:inset 0 0 0 2px var(--red-text)}
+.av-pin.selinc{outline-color:#ef4444}
+.av-hallazgos{margin-top:12px;border:1px solid var(--red-border);background:var(--red-bg);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.av-hallazgos-tit{font-size:11.5px;font-weight:700;color:var(--red-text);display:flex;align-items:center;gap:6px}
+.av-hallazgo{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
+.av-hallazgo label{font-size:12.5px;color:var(--text2);white-space:nowrap}
+.av-hallazgo label b{font-family:var(--mono);color:var(--text)}
+.av-hallazgo .field-input{min-height:40px}
+.av-hallazgo.falta .field-input{box-shadow:inset 0 0 0 1px var(--red-text)}
+@media (max-width:768px){.av-hallazgo{grid-template-columns:1fr auto}.av-hallazgo label{grid-column:1/-1}}
 .av-tile.sel::after{content:'';position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--blue)}
 .av-tile.hoy::before{content:'HOY';position:absolute;bottom:2px;left:0;right:0;font-size:8px;letter-spacing:.08em;opacity:.8}
 .av-mapa{position:relative;border-radius:8px;overflow:visible;border:1px solid var(--border);background:var(--surface2);touch-action:manipulation}
@@ -7534,7 +7546,7 @@ function refrescarNavAvance() {
   }
 }
 function irAvance(pid) {
-  STATE._av = Object.assign(STATE._av || {}, { pid, sel: new Set() });
+  STATE._av = Object.assign(STATE._av || {}, { pid, sel: new Set(), inc: new Set(), notasInc: {} });
   try { localStorage.setItem('ws_av_pid', pid); } catch (e) {}
   closePanel(null, true);
   showSection('avance');
@@ -7585,7 +7597,7 @@ async function renderAvance() {
     return;
   }
   await loadProyectos();
-  const A = STATE._av = Object.assign({ sel: new Set(), estatus: 'ok', fecha: isoLocal(new Date()), todos: false, vista: null }, STATE._av || {});
+  const A = STATE._av = Object.assign({ sel: new Set(), inc: new Set(), notasInc: {}, estatus: 'ok', fecha: isoLocal(new Date()), todos: false, vista: null }, STATE._av || {});
   const empId = STATE.user?.empleado_id;
   const visibles = STATE.proyectos.filter(p => p.estado !== 'cancelado' && (A.todos || (p.tecnicos_asignados || []).includes(empId)));
   let pid = A.pid || (() => { try { return localStorage.getItem('ws_av_pid'); } catch (e) { return null; } })();
@@ -7610,13 +7622,14 @@ async function renderAvance() {
   pintarAvance();
 }
 function cambiarProyectoAvance(pid) {
-  STATE._av.pid = pid; STATE._av.sel = new Set(); STATE._av.vista = null;
+  STATE._av.pid = pid; STATE._av.sel = new Set(); STATE._av.inc = new Set(); STATE._av.notasInc = {}; STATE._av.vista = null;
   try { localStorage.setItem('ws_av_pid', pid); } catch (e) {}
   renderAvance();
 }
 function pintarAvance() {
   const A = STATE._av, cfg = A.data?.config, cont = document.getElementById('av-cuerpo');
   if (!cont) return;
+  if (!A.inc) A.inc = new Set(); if (!A.notasInc) A.notasInc = {};
   const p = STATE.proyectos.find(x => x.id === A.pid) || {};
   if (!cfg) {
     const t = AV_TIPOS[tipoSugeridoAvance(p)];
@@ -7658,6 +7671,7 @@ function pintarAvance() {
         <div class="av-der">${conMapa ? `<div class="av-seg"><button class="${vista === 'mapa' ? 'on neu' : ''}" onclick="STATE._av.vista='mapa';pintarAvance()"><i class="ti ti-map" aria-hidden="true"></i>Mapa</button><button class="${vista === 'grid' ? 'on neu' : ''}" onclick="STATE._av.vista='grid';pintarAvance()"><i class="ti ti-layout-grid" aria-hidden="true"></i>Lista</button></div>` : ''}</div></div>
       <div class="av-fila">
         <input class="field-input" type="date" id="av-fecha" value="${A.fecha}" max="${hoy}" style="width:auto" onchange="STATE._av.fecha=this.value">
+        <span class="av-nota" style="margin-right:-4px">Marcar como:</span>
         <div class="av-seg">
           <button class="ok ${A.estatus === 'ok' ? 'on' : ''}" onclick="STATE._av.estatus='ok';pintarAvance()"><i class="ti ti-circle-check" aria-hidden="true"></i>${cfg.tipo === 'eolico' ? 'Concluida / OK' : 'Concluido'}</button>
           <button class="inc ${A.estatus === 'incidencia' ? 'on' : ''}" onclick="STATE._av.estatus='incidencia';pintarAvance()"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Con incidencia</button>
@@ -7667,19 +7681,20 @@ function pintarAvance() {
         <input class="field-input" id="av-rango" placeholder="Rápido: ${cfg.tipo === 'solar' ? '23-28, 31' : '1-4, 7'}" style="flex:1;min-width:150px" onkeydown="if(event.key==='Enter'){aplicarRangoAvance();}">
         <button class="btn btn-ghost btn-sm" style="min-height:42px" onclick="aplicarRangoAvance()"><i class="ti ti-select" aria-hidden="true"></i> Marcar</button>
         <button class="btn btn-ghost btn-sm" style="min-height:42px" onclick="seleccionarPendientesAvance()" title="Marcar todos los pendientes">Pendientes</button>
-        <button class="btn btn-ghost btn-sm" style="min-height:42px" onclick="STATE._av.sel=new Set();pintarAvance()">Limpiar</button>
+        <button class="btn btn-ghost btn-sm" style="min-height:42px" onclick="STATE._av.sel=new Set();STATE._av.inc=new Set();pintarAvance()">Limpiar</button>
       </div>
       <div class="av-ley">
-        <span><span class="av-dot ok"></span>Concluido</span><span><span class="av-dot pend"></span>Pendiente</span><span><span class="av-dot inc"></span>Con incidencia</span><span><span class="av-dot sel"></span>Seleccionado</span>
+        <span><span class="av-dot ok"></span>Concluido</span><span><span class="av-dot pend"></span>Pendiente</span><span><span class="av-dot inc"></span>Con incidencia</span><span><span class="av-dot sel"></span>Marcado OK</span><span><span class="av-dot selinc"></span>Marcado con incidencia</span>
       </div>
       ${vista === 'mapa' ? htmlMapaAvance(cfg, R, 'captura') : ''}
       ${vista === 'mapa' && cfg.unidades.some(u => u.x == null) ? `<div class="av-nota" style="margin:12px 0 6px">Sin ubicar en el mapa:</div>` : ''}
       <div class="av-grid" ${vista === 'mapa' ? '' : ''}>${cfg.unidades.map((u, i) => (vista === 'mapa' && u.x != null) ? '' :
-        `<div class="av-tile ${claseUnidadAv(R, u.id)} ${A.sel.has(u.id) ? 'sel' : ''} ${hoySet.has(u.id) ? 'hoy' : ''}" onclick="alternarUnidadAvance(${i})" title="${escHtml(tituloUnidadAv(R, u.id))}">${escHtml(u.id)}</div>`).join('')}</div>
-      <input class="field-input" id="av-nota" placeholder="Nota corta (opcional)" maxlength="500" style="margin-top:12px;width:100%" value="${escHtml(A.nota || '')}" oninput="STATE._av.nota=this.value">
+        `<div class="av-tile ${claseUnidadAv(R, u.id)} ${A.sel.has(u.id) ? (A.inc.has(u.id) ? 'sel selinc' : 'sel') : ''} ${hoySet.has(u.id) ? 'hoy' : ''}" onclick="alternarUnidadAvance(${i})" title="${escHtml(tituloUnidadAv(R, u.id))}">${escHtml(u.id)}</div>`).join('')}</div>
+      ${htmlHallazgosAvance(cfg)}
+      <input class="field-input" id="av-nota" placeholder="${A.inc.size ? 'Nota para los concluidos (opcional)' : 'Nota corta (opcional)'}" maxlength="500" style="margin-top:12px;width:100%" value="${escHtml(A.nota || '')}" oninput="STATE._av.nota=this.value">
       <div class="av-registrar ${A.sel.size ? 'flota' : ''}">
-        <div class="av-registrar-txt">${A.sel.size ? `<b>${A.sel.size} ${A.sel.size === 1 ? T.uno : T.varios}</b> · ${escHtml(rangosUnidades(cfg, [...A.sel]))}` : `Toca los ${T.varios} atendidos`}</div>
-        <button class="btn btn-primary" ${A.sel.size ? '' : 'disabled'} onclick="ejecutarConCarga(this, registrarAvance)"><i class="ti ti-${A.estatus === 'ok' ? 'check' : 'alert-triangle'}" aria-hidden="true"></i> Registrar</button>
+        <div class="av-registrar-txt" id="av-reg-txt"></div>
+        <button class="btn btn-primary" id="av-btn-reg" onclick="ejecutarConCarga(this, registrarAvance)"><i class="ti ti-device-floppy" aria-hidden="true"></i> Guardar registro</button>
       </div>
     </div>
 
@@ -7695,6 +7710,42 @@ function pintarAvance() {
       <div class="av-card-tit"><i class="ti ti-list-details" aria-hidden="true"></i> Bitácora diaria <div class="av-der">${A.data.registros.length} registro${A.data.registros.length === 1 ? '' : 's'}</div></div>
       ${htmlHistorialAvance(cfg)}
     </div>`;
+  estadoBotonAvance();
+}
+// Un campo obligatorio por cada unidad marcada con incidencia
+function htmlHallazgosAvance(cfg) {
+  const A = STATE._av, orden = cfg.unidades.map(u => u.id);
+  const ids = [...A.inc].filter(id => A.sel.has(id)).sort((a, b) => orden.indexOf(a) - orden.indexOf(b));
+  if (!ids.length) return '';
+  return `<div class="av-hallazgos">
+    <div class="av-hallazgos-tit"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Hallazgos · la nota es obligatoria por cada ${cfg.tipo === 'solar' ? 'bloque' : 'WTG'} con incidencia</div>
+    ${ids.map(id => `<div class="av-hallazgo ${(A.notasInc[id] || '').trim() ? '' : 'falta'}" data-id="${escHtml(id)}">
+      <label>Nota para <b>${escHtml(id)}</b></label>
+      <input class="field-input" maxlength="500" placeholder="Escriba el hallazgo…" value="${escHtml(A.notasInc[id] || '')}" oninput="notaHallazgoAvance(this)">
+      <button class="btn btn-ghost btn-sm" title="Cambiar a concluido OK" onclick="STATE._av.inc.delete(${escHtml(JSON.stringify(id))});pintarAvance()"><i class="ti ti-circle-check" aria-hidden="true"></i> OK</button>
+    </div>`).join('')}
+  </div>`;
+}
+function notaHallazgoAvance(el) {
+  const fila = el.closest('.av-hallazgo'); STATE._av.notasInc[fila.dataset.id] = el.value;
+  fila.classList.toggle('falta', !el.value.trim());
+  estadoBotonAvance();
+}
+// Habilita "Guardar registro" solo si hay algo marcado y ninguna incidencia sin nota
+function estadoBotonAvance() {
+  const A = STATE._av, cfg = A.data?.config, btn = document.getElementById('av-btn-reg'), txt = document.getElementById('av-reg-txt');
+  if (!cfg || !btn) return;
+  const T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico;
+  const inc = [...A.inc].filter(id => A.sel.has(id)), ok = [...A.sel].filter(id => !A.inc.has(id));
+  const faltan = inc.filter(id => !(A.notasInc[id] || '').trim());
+  btn.disabled = !A.sel.size || faltan.length > 0;
+  if (!A.sel.size) { txt.innerHTML = `Toca los ${T.varios} atendidos`; return; }
+  const partes = [];
+  if (ok.length) partes.push(`<b style="color:var(--green)">${ok.length} OK</b>`);
+  if (inc.length) partes.push(`<b style="color:var(--red-text)">${inc.length} con incidencia</b>`);
+  txt.innerHTML = partes.join(' · ') + (faltan.length
+    ? `<div style="color:var(--red-text);font-size:11.5px;margin-top:2px"><i class="ti ti-pencil" aria-hidden="true"></i> Falta la nota de ${escHtml(faltan.join(', '))}</div>`
+    : `<div style="font-size:11.5px;color:var(--text3);margin-top:2px">${escHtml(rangosUnidades(cfg, [...A.sel]))}</div>`);
 }
 function claseUnidadAv(R, id) { const e = R.estado[id]?.estatus; return e === 'ok' ? 'ok' : e === 'incidencia' ? 'inc' : 'pend'; }
 function tituloUnidadAv(R, id) {
@@ -7707,7 +7758,7 @@ function htmlMapaAvance(cfg, R, modo, actual) {
   const A = STATE._av;
   return `<div class="av-mapa" id="av-mapa-${modo}" ${modo === 'ubicar' ? 'onclick="clicMapaUbicar(event)"' : ''}>
     <img src="${escHtml(cfg.mapa_url)}" alt="Mapa del parque" draggable="false">
-    ${cfg.unidades.map((u, i) => u.x == null ? '' : `<div class="av-pin ${modo === 'ubicar' ? (i === actual ? 'actual' : 'ok') : claseUnidadAv(R, u.id) + (A.sel.has(u.id) ? ' sel' : '')}" style="left:${u.x}%;top:${u.y}%"
+    ${cfg.unidades.map((u, i) => u.x == null ? '' : `<div class="av-pin ${modo === 'ubicar' ? (i === actual ? 'actual' : 'ok') : claseUnidadAv(R, u.id) + (A.sel.has(u.id) ? (A.inc?.has(u.id) ? ' sel selinc' : ' sel') : '')}" style="left:${u.x}%;top:${u.y}%"
       ${modo === 'ubicar' ? `onclick="event.stopPropagation();STATE._avUb.i=${i};pintarUbicador()"` : `onclick="alternarUnidadAvance(${i})"`} title="${escHtml(modo === 'ubicar' ? u.id : tituloUnidadAv(R, u.id))}">${escHtml(etqCorta(u.id))}</div>`).join('')}
   </div>`;
 }
@@ -7732,10 +7783,17 @@ function htmlHistorialAvance(cfg) {
 function alternarUnidadAvance(i) {
   const A = STATE._av, id = A.data.config.unidades[i]?.id;
   if (!id) return;
-  A.sel.has(id) ? A.sel.delete(id) : A.sel.add(id);
+  marcarUnidadAvance(id, true);
   const y = window.scrollY, c = document.querySelector('.content'), cy = c?.scrollTop;
   pintarAvance();
   if (c) c.scrollTop = cy; window.scrollTo(0, y);
+}
+// Modo OK: toca = marcar OK / cambiar a OK / quitar.  Modo incidencia: igual, con incidencia.
+function marcarUnidadAvance(id, alternar) {
+  const A = STATE._av, inc = A.estatus === 'incidencia';
+  const yaIgual = A.sel.has(id) && A.inc.has(id) === inc;
+  if (alternar && yaIgual) { A.sel.delete(id); A.inc.delete(id); return; }
+  A.sel.add(id); inc ? A.inc.add(id) : A.inc.delete(id);
 }
 function aplicarRangoAvance() {
   const A = STATE._av, cfg = A.data.config, txt = document.getElementById('av-rango')?.value || '';
@@ -7748,26 +7806,41 @@ function aplicarRangoAvance() {
   // también acepta nombres completos ("WTG-07")
   const nombres = new Set(txt.split(/[,;]+/).map(s => s.trim().toUpperCase()).filter(Boolean));
   let n = 0;
-  cfg.unidades.forEach(u => { if (nums.has(numUnidad(u.id)) || nombres.has(u.id.toUpperCase())) { A.sel.add(u.id); n++; } });
+  cfg.unidades.forEach(u => { if (nums.has(numUnidad(u.id)) || nombres.has(u.id.toUpperCase())) { marcarUnidadAvance(u.id, false); n++; } });
   if (!n) { toast('No encontré esas unidades. Ej: 23-28, 31', 'error'); return; }
   pintarAvance();
 }
 function seleccionarPendientesAvance() {
   const A = STATE._av, R = calcAvance(A.data.config, A.data.registros);
-  A.data.config.unidades.forEach(u => { if (!R.estado[u.id]) A.sel.add(u.id); });
+  A.data.config.unidades.forEach(u => { if (!R.estado[u.id]) marcarUnidadAvance(u.id, false); });
   pintarAvance();
 }
 async function registrarAvance() {
-  const A = STATE._av;
+  const A = STATE._av, cfg = A.data.config, T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico;
   const fecha = document.getElementById('av-fecha')?.value || A.fecha;
   if (!fecha) { toast('Elige la fecha.', 'error'); return; }
-  if (A.estatus === 'incidencia' && !(A.nota || '').trim()) { toast('Escribe una nota corta de la incidencia.', 'error'); document.getElementById('av-nota')?.focus(); return; }
-  const r = await api('POST', `/avance/${encodeURIComponent(A.pid)}/registros`, { fecha, unidades: [...A.sel], estatus: A.estatus, nota: (A.nota || '').trim() || null });
-  if (!r) return;
-  A.data.registros.push(r);
-  const T = AV_TIPOS[A.data.config.tipo] || AV_TIPOS.eolico;
-  toast(`${r.unidades.length} ${r.unidades.length === 1 ? T.uno : T.varios} registrado${r.unidades.length === 1 ? '' : 's'}`);
-  A.sel = new Set(); A.nota = ''; A.estatus = 'ok'; A.fecha = fecha;
+  const orden = cfg.unidades.map(u => u.id), porOrden = (a, b) => orden.indexOf(a) - orden.indexOf(b);
+  const inc = [...A.inc].filter(id => A.sel.has(id)).sort(porOrden), ok = [...A.sel].filter(id => !A.inc.has(id)).sort(porOrden);
+  const faltan = inc.filter(id => !(A.notasInc[id] || '').trim());
+  if (faltan.length) {
+    toast(`Falta la nota del hallazgo: ${faltan.join(', ')}`, 'error');
+    document.querySelector('.av-hallazgo.falta input')?.focus(); return;
+  }
+  const lotes = [];
+  if (ok.length) lotes.push({ unidades: ok, estatus: 'ok', nota: (A.nota || '').trim() || null });
+  inc.forEach(id => lotes.push({ unidades: [id], estatus: 'incidencia', nota: A.notasInc[id].trim() }));
+  let guardadas = 0;
+  for (const l of lotes) {
+    const r = await api('POST', `/avance/${encodeURIComponent(A.pid)}/registros`, { fecha, ...l });
+    if (!r) break;   // lo que no se guardó se queda marcado para reintentar
+    A.data.registros.push(r);
+    l.unidades.forEach(id => { A.sel.delete(id); A.inc.delete(id); delete A.notasInc[id]; });
+    if (l.estatus === 'ok') A.nota = '';
+    guardadas += l.unidades.length;
+  }
+  if (guardadas) toast(`${guardadas} ${guardadas === 1 ? T.uno : T.varios} registrado${guardadas === 1 ? '' : 's'}`);
+  A.fecha = fecha;
+  if (!A.sel.size) A.estatus = 'ok';
   pintarAvance();
 }
 async function borrarRegistroAvance(rid) {
@@ -8012,7 +8085,11 @@ async function copiarWhatsAppAvance(btn) {
 async function mapaAvanceCanvas(cfg, R) {
   const img = await new Promise((ok, no) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => ok(i); i.onerror = no; i.src = cfg.mapa_url; });
   const k = Math.min(1, 1800 / img.naturalWidth), w = Math.round(img.naturalWidth * k), h = Math.round(img.naturalHeight * k);
-  const rad = Math.max(13, Math.round(w / 58));
+  // radio según la distancia mínima entre pines (para que no se enciman)
+  const pts = cfg.unidades.filter(u => u.x != null).map(u => [u.x * w / 100, u.y * h / 100]);
+  let dMin = Infinity;
+  if (pts.length <= 800) for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) dMin = Math.min(dMin, Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1]));
+  const rad = Math.round(Math.max(9, Math.min(Math.max(13, w / 58), isFinite(dMin) ? dMin * 0.4 : 99)));
   const pad = Math.round(rad * 1.9);          // margen interno: los pines de las orillas no se cortan
   const cv = document.createElement('canvas'); cv.width = w + pad * 2; cv.height = h + pad * 2;
   const cx = cv.getContext('2d');
@@ -8023,31 +8100,33 @@ async function mapaAvanceCanvas(cfg, R) {
     if (u.x == null) return;
     const e = R.estado[u.id]?.estatus, col = e === 'ok' ? '#15803d' : e === 'incidencia' ? '#b91c1c' : '#b45309';
     const x = pad + u.x * w / 100, y = pad + u.y * h / 100, t = etqCorta(u.id);
-    cx.font = `800 ${Math.round(rad * 1.0)}px Montserrat, Arial, sans-serif`;
-    const tw = Math.max(rad * 2, cx.measureText(t).width + rad * 0.9);
+    cx.font = `800 ${Math.round(rad * 0.92)}px Montserrat, Arial, sans-serif`;
+    const tw = Math.max(rad * 2.1, cx.measureText(t).width + rad * 1.3);
     // sombra suave del pin para despegarlo del mapa
-    cx.save(); cx.shadowColor = 'rgba(0,0,0,.45)'; cx.shadowBlur = rad * 0.5; cx.shadowOffsetY = rad * 0.12;
+    cx.save(); cx.shadowColor = 'rgba(0,0,0,.28)'; cx.shadowBlur = rad * 0.35; cx.shadowOffsetY = rad * 0.08;
     cx.beginPath(); cx.roundRect ? cx.roundRect(x - tw / 2, y - rad, tw, rad * 2, rad) : cx.rect(x - tw / 2, y - rad, tw, rad * 2);
     cx.fillStyle = col; cx.fill(); cx.restore();
-    cx.lineWidth = Math.max(2.5, rad / 4.5); cx.strokeStyle = '#ffffff'; cx.stroke();
-    // número: contorno oscuro sutil + relleno blanco en negrita
-    cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.lineJoin = 'round';
-    cx.lineWidth = Math.max(2, rad / 5.5); cx.strokeStyle = 'rgba(0,0,0,.55)'; cx.strokeText(t, x, y + 1);
-    cx.fillStyle = '#ffffff'; cx.fillText(t, x, y + 1);
+    cx.lineWidth = Math.max(2, rad / 6); cx.strokeStyle = '#ffffff'; cx.stroke();
+    // número blanco en negrita sobre color oscuro (contraste ≥ 4.5:1), sin contornos
+    cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillStyle = '#ffffff'; cx.fillText(t, x, y + rad * 0.06);
   });
   return { url: cv.toDataURL('image/jpeg', 0.92), ratio: cv.height / cv.width };
 }
-// Una fila por día + técnico + estatus: junta las unidades y las notas
+const recortarNotaAv = t => { t = String(t || '').trim(); return t.length > 110 ? t.slice(0, 108).trimEnd() + '…' : t; };
+// Concluidos: una fila por día + técnico (junta las unidades).  Incidencias: una fila por hallazgo, con su nota.
 function agruparRegistrosDia(regs) {
   const grupos = [], idx = {};
   ordenRegistros(regs).forEach(r => {
-    const k = `${r.fecha}|${r.tecnico || ''}|${r.estatus}`;
-    if (!idx[k]) { idx[k] = { fecha: r.fecha, tecnico: r.tecnico, estatus: r.estatus, unidades: [], notas: [] }; grupos.push(idx[k]); }
+    if (r.estatus !== 'ok') { grupos.push({ fecha: r.fecha, tecnico: r.tecnico, estatus: r.estatus, unidades: [...r.unidades], notas: r.nota ? [r.nota] : [] }); return; }
+    const k = `${r.fecha}|${r.tecnico || ''}`;
+    if (!idx[k]) { idx[k] = { fecha: r.fecha, tecnico: r.tecnico, estatus: 'ok', unidades: [], notas: [] }; grupos.push(idx[k]); }
     const g = idx[k];
     r.unidades.forEach(u => { if (!g.unidades.includes(u)) g.unidades.push(u); });
     if (r.nota && !g.notas.includes(r.nota)) g.notas.push(r.nota);
   });
-  return grupos;
+  // dentro de cada día: primero lo concluido, luego las incidencias
+  return grupos.map((g, i) => ({ g, i })).sort((a, b) => a.g.fecha.localeCompare(b.g.fecha) || (a.g.estatus === 'ok' ? 0 : 1) - (b.g.estatus === 'ok' ? 0 : 1) || a.i - b.i).map(x => x.g);
 }
 async function exportarAvancePDF() {
   const A = STATE._av, cfg = A.data?.config; if (!cfg) return;
@@ -8080,7 +8159,7 @@ async function exportarAvancePDF() {
   y += 3.5;
   // Alto del mapa según lo que necesitan la gráfica y la bitácora para que todo quepa en 1 hoja
   const nDias = new Set(regs.map(r => r.fecha)).size;
-  const reservaGraf = nDias ? 52 : 0, reservaTabla = 20 + Math.min(Math.max(agruparRegistrosDia(regs).length, 1), 12) * 5.9;
+  const reservaGraf = nDias ? 57 : 0, reservaTabla = 20 + Math.min(Math.max(agruparRegistrosDia(regs).length, 1), 12) * 5.9;
   const maxVis = Math.max(50, Math.min(105, H - 22 - y - reservaGraf - reservaTabla - 6));
   let dibujado = false;
   if (cfg.mapa_url && cfg.unidades.some(u => u.x != null)) {
@@ -8106,55 +8185,88 @@ async function exportarAvancePDF() {
     });
     y += Math.ceil(n / cols) * (th + gap) + 5;
   }
-  // Gráfica: concluidos por día + avance acumulado (últimos 20 días con registro)
+  // Gráfica: concluidos por día (barras) + avance acumulado (línea), últimos 20 días con registro.
+  // Cifras de las barras dentro de la barra (abajo) y % de la línea arriba del punto: nunca se enciman.
   const porDia = [...new Set(regs.map(r => r.fecha))].sort();
   if (porDia.length) {
-    y = P.seccion('AVANCE POR DÍA', y, `Barras: ${T.varios} concluidos en el día · línea gris: avance acumulado`);
-    const dd = porDia.slice(-20), gh = 30, base = y + gh, ejeX = M + 8, gw = ancho - 16;
+    y = P.seccion('AVANCE POR DÍA', y);
+    const TEND = [71, 85, 105];   // #475569 — el rojo queda solo para incidencias
+    // leyenda propia (arriba, a la derecha)
+    P.font('medium', 6.4, C.gris);
+    let lx = W - M; const t2 = 'Avance acumulado', t1 = `${T.varios.charAt(0).toUpperCase() + T.varios.slice(1)} concluidos en el día`;
+    lx -= doc.getTextWidth(t2); doc.text(t2, lx, y - 1.2); P.trazo(TEND, 0.6); doc.line(lx - 6, y - 2.1, lx - 1.5, y - 2.1); P.relleno(TEND); doc.circle(lx - 3.75, y - 2.1, 0.7, 'F');
+    lx -= 10 + doc.getTextWidth(t1); P.font('medium', 6.4, C.gris); doc.text(t1, lx, y - 1.2); P.relleno(C.verdeBg); doc.rect(lx - 4.5, y - 3.3, 3, 2.6, 'F');
+    const top = y + 4, gh = 28, base = top + gh, ejeX = M + 9, gw = ancho - 11;
+    const dd = porDia.slice(-20);
     const serie = dd.map(f => {
       const Rf = calcAvance(cfg, regs.filter(r => r.fecha <= f));
       const nOk = new Set(regs.filter(r => r.fecha === f && r.estatus === 'ok').flatMap(r => r.unidades)).size;
       return { f, n: nOk, pct: Rf.pct };
     });
     const maxN = Math.max(1, ...serie.map(s => s.n)), paso = gw / dd.length, bw = Math.min(14, paso * 0.55);
-    P.trazo(C.linea, 0.2); [0, 50, 100].forEach(v => { const yy = base - gh * v / 100; doc.line(ejeX, yy, ejeX + gw, yy); P.font('normal', 5.6, C.grisClaro); doc.text(`${v}%`, ejeX + gw + 1, yy + 0.8); });
+    [0, 50, 100].forEach(v => { const yy = base - gh * v / 100; P.trazo(C.linea, 0.2); doc.line(ejeX, yy, ejeX + gw, yy); P.font('normal', 5.6, C.grisClaro); doc.text(`${v}%`, ejeX - 1.5, yy + 0.8, { align: 'right' }); });
     serie.forEach((s, i) => {
-      const cx = ejeX + paso * (i + 0.5), bh = (gh - 6) * s.n / maxN;
-      if (s.n) { P.relleno(C.verdeBg); doc.rect(cx - bw / 2, base - bh, bw, bh, 'F'); P.font('bold', 6, C.verde); doc.text(String(s.n), cx, base - bh - 1, { align: 'center' }); }
-      P.font('normal', 5.6, C.gris); doc.text(fCorta(s.f), cx, base + 3.4, { align: 'center' });
+      const cx = ejeX + paso * (i + 0.5), bh = (gh * 0.8) * s.n / maxN;
+      if (s.n) { P.relleno(C.verdeBg); doc.rect(cx - bw / 2, base - bh, bw, bh, 'F'); }
+      // fecha y, debajo, cuántos se concluyeron ese día (fuera del área de la gráfica: nada se encima)
+      P.font('normal', 5.6, C.gris); doc.text(fCorta(s.f), cx, base + 3.6, { align: 'center' });
+      P.font('bold', 6, s.n ? C.verde : C.grisClaro); doc.text(s.n ? `+${s.n}` : '0', cx, base + 7, { align: 'center' });
     });
-    const TEND = [71, 85, 105];   // #475569 — el rojo queda solo para incidencias
-    P.trazo(TEND, 0.5);
+    P.trazo(TEND, 0.55);
     serie.forEach((s, i) => { if (i) { const a = serie[i - 1]; doc.line(ejeX + paso * (i - 0.5), base - gh * a.pct / 100, ejeX + paso * (i + 0.5), base - gh * s.pct / 100); } });
-    serie.forEach((s, i) => { const cx = ejeX + paso * (i + 0.5), cy = base - gh * s.pct / 100; P.relleno(TEND); doc.circle(cx, cy, 0.8, 'F'); });
-    const ult = serie[serie.length - 1]; P.font('bold', 6.4, TEND);
-    doc.text(`${ult.pct}%`, Math.min(ejeX + paso * (serie.length - 0.5) + 1.5, ejeX + gw - 6), base - gh * ult.pct / 100 - 1.6);
-    y = base + 9;
+    serie.forEach((s, i) => { const cx = ejeX + paso * (i + 0.5), cy = base - gh * s.pct / 100; P.relleno(C.blanco); doc.circle(cx, cy, 1.1, 'F'); P.relleno(TEND); doc.circle(cx, cy, 0.75, 'F'); });
+    // % solo del último punto, en una pastilla blanca arriba del punto (o debajo si está pegado al tope)
+    const ult = serie[serie.length - 1], ux = ejeX + paso * (serie.length - 0.5), uy = base - gh * ult.pct / 100;
+    P.font('bold', 6.4, TEND); const txt = `${ult.pct}%`, tw = doc.getTextWidth(txt) + 2.4;
+    const py = uy - 4.6 < top - 1 ? uy + 1.6 : uy - 4.6, px = Math.min(Math.max(ux - tw / 2, ejeX), ejeX + gw - tw);
+    P.relleno(C.blanco); P.trazo(TEND, 0.25); doc.roundedRect(px, py, tw, 3.4, 1, 1, 'FD');
+    doc.text(txt, px + tw / 2, py + 2.5, { align: 'center' });
+    y = base + 16;   // aire limpio antes de la bitácora
   }
   // Bitácora diaria (cronológica), recortada para que todo quepa en 1 hoja
   const grupos = agruparRegistrosDia(regs);
-  y = P.seccion('BITÁCORA DIARIA DE ACTIVIDADES', y, `${regs.length} registro${regs.length === 1 ? '' : 's'}${grupos.length < regs.length ? ` · agrupados en ${grupos.length} fila${grupos.length === 1 ? '' : 's'}` : ''}`);
+  const nInc = grupos.filter(g => g.estatus !== 'ok').length;
+  y = P.seccion('BITÁCORA DIARIA DE ACTIVIDADES', y, `${regs.length} registro${regs.length === 1 ? '' : 's'}${nInc ? ` · ${nInc} hallazgo${nInc === 1 ? '' : 's'}` : ''}`);
   const filaH = 5.9, disp = H - 22 - y - 7;
   const maxFilas = Math.max(1, Math.floor(disp / filaH));
+  // los hallazgos con nota larga ocupan 2 renglones; se toman las filas más recientes que quepan
+  const pesoFila = g => (g.estatus !== 'ok' && g.notas.join(' · ').length > 52) ? 1.7 : 1;
   let filas = grupos, omitidas = 0;
-  if (filas.length > maxFilas) { omitidas = filas.length - (maxFilas - 1); filas = filas.slice(-(maxFilas - 1)); }
+  if (grupos.reduce((a, g) => a + pesoFila(g), 0) > maxFilas) {
+    let suma = 0, k = grupos.length;
+    while (k > 0 && suma + pesoFila(grupos[k - 1]) <= maxFilas - 1) { suma += pesoFila(grupos[k - 1]); k--; }
+    filas = grupos.slice(k); omitidas = k;
+  }
   if (!regs.length) { P.font('normal', 8, C.gris); doc.text('Aún no hay registros de avance.', M, y + 2); }
   else {
     if (omitidas) { P.font('normal', 6.8, C.gris); doc.text(`Se muestran las ${filas.length} filas más recientes (${omitidas} anteriores no caben en la hoja; ver plataforma).`, M, y); y += 3; }
     let fechaPrev = null;
     const body = filas.map(r => {
       const f = r.fecha !== fechaPrev ? fCorta(r.fecha) : ''; fechaPrev = r.fecha;
-      return [f, r.tecnico || '—', `${rangosUnidades(cfg, r.unidades)} (${r.unidades.length})`, r.estatus === 'ok' ? 'Concluido' : 'Incidencia', r.notas.join(' · ') || '—'];
+      return [f, r.tecnico || '—', `${rangosUnidades(cfg, r.unidades)} (${r.unidades.length})`, r.estatus === 'ok' ? 'Concluido' : 'Con incidencia', recortarNotaAv(r.notas.join(' · ')) || '—'];
     });
     doc.autoTable({
       startY: y, margin: { left: M, right: M, bottom: 20 }, head: [['Fecha', 'Técnico', T.varios.charAt(0).toUpperCase() + T.varios.slice(1), 'Estatus', 'Nota']], body,
       theme: 'plain', pageBreak: 'avoid', rowPageBreak: 'avoid',
       styles: { font: window._fuentesPDF ? 'Montserrat' : 'helvetica', fontSize: 7, textColor: C.texto, cellPadding: { top: 1.5, bottom: 1.5, left: 2, right: 2 }, overflow: 'ellipsize', lineColor: C.linea },
       headStyles: { fontStyle: 'bold', textColor: C.gris, fontSize: 6.4, fillColor: C.fondo },
-      columnStyles: { 0: { cellWidth: 15, fontStyle: 'bold', textColor: C.tinta }, 1: { cellWidth: 46 }, 2: { cellWidth: 52 }, 3: { cellWidth: 19 } },
+      columnStyles: { 0: { cellWidth: 15, fontStyle: 'bold', textColor: C.tinta }, 1: { cellWidth: 42 }, 2: { cellWidth: 48 }, 3: { cellWidth: 26 } },
       didParseCell: d => {
-        if (d.section === 'body' && d.column.index === 3) { d.cell.styles.fontStyle = 'bold'; d.cell.styles.textColor = d.cell.raw === 'Concluido' ? C.verde : [185, 28, 28]; }
-        if (d.section === 'body') d.cell.styles.lineWidth = { bottom: 0.15 };
+        if (d.section !== 'body') return;
+        d.cell.styles.lineWidth = { bottom: 0.15 };
+        if (d.column.index === 3) d.cell.text = [''];          // se dibuja como badge
+        if (d.row.raw[3] !== 'Concluido') {                     // fila de hallazgo: fondo rojo muy suave
+          d.cell.styles.fillColor = [254, 242, 242];
+          if (d.column.index === 4) { d.cell.styles.overflow = 'linebreak'; d.cell.styles.textColor = [127, 29, 29]; d.cell.styles.fontStyle = window._fuentesPDF ? 'semibold' : 'bold'; }
+        }
+      },
+      didDrawCell: d => {
+        if (d.section !== 'body' || d.column.index !== 3) return;
+        const ok = d.row.raw[3] === 'Concluido', t = d.row.raw[3];
+        P.font('bold', 5.8, ok ? C.verde : C.blanco);
+        const w = doc.getTextWidth(t) + 4, h = 3.9, x = d.cell.x + 2, yy = d.cell.y + (d.cell.height - h) / 2;
+        P.relleno(ok ? C.verdeBg : [220, 38, 38]); doc.roundedRect(x, yy, w, h, 1.9, 1.9, 'F');
+        doc.text(t, x + 2, yy + 2.75);
       },
     });
   }
