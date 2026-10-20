@@ -1202,6 +1202,11 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .cal-det-txt span{font-size:11.5px;color:var(--text3);line-height:1.35}
 :root[data-theme="light"] .cal-det.aus .cal-det-tag{background:#EDE7FB;color:#6D4FC2}
 @media (max-width:768px){.cal-pry{font-size:7.5px;padding:0 2px;margin-top:2px}.cal-cell{font-size:11px}}
+.pd-req{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:500;color:var(--text3);text-transform:none;letter-spacing:0}
+.pd-req b{font-size:13px;color:var(--text);min-width:14px;text-align:center}
+.pd-req button{width:24px;height:24px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.pd-req button:hover:not(:disabled){border-color:var(--text3);color:var(--text)}
+.pd-req button:disabled{opacity:.35;cursor:default}
 .cal-dot{width:4px;height:4px;border-radius:50%;background:var(--red-text);position:absolute;bottom:4px}
 /* ─── AVANCE DE OPERADORES ("To Flama") — piloto ─── */
 .av-wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px;padding-bottom:84px}
@@ -3358,7 +3363,11 @@ async function verProyecto(id) {
       </div>
       <div class="pd-col">
         <div class="pd-card">
-          <div class="pd-tit"><i class="ti ti-users" aria-hidden="true"></i>Personal asignado <span class="pd-cuenta" style="color:${personalOk ? 'var(--green)' : 'var(--amber)'}">${idsAsignados.length}/${p.personal_requerido||1}</span></div>
+          <div class="pd-tit"><i class="ti ti-users" aria-hidden="true"></i>Personal asignado <span class="pd-cuenta" style="color:${personalOk ? 'var(--green)' : 'var(--amber)'}">${idsAsignados.length}/${p.personal_requerido||1}</span>
+            ${puedeGestionar ? `<span class="pd-req" title="Cuántas personas necesita el proyecto">Requeridos
+              <button onclick="ejecutarConCarga(this, () => cambiarPersonalRequerido('${p.id}', -1))" ${(p.personal_requerido||1) <= 1 ? 'disabled' : ''} aria-label="Una persona menos"><i class="ti ti-minus" aria-hidden="true"></i></button>
+              <b>${p.personal_requerido||1}</b>
+              <button onclick="ejecutarConCarga(this, () => cambiarPersonalRequerido('${p.id}', 1))" aria-label="Una persona más"><i class="ti ti-plus" aria-hidden="true"></i></button></span>` : ''}</div>
           ${tecnicos.length ? tecnicos.map(e => `
             <div class="pd-persona">
               <div class="pd-avatar">${escHtml((e.nombre||'?')[0])}${escHtml((e.apellido||'')[0]||'')}</div>
@@ -3601,6 +3610,19 @@ async function liberarEquipoDeProyecto(proyectoId, equipoId) {
   verProyecto(proyectoId);
 }
 
+// Cambia cuántas personas necesita el proyecto (− / + en la tarjeta de Personal asignado)
+async function cambiarPersonalRequerido(pid, delta) {
+  const p = STATE.proyectos.find(x => x.id === pid); if (!p) return;
+  const nuevo = (p.personal_requerido || 1) + delta;
+  if (nuevo < 1) return;
+  if (delta < 0 && (p.tecnicos_asignados || []).length > nuevo &&
+      !confirm(`El proyecto ya tiene ${(p.tecnicos_asignados || []).length} personas asignadas.\n¿Bajar lo requerido a ${nuevo} de todos modos? (nadie se quita del proyecto)`)) return;
+  const r = await api('PATCH', `/proyectos/proyectos/${encodeURIComponent(pid)}/personal-requerido`, { personal_requerido: nuevo });
+  if (!r) return;
+  toast(`Personal requerido: ${nuevo}`);
+  await loadProyectos(true);
+  verProyecto(pid);
+}
 function abrirAsignacionDirecta(proyectoId) {
   const disponibles = STATE.empleados.filter(e=>e.estado_perfil==='activo');
   openPanel('Asignar técnico directamente', `
