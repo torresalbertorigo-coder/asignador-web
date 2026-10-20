@@ -6423,48 +6423,61 @@ async function armarReporteWhatsApp() {
   const pausados = (STATE.proyectos || []).filter(p => p.estado === 'pausado');
   const proximos = (STATE.proyectos || []).filter(p => !['completado', 'cancelado', 'pausado'].includes(p.estado) && !p.fecha_inicio_real && p.fecha_inicio > hoyIso
     && (fechaLocal(p.fecha_inicio) - hoy) / 86400000 <= 7).sort((a, b) => a.fecha_inicio.localeCompare(b.fecha_inicio));
+  // Formato B2B sobrio: secciones numeradas, viñetas limpias, sin emojis decorativos
   const L = [];
   const fechaTxt = hoy.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-  L.push(`📋 *¿QUÉ TENEMOS HOY?*`, `_${fechaTxt.charAt(0).toUpperCase() + fechaTxt.slice(1)}_`, '');
-  L.push(`*🟢 Proyectos en ejecución hoy (${activos.length})*`);
-  if (!activos.length) L.push('_Sin proyectos en campo hoy._');
-  activos.forEach(p => {
+  const punto = t => { t = String(t || '').trim(); return !t || /[.!?…]$/.test(t) ? t : t + '.'; };
+  const plural = (n, s, p) => `${n} ${n === 1 ? s : (p || s + 's')}`;
+  L.push('📋 ¿QUÉ TENEMOS HOY? | WORKSYNC', `Fecha: ${fechaTxt.charAt(0).toUpperCase() + fechaTxt.slice(1)}`, '');
+
+  L.push(`1. PROYECTOS EN EJECUCIÓN (${activos.length})`);
+  if (!activos.length) L.push('• Sin proyectos en campo hoy.');
+  activos.forEach((p, k) => {
     const personal = (p.tecnicos_asignados || []).map(nombreEmp).filter(Boolean);
     let estado;
     if (p.fecha_inicio_real) {
       const dia = Math.round((hoy - fechaLocal(p.fecha_inicio_real)) / 86400000) + 1;
       const total = p.fecha_inicio && p.fecha_fin_estimada ? Math.round((fechaLocal(p.fecha_fin_estimada) - fechaLocal(p.fecha_inicio)) / 86400000) + 1 : null;
       const atraso = p.fecha_fin_estimada && hoyIso > p.fecha_fin_estimada ? Math.round((hoy - fechaLocal(p.fecha_fin_estimada)) / 86400000) : 0;
-      estado = `En campo · día ${dia}${total ? ` de ${total}` : ''}${atraso ? ` · ⏰ +${atraso} día${atraso === 1 ? '' : 's'} de retraso` : ''}`;
+      estado = atraso
+        ? `En campo, día ${dia} (programado para ${plural(total || dia - atraso, 'día')}; ${plural(atraso, 'día')} de retraso)`
+        : `En campo, día ${dia}${total ? ` de ${total}` : ''}`;
     } else estado = p.fecha_inicio === hoyIso ? 'Inicia hoy' : 'Programado, aún sin iniciar';
-    L.push(`- *${p.nombre}*`, `   🏢 ${p.cliente || '—'} · 📍 ${p.ciudad || '—'}`,
-      `   👷 ${personal.length ? personal.join(', ') : 'Sin personal asignado'}`, `   📌 ${estado}`);
+    const ubic = [p.cliente, p.ciudad].filter(Boolean).join(' · ');
+    if (k) L.push('');
+    L.push(`• ${p.nombre}${ubic ? ` (${ubic})` : ''}`,
+      `   Personal: ${personal.length ? personal.join(', ') : 'Sin personal asignado'}`,
+      `   Estatus: ${estado}`);
   });
-  // Novedades: standby/descanso de hoy, proyectos pausados e incidencias abiertas
+
+  // Standby/descanso de hoy, proyectos pausados e incidencias abiertas
   const hoyInact = (inact || []).filter(g => g.estado !== 'rechazado' && (g.fechas || []).includes(hoyIso));
   const incAbiertas = (inc || []).filter(i => i.estado !== 'resuelta' && (i.severidad === 'alta' || String(i.fecha || '').slice(0, 10) === hoyIso));
-  L.push('', `*⚠️ Standby / Incidencias activas*`);
-  if (!hoyInact.length && !pausados.length && !incAbiertas.length) L.push('_Sin novedades._');
-  hoyInact.forEach(g => L.push(`- ${g.tipo === 'standby' ? '⏸️ Standby' : '😴 Descanso'}: ${g.empleado_nombre || nombreEmp(g.empleado_id) || ''} — ${g.proyecto_nombre || pryNombre(g.proyecto_id)}${g.motivo ? ` (${g.motivo})` : ''}${g.estado === 'pendiente' ? ' _[por aprobar]_' : ''}`));
-  pausados.forEach(p => L.push(`- ⏸️ Proyecto en pausa: *${p.nombre}*${p.pausas_resumen?.length ? ` desde el ${fCorta(p.pausas_resumen.at(-1).inicio)}` : ''}`));
-  incAbiertas.forEach(i => L.push(`- ${i.severidad === 'alta' ? '🔴' : i.severidad === 'media' ? '🟠' : '🟡'} ${i.tipo}${pryNombre(i.proyecto_id) ? ` — ${pryNombre(i.proyecto_id)}` : ''}${i.descripcion ? `: ${i.descripcion}` : ''}`));
+  L.push('', '2. STANDBY E INCIDENCIAS ACTIVAS');
+  if (!hoyInact.length && !pausados.length && !incAbiertas.length) L.push('• Sin novedades en la jornada.');
+  hoyInact.forEach(g => L.push(`• ${g.tipo === 'standby' ? 'Standby' : 'Descanso'}: ${g.empleado_nombre || nombreEmp(g.empleado_id) || ''} — ${g.proyecto_nombre || pryNombre(g.proyecto_id)}${g.motivo ? ` (${g.motivo})` : ''}${g.estado === 'pendiente' ? ' [por aprobar]' : ''}`));
+  pausados.forEach(p => L.push(`• Proyecto en pausa: ${p.nombre}${p.pausas_resumen?.length ? `, desde el ${fCorta(p.pausas_resumen.at(-1).inicio)}` : ''}`));
+  incAbiertas.forEach(i => L.push(`• Incidencia ${i.severidad || ''}: ${i.tipo}${pryNombre(i.proyecto_id) ? ` — ${pryNombre(i.proyecto_id)}` : ''}${i.descripcion ? `. ${punto(i.descripcion)}` : ''}`.replace('Incidencia :', 'Incidencia:')));
+
   // Recursos en campo, agrupados por proyecto
   const enCampo = new Map();
   const add = (pry, txt) => { if (!pry) return; if (!enCampo.has(pry)) enCampo.set(pry, { veh: [], eq: [] }); enCampo.get(pry)[txt[0]].push(txt[1]); };
   (STATE.vehiculos || []).forEach(v => add(v.proyecto_actual_nombre, ['veh', `${v.apodo || v.nombre}${v.placas ? ` (${v.placas})` : ''}`]));
   (STATE.equipos || []).forEach(e => add(e.proyecto_actual_nombre, ['eq', e.apodo || e.nombre]));
-  L.push('', `*🚚 Recursos y vehículos en campo*`);
-  if (!enCampo.size) L.push('_Sin equipo ni vehículos fuera de base._');
+  L.push('', '3. RECURSOS Y VEHÍCULOS EN CAMPO');
+  if (!enCampo.size) L.push('• Sin equipo ni vehículos fuera de base.');
   [...enCampo.entries()].sort((a, b) => a[0].localeCompare(b[0], 'es')).forEach(([pry, r]) => {
-    L.push(`- *${pry}*`);
-    if (r.veh.length) L.push(`   🚗 ${r.veh.join(', ')}`);
-    if (r.eq.length) L.push(`   🧰 ${r.eq.join(', ')}`);
+    L.push(`• ${pry}`);
+    if (r.veh.length) L.push(`   Vehículos: ${r.veh.join(', ')}`);
+    if (r.eq.length) L.push(`   Equipo: ${r.eq.join(', ')}`);
   });
-  if (proximos.length) {
-    L.push('', `*📅 Próximos inicios (7 días)*`);
-    proximos.slice(0, 6).forEach(p => L.push(`- ${fCorta(p.fecha_inicio)} — *${p.nombre}* · ${p.ciudad || '—'} (${(p.tecnicos_asignados || []).length}/${p.personal_requerido || 1} personal)`));
-  }
-  L.push('', '_Generado con WorkSync_');
+
+  L.push('', '4. PRÓXIMOS INICIOS (7 DÍAS)');
+  if (!proximos.length) L.push('• Sin inicios programados.');
+  proximos.slice(0, 6).forEach(p => L.push(`• ${fCorta(p.fecha_inicio)} — ${p.nombre}${p.ciudad ? ` · ${p.ciudad}` : ''} (personal ${(p.tecnicos_asignados || []).length}/${p.personal_requerido || 1})`));
+  if (proximos.length > 6) L.push(`• … y ${plural(proximos.length - 6, 'proyecto')} más.`);
+
+  L.push('', '────────────────────────', 'Documento emitido vía WorkSync');
   return L.join('\n');
 }
 // Vista previa con el formato de WhatsApp (*negritas*, _cursivas_)
