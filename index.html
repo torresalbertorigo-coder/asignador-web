@@ -1242,8 +1242,8 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .av-tile.sel{box-shadow:0 0 0 2px var(--blue);transform:scale(.96)}
 .av-tile.sel::after{content:'';position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--blue)}
 .av-tile.hoy::before{content:'HOY';position:absolute;bottom:2px;left:0;right:0;font-size:8px;letter-spacing:.08em;opacity:.8}
-.av-mapa{position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:var(--surface2);touch-action:manipulation}
-.av-mapa img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none}
+.av-mapa{position:relative;border-radius:8px;overflow:visible;border:1px solid var(--border);background:var(--surface2);touch-action:manipulation}
+.av-mapa img{border-radius:8px;display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none}
 .av-pin{position:absolute;transform:translate(-50%,-50%);min-width:24px;height:24px;padding:0 5px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10.5px;font-weight:700;color:#fff;background:#d97706;border:2px solid rgba(255,255,255,.9);box-shadow:0 1px 4px rgba(0,0,0,.45);cursor:pointer;user-select:none}
 .av-pin.ok{background:#16a34a}.av-pin.inc{background:#dc2626}
 .av-pin.sel{outline:3px solid #3b82f6;outline-offset:1px;transform:translate(-50%,-50%) scale(1.15)}
@@ -8012,20 +8012,42 @@ async function copiarWhatsAppAvance(btn) {
 async function mapaAvanceCanvas(cfg, R) {
   const img = await new Promise((ok, no) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => ok(i); i.onerror = no; i.src = cfg.mapa_url; });
   const k = Math.min(1, 1800 / img.naturalWidth), w = Math.round(img.naturalWidth * k), h = Math.round(img.naturalHeight * k);
-  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-  const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0, w, h);
-  const rad = Math.max(12, Math.round(w / 62));
+  const rad = Math.max(13, Math.round(w / 58));
+  const pad = Math.round(rad * 1.9);          // margen interno: los pines de las orillas no se cortan
+  const cv = document.createElement('canvas'); cv.width = w + pad * 2; cv.height = h + pad * 2;
+  const cx = cv.getContext('2d');
+  cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, cv.width, cv.height);
+  cx.drawImage(img, pad, pad, w, h);
+  cx.strokeStyle = '#e4e4e7'; cx.lineWidth = 2; cx.strokeRect(pad, pad, w, h);
   cfg.unidades.forEach(u => {
     if (u.x == null) return;
-    const e = R.estado[u.id]?.estatus, col = e === 'ok' ? '#16a34a' : e === 'incidencia' ? '#dc2626' : '#d97706';
-    const x = u.x * w / 100, y = u.y * h / 100, t = etqCorta(u.id);
-    cx.font = `700 ${Math.round(rad * 0.95)}px Montserrat, Arial, sans-serif`;
+    const e = R.estado[u.id]?.estatus, col = e === 'ok' ? '#15803d' : e === 'incidencia' ? '#b91c1c' : '#b45309';
+    const x = pad + u.x * w / 100, y = pad + u.y * h / 100, t = etqCorta(u.id);
+    cx.font = `800 ${Math.round(rad * 1.0)}px Montserrat, Arial, sans-serif`;
     const tw = Math.max(rad * 2, cx.measureText(t).width + rad * 0.9);
+    // sombra suave del pin para despegarlo del mapa
+    cx.save(); cx.shadowColor = 'rgba(0,0,0,.45)'; cx.shadowBlur = rad * 0.5; cx.shadowOffsetY = rad * 0.12;
     cx.beginPath(); cx.roundRect ? cx.roundRect(x - tw / 2, y - rad, tw, rad * 2, rad) : cx.rect(x - tw / 2, y - rad, tw, rad * 2);
-    cx.fillStyle = col; cx.fill(); cx.lineWidth = Math.max(2, rad / 5); cx.strokeStyle = '#ffffff'; cx.stroke();
-    cx.fillStyle = '#ffffff'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(t, x, y + 1);
+    cx.fillStyle = col; cx.fill(); cx.restore();
+    cx.lineWidth = Math.max(2.5, rad / 4.5); cx.strokeStyle = '#ffffff'; cx.stroke();
+    // número: contorno oscuro sutil + relleno blanco en negrita
+    cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.lineJoin = 'round';
+    cx.lineWidth = Math.max(2, rad / 5.5); cx.strokeStyle = 'rgba(0,0,0,.55)'; cx.strokeText(t, x, y + 1);
+    cx.fillStyle = '#ffffff'; cx.fillText(t, x, y + 1);
   });
-  return { url: cv.toDataURL('image/jpeg', 0.9), ratio: h / w };
+  return { url: cv.toDataURL('image/jpeg', 0.92), ratio: cv.height / cv.width };
+}
+// Una fila por día + técnico + estatus: junta las unidades y las notas
+function agruparRegistrosDia(regs) {
+  const grupos = [], idx = {};
+  ordenRegistros(regs).forEach(r => {
+    const k = `${r.fecha}|${r.tecnico || ''}|${r.estatus}`;
+    if (!idx[k]) { idx[k] = { fecha: r.fecha, tecnico: r.tecnico, estatus: r.estatus, unidades: [], notas: [] }; grupos.push(idx[k]); }
+    const g = idx[k];
+    r.unidades.forEach(u => { if (!g.unidades.includes(u)) g.unidades.push(u); });
+    if (r.nota && !g.notas.includes(r.nota)) g.notas.push(r.nota);
+  });
+  return grupos;
 }
 async function exportarAvancePDF() {
   const A = STATE._av, cfg = A.data?.config; if (!cfg) return;
@@ -8052,13 +8074,13 @@ async function exportarAvancePDF() {
   y += 9;
   // Soporte visual
   y = P.seccion('SOPORTE VISUAL', y, `${cfg.tipo === 'solar' ? 'Mapa de bloques' : 'Aerogeneradores'} al ${fLargaAnio(new Date())}`);
-  const ley = [['Concluido', [22, 163, 74]], ['Pendiente', [217, 119, 6]], ['Con incidencia', [220, 38, 38]]];
+  const ley = [['Concluido', [21, 128, 61]], ['Pendiente', [180, 83, 9]], ['Con incidencia', [185, 28, 28]]];
   let lx = M; P.font('medium', 6.8, C.texto);
   ley.forEach(([t, c]) => { P.relleno(c); doc.circle(lx + 1.3, y - 1.1, 1.3, 'F'); doc.text(t, lx + 3.6, y); lx += 6 + doc.getTextWidth(t) + 4; });
   y += 3.5;
   // Alto del mapa según lo que necesitan la gráfica y la bitácora para que todo quepa en 1 hoja
   const nDias = new Set(regs.map(r => r.fecha)).size;
-  const reservaGraf = nDias ? 52 : 0, reservaTabla = 20 + Math.min(Math.max(regs.length, 1), 12) * 5.9;
+  const reservaGraf = nDias ? 52 : 0, reservaTabla = 20 + Math.min(Math.max(agruparRegistrosDia(regs).length, 1), 12) * 5.9;
   const maxVis = Math.max(50, Math.min(105, H - 22 - y - reservaGraf - reservaTabla - 6));
   let dibujado = false;
   if (cfg.mapa_url && cfg.unidades.some(u => u.x != null)) {
@@ -8087,7 +8109,7 @@ async function exportarAvancePDF() {
   // Gráfica: concluidos por día + avance acumulado (últimos 20 días con registro)
   const porDia = [...new Set(regs.map(r => r.fecha))].sort();
   if (porDia.length) {
-    y = P.seccion('AVANCE POR DÍA', y, `Barras: ${T.varios} concluidos en el día · línea: avance acumulado`);
+    y = P.seccion('AVANCE POR DÍA', y, `Barras: ${T.varios} concluidos en el día · línea gris: avance acumulado`);
     const dd = porDia.slice(-20), gh = 30, base = y + gh, ejeX = M + 8, gw = ancho - 16;
     const serie = dd.map(f => {
       const Rf = calcAvance(cfg, regs.filter(r => r.fecha <= f));
@@ -8101,26 +8123,28 @@ async function exportarAvancePDF() {
       if (s.n) { P.relleno(C.verdeBg); doc.rect(cx - bw / 2, base - bh, bw, bh, 'F'); P.font('bold', 6, C.verde); doc.text(String(s.n), cx, base - bh - 1, { align: 'center' }); }
       P.font('normal', 5.6, C.gris); doc.text(fCorta(s.f), cx, base + 3.4, { align: 'center' });
     });
-    P.trazo(C.rojo, 0.5);
+    const TEND = [71, 85, 105];   // #475569 — el rojo queda solo para incidencias
+    P.trazo(TEND, 0.5);
     serie.forEach((s, i) => { if (i) { const a = serie[i - 1]; doc.line(ejeX + paso * (i - 0.5), base - gh * a.pct / 100, ejeX + paso * (i + 0.5), base - gh * s.pct / 100); } });
-    serie.forEach((s, i) => { const cx = ejeX + paso * (i + 0.5), cy = base - gh * s.pct / 100; P.relleno(C.rojo); doc.circle(cx, cy, 0.8, 'F'); });
-    const ult = serie[serie.length - 1]; P.font('bold', 6.4, C.rojo);
+    serie.forEach((s, i) => { const cx = ejeX + paso * (i + 0.5), cy = base - gh * s.pct / 100; P.relleno(TEND); doc.circle(cx, cy, 0.8, 'F'); });
+    const ult = serie[serie.length - 1]; P.font('bold', 6.4, TEND);
     doc.text(`${ult.pct}%`, Math.min(ejeX + paso * (serie.length - 0.5) + 1.5, ejeX + gw - 6), base - gh * ult.pct / 100 - 1.6);
     y = base + 9;
   }
   // Bitácora diaria (cronológica), recortada para que todo quepa en 1 hoja
-  y = P.seccion('BITÁCORA DIARIA DE ACTIVIDADES', y, `${regs.length} registro${regs.length === 1 ? '' : 's'}`);
+  const grupos = agruparRegistrosDia(regs);
+  y = P.seccion('BITÁCORA DIARIA DE ACTIVIDADES', y, `${regs.length} registro${regs.length === 1 ? '' : 's'}${grupos.length < regs.length ? ` · agrupados en ${grupos.length} fila${grupos.length === 1 ? '' : 's'}` : ''}`);
   const filaH = 5.9, disp = H - 22 - y - 7;
   const maxFilas = Math.max(1, Math.floor(disp / filaH));
-  let filas = regs, omitidas = 0;
+  let filas = grupos, omitidas = 0;
   if (filas.length > maxFilas) { omitidas = filas.length - (maxFilas - 1); filas = filas.slice(-(maxFilas - 1)); }
   if (!regs.length) { P.font('normal', 8, C.gris); doc.text('Aún no hay registros de avance.', M, y + 2); }
   else {
-    if (omitidas) { P.font('normal', 6.8, C.gris); doc.text(`Se muestran los ${filas.length} registros más recientes (${omitidas} anteriores no caben en la hoja; ver plataforma).`, M, y); y += 3; }
+    if (omitidas) { P.font('normal', 6.8, C.gris); doc.text(`Se muestran las ${filas.length} filas más recientes (${omitidas} anteriores no caben en la hoja; ver plataforma).`, M, y); y += 3; }
     let fechaPrev = null;
     const body = filas.map(r => {
       const f = r.fecha !== fechaPrev ? fCorta(r.fecha) : ''; fechaPrev = r.fecha;
-      return [f, r.tecnico || '—', `${rangosUnidades(cfg, r.unidades)} (${r.unidades.length})`, r.estatus === 'ok' ? 'Concluido' : 'Incidencia', r.nota || '—'];
+      return [f, r.tecnico || '—', `${rangosUnidades(cfg, r.unidades)} (${r.unidades.length})`, r.estatus === 'ok' ? 'Concluido' : 'Incidencia', r.notas.join(' · ') || '—'];
     });
     doc.autoTable({
       startY: y, margin: { left: M, right: M, bottom: 20 }, head: [['Fecha', 'Técnico', T.varios.charAt(0).toUpperCase() + T.varios.slice(1), 'Estatus', 'Nota']], body,
