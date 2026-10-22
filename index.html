@@ -11336,37 +11336,38 @@ async function exportarGanttPDF() {
 
   T.encabezado('Calendario de disponibilidad', `${fCorta(dias[0]).toUpperCase()} – ${fLargaAnio(dias.at(-1)).toUpperCase()}`,
     'Disponibilidad del personal', `${dias.length} días  ·  hoy ${hoy.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}`);
-  let y = 33;
-  T.relleno(C.fondo); doc.roundedRect(M, y, T.W - 2 * M, 8, 1.6, 1.6, 'F');
-  [[proyectosPeriodo.size, 'proyectos en el periodo', C.tinta], [programados, 'programados', PDF_EST.asignado.c],
-   [enCampo, hoyEnRango ? 'en campo hoy' : 'en curso en el periodo', PDF_EST.progreso.c], [ausResumen, ausTexto, PDF_EST.ausencia.c],
-   [libresHoy, hoyEnRango ? 'técnicos libres hoy' : 'técnicos sin asignación en el periodo', C.tinta]].reduce((xx, [n, t, c]) => {
-    T.relleno(c); doc.circle(xx, y + 4, 1, 'F');
-    T.font('bold', 8.6, C.tinta); doc.text(String(n), xx + 2.6, y + 5.2);
+  // Cabecera compacta: métricas esenciales en una sola fila discreta (sin barra gris)
+  let y = 33.5;
+  [[proyectosPeriodo.size, proyectosPeriodo.size === 1 ? 'proyecto en el periodo' : 'proyectos en el periodo', C.tinta],
+   [enCampo, hoyEnRango ? 'en campo hoy' : 'en curso', PDF_EST.progreso.c],
+   [programados, programados === 1 ? 'programado' : 'programados', PDF_EST.asignado.c],
+   [ausResumen, ausTexto, PDF_EST.ausencia.c],
+   [libresHoy, hoyEnRango ? 'libres hoy' : 'sin asignación', C.gris]].reduce((xx, [n, t, c]) => {
+    T.relleno(c); doc.circle(xx + 0.9, y - 1.1, 0.9, 'F');
+    T.font('bold', 7.4, C.tinta); doc.text(String(n), xx + 2.8, y);
     const an = doc.getTextWidth(String(n));
-    T.font('normal', 7.6, C.texto); doc.text(t, xx + 2.6 + an + 1.6, y + 5.2);
-    return xx + 2.6 + an + 1.6 + doc.getTextWidth(t) + 9;
-  }, M + 5);
-  y += 16;
+    T.font('normal', 6.8, C.gris); doc.text(t, xx + 2.8 + an + 1.3, y);
+    return xx + 2.8 + an + 1.3 + doc.getTextWidth(t) + 6.5;
+  }, M);
+  y += 4;
 
-  // Avance de los proyectos activos del periodo (donas)
+  // Donas: solo proyectos EN CAMPO con avance real o trabajando hoy (máx. 3). Sin ellos, el bloque no aparece.
   {
-    const prio = { progreso: 0, asignado: 1, prep: 2, pausa: 3 };
-    const activos = [...proyectosPeriodo.values()].filter(p => grupoEstadoPDF(p) !== 'completado')
-      .sort((a, b) => (prio[grupoEstadoPDF(a)] ?? 9) - (prio[grupoEstadoPDF(b)] ?? 9) || a.fecha_inicio.localeCompare(b.fecha_inicio));
+    const enCampoHoy = p => hoyEnRango && filas.some(f => f.barras.some(b => b.pry === p && b.a <= HOY && b.b >= HOY));
+    const cand = [...proyectosPeriodo.values()].filter(p => grupoEstadoPDF(p) === 'progreso');
+    const fis = cand.length ? (await api('GET', `/avance/resumen?ids=${encodeURIComponent(cand.map(p => p.id).join(','))}`) || {}) : {};
+    const activos = cand.map(p => ({ p, a: avanceProyectoReporte(p, fis[p.id], hoy) }))
+      .filter(({ p, a }) => a.pct > 0 || enCampoHoy(p))
+      .sort((x, z) => (z.a.modo === 'fisico') - (x.a.modo === 'fisico') || z.a.pct - x.a.pct)
+      .slice(0, 3);
     if (activos.length) {
-      const fis = await api('GET', `/avance/resumen?ids=${encodeURIComponent(activos.map(p => p.id).join(','))}`) || {};
-      // bloque compacto (≈20 mm) para que la rejilla y la lista sigan cabiendo en una hoja
-      const n = Math.min(activos.length, 5), gap = 3.5, cw = (T.W - 2 * M - gap * (n - 1)) / n, ch = 15.5, D = 11.5;
-      y -= 4.5;
-      T.etiqueta('Avance de proyectos activos', M, y);
-      if (activos.length > n) { T.font('medium', 6.2, C.gris); doc.text(`${n} de ${activos.length} · el resto en la lista de asignaciones`, T.W - M, y, { align: 'right' }); }
-      y += 2.2;
+      y += 1.5;
+      const gap = 4, cw = Math.min(82, (T.W - 2 * M - gap * 2) / 3), ch = 15, D = 11.5;
       const SLATE = [71, 85, 105], SLATE_BG = [226, 232, 240];
-      activos.slice(0, n).forEach((p, i) => {
-        const x = M + i * (cw + gap), a = avanceProyectoReporte(p, fis[p.id], hoy);
+      activos.forEach(({ p, a }, i) => {
+        const x = M + i * (cw + gap);
         T.relleno(C.fondo); doc.roundedRect(x, y, cw, ch, 1.6, 1.6, 'F');
-        T.relleno(PDF_EST[grupoEstadoPDF(p)].c); doc.rect(x, y + 2.5, 0.8, ch - 5, 'F');
+        T.relleno(PDF_EST.progreso.c); doc.rect(x, y + 2.5, 0.8, ch - 5, 'F');
         const partes = a.modo === 'fisico'
           ? [[a.ok, AV_COL.ok.c], [a.inc, AV_COL.inc.c], [a.total - a.ok - a.inc, AV_COL.pend.c]]
           : [[a.ok, SLATE], [a.total - a.ok, SLATE_BG]];
@@ -11374,23 +11375,23 @@ async function exportarGanttPDF() {
         doc.addImage(donaPartesPNG(partes), 'PNG', dx, dy, D, D);
         T.font('bold', a.pct === 100 ? 5.4 : 6.2, a.modo === 'fisico' ? AV_COL.ok.tx : SLATE);
         doc.text(`${a.pct}%`, dx + D / 2, dy + D / 2 + 1, { align: 'center' });
-        const tx = dx + D + 2.8, tw = x + cw - tx - 2;
-        // nombre en hasta 2 renglones
-        T.font('bold', 6.3, C.tinta);
+        const tx = dx + D + 2.8, tw = x + cw - tx - 2.5;
+        T.font('bold', 6.4, C.tinta);
         let lin = doc.splitTextToSize(p.nombre, tw);
         if (lin.length > 2) lin = [lin[0], recortarTexto(doc, lin.slice(1).join(' '), tw)];
-        doc.text(lin, tx, y + 3.6, { lineHeightFactor: 1.05 });
-        const y2 = y + 3.6 + (lin.length - 1) * 2.75;
+        doc.text(lin, tx, y + 3.7, { lineHeightFactor: 1.05 });
+        const y2 = y + 3.7 + (lin.length - 1) * 2.75;
         T.font('medium', 6, C.texto);
         const sub = recortarTexto(doc, a.sub, tw - (a.inc ? doc.getTextWidth(` · ${a.inc} incid.`) : 0));
-        doc.text(sub, tx, y2 + 3.3);
-        if (a.inc) { const w0 = doc.getTextWidth(sub); T.font('semibold', 6, AV_COL.inc.tx); doc.text(` · ${a.inc} incid.`, tx + w0, y2 + 3.3); }
+        doc.text(sub, tx, y2 + 3.2);
+        if (a.inc) { const w0 = doc.getTextWidth(sub); T.font('semibold', 6, AV_COL.inc.tx); doc.text(` · ${a.inc} incid.`, tx + w0, y2 + 3.2); }
         const etq = a.modo === 'fisico' ? 'AVANCE FÍSICO' : a.modo === 'tiempo' ? 'POR TIEMPO' : 'POR TIEMPO · SIN CAPTURA';
-        T.font('semibold', 5.1, a.modo === 'fisico' ? AV_COL.ok.tx : SLATE); doc.text(recortarTexto(doc, etq, tw), tx, y2 + 6.4);
+        T.font('semibold', 5.1, a.modo === 'fisico' ? AV_COL.ok.tx : SLATE); doc.text(recortarTexto(doc, etq, tw), tx, y2 + 6.2);
       });
-      y += ch + 5;
+      y += ch;
     }
   }
+  y += 8;   // espacio para el renglón de meses de la rejilla
 
   // Bloques de la lista de asignaciones (se calculan antes para ajustar la rejilla a una sola hoja)
   const orden = ['progreso', 'asignado', 'prep', 'pausa', 'completado'];
