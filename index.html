@@ -11248,6 +11248,48 @@ async function exportarFichaEquipoPDF(id) {
 // ═════════════════════════════════════════════════════════════════════════════
 // 1. GANTT GENERAL — una sola hoja horizontal
 // ═════════════════════════════════════════════════════════════════════════════
+// ── Avance por proyecto para reportes (lógica dual) ──
+// A. Operativos (eólico/solar/termografía/mantenimiento): avance físico capturado en campo (Avance de obra).
+// B. Capacitaciones/cursos/comisiones: días transcurridos ÷ días totales del programa.
+// Un operativo sin captura de campo usa también el cálculo por tiempo, marcado como tal.
+const RE_CAPACITACION = /CAPACIT|CURSO|COMISION|ENTRENAMIENTO|TALLER|FORMACION|INDUCCION|CERTIFICACION GWO/;
+function avanceProyectoReporte(p, fisico, hoy) {
+  const esCap = RE_CAPACITACION.test(sinAcentos(`${p.nombre || ''} ${p.descripcion || ''}`));
+  if (!esCap && fisico?.total) {
+    const pct = Math.round(fisico.ok * 100 / fisico.total);
+    return { modo: 'fisico', pct, ok: fisico.ok, inc: fisico.inc, total: fisico.total,
+      sub: `${fisico.ok} de ${fisico.total} ${fisico.tipo === 'solar' ? 'bloques' : 'WTGs'}`, etq: 'Avance físico' };
+  }
+  const ini = fechaLocal(p.fecha_inicio_real || p.fecha_inicio), finPlan = fechaLocal(p.fecha_fin_estimada);
+  const total = Math.max(1, Math.round((finPlan - fechaLocal(p.fecha_inicio)) / 86400000) + 1);
+  let trans = 0;
+  if (p.fecha_fin_real) trans = total;
+  else if (p.fecha_inicio_real || ini <= hoy) trans = Math.min(total, Math.max(0, Math.round((hoy - ini) / 86400000) + 1));
+  if (!p.fecha_inicio_real && !p.fecha_fin_real && ini > hoy) trans = 0;
+  const pct = Math.round(trans * 100 / total);
+  // en curso y ya pasó su fin estimado sin finalizar: 100 % del plan, pero se avisa el retraso
+  const diaReal = p.fecha_inicio_real && !p.fecha_fin_real ? Math.round((hoy - ini) / 86400000) + 1 : 0;
+  const atraso = diaReal > total ? diaReal - total : 0;
+  return { modo: esCap ? 'tiempo' : 'tiempo-sin', pct, ok: trans, inc: 0, total, atraso,
+    sub: p.fecha_fin_real ? `Concluido · ${total} día${total === 1 ? '' : 's'}`
+      : atraso ? `Día ${diaReal} de ${total} · +${atraso} de retraso`
+      : trans ? `Día ${trans} de ${total}` : `Inicia ${fCorta(p.fecha_inicio)} · ${total} día${total === 1 ? '' : 's'}`,
+    etq: esCap ? 'Avance por tiempo' : 'Por tiempo · sin captura de campo' };
+}
+function donaPartesPNG(partes) {
+  const S = 360, cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const cx = cv.getContext('2d'), r = S / 2 - 4, grosor = r * 0.3, total = partes.reduce((a, [n]) => a + n, 0) || 1;
+  let a = -Math.PI / 2;
+  const vis = partes.filter(([n]) => n > 0);
+  vis.forEach(([n, c]) => {
+    const da = Math.PI * 2 * n / total;
+    cx.beginPath(); cx.arc(S / 2, S / 2, r, a, a + da); cx.arc(S / 2, S / 2, r - grosor, a + da, a, true); cx.closePath();
+    cx.fillStyle = avHex(c); cx.fill();
+    if (vis.length > 1) { cx.lineWidth = 4; cx.strokeStyle = '#ffffff'; cx.stroke(); }
+    a += da;
+  });
+  return cv.toDataURL('image/png');
+}
 async function exportarGanttPDF() {
   await Promise.all([loadEmpleados(), loadProyectos()]);
   const T = await nuevaPlantillaPDF('landscape'), { doc, C, M } = T;
@@ -11307,13 +11349,57 @@ async function exportarGanttPDF() {
   }, M + 5);
   y += 16;
 
+  // Avance de los proyectos activos del periodo (donas)
+  {
+    const prio = { progreso: 0, asignado: 1, prep: 2, pausa: 3 };
+    const activos = [...proyectosPeriodo.values()].filter(p => grupoEstadoPDF(p) !== 'completado')
+      .sort((a, b) => (prio[grupoEstadoPDF(a)] ?? 9) - (prio[grupoEstadoPDF(b)] ?? 9) || a.fecha_inicio.localeCompare(b.fecha_inicio));
+    if (activos.length) {
+      const fis = await api('GET', `/avance/resumen?ids=${encodeURIComponent(activos.map(p => p.id).join(','))}`) || {};
+      // bloque compacto (≈20 mm) para que la rejilla y la lista sigan cabiendo en una hoja
+      const n = Math.min(activos.length, 5), gap = 3.5, cw = (T.W - 2 * M - gap * (n - 1)) / n, ch = 15.5, D = 11.5;
+      y -= 4.5;
+      T.etiqueta('Avance de proyectos activos', M, y);
+      if (activos.length > n) { T.font('medium', 6.2, C.gris); doc.text(`${n} de ${activos.length} · el resto en la lista de asignaciones`, T.W - M, y, { align: 'right' }); }
+      y += 2.2;
+      const SLATE = [71, 85, 105], SLATE_BG = [226, 232, 240];
+      activos.slice(0, n).forEach((p, i) => {
+        const x = M + i * (cw + gap), a = avanceProyectoReporte(p, fis[p.id], hoy);
+        T.relleno(C.fondo); doc.roundedRect(x, y, cw, ch, 1.6, 1.6, 'F');
+        T.relleno(PDF_EST[grupoEstadoPDF(p)].c); doc.rect(x, y + 2.5, 0.8, ch - 5, 'F');
+        const partes = a.modo === 'fisico'
+          ? [[a.ok, AV_COL.ok.c], [a.inc, AV_COL.inc.c], [a.total - a.ok - a.inc, AV_COL.pend.c]]
+          : [[a.ok, SLATE], [a.total - a.ok, SLATE_BG]];
+        const dx = x + 2.6, dy = y + (ch - D) / 2;
+        doc.addImage(donaPartesPNG(partes), 'PNG', dx, dy, D, D);
+        T.font('bold', a.pct === 100 ? 5.4 : 6.2, a.modo === 'fisico' ? AV_COL.ok.tx : SLATE);
+        doc.text(`${a.pct}%`, dx + D / 2, dy + D / 2 + 1, { align: 'center' });
+        const tx = dx + D + 2.8, tw = x + cw - tx - 2;
+        // nombre en hasta 2 renglones
+        T.font('bold', 6.3, C.tinta);
+        let lin = doc.splitTextToSize(p.nombre, tw);
+        if (lin.length > 2) lin = [lin[0], recortarTexto(doc, lin.slice(1).join(' '), tw)];
+        doc.text(lin, tx, y + 3.6, { lineHeightFactor: 1.05 });
+        const y2 = y + 3.6 + (lin.length - 1) * 2.75;
+        T.font('medium', 6, C.texto);
+        const sub = recortarTexto(doc, a.sub, tw - (a.inc ? doc.getTextWidth(` · ${a.inc} incid.`) : 0));
+        doc.text(sub, tx, y2 + 3.3);
+        if (a.inc) { const w0 = doc.getTextWidth(sub); T.font('semibold', 6, AV_COL.inc.tx); doc.text(` · ${a.inc} incid.`, tx + w0, y2 + 3.3); }
+        const etq = a.modo === 'fisico' ? 'AVANCE FÍSICO' : a.modo === 'tiempo' ? 'POR TIEMPO' : 'POR TIEMPO · SIN CAPTURA';
+        T.font('semibold', 5.1, a.modo === 'fisico' ? AV_COL.ok.tx : SLATE); doc.text(recortarTexto(doc, etq, tw), tx, y2 + 6.4);
+      });
+      y += ch + 5;
+    }
+  }
+
   // Bloques de la lista de asignaciones (se calculan antes para ajustar la rejilla a una sola hoja)
   const orden = ['progreso', 'asignado', 'prep', 'pausa', 'completado'];
   const grupos = orden.map(k => [k, [...proyectosPeriodo.values()].filter(p => grupoEstadoPDF(p) === k)
       .sort((a, b) => a.fecha_inicio.localeCompare(b.fecha_inicio))
       .map(p => {
-        let fechas = rangoCorto(p.fecha_inicio, p.fecha_fin_estimada);
-        if (p.fecha_fin_real && p.fecha_fin_real !== p.fecha_fin_estimada) fechas += `  ·  fin real ${fCorta(p.fecha_fin_real)}`;
+        const durDias = Math.round((fechaLocal(p.fecha_fin_estimada) - fechaLocal(p.fecha_inicio)) / 86400000) + 1;
+        let fechas = `${rangoCorto(p.fecha_inicio, p.fecha_fin_estimada)}  ·  ${durDias} día${durDias === 1 ? '' : 's'}`;
+        if (p.fecha_fin_real && p.fecha_fin_real !== p.fecha_fin_estimada) fechas = `${rangoCorto(p.fecha_inicio, p.fecha_fin_estimada)}  ·  fin real ${fCorta(p.fecha_fin_real)}`;
         return [p.nombre, fechas, [...personasPorProyecto.get(p.id)]];
       })]).filter(([, it]) => it.length);
   // Ausencias: se muestran los días que caen dentro del periodo (y desde/hasta cuándo, si se sale)
