@@ -1406,6 +1406,70 @@ html.av-fs-abierto .content{overflow:hidden !important}
   .av-pin{border-width:1.5px}
   .av-seg button{padding:9px 11px}
 }
+
+/* ── Simulador de proyectos ── */
+.sim-aviso{display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--text2);background:var(--surface2);border:1px dashed var(--border2);border-radius:var(--radius);padding:10px 12px;margin-bottom:14px}
+.sim-aviso>i{font-size:17px;color:var(--red);margin-top:1px}
+.sim-grid{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:14px;align-items:start}
+.sim-form{display:flex;flex-direction:column;gap:0}
+.sim-card{padding:14px 16px}
+.sim-card .field-group{margin-bottom:10px}
+.sim-fila{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sim-botones{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.sim-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.sim-vacio{font-size:12px;color:var(--text3);margin-bottom:8px}
+.sim-ayuda{font-weight:500;letter-spacing:0;color:var(--text3);font-size:10px}
+.sim-act{border:1px solid var(--border);border-left:3px solid var(--c);border-radius:8px;padding:10px 10px 4px;margin-bottom:10px;background:var(--surface)}
+.sim-act-top{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+.sim-act-top>.field-input{flex:1;min-width:0;font-weight:600}
+.sim-num{flex:0 0 22px;height:22px;border-radius:50%;background:var(--c);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.sim-act-acc{display:flex}
+.sim-act-acc .btn{padding:4px 6px}
+.sim-act-acc .btn:disabled{opacity:.3;cursor:default}
+.sim-modo{display:inline-flex;border:1px solid var(--border2);border-radius:7px;overflow:hidden;margin-bottom:10px}
+.sim-modo button{background:none;border:none;color:var(--text3);font:inherit;font-size:11px;font-weight:600;padding:5px 10px;cursor:pointer}
+.sim-modo button.on{background:var(--surface2);color:var(--text);box-shadow:inset 0 -2px 0 var(--c)}
+.sim-act-res{font-size:12px;color:var(--text2);padding:6px 0 8px;border-top:1px solid var(--border);margin-top:2px}
+.sim-act-res strong{color:var(--text)}
+.sim-lim{color:var(--amber);font-size:11px;margin-top:3px}
+.sim-mal{color:var(--amber)}
+.sim-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.sim-kpi{border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;background:var(--surface);display:flex;flex-direction:column;gap:2px;min-width:0}
+.sim-kpi span{font-size:10px;letter-spacing:.08em;font-weight:600;color:var(--text3)}
+.sim-kpi strong{font-size:22px;color:var(--text);line-height:1.2}
+.sim-kpi em{font-style:normal;font-size:11px;color:var(--text3)}
+.sim-kpi.principal{border-color:var(--red)}
+.sim-kpi.principal strong{color:var(--red)}
+.sim-gantt{overflow-x:auto;padding-bottom:4px}
+.sim-gf{display:flex;min-width:max-content;border-bottom:1px solid var(--border)}
+.sim-gl{position:sticky;left:0;z-index:2;flex:0 0 190px;width:190px;padding:5px 10px 5px 0;background:var(--surface);display:flex;flex-direction:column;justify-content:center;min-height:30px}
+.sim-gl span{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sim-gl em{font-style:normal;font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sim-gf.tras .sim-gl span{color:var(--text2);font-weight:500}
+.sim-gt{position:relative;flex:0 0 auto;min-height:30px}
+.sim-gf.cab .sim-gt{height:38px}
+.sim-gf.cab .sim-gl{min-height:38px}
+.sim-off{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,transparent 0 4px,var(--border) 4px 5px);opacity:.7}
+.sim-sem{position:absolute;top:0;height:16px;font-size:10px;font-weight:600;color:var(--text3);text-align:center;border-left:1px solid var(--border);white-space:nowrap;overflow:hidden}
+.sim-dia{position:absolute;top:17px;height:20px;font-size:10px;color:var(--text2);text-align:center;line-height:1}
+.sim-dia b{display:block;font-size:9px;color:var(--text3);font-weight:600}
+.sim-dia.off{color:var(--text3)}
+.sim-barra{position:absolute;top:8px;height:14px;border-radius:4px}
+.sim-barra.claro{opacity:.28}
+.sim-barra.uso{background:#71717A;opacity:.85}
+.sim-puente{position:absolute;top:14px;height:0;border-top:2px dotted}
+.sim-dur{position:absolute;top:8px;font-size:10px;font-weight:600;color:var(--text3);white-space:nowrap;line-height:14px}
+.sim-gsep{font-size:10px;letter-spacing:.1em;font-weight:600;color:var(--text3);padding:12px 0 4px;position:sticky;left:0}
+.sim-ley{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--text3);margin-top:10px}
+.sim-ley i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.sim-ley i.off{background:repeating-linear-gradient(135deg,transparent 0 2px,var(--border2) 2px 3px);border:1px solid var(--border2)}
+.sim-tabla{width:100%;border-collapse:collapse;font-size:12px}
+.sim-tabla th{text-align:left;font-size:10px;letter-spacing:.06em;color:var(--text3);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--border)}
+.sim-tabla td{padding:7px 8px;border-bottom:1px solid var(--border);color:var(--text2)}
+.sim-tabla tr.actual td{background:var(--surface2);color:var(--text)}
+.sim-tag{font-size:9px;font-weight:700;letter-spacing:.06em;color:var(--red);background:var(--red-bg);padding:1px 6px;border-radius:8px;text-transform:uppercase}
+@media (max-width:1100px){.sim-grid{grid-template-columns:minmax(0,1fr)}.sim-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:768px){.sim-oc{display:none}.sim-gl{flex-basis:130px;width:130px}.sim-kpi strong{font-size:19px}}
 </style>
 </head>
 <body>
@@ -1820,6 +1884,7 @@ function buildNav() {
       <div class="nav-item" onclick="showSection('proyectos')" data-sec="proyectos"><i class="ti ti-folder" aria-hidden="true"></i> Proyectos <span id="nav-badge-pendientes" class="nav-badge nav-badge-pend" style="display:none" title="Proyectos pendientes de asignar"></span></div>
       <div class="nav-item" onclick="showSection('clientes')" data-sec="clientes"><i class="ti ti-building" aria-hidden="true"></i> Clientes</div>
       <div class="nav-item" onclick="showSection('gantt')" data-sec="gantt"><i class="ti ti-calendar-stats" aria-hidden="true"></i> Gantt</div>
+      <div class="nav-item" onclick="showSection('simulador')" data-sec="simulador"><i class="ti ti-calculator" aria-hidden="true"></i> Simulador</div>
       <div class="nav-section">OPERACIONES</div>
       <div class="nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-packages" aria-hidden="true"></i> Activos / Equipos</div>
       <div class="nav-item" onclick="showSection(STATE._excTab || 'incidencias')" data-sec="incidencias"><i class="ti ti-calendar-exclamation" aria-hidden="true"></i> Bitácora de excepciones <span id="nav-badge-inactividad" class="nav-badge" style="display:none" title="Días sin trabajo pendientes de aprobar"></span></div>
@@ -2055,6 +2120,7 @@ const TITLES = {
   'empleados':        ['ti-users',              'Empleados'],
   'proyectos':        ['ti-folder',             'Proyectos'],
   'gantt':            ['ti-calendar-stats',     'Gantt — Disponibilidad'],
+  'simulador':        ['ti-calculator',         'Simulador de proyectos'],
   'evaluar':          ['ti-adjustments-horizontal','Evaluar Candidatos'],
   'equipos':          ['ti-packages',           'Activos / Equipos'],
   'vehiculos':        ['ti-truck',              'Vehículos'],
@@ -2096,6 +2162,7 @@ const RENDERERS = {
   reportar:         renderReportar,
   'mi-perfil':      renderMiPerfil,
   avance:           renderAvance,
+  simulador:        renderSimulador,
 };
 
 // Abre Evaluar con el proyecto ya cargado (sin pasar por el selector)
@@ -9280,6 +9347,10 @@ async function abrirSelectorTerminos(tipo, destino, proyectoId) {
     yaEnProyecto = new Set(tipo === 'habilidad' ? (STATE.perfil_habs||[]).map(h => h.nombre) : (STATE.perfil_docs||[]).map(d => d.nombre));
   }
   const elegidos = new Map();
+  if (destino === 'sim') {   // Simulador: no toca ningún proyecto
+    if (tipo === 'equipo') (STATE._sim?.equipo||[]).forEach(e => elegidos.set(e.tipo, e.cantidad));
+    if (tipo === 'vehiculo') (STATE._sim?.vehiculos||[]).forEach(v => elegidos.set(v.tipo, v.cantidad));
+  }
   if (destino === 'nuevo') {
     if (tipo === 'habilidad') (STATE._np_habilidades||[]).forEach(h => elegidos.set(h.nombre, h.nivel));
     if (tipo === 'certificado') (STATE._np_certificados||[]).forEach(c => elegidos.set(c, null));
@@ -9389,6 +9460,12 @@ function cerrarSelectorTerminos() {
 }
 async function confirmarSelectorTerminos() {
   const s = STATE._sel; if (!s) return;
+  if (s.destino === 'sim') {
+    const pares = [...s.elegidos].map(([tipo, cantidad]) => ({ tipo, cantidad }));
+    if (s.tipo === 'equipo') STATE._sim.equipo = pares; else STATE._sim.vehiculos = pares;
+    cerrarSelectorTerminos(); simPintarRecursos(); simPintarActividades(); simRecalcular();
+    return;
+  }
   if (s.destino === 'nuevo') {
     const pares = [...s.elegidos];
     if (s.tipo === 'habilidad') { STATE._np_habilidades = pares.map(([nombre, nivel]) => ({ nombre, nivel })); document.getElementById('np-habs-list').innerHTML = renderListaHabilidadesProyecto(); }
@@ -12812,6 +12889,411 @@ async function renderMiGantt() {
     initApp();
   }
 })();
+
+// ─── SIMULADOR DE PROYECTOS ──────────────────────────────────────────────────
+// Estimación rápida para platicar con el cliente: con X técnicos, vehículos y equipo,
+// ¿cuántos días tomaría el trabajo? No consulta la agenda ni guarda nada: se arma sobre
+// un mes genérico (Día 1, Día 2…) y solo vive en esta pantalla.
+const SIM_JORNADAS = { LV: { t: 'Lunes a viernes', d: [1, 2, 3, 4, 5] }, LS: { t: 'Lunes a sábado', d: [1, 2, 3, 4, 5, 6] }, LD: { t: 'Toda la semana', d: [0, 1, 2, 3, 4, 5, 6] } };
+const SIM_LETRA = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+const SIM_DIA_NOMBRE = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const SIM_COL = ['#4F7CC4', '#4E9A73', '#7C5CC9', '#2F9C9C', '#C45C8A', '#8A6D3B'];
+const SIM_TRASLADO = '#9CA3AF', SIM_HOLGURA = '#D39B3A';
+const SIM_UNIDADES = ['WTG', 'aerogeneradores', 'MW', 'MWp', 'bloques', 'inversores', 'strings', 'paneles', 'torres', 'km', 'hectáreas', 'puntos', 'equipos'];
+
+function simActividadNueva(modo = 'rend') { return { desc: '', modo, cantidad: modo === 'rend' ? 10 : 0, unidad: 'WTG', rend: 2, tpc: 2, eq: '', dias: 1 }; }
+function simNuevo() {
+  return { nombre: '', tecnicos: 2, vehiculos: [], equipo: [], jornada: 'LS', inicio: 1, traslado: 1, holgura: 10, actividades: [simActividadNueva()] };
+}
+const simSemanas = d => d < 7 ? 'menos de una semana' : `≈ ${Math.round(d / 7 * 2) / 2} semana${d >= 10.5 ? 's' : ''}`.replace('.5', ' y media');
+const simPl = (n, s, p) => `${n} ${n === 1 ? s : (p || s + 's')}`;
+
+function simRecursosTexto(sim = STATE._sim) {
+  return [simPl(+sim.tecnicos || 0, 'técnico'),
+    ...(sim.vehiculos || []).map(v => `${v.cantidad} ${etiquetaVehiculo(v.tipo)}`),
+    ...(sim.equipo || []).map(e => `${e.cantidad} ${etiquetaEquipo(e.tipo)}`)].join(' · ');
+}
+
+// ── Cálculo ──
+// Actividades en orden, una detrás de otra. Por rendimiento: frentes = técnicos ÷ técnicos por frente
+// (y, si requiere un equipo, no más frentes que unidades de ese equipo). Los traslados corren
+// cualquier día; el trabajo solo en los días de la jornada elegida.
+function simCalcular(sim = STATE._sim, tecnicos = sim.tecnicos) {
+  const tec = Math.max(0, Math.floor(+tecnicos || 0));
+  const eqCant = Object.fromEntries((sim.equipo || []).map(e => [e.tipo, e.cantidad]));
+  const lab = new Set(SIM_JORNADAS[sim.jornada]?.d || SIM_JORNADAS.LS.d);
+  const wd = i => ((+sim.inicio || 0) + i) % 7, esLab = i => lab.has(wd(i));
+  const tras = Math.max(0, +sim.traslado || 0);
+  const fases = [], avisos = [];
+  let cur = 0, trabajo = 0;
+  const ocupar = n => {   // n días laborables a partir de "cur"
+    let c = cur; while (!esLab(c)) c++;
+    const ini = c; let k = 0, ult = c;
+    while (k < n) { if (esLab(c)) { k++; ult = c; } c++; }
+    cur = ult + 1; return [ini, ult];
+  };
+  if (tras) { fases.push({ tipo: 'traslado', nombre: 'Traslado a sitio', ini: 0, fin: tras - 1, dias: tras }); cur = tras; }
+  (sim.actividades || []).forEach((a, i) => {
+    const nombre = (a.desc || '').trim() || `Actividad ${i + 1}`;
+    let dias, frentes = null, limite = null, tope = false;
+    if (a.modo === 'dias') {
+      dias = Math.ceil(+a.dias || 0);
+      if (dias < 1) { avisos.push(`${nombre}: indica cuántos días dura.`); return; }
+    } else {
+      const tpc = Math.max(1, Math.floor(+a.tpc || 1)), cant = +a.cantidad || 0, rend = +a.rend || 0;
+      frentes = Math.floor(tec / tpc);
+      if (!frentes) { avisos.push(`${nombre}: con ${simPl(tec, 'técnico')} no se arma un frente de ${tpc}.`); return; }
+      if (a.eq) {
+        const u = eqCant[a.eq] || 0;
+        if (!u) { avisos.push(`${nombre}: requiere ${etiquetaEquipo(a.eq).toLowerCase()}, pero no está en el escenario.`); return; }
+        if (u < frentes) { frentes = u; limite = a.eq; }
+        tope = u <= frentes;   // más técnicos ya no acortan esta actividad
+      }
+      if (!cant || !rend) { avisos.push(`${nombre}: falta la cantidad o el rendimiento.`); return; }
+      dias = Math.ceil(cant / (rend * frentes) - 1e-9);
+    }
+    const [ini, fin] = ocupar(dias);
+    trabajo += dias;
+    fases.push({ tipo: 'act', idx: i, nombre, ini, fin, dias, frentes, limite, tope, a });
+  });
+  const hol = trabajo ? Math.ceil(trabajo * Math.max(0, +sim.holgura || 0) / 100 - 1e-9) : 0;
+  if (hol) { const [ini, fin] = ocupar(hol); fases.push({ tipo: 'holgura', nombre: 'Holgura (clima / imprevistos)', ini, fin, dias: hol }); }
+  if (tras && trabajo) { fases.push({ tipo: 'traslado', nombre: 'Regreso', ini: cur, fin: cur + tras - 1, dias: tras }); cur += tras; }
+  return { fases, total: trabajo ? cur : 0, trabajo, hol, tras: trabajo ? tras * 2 : 0, tec, avisos, esLab, wd };
+}
+// Tramos de días laborables dentro de [ini, fin] (para no pintar barra sobre los días de descanso)
+function simTramos(R, f) {
+  if (f.tipo === 'traslado') return [[f.ini, f.fin]];
+  const t = []; let a = null;
+  for (let d = f.ini; d <= f.fin; d++) {
+    if (R.esLab(d)) { if (a === null) a = d; }
+    else if (a !== null) { t.push([a, d - 1]); a = null; }
+  }
+  if (a !== null) t.push([a, f.fin]);
+  return t;
+}
+const simColor = f => f.tipo === 'traslado' ? SIM_TRASLADO : f.tipo === 'holgura' ? SIM_HOLGURA : SIM_COL[f.idx % SIM_COL.length];
+
+// ── Pantalla ──
+async function renderSimulador() {
+  if (!STATE._sim) STATE._sim = simNuevo();
+  const s = STATE._sim;
+  document.getElementById('topbar-actions').innerHTML = `
+    <button class="btn btn-ghost btn-sm" onclick="simReiniciar()" title="Empezar de cero"><i class="ti ti-refresh" aria-hidden="true"></i><span class="sim-oc"> Reiniciar</span></button>
+    <button class="btn btn-ghost btn-sm" onclick="simCopiarResumen()" title="Copiar resumen para WhatsApp"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i><span class="sim-oc"> Copiar resumen</span></button>
+    <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, simExportarPDF)"><i class="ti ti-file-type-pdf" aria-hidden="true"></i> PDF<span class="sim-oc"> para cliente</span></button>`;
+  const opt = (v, t, sel) => `<option value="${v}"${String(v) === String(sel) ? ' selected' : ''}>${t}</option>`;
+  html(`
+    <div class="sim-aviso"><i class="ti ti-flask" aria-hidden="true"></i><span><strong>Simulación.</strong> No revisa la agenda ni guarda nada: sirve para estimar con el cliente cuántos días tomaría el trabajo, sobre un mes genérico.</span></div>
+    <div class="sim-grid">
+      <div class="sim-form">
+        <div class="table-section sim-card">
+          <div class="panel-section-title">ESCENARIO</div>
+          <div class="field-group"><label class="field-label" for="sim-nombre">NOMBRE (OPCIONAL)</label>
+            <input class="field-input" id="sim-nombre" value="${escHtml(s.nombre)}" placeholder="Ej: Inspección de palas · PE Ingenio" oninput="simSet('nombre', this.value, true)"></div>
+          <div class="sim-fila">
+            <div class="field-group"><label class="field-label" for="sim-tec">TÉCNICOS</label>
+              <input class="field-input" id="sim-tec" type="number" min="1" max="60" inputmode="numeric" value="${s.tecnicos}" oninput="simSet('tecnicos', parseInt(this.value) || 0)"></div>
+            <div class="field-group"><label class="field-label" for="sim-jor">JORNADA</label>
+              <select class="field-input" id="sim-jor" onchange="simSet('jornada', this.value)">${Object.entries(SIM_JORNADAS).map(([k, j]) => opt(k, j.t, s.jornada)).join('')}</select></div>
+          </div>
+          <div class="sim-fila">
+            <div class="field-group"><label class="field-label" for="sim-tras">TRASLADO (POR SENTIDO)</label>
+              <select class="field-input" id="sim-tras" onchange="simSet('traslado', +this.value)">
+                ${opt(0, 'Local (menos de 50 km)', s.traslado)}${opt(1, 'Hasta 600 km · 1 día', s.traslado)}${opt(2, 'Más de 600 km · 2 días', s.traslado)}</select></div>
+            <div class="field-group"><label class="field-label" for="sim-hol">HOLGURA %</label>
+              <input class="field-input" id="sim-hol" type="number" min="0" max="100" step="5" inputmode="numeric" value="${s.holgura}" oninput="simSet('holgura', +this.value || 0)"></div>
+          </div>
+          <div class="field-group"><label class="field-label" for="sim-ini">EL DÍA 1 CAE EN</label>
+            <select class="field-input" id="sim-ini" onchange="simSet('inicio', +this.value)">${[1, 2, 3, 4, 5, 6, 0].map(d => opt(d, SIM_DIA_NOMBRE[d][0].toUpperCase() + SIM_DIA_NOMBRE[d].slice(1), s.inicio)).join('')}</select></div>
+        </div>
+        <div class="table-section sim-card">
+          <div class="panel-section-title">VEHÍCULOS Y EQUIPO</div>
+          <div id="sim-recursos"></div>
+          <div class="sim-botones">
+            <button class="btn btn-ghost btn-sm" onclick="abrirSelectorTerminos('vehiculo','sim')"><i class="ti ti-car" aria-hidden="true"></i> Elegir vehículos</button>
+            <button class="btn btn-ghost btn-sm" onclick="abrirSelectorTerminos('equipo','sim')"><i class="ti ti-drone" aria-hidden="true"></i> Elegir equipo</button>
+          </div>
+        </div>
+        <div class="table-section sim-card">
+          <div class="panel-section-title">ACTIVIDADES <span style="font-weight:500;letter-spacing:0">· se hacen en este orden</span></div>
+          <div id="sim-acts"></div>
+          <div class="sim-botones">
+            <button class="btn btn-ghost btn-sm" onclick="simAgregar('rend')"><i class="ti ti-plus" aria-hidden="true"></i> Por rendimiento</button>
+            <button class="btn btn-ghost btn-sm" onclick="simAgregar('dias')"><i class="ti ti-plus" aria-hidden="true"></i> De días fijos</button>
+          </div>
+        </div>
+      </div>
+      <div class="sim-res" id="sim-res"></div>
+    </div>
+    <datalist id="sim-unidades">${SIM_UNIDADES.map(u => `<option value="${u}">`).join('')}</datalist>`);
+  simPintarRecursos(); simPintarActividades(); simRecalcular();
+  loadEquipos(); loadVehiculos();   // para el inventario del selector
+}
+function simReiniciar() { STATE._sim = simNuevo(); renderSimulador(); }
+function simSet(k, v, sinRecalculo) { STATE._sim[k] = v; if (!sinRecalculo) simRecalcular(); }
+function simAct(i, k, v) {
+  STATE._sim.actividades[i][k] = v;
+  if (k === 'modo' || k === 'eq') simPintarActividades();
+  simRecalcular();
+}
+function simAgregar(modo) { STATE._sim.actividades.push(simActividadNueva(modo)); simPintarActividades(); simRecalcular();
+  setTimeout(() => { const l = document.querySelectorAll('.sim-act'); l[l.length - 1]?.querySelector('input')?.focus(); }, 30); }
+function simQuitar(i) { STATE._sim.actividades.splice(i, 1); simPintarActividades(); simRecalcular(); }
+function simMover(i, d) {
+  const a = STATE._sim.actividades, j = i + d; if (j < 0 || j >= a.length) return;
+  [a[i], a[j]] = [a[j], a[i]]; simPintarActividades(); simRecalcular();
+}
+function simQuitarRecurso(clave, i) { STATE._sim[clave].splice(i, 1); simPintarRecursos(); simPintarActividades(); simRecalcular(); }
+
+function simPintarRecursos() {
+  const s = STATE._sim, el = document.getElementById('sim-recursos'); if (!el) return;
+  const chips = [
+    ...(s.vehiculos || []).map((v, i) => chipIcono(iconoVehiculo(v.tipo), etiquetaVehiculo(v.tipo), `× ${v.cantidad}`, `simQuitarRecurso('vehiculos',${i})`)),
+    ...(s.equipo || []).map((e, i) => chipIcono(iconoEquipo(e.tipo), etiquetaEquipo(e.tipo), `× ${e.cantidad}`, `simQuitarRecurso('equipo',${i})`))];
+  el.innerHTML = chips.length ? `<div class="sim-chips">${chips.join('')}</div>`
+    : `<div class="sim-vacio">Sin vehículos ni equipo. Agrégalos si una actividad depende de ellos (ej. 1 dron limita a un frente de vuelo).</div>`;
+}
+
+function simPintarActividades() {
+  const s = STATE._sim, el = document.getElementById('sim-acts'); if (!el) return;
+  const n = s.actividades.length;
+  if (!n) { el.innerHTML = `<div class="sim-vacio">Agrega al menos una actividad.</div>`; return; }
+  const num = (i, k, v, extra = '') => `<input class="field-input" type="number" min="0" inputmode="decimal" value="${v}" oninput="simAct(${i},'${k}', +this.value || 0)" ${extra}>`;
+  el.innerHTML = s.actividades.map((a, i) => {
+    const color = SIM_COL[i % SIM_COL.length];
+    const eqOpts = `<option value="">Ninguno</option>` + (s.equipo || []).map(e => `<option value="${escHtml(e.tipo)}"${a.eq === e.tipo ? ' selected' : ''}>${escHtml(etiquetaEquipo(e.tipo))}</option>`).join('')
+      + (a.eq && !(s.equipo || []).some(e => e.tipo === a.eq) ? `<option value="${escHtml(a.eq)}" selected>${escHtml(etiquetaEquipo(a.eq))} (no está)</option>` : '');
+    return `
+    <div class="sim-act" style="--c:${color}">
+      <div class="sim-act-top">
+        <span class="sim-num">${i + 1}</span>
+        <input class="field-input" value="${escHtml(a.desc)}" placeholder="${a.modo === 'dias' ? 'Ej: Movilización, entrega de reporte…' : 'Ej: Inspección de palas'}" oninput="simAct(${i},'desc',this.value)" aria-label="Descripción de la actividad ${i + 1}">
+        <div class="sim-act-acc">
+          <button class="btn btn-ghost btn-sm" title="Subir" ${i ? '' : 'disabled'} onclick="simMover(${i},-1)"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+          <button class="btn btn-ghost btn-sm" title="Bajar" ${i < n - 1 ? '' : 'disabled'} onclick="simMover(${i},1)"><i class="ti ti-arrow-down" aria-hidden="true"></i></button>
+          <button class="btn btn-ghost btn-sm" title="Quitar" onclick="simQuitar(${i})"><i class="ti ti-trash" aria-hidden="true"></i></button>
+        </div>
+      </div>
+      <div class="sim-modo" role="tablist">
+        <button class="${a.modo === 'rend' ? 'on' : ''}" onclick="simAct(${i},'modo','rend')">Por rendimiento</button>
+        <button class="${a.modo === 'dias' ? 'on' : ''}" onclick="simAct(${i},'modo','dias')">Días fijos</button>
+      </div>
+      ${a.modo === 'dias' ? `
+      <div class="sim-fila"><div class="field-group"><label class="field-label">DÍAS DE TRABAJO</label>${num(i, 'dias', a.dias, 'min="1"')}</div><div></div></div>` : `
+      <div class="sim-fila">
+        <div class="field-group"><label class="field-label">CANTIDAD</label>${num(i, 'cantidad', a.cantidad)}</div>
+        <div class="field-group"><label class="field-label">UNIDAD</label><input class="field-input" list="sim-unidades" value="${escHtml(a.unidad)}" oninput="simAct(${i},'unidad',this.value)"></div>
+      </div>
+      <div class="sim-fila">
+        <div class="field-group"><label class="field-label">RENDIMIENTO / DÍA <span class="sim-ayuda">por frente</span></label>${num(i, 'rend', a.rend, 'step="0.5"')}</div>
+        <div class="field-group"><label class="field-label">TÉCNICOS POR FRENTE</label>${num(i, 'tpc', a.tpc, 'min="1"')}</div>
+      </div>
+      <div class="field-group"><label class="field-label">DEPENDE DE UN EQUIPO</label>
+        <select class="field-input" onchange="simAct(${i},'eq',this.value)">${eqOpts}</select></div>`}
+      <div class="sim-act-res" id="sim-act-res-${i}"></div>
+    </div>`;
+  }).join('');
+}
+
+function simRecalcular() {
+  const el = document.getElementById('sim-res'); if (!el) return;
+  const s = STATE._sim, R = simCalcular();
+  // resultado por actividad, debajo de cada tarjeta
+  s.actividades.forEach((a, i) => {
+    const r = document.getElementById(`sim-act-res-${i}`); if (!r) return;
+    const f = R.fases.find(x => x.tipo === 'act' && x.idx === i);
+    if (!f) { r.innerHTML = `<span class="sim-mal"><i class="ti ti-alert-circle" aria-hidden="true"></i> No se puede calcular</span>`; return; }
+    r.innerHTML = a.modo === 'dias' ? `<strong>${simPl(f.dias, 'día')}</strong>`
+      : `${+a.cantidad} ${escHtml(a.unidad)} ÷ (${+a.rend}/día × ${simPl(f.frentes, 'frente')}) = <strong>${simPl(f.dias, 'día')}</strong>`
+        + (f.limite ? `<div class="sim-lim"><i class="ti ti-info-circle" aria-hidden="true"></i> Limitado por ${escHtml(etiquetaEquipo(f.limite).toLowerCase())}: solo ${simPl(f.frentes, 'frente')}.</div>` : '');
+  });
+  if (!R.total) {
+    el.innerHTML = `${simHtmlAvisos(R)}<div class="empty-state"><i class="ti ti-calendar-time" aria-hidden="true"></i><p>Sin estimación todavía</p><span>Completa al menos una actividad para ver cuántos días tomaría.</span></div>`;
+    return;
+  }
+  const jt = R.tec * R.total;
+  el.innerHTML = `
+    ${simHtmlAvisos(R)}
+    <div class="sim-kpis">
+      <div class="sim-kpi principal"><span>DURACIÓN ESTIMADA</span><strong>${simPl(R.total, 'día')}</strong><em>${simSemanas(R.total)} · de ida a regreso</em></div>
+      <div class="sim-kpi"><span>TRABAJO EN SITIO</span><strong>${simPl(R.trabajo + R.hol, 'día')}</strong><em>${R.hol ? `incluye ${R.hol} de holgura` : 'jornadas de trabajo'}</em></div>
+      <div class="sim-kpi"><span>TRASLADOS</span><strong>${simPl(R.tras, 'día')}</strong><em>${R.tras ? 'ida y regreso' : 'proyecto local'}</em></div>
+      <div class="sim-kpi"><span>JORNADAS-TÉCNICO</span><strong>${jt}</strong><em>${R.tec} × ${R.total} días · uso interno</em></div>
+    </div>
+    <div class="table-section sim-card">
+      <div class="panel-section-title" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>CRONOGRAMA · MES GENÉRICO</span><span style="font-weight:500;letter-spacing:0">Jornada ${SIM_JORNADAS[s.jornada].t.toLowerCase()}</span></div>
+      ${simHtmlGantt(R)}
+    </div>
+    ${simHtmlEscenarios(R)}`;
+}
+function simHtmlAvisos(R) {
+  return R.avisos.length ? `<div class="bus-aviso" style="margin-bottom:12px"><i class="ti ti-alert-triangle" aria-hidden="true"></i><div>${R.avisos.map(escHtml).join('<br>')}</div></div>` : '';
+}
+
+function simHtmlGantt(R) {
+  const s = STATE._sim, N = R.total, cw = N <= 35 ? 26 : N <= 70 ? 18 : 12, ancho = N * cw;
+  const fondo = Array.from({ length: N }, (_, d) => R.esLab(d) ? '' : `<i class="sim-off" style="left:${d * cw}px;width:${cw}px"></i>`).join('');
+  const semanas = Array.from({ length: Math.ceil(N / 7) }, (_, k) => {
+    const w = Math.min(7, N - k * 7) * cw;
+    return `<div class="sim-sem" style="left:${k * 7 * cw}px;width:${w}px">${w >= 60 ? `Semana ${k + 1}` : `S${k + 1}`}</div>`;
+  }).join('');
+  const dias = Array.from({ length: N }, (_, d) => `<div class="sim-dia${R.esLab(d) ? '' : ' off'}" style="left:${d * cw}px;width:${cw}px">${cw >= 18 ? `<b>${SIM_LETRA[R.wd(d)]}</b>` : ''}${cw >= 18 || (d + 1) % 7 === 1 ? d + 1 : ''}</div>`).join('');
+  const barras = (tramos, color, txt, claro) => {
+    let h = '';
+    tramos.forEach(([a, b], k) => {
+      if (k) { const p = tramos[k - 1][1]; h += `<i class="sim-puente" style="left:${(p + 1) * cw}px;width:${(a - p - 1) * cw}px;border-color:${color}"></i>`; }
+      h += `<i class="sim-barra${claro ? ' claro' : ''}" style="left:${a * cw + 2}px;width:${(b - a + 1) * cw - 4}px;background:${color}"></i>`;
+    });
+    const fin = tramos[tramos.length - 1][1] + 1;
+    return h + (txt ? `<span class="sim-dur" style="left:${fin * cw + 4}px">${txt}</span>` : '');
+  };
+  const fila = (lab, sub, cont, extra = '') => `<div class="sim-gf ${extra}"><div class="sim-gl"><span>${lab}</span>${sub ? `<em>${sub}</em>` : ''}</div><div class="sim-gt" style="width:${ancho}px">${fondo}${cont}</div></div>`;
+  const filasFases = R.fases.map(f => fila(escHtml(f.nombre),
+    f.tipo === 'act' && f.a.modo === 'rend' ? `${+f.a.cantidad} ${escHtml(f.a.unidad)} · ${simPl(f.frentes, 'frente')}` : f.tipo === 'traslado' ? 'en carretera' : '',
+    barras(simTramos(R, f), simColor(f), simPl(f.dias, 'día')), f.tipo === 'traslado' ? 'tras' : '')).join('');
+  const todo = [[0, N - 1]], usoEq = tipo => R.fases.filter(f => f.tipo === 'act' && f.a.modo === 'rend' && f.a.eq === tipo).flatMap(f => simTramos(R, f));
+  const filasRec = [
+    fila(`<i class="ti ti-users" aria-hidden="true"></i> ${simPl(R.tec, 'técnico')}`, '', barras(todo, '#71717A', '', true)),
+    ...(s.vehiculos || []).map(v => fila(`<i class="ti ${iconoVehiculo(v.tipo).replace(/^(?!ti-)/, 'ti-')}" aria-hidden="true"></i> ${escHtml(etiquetaVehiculo(v.tipo))} × ${v.cantidad}`, '', barras(todo, '#71717A', '', true))),
+    ...(s.equipo || []).map(e => { const u = usoEq(e.tipo);
+      return fila(`<i class="ti ti-${iconoEquipo(e.tipo)}" aria-hidden="true"></i> ${escHtml(etiquetaEquipo(e.tipo))} × ${e.cantidad}`, u.length ? 'en uso / en sitio' : 'en sitio',
+        barras(todo, '#71717A', '', true) + u.map(([a, b]) => `<i class="sim-barra uso" style="left:${a * cw + 2}px;width:${(b - a + 1) * cw - 4}px"></i>`).join('')); })];
+  return `
+    <div class="sim-gantt">
+      <div class="sim-gf cab"><div class="sim-gl"></div><div class="sim-gt" style="width:${ancho}px">${semanas}${dias}</div></div>
+      ${filasFases}
+      <div class="sim-gsep">RECURSOS COMPROMETIDOS</div>
+      ${filasRec.join('')}
+    </div>
+    <div class="sim-ley"><span><i style="background:${SIM_TRASLADO}"></i>Traslado</span><span><i style="background:${SIM_HOLGURA}"></i>Holgura</span><span><i class="off"></i>Descanso (fuera de jornada)</span></div>`;
+}
+
+function simHtmlEscenarios(R) {
+  const s = STATE._sim, pasos = s.actividades.filter(a => a.modo === 'rend').map(a => Math.max(1, Math.floor(+a.tpc || 1)));
+  if (!pasos.length) return '';
+  const paso = Math.max(...pasos), base = R.tec;
+  const valores = [...new Set([base - paso, base, base + paso, base + 2 * paso].filter(t => t >= paso && t <= 60))];
+  const filas = valores.map(t => ({ t, r: t === base ? R : simCalcular(s, t) }));
+  return `
+    <div class="table-section sim-card">
+      <div class="panel-section-title">¿Y CON MÁS O MENOS PERSONAL?</div>
+      <table class="sim-tabla"><thead><tr><th>Técnicos</th><th>Duración</th><th>Diferencia</th><th>Jornadas-técnico</th></tr></thead><tbody>
+      ${filas.map(({ t, r }) => {
+        const dif = r.total - R.total, igual = t !== base && !dif;
+        return `<tr class="${t === base ? 'actual' : ''}"><td>${t}${t === base ? ' <span class="sim-tag">actual</span>' : ''}</td>
+          <td><strong>${r.total ? simPl(r.total, 'día') : '—'}</strong></td>
+          <td>${t === base ? '—' : !r.total ? '' : dif ? `<span style="color:${dif < 0 ? 'var(--green)' : 'var(--amber)'}">${dif > 0 ? '+' : ''}${dif} días</span>` : '<span style="color:var(--text3)">igual</span>'}${igual && r.fases.some(f => f.tope) ? ' <span class="sim-ayuda">lo limita el equipo</span>' : ''}</td>
+          <td>${r.total ? t * r.total : '—'}</td></tr>`; }).join('')}
+      </tbody></table>
+    </div>`;
+}
+
+function simTextoResumen() {
+  const s = STATE._sim, R = simCalcular();
+  if (!R.total) return '';
+  const lineas = R.fases.map(f => `• ${f.nombre}${f.tipo === 'act' && f.a.modo === 'rend' ? ` (${+f.a.cantidad} ${f.a.unidad})` : ''}: ${simPl(f.dias, 'día')}`);
+  return [`*Estimación de tiempos${s.nombre.trim() ? ' · ' + s.nombre.trim() : ''}*`,
+    `Equipo de trabajo: ${simRecursosTexto(s)}`, `Jornada: ${SIM_JORNADAS[s.jornada].t.toLowerCase()}`, '',
+    ...lineas, '', `*Duración total estimada: ${simPl(R.total, 'día')}* (${simSemanas(R.total)})`, '',
+    `_Estimación referencial; las fechas se confirman según disponibilidad, clima y acceso a sitio._`].join('\n');
+}
+function simCopiarResumen() {
+  const t = simTextoResumen();
+  if (!t) { toast('Completa al menos una actividad', 'error'); return; }
+  copiarTexto(t, 'Resumen copiado. Pégalo en WhatsApp');
+}
+
+// ── PDF para cliente ──
+async function simExportarPDF() {
+  const s = STATE._sim, R = simCalcular();
+  if (!R.total) { toast('Completa al menos una actividad para generar el PDF', 'error'); return; }
+  const T = await nuevaPlantillaPDF('landscape'), { doc, C, M } = T, W = T.W;
+  const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const hoy = new Date(), cod = `SIM-${isoLocal(hoy).replace(/-/g, '')}`;
+  T.encabezado('Estimación de tiempos', cod, s.nombre.trim() || 'Estimación de tiempo de ejecución', `${simRecursosTexto(s)} · Jornada ${SIM_JORNADAS[s.jornada].t.toLowerCase()}`);
+  let y = 33;
+  y = T.tarjetas(y, [
+    ['Duración estimada', simPl(R.total, 'día'), `${simSemanas(R.total)} · de ida a regreso`, C.rojo],
+    ['Trabajo en sitio', simPl(R.trabajo + R.hol, 'día'), R.hol ? `incluye ${R.hol} de holgura` : 'jornadas de trabajo'],
+    ['Traslados', simPl(R.tras, 'día'), R.tras ? 'ida y regreso' : 'proyecto local'],
+    ['Personal en sitio', simPl(R.tec, 'técnico'), `jornada ${SIM_JORNADAS[s.jornada].t.toLowerCase()}`],
+  ], 17) + 8;
+
+  // Cronograma sobre un mes genérico
+  const N = R.total, filas = R.fases, rowH = 5.4, headH = 9.5, labW = 62;
+  const alto = headH + filas.length * rowH + 16;
+  y = T.seccion('CRONOGRAMA ESTIMADO', y, `Mes genérico · el día 1 cae en ${SIM_DIA_NOMBRE[s.inicio]}`);
+  const gx = M + labW, gw = W - 2 * M - labW, cw = gw / N, y0 = y - 3, yF = y0 + headH, yFin = yF + filas.length * rowH;
+  for (let k = 0; k * 7 < N; k++) {   // franja de semanas
+    const x = gx + k * 7 * cw, w = Math.min(7, N - k * 7) * cw;
+    T.relleno(k % 2 ? C.blanco : C.fondo); doc.rect(x, y0, w, 4.2, 'F');
+    T.font('semibold', 5.8, C.gris); const t = w > 16 ? `Semana ${k + 1}` : `S${k + 1}`;
+    if (doc.getTextWidth(t) < w - 1) doc.text(t, x + w / 2, y0 + 3, { align: 'center' });
+  }
+  for (let d = 0; d < N; d++) {        // días + descansos
+    const x = gx + d * cw;
+    if (!R.esLab(d)) { T.relleno(C.finde); doc.rect(x, y0 + 4.6, cw, yFin - y0 - 4.6, 'F'); }
+    const etiqueta = cw >= 4.6 ? `${SIM_LETRA[R.wd(d)]}${d + 1}` : cw >= 2.6 ? SIM_LETRA[R.wd(d)] : (d % 7 === 0 ? String(d + 1) : '');
+    if (etiqueta) { T.font(R.esLab(d) ? 'medium' : 'normal', cw >= 4.6 ? 5.2 : 4.8, R.esLab(d) ? C.texto : C.grisClaro); doc.text(etiqueta, x + cw / 2, y0 + 8, { align: 'center' }); }
+  }
+  T.trazo(C.linea, 0.25); doc.line(M, yF, W - M, yF);
+  for (let k = 7; k < N; k += 7) { T.trazo(C.linea, 0.2); doc.line(gx + k * cw, y0 + 4.6, gx + k * cw, yFin); }
+  filas.forEach((f, i) => {
+    const yy = yF + i * rowH, col = rgb(simColor(f)), tram = simTramos(R, f);
+    T.font(f.tipo === 'act' ? 'semibold' : 'medium', 7, f.tipo === 'act' ? C.tinta : C.gris);
+    doc.text(recortarTexto(doc, f.nombre, labW - 5), M, yy + rowH / 2 + 1.1);
+    tram.forEach(([a, b], k) => {
+      if (k) { const p = tram[k - 1][1]; T.trazo(col, 0.3); doc.setLineDashPattern([0.6, 0.6], 0); doc.line(gx + (p + 1) * cw, yy + rowH / 2, gx + a * cw, yy + rowH / 2); doc.setLineDashPattern([], 0); }
+      T.relleno(col); doc.roundedRect(gx + a * cw + 0.35, yy + 1.3, (b - a + 1) * cw - 0.7, rowH - 2.6, 0.9, 0.9, 'F');
+    });
+    const fin = gx + (tram[tram.length - 1][1] + 1) * cw, txt = simPl(f.dias, 'día');
+    T.font('semibold', 6, C.gris);
+    if (fin + 1.2 + doc.getTextWidth(txt) <= W - M) doc.text(txt, fin + 1.2, yy + rowH / 2 + 1);
+    T.trazo(C.linea, 0.12); doc.line(M, yy + rowH, W - M, yy + rowH);
+  });
+  y = yFin + 6;
+  // leyenda + nota
+  let lx = M;
+  [[rgb(SIM_TRASLADO), 'Traslado'], [rgb(SIM_HOLGURA), 'Holgura'], [C.finde, 'Descanso (fuera de jornada)']].forEach(([c, t]) => {
+    T.relleno(c); doc.roundedRect(lx, y - 2.3, 3, 3, 0.6, 0.6, 'F');
+    T.font('normal', 6.4, C.gris); doc.text(t, lx + 4.2, y); lx += 4.2 + doc.getTextWidth(t) + 6;
+  });
+  T.font('normal', 6.4, C.grisClaro);
+  doc.text('Estimación referencial basada en rendimientos típicos por frente de trabajo. Las fechas definitivas se confirman según disponibilidad, condiciones climáticas y acceso a sitio.', W - M, y, { align: 'right', maxWidth: W - 2 * M - (lx - M) - 4 });
+  y += 10;
+  y = T.seccion('ALCANCE Y RENDIMIENTO', y);
+  const acts = R.fases.filter(f => f.tipo === 'act');
+  doc.autoTable({
+    startY: y - 3, margin: { left: M, right: M, bottom: 24, top: 20 }, rowPageBreak: 'avoid',
+    columns: [{ header: '#', dataKey: 'n' }, { header: 'Actividad', dataKey: 'act' }, { header: 'Alcance', dataKey: 'alc' },
+      { header: 'Rendimiento', dataKey: 'ren' }, { header: 'Frentes de trabajo', dataKey: 'fr' }, { header: 'Días', dataKey: 'd' }],
+    body: [...acts.map((f, k) => ({ n: k + 1, act: f.nombre, _c: simColor(f),
+        alc: f.a.modo === 'rend' ? `${+f.a.cantidad} ${f.a.unidad}` : '—',
+        ren: f.a.modo === 'rend' ? `${+f.a.rend} ${f.a.unidad}/día por frente` : 'Duración fija',
+        fr: f.a.modo === 'rend' ? `${f.frentes} × ${Math.max(1, Math.floor(+f.a.tpc || 1))} técnicos${f.limite ? ` (limitado por ${etiquetaEquipo(f.limite)})` : ''}` : `Equipo completo`,
+        d: String(f.dias) })),
+      ...(R.hol ? [{ n: '', act: `Holgura (clima / imprevistos, ${s.holgura}%)`, _c: SIM_HOLGURA, alc: '', ren: '', fr: '', d: String(R.hol) }] : []),
+      ...(R.tras ? [{ n: '', act: 'Traslados (ida y regreso)', _c: SIM_TRASLADO, alc: '', ren: '', fr: '', d: String(R.tras) }] : []),
+      { n: '', act: 'Duración total estimada', alc: '', ren: '', fr: '', d: String(R.total), _total: true }],
+    theme: 'plain',
+    styles: { font: window._fuentesPDF ? 'Montserrat' : 'helvetica', fontSize: 7.4, textColor: C.texto, cellPadding: { top: 1.6, bottom: 1.6, left: 2.4, right: 2.4 }, valign: 'middle' },
+    headStyles: { fontStyle: 'bold', textColor: C.gris, fontSize: 6.6, fillColor: C.fondo },
+    columnStyles: { n: { cellWidth: 9, halign: 'center' }, act: { cellWidth: 64, fontStyle: 'bold', textColor: C.tinta }, alc: { cellWidth: 34 }, ren: { cellWidth: 46 }, d: { cellWidth: 16, halign: 'right', fontStyle: 'bold', textColor: C.tinta } },
+    didParseCell: d => {
+      if (d.section !== 'body') return;
+      d.cell.styles.lineWidth = { bottom: 0.15 }; d.cell.styles.lineColor = C.linea;
+      if (d.row.raw._total) { d.cell.styles.fillColor = C.fondo; d.cell.styles.fontStyle = 'bold'; d.cell.styles.textColor = C.tinta; }
+      if (d.column.dataKey === 'act' && d.row.raw._c) d.cell.styles.cellPadding = { top: 1.6, bottom: 1.6, left: 5.4, right: 2.4 };
+    },
+    didDrawCell: d => {
+      if (d.section !== 'body' || d.column.dataKey !== 'act' || !d.row.raw._c) return;
+      T.relleno(rgb(d.row.raw._c)); doc.roundedRect(d.cell.x + 2, d.cell.y + d.cell.height / 2 - 1.1, 2.2, 2.2, 0.6, 0.6, 'F');
+    },
+  });
+
+  T.cerrar(limpiarNombreArchivo(`Estimación de tiempos${s.nombre.trim() ? ' - ' + s.nombre.trim() : ''} - ${isoLocal(hoy)}.pdf`), true);
+}
 </script>
 </body>
 </html>
