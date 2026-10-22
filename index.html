@@ -1217,6 +1217,26 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .cal-det-txt span{font-size:11.5px;color:var(--text3);line-height:1.35}
 :root[data-theme="light"] .cal-det.aus .cal-det-tag{background:#EDE7FB;color:#6D4FC2}
 @media (max-width:768px){.cal-pry{font-size:7.5px;padding:0 2px;margin-top:2px}.cal-cell{font-size:11px}}
+.mant-pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;border:1px solid;white-space:nowrap}
+.mant-dot{width:7px;height:7px;border-radius:50%}
+.mant-ficha{display:flex;gap:14px;align-items:center;padding:14px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);margin-bottom:12px}
+.mant-ficha-ico{width:44px;height:44px;border-radius:10px;background:var(--red-bg);color:var(--red-text);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.mant-ficha-datos{flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 16px}
+.mant-ficha-datos span{display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:2px}
+.mant-ficha-datos b{font-size:13px;color:var(--text)}
+.mant-estado{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+.mant-sig{font-size:12px;color:var(--text2);margin-top:6px}
+.mant-km{display:flex;gap:8px;align-items:center}
+.mant-km .field-input{width:140px}
+.mant-ayuda{font-size:11.5px;color:var(--text3);line-height:1.5}
+.mant-tabla-wrap{overflow-x:auto}
+.mant-tabla{width:100%;border-collapse:collapse;font-size:12.5px}
+.mant-tabla th{text-align:left;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);padding:8px;border-bottom:1px solid var(--border2);white-space:nowrap}
+.mant-tabla td{padding:9px 8px;border-bottom:1px solid var(--border);vertical-align:top;color:var(--text2)}
+.mant-tabla td b{color:var(--text);font-weight:600}
+.mant-tabla td small{display:block;font-size:11px;color:var(--text3);margin-top:2px}
+.mant-tabla tr.editando td{background:var(--blue-bg)}
+.mant-acc{white-space:nowrap;text-align:right}
 .pd-req{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:500;color:var(--text3);text-transform:none;letter-spacing:0}
 .pd-req b{font-size:13px;color:var(--text);min-width:14px;text-align:center}
 .pd-req button{width:24px;height:24px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
@@ -5786,6 +5806,7 @@ function tarjetaVehiculoHTML(v) {
     <div class="eq-row"><span>Ubicación</span><strong>${escHtml(v.proyecto_actual_ciudad || v.ciudad_actual || '—')}</strong></div>
     ${v.proyecto_actual_nombre ? `<div class="eq-row"><span>En proyecto</span><strong>${escHtml(v.proyecto_actual_nombre)}</strong></div>` : ''}
     <div class="eq-row"><span>Documentos</span><strong style="color:${docs.color}">${docs.texto}</strong></div>
+    <div class="eq-row"><span>Mantenimiento</span><strong>${resumenMantVehiculoHTML(v)}</strong></div>
   </div>`;
 }
 
@@ -5862,6 +5883,266 @@ async function guardarNuevoVehiculo() {
   verVehiculo(id_veh);    // se abre de una vez para poder cargarle sus documentos
 }
 
+// ═════════════════════════════════════════════════════════════════════════════
+// BITÁCORA DE MANTENIMIENTO VEHICULAR (sustituye los Excel que se subían a mano)
+// El estatus de cada servicio lo calcula el servidor: al día / próximo (≤30 días o ≤1,000 km) /
+// requerido (vencido); "atendido" si ya hubo uno posterior del mismo tipo; "realizado" si no tiene próximo.
+// ═════════════════════════════════════════════════════════════════════════════
+const MANT_TIPOS = { preventivo: 'Servicio preventivo (por km)', frenos: 'Frenos', llantas: 'Llantas', afinacion: 'Afinación',
+  verificacion: 'Verificación vehicular', correctivo: 'Correctivo / reparación', otro: 'Otro' };
+const MANT_PDF = { ok: { c: [22, 163, 74], bg: [220, 252, 231], tx: [21, 128, 61] }, inc: { c: [220, 38, 38], bg: [254, 226, 226], tx: [185, 28, 28] },
+  pend: { c: [100, 116, 139], bg: [241, 245, 249], tx: [71, 85, 105] }, prox: { c: [217, 119, 6], bg: [254, 243, 199], tx: [146, 64, 14] } };
+const MANT_EST = {
+  al_dia:   { t: 'Al día',    c: 'var(--green)',    bg: 'var(--green-bg)',  bd: 'var(--green-border)', pdf: MANT_PDF.ok },
+  proximo:  { t: 'Próximo',   c: 'var(--amber)',    bg: 'var(--amber-bg)',  bd: 'var(--amber-border)', pdf: MANT_PDF.prox },
+  vencido:  { t: 'Requerido', c: 'var(--red-text)', bg: 'var(--red-bg)',    bd: 'var(--red-border)',   pdf: MANT_PDF.inc },
+  atendido: { t: 'Atendido',  c: 'var(--text3)',    bg: 'var(--surface2)',  bd: 'var(--border2)',      pdf: MANT_PDF.pend },
+  realizado:{ t: 'Realizado', c: 'var(--text3)',    bg: 'var(--surface2)',  bd: 'var(--border2)',      pdf: MANT_PDF.pend },
+  sin_programar: { t: 'Sin próximo programado', c: 'var(--text3)', bg: 'var(--surface2)', bd: 'var(--border2)' },
+  sin_registro:  { t: 'Sin servicios registrados', c: 'var(--text3)', bg: 'var(--surface2)', bd: 'var(--border2)' },
+};
+const pillMant = e => { const s = MANT_EST[e] || MANT_EST.sin_registro; return `<span class="mant-pill" style="color:${s.c};background:${s.bg};border-color:${s.bd}"><span class="mant-dot" style="background:${s.c}"></span>${s.t}</span>`; };
+const fmtKm = n => n == null ? '—' : `${Number(n).toLocaleString('es-MX')} km`;
+function textoProximoServicio(s) {
+  const p = [s.proxima_fecha ? fCorta(s.proxima_fecha) + ' ' + fechaLocal(s.proxima_fecha).getFullYear() : null, s.proximo_km != null ? fmtKm(s.proximo_km) : null].filter(Boolean);
+  return p.length ? p.join(' · ') : '—';
+}
+function resumenMantVehiculoHTML(v) {
+  const m = v.mantenimiento;
+  if (!m || m.estado === 'sin_registro') return `<span style="color:var(--text3)">Sin registros</span>`;
+  const s = MANT_EST[m.estado] || MANT_EST.sin_registro;
+  return `<span style="color:${s.c}">${s.t}</span>`;
+}
+function tarjetaVehiculoDoc(v) {
+  const d = (v.documentos || []).filter(x => x.tipo === 'tarjeta_circulacion').sort((a, b) => (b.fecha_vencimiento || '').localeCompare(a.fecha_vencimiento || ''))[0];
+  if (!d) return { texto: 'Sin registrar', color: 'var(--text3)', doc: null };
+  const vg = estadoVigencia(d.fecha_vencimiento);
+  return { texto: d.fecha_vencimiento ? `Vigente hasta ${vg.texto}` : 'Registrada (sin vigencia)', color: vg.color || 'var(--text)', doc: d, vence: d.fecha_vencimiento };
+}
+
+async function abrirBitacoraVehiculo(id) {
+  await loadVehiculos(true);
+  const v = (STATE.vehiculos || []).find(x => x.id === id); if (!v) return;
+  const b = await api('GET', `/vehiculos/${encodeURIComponent(id)}/servicios`);
+  if (!b) return;
+  STATE._mant = { v, b, edit: null };
+  pintarBitacoraVehiculo();
+}
+function pintarBitacoraVehiculo() {
+  const { v, b, edit } = STATE._mant, e = escHtml, tc = tarjetaVehiculoDoc(v);
+  const servs = b.servicios || [], s0 = edit ? servs.find(x => x.id === edit) : null;
+  const hoy = isoLocal(new Date()), puede = ['administrador', 'director_proyecto'].includes(STATE.rol);
+  const folioN = id => `S-${String(servs.findIndex(x => x.id === id) + 1).padStart(3, '0')}`;
+  const sig = b.siguiente;
+  openPanel(`Bitácora de mantenimiento · ${v.apodo || v.nombre}`, `
+    <div class="mant-ficha">
+      <div class="mant-ficha-ico"><i class="ti ${VEH_ICONOS[v.tipo] || 'ti-car'}" aria-hidden="true"></i></div>
+      <div class="mant-ficha-datos">
+        <div><span>Placas</span><b>${e(v.placas || '—')}</b></div>
+        <div><span>Marca / modelo</span><b>${e([v.marca, v.modelo, v.anio].filter(Boolean).join(' ') || '—')}</b></div>
+        <div><span>N° de serie (VIN)</span><b class="td-mono">${e(v.numero_serie || '—')}</b></div>
+        <div><span>Tarjeta de circulación</span><b style="color:${tc.color}">${e(tc.texto)}</b>${tc.doc?.ruta_archivo ? ` <button class="pd-link" onclick="verDocumentoVehiculo('${v.id}',${tc.doc.id})"><i class="ti ti-eye" aria-hidden="true"></i> Ver</button>` : ''}</div>
+      </div>
+    </div>
+    <div class="mant-estado">
+      <div>${pillMant(b.estado)}
+        ${sig ? `<div class="mant-sig">Siguiente: <b>${e(sig.concepto)}</b> · ${e(textoProximoServicio(sig))}</div>` : ''}</div>
+      <div class="mant-km">
+        <label class="field-label" style="margin:0">KM ACTUAL</label>
+        <input class="field-input" id="mant-km" type="number" min="0" step="1" value="${b.km_actual ?? ''}" placeholder="Odómetro" ${puede ? '' : 'disabled'}>
+        ${puede ? `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, guardarKmVehiculo)">Actualizar</button>` : ''}
+      </div>
+    </div>
+    ${puede ? `<div class="panel-section mant-form" id="mant-form">
+      <div class="panel-section-title">${s0 ? `EDITAR SERVICIO ${folioN(s0.id)}` : 'REGISTRAR SERVICIO'}</div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">TIPO</label><select class="field-select" id="mf-tipo" onchange="sugerirProximoServicio()">${Object.entries(MANT_TIPOS).map(([k, t]) => `<option value="${k}" ${(s0?.tipo || 'preventivo') === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+        <div class="field-group" style="flex:2"><label class="field-label">CONCEPTO DEL SERVICIO</label><input class="field-input" id="mf-concepto" list="dl-mant-conceptos" placeholder="Ej: Servicio 10,000 km" value="${e(s0?.concepto || '')}"></div>
+      </div>
+      <datalist id="dl-mant-conceptos">${['Servicio 10,000 km', 'Servicio 20,000 km', 'Servicio 30,000 km', 'Servicio 40,000 km', 'Servicio 50,000 km', 'Servicio 70,000 km', 'Cambio de aceite y filtro', 'Cambio de balatas delanteras', 'Cambio de frenos', 'Rotación y balanceo', 'Cambio de llantas', 'Afinación mayor', 'Verificación vehicular', 'Cambio de batería'].map(x => `<option value="${x}">`).join('')}</datalist>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">FECHA DE REALIZACIÓN</label><input class="field-input" id="mf-fecha" type="date" max="${hoy}" value="${s0?.fecha || hoy}"></div>
+        <div class="field-group"><label class="field-label">KILOMETRAJE</label><input class="field-input" id="mf-km" type="number" min="0" step="1" placeholder="km del odómetro" value="${s0?.km ?? ''}" oninput="sugerirProximoServicio()"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">PRÓXIMO SERVICIO · KM</label><input class="field-input" id="mf-pkm" type="number" min="0" step="1" placeholder="Opcional" value="${s0?.proximo_km ?? ''}" oninput="this.dataset.manual=1"></div>
+        <div class="field-group"><label class="field-label">PRÓXIMO SERVICIO · FECHA</label><input class="field-input" id="mf-pfecha" type="date" value="${s0?.proxima_fecha || ''}" oninput="this.dataset.manual=1"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">TALLER / PROVEEDOR</label><input class="field-input" id="mf-taller" placeholder="Opcional" value="${e(s0?.taller || '')}"></div>
+        <div class="field-group"><label class="field-label">ESTADO</label><select class="field-select" id="mf-estado">
+          <option value="">Automático (recomendado)</option>
+          ${['al_dia', 'proximo', 'vencido'].map(k => `<option value="${k}" ${s0?.estado_manual === k ? 'selected' : ''}>${k === 'al_dia' ? '🟢' : k === 'proximo' ? '🟡' : '🔴'} ${MANT_EST[k].t}</option>`).join('')}
+        </select></div>
+      </div>
+      <div class="field-row full"><div class="field-group"><label class="field-label">NOTAS</label><input class="field-input" id="mf-notas" placeholder="Opcional" value="${e(s0?.notas || '')}"></div></div>
+      <div class="mant-ayuda">Automático: <b>Al día</b> · <b>Próximo</b> si faltan 30 días o 1,000 km o menos · <b>Requerido</b> si ya se pasó la fecha o el kilometraje.</div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, guardarServicioVehiculo)"><i class="ti ti-device-floppy" aria-hidden="true"></i> ${s0 ? 'Guardar cambios' : 'Registrar servicio'}</button>
+        ${s0 ? `<button class="btn btn-ghost btn-sm" onclick="STATE._mant.edit=null;pintarBitacoraVehiculo()">Cancelar edición</button>` : ''}
+      </div>
+    </div>` : ''}
+    <div class="panel-section">
+      <div class="panel-section-title">HISTORIAL DE SERVICIOS <span style="font-weight:500;color:var(--text3);letter-spacing:0">· ${servs.length}</span></div>
+      ${servs.length ? `<div class="mant-tabla-wrap"><table class="mant-tabla">
+        <thead><tr><th>ID</th><th>Concepto / servicio</th><th>Ejecución</th><th>Próximo programado</th><th>Estatus</th>${puede ? '<th></th>' : ''}</tr></thead>
+        <tbody>${[...servs].reverse().map(s => `<tr class="${s.id === edit ? 'editando' : ''}">
+          <td class="td-mono">${folioN(s.id)}</td>
+          <td><b>${e(s.concepto)}</b><small>${e(MANT_TIPOS[s.tipo] || s.tipo)}${s.taller ? ' · ' + e(s.taller) : ''}</small>${s.notas ? `<small>${e(s.notas)}</small>` : ''}</td>
+          <td>${fCorta(s.fecha)} ${fechaLocal(s.fecha).getFullYear()}<small>${fmtKm(s.km)}</small></td>
+          <td>${e(textoProximoServicio(s))}</td>
+          <td>${pillMant(s.estatus)}${s.estado_manual ? '<small>manual</small>' : ''}</td>
+          ${puede ? `<td class="mant-acc"><button class="btn btn-ghost btn-sm" title="Editar" onclick="STATE._mant.edit=${s.id};pintarBitacoraVehiculo();document.getElementById('mant-form')?.scrollIntoView({block:'start'})"><i class="ti ti-pencil" aria-hidden="true"></i></button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--red-text)" title="Borrar" onclick="ejecutarConCarga(this, () => borrarServicioVehiculo(${s.id}))"><i class="ti ti-trash" aria-hidden="true"></i></button></td>` : ''}
+        </tr>`).join('')}</tbody></table></div>`
+      : `<div class="pd-vacio">Aún no hay servicios registrados. Registra el primero arriba; ya no hace falta subir el Excel.</div>`}
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="verVehiculo('${v.id}')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Ficha del vehículo</button>
+     <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => exportarBitacoraVehiculoPDF('${v.id}'), 'Generando…')"><i class="ti ti-file-type-pdf" aria-hidden="true"></i> Bitácora PDF</button>`,
+    '', { ancho: true });
+  if (!s0) sugerirProximoServicio();
+}
+// Sugerencia del próximo servicio (solo si el usuario no lo escribió): preventivo +10,000 km / +6 meses, frenos +20,000 km, llantas +40,000 km, verificación +6 meses
+function sugerirProximoServicio() {
+  if (STATE._mant?.edit) return;
+  const tipo = document.getElementById('mf-tipo')?.value, km = parseInt(document.getElementById('mf-km')?.value, 10);
+  const fecha = document.getElementById('mf-fecha')?.value;
+  const pkm = document.getElementById('mf-pkm'), pf = document.getElementById('mf-pfecha'); if (!pkm || !pf) return;
+  const regla = { preventivo: [10000, 6], frenos: [20000, null], llantas: [40000, null], afinacion: [20000, 12], verificacion: [null, 6] }[tipo] || [null, null];
+  if (!pkm.dataset.manual) pkm.value = regla[0] && Number.isFinite(km) ? km + regla[0] : '';
+  if (!pf.dataset.manual) {
+    if (regla[1] && fecha) { const d = fechaLocal(fecha); d.setMonth(d.getMonth() + regla[1]); pf.value = isoLocal(d); } else pf.value = '';
+  }
+}
+async function guardarServicioVehiculo() {
+  const M = STATE._mant, val = id => document.getElementById(id)?.value.trim();
+  const num = id => { const t = val(id); return t === '' ? null : parseInt(t, 10); };
+  const datos = { tipo: val('mf-tipo'), concepto: val('mf-concepto'), fecha: val('mf-fecha'), km: num('mf-km'), proximo_km: num('mf-pkm'),
+    proxima_fecha: val('mf-pfecha') || null, taller: val('mf-taller') || null, notas: val('mf-notas') || null, estado_manual: val('mf-estado') || null };
+  if (!datos.concepto) { toast('Escribe el concepto del servicio.', 'error'); document.getElementById('mf-concepto')?.focus(); return; }
+  if (!datos.fecha) { toast('Elige la fecha del servicio.', 'error'); return; }
+  const url = `/vehiculos/${encodeURIComponent(M.v.id)}/servicios${M.edit ? '/' + M.edit : ''}`;
+  const r = await api(M.edit ? 'PUT' : 'POST', url, datos);
+  if (!r) return;
+  toast(M.edit ? 'Servicio actualizado' : 'Servicio registrado');
+  M.b = r; M.edit = null; M.v.km_actual = r.km_actual; STATE._panelDirty = false;
+  pintarBitacoraVehiculo();
+  loadVehiculos(true);
+}
+async function borrarServicioVehiculo(sid) {
+  if (!confirm('¿Borrar este servicio de la bitácora?')) return;
+  const M = STATE._mant, r = await api('DELETE', `/vehiculos/${encodeURIComponent(M.v.id)}/servicios/${sid}`);
+  if (!r) return;
+  M.b = r; if (M.edit === sid) M.edit = null; toast('Servicio borrado'); pintarBitacoraVehiculo(); loadVehiculos(true);
+}
+async function guardarKmVehiculo() {
+  const M = STATE._mant, km = parseInt(document.getElementById('mant-km')?.value, 10);
+  if (!Number.isFinite(km) || km < 0) { toast('Escribe un kilometraje válido.', 'error'); return; }
+  const r = await api('PATCH', `/vehiculos/${encodeURIComponent(M.v.id)}/km`, { km_actual: km });
+  if (!r) return;
+  M.b = r; M.v.km_actual = r.km_actual; STATE._panelDirty = false; toast('Kilometraje actualizado'); pintarBitacoraVehiculo(); loadVehiculos(true);
+}
+
+// ── PDF: Bitácora de Mantenimiento Vehicular (A4, plantilla WorkSync) ──
+async function exportarBitacoraVehiculoPDF(id) {
+  const v = (STATE.vehiculos || []).find(x => x.id === id) || STATE._mant?.v;
+  const b = await api('GET', `/vehiculos/${encodeURIComponent(id)}/servicios`); if (!v || !b) return;
+  const servs = b.servicios || [], tc = tarjetaVehiculoDoc(v);
+  const T = await nuevaPlantillaPDF('portrait', 'a4'), { doc, C, M } = T, W = T.W;
+  const hoy = new Date(), folio = `BMV-${String(v.placas || v.id).replace(/[^A-Za-z0-9]/g, '').toUpperCase()}-${isoLocal(hoy).replace(/-/g, '')}`;
+  T.encabezado('Mantenimiento', folio, 'Bitácora de mantenimiento vehicular',
+    [v.nombre, v.apodo, v.placas].filter(Boolean).join('  ·  '));
+  // Resumen del vehículo
+  let y = 34;
+  const vig = tc.vence ? (fechaLocal(tc.vence) < hoy ? `Vencida · ${fLargaAnio(tc.vence)}` : `Vigente · ${fLargaAnio(tc.vence)}`) : tc.doc ? 'Registrada' : 'Sin registrar';
+  const cols = [['Marca / modelo', [v.marca, v.modelo, v.anio].filter(Boolean).join(' ') || '—', 1.1], ['Placas', v.placas || '—', 0.75],
+    ['N° de serie (VIN)', v.numero_serie || '—', 1.25], ['Tarjeta de circulación', vig, 1.1]];
+  const util = W - 2 * M - 10, sumaP = cols.reduce((a, c) => a + c[2], 0);
+  T.relleno(C.fondo); doc.roundedRect(M, y, W - 2 * M, 16, 2, 2, 'F');
+  let xc = M + 5;
+  cols.forEach(([lab, val, peso], i) => {
+    const gw = util * peso / sumaP;
+    if (i) { T.trazo(C.linea, 0.3); doc.line(xc - 3, y + 3.5, xc - 3, y + 12.5); }
+    T.etiqueta(lab, xc, y + 6, C.gris, 5.4);
+    const venc = i === 3 && /^Vencida/.test(val);
+    T.font(i === 2 ? 'semibold' : 'bold', i === 2 ? 7.6 : 8.4, venc ? MANT_PDF.inc.tx : C.tinta); doc.text(recortarTexto(doc, val, gw - 5), xc, y + 11.6);
+    xc += gw;
+  });
+  y += 21;
+  // Estado general
+  const eg = MANT_EST[b.estado] || MANT_EST.sin_registro, egp = eg.pdf || MANT_PDF.pend;
+  const nVig = servs.filter(s => ['al_dia', 'proximo', 'vencido'].includes(s.estatus));
+  y = T.tarjetas(y, [
+    ['Estado del vehículo', eg.t, b.siguiente ? recortarTexto(doc, `Siguiente: ${b.siguiente.concepto}`, 60) : 'sin próximo programado', egp.tx || C.gris],
+    ['Kilometraje actual', b.km_actual != null ? Number(b.km_actual).toLocaleString('es-MX') : '—', 'km del odómetro', C.tinta],
+    ['Servicios registrados', servs.length, `${nVig.length} con próximo vigente`, C.tinta],
+    ['Último servicio', servs.length ? fLargaAnio(servs[servs.length - 1].fecha) : '—', servs.length ? recortarTexto(doc, servs[servs.length - 1].concepto, 60) : '', C.tinta],
+  ], 18);
+  y += 9;
+  y = T.seccion('HISTORIAL DE SERVICIOS', y, `${servs.length} registro${servs.length === 1 ? '' : 's'} · orden cronológico`);
+  const proPartes = s => [s.proxima_fecha ? fLargaAnio(s.proxima_fecha) : null, s.proximo_km != null ? fmtKm(s.proximo_km) : null].filter(Boolean);
+  const body = servs.map((s, i) => {
+    const pp = proPartes(s);
+    const r = { id: `S-${String(i + 1).padStart(3, '0')}`,
+      _p: { con: [s.concepto, [MANT_TIPOS[s.tipo] || s.tipo, s.taller].filter(Boolean).join(' · ')], eje: [fLargaAnio(s.fecha), fmtKm(s.km)], pro: pp.length ? pp : ['—'] },
+      est: (MANT_EST[s.estatus] || MANT_EST.realizado).t, _e: s.estatus };
+    ['con', 'eje', 'pro'].forEach(k => { r[k] = r._p[k].join('\n'); });
+    return r;
+  });
+  const lineasCelda = (d, k) => {   // las mismas líneas que se dibujan, para medir el alto real
+    const w = d.cell.width - 4.4, [a, b] = d.row.raw._p[k];
+    T.font(k === 'con' ? 'bold' : 'medium', 7.4); const la = doc.splitTextToSize(a, w);
+    T.font('normal', 6.6); const lb = b ? doc.splitTextToSize(b, w) : [];
+    return { la, lb };
+  };
+  if (!body.length) { T.font('normal', 8, C.gris); doc.text('Sin servicios registrados.', M, y + 2); y += 8; }
+  else {
+    doc.autoTable({
+      startY: y, margin: { left: M, right: M, bottom: 52, top: 34 },
+      columns: [{ header: 'ID', dataKey: 'id' }, { header: 'Concepto / servicio', dataKey: 'con' }, { header: 'Fecha de ejecución', dataKey: 'eje' },
+        { header: 'Próximo servicio programado', dataKey: 'pro' }, { header: 'Estatus', dataKey: 'est' }],
+      body, theme: 'plain', rowPageBreak: 'avoid',
+      styles: { font: window._fuentesPDF ? 'Montserrat' : 'helvetica', fontSize: 7.4, textColor: C.texto, cellPadding: { top: 2.2, bottom: 2.2, left: 2.2, right: 2.2 }, valign: 'middle', lineColor: C.linea },
+      headStyles: { fontStyle: 'bold', textColor: C.gris, fontSize: 6.6, fillColor: C.fondo },
+      columnStyles: { id: { cellWidth: 16, fontStyle: 'bold', textColor: C.tinta }, con: { cellWidth: 62 }, eje: { cellWidth: 34 }, pro: { cellWidth: 40 }, est: { cellWidth: 26 } },
+      didParseCell: d => {
+        if (d.section !== 'body') return;
+        d.cell.styles.lineWidth = { bottom: 0.15 };
+        if (d.column.dataKey === 'est') d.cell.text = [''];
+        if (d.column.dataKey === 'con') d.cell.styles.fontStyle = 'bold';
+      },
+      willDrawCell: d => { if (d.section === 'body' && ['con', 'eje', 'pro'].includes(d.column.dataKey)) d.cell.text = []; },
+      didDrawCell: d => {
+        if (d.section !== 'body') return;
+        const k = d.column.dataKey;
+        if (['con', 'eje', 'pro'].includes(k)) {   // primera línea fuerte, segunda en gris
+          const { la, lb } = lineasCelda(d, k), lh1 = 3.05, lh2 = 2.8, alto = la.length * lh1 + lb.length * lh2;
+          let yy = d.cell.y + (d.cell.height - alto) / 2 + 2.3;
+          T.font(k === 'con' ? 'bold' : 'medium', 7.4, C.tinta); la.forEach(t => { doc.text(t, d.cell.x + 2.2, yy); yy += lh1; });
+          T.font('normal', 6.6, C.gris); lb.forEach(t => { doc.text(t, d.cell.x + 2.2, yy); yy += lh2; });
+          return;
+        }
+        if (k !== 'est') return;
+        const pc = (MANT_EST[d.row.raw._e] || MANT_EST.realizado).pdf, t = d.row.raw.est, w = 22, h = 4.4;
+        const x = d.cell.x + 2, yy = d.cell.y + (d.cell.height - h) / 2;
+        T.relleno(pc.bg); doc.roundedRect(x, yy, w, h, 1.4, 1.4, 'F');
+        T.font('bold', 6, pc.tx); doc.text(t, x + w / 2, yy + 3, { align: 'center' });
+      },
+      willDrawPage: d => { if (d.pageNumber > 1) T.encabezado('Bitácora de mantenimiento vehicular', folio, v.nombre, 'continuación'); },
+    });
+    y = doc.lastAutoTable.finalY + 6;
+  }
+  // Firma de aprobación (al final del último bloque; si no cabe, en una hoja nueva)
+  if (y + 40 > T.H - 20) { T.nuevaPagina(); T.encabezado('Bitácora de mantenimiento vehicular', folio, v.nombre, 'aprobación'); y = 40; }
+  const yf = Math.max(y + 8, T.H - 62), fw = 78, fx = W - M - fw;
+  T.font('normal', 6.8, C.gris);
+  doc.text(doc.splitTextToSize('Esta bitácora se genera desde WorkSync con los servicios registrados en la plataforma. El estatus se calcula con la fecha y el kilometraje del próximo servicio programado.', W - 2 * M - fw - 12), M, yf + 6);
+  T.trazo(C.tinta, 0.35); doc.line(fx, yf + 18, fx + fw, yf + 18);
+  T.font('bold', 7.6, C.tinta); doc.text('Gerente de Operaciones y Logística', fx + fw / 2, yf + 22.5, { align: 'center' });
+  T.font('normal', 6.6, C.gris); doc.text('Nombre, firma y fecha de aprobación', fx + fw / 2, yf + 26.2, { align: 'center' });
+  T.cerrar(limpiarNombreArchivo(`Bitácora mantenimiento ${v.placas || v.nombre} ${isoLocal(hoy)}.pdf`), false);
+}
+
 // Lista de documentos de un vehículo (se re-dibuja sola al agregar/quitar, sin perder lo que estés editando)
 function renderDocsVehiculo(v) {
   const docs = v.documentos || [];
@@ -5910,6 +6191,14 @@ function verVehiculo(id) {
       <div class="field-row full"><div class="field-group"><label class="field-label">COORDENADAS (OPCIONAL)</label><input class="field-input" id="vv-coords" placeholder="ej. 21.91114227818028, -102.2973348126625" value="${v.latitud&&v.longitud?`${v.latitud}, ${v.longitud}`:''}"></div></div>
       ${v.proyecto_actual_nombre ? `<div style="font-size:12px;color:var(--text2);margin:-4px 0 10px"><i class="ti ti-map-pin" aria-hidden="true"></i> En proyecto ahora: <strong>${e(v.proyecto_actual_nombre)}</strong> (${e(v.proyecto_actual_ciudad||'—')})</div>` : ''}
       <div class="field-row full"><div class="field-group"><label class="field-label">NOTAS</label><textarea class="field-input" id="vv-notas" rows="3">${e(v.notas||'')}</textarea></div></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">MANTENIMIENTO</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        ${pillMant(v.mantenimiento?.estado || 'sin_registro')}
+        <span style="font-size:12px;color:var(--text2)">${v.km_actual != null ? `${Number(v.km_actual).toLocaleString('es-MX')} km` : 'Km sin registrar'}${v.mantenimiento?.siguiente ? ` · Siguiente: ${e(v.mantenimiento.siguiente.concepto)} (${e(textoProximoServicio(v.mantenimiento.siguiente))})` : ''}</span>
+        <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="abrirBitacoraVehiculo('${v.id}')"><i class="ti ti-tool" aria-hidden="true"></i> Bitácora de mantenimiento</button>
+      </div>
     </div>
     <div class="panel-section">
       <div class="panel-section-title">DOCUMENTOS</div>
