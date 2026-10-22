@@ -10742,7 +10742,7 @@ async function buscarFechasProyecto() {
   cont.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:10px 0"><i class="ti ti-loader-2" aria-hidden="true"></i> Buscando la fecha más próxima…</div>';
   const r = await api('POST', '/planeacion/buscar-fechas', cuerpo);
   if (!r) { cont.innerHTML = ''; return; }
-  STATE._busqueda = { ...r, duracion, personaSel: null, params: cuerpo };
+  STATE._busqueda = { ...r, duracion, personaSel: null, sel: [], combo: null, params: cuerpo };
   pintarOpcionesFechas();
   setTimeout(() => desplazarPanelA(cont), 80);
 }
@@ -10758,20 +10758,69 @@ function pintarOpcionesFechas() {
       ? `<div class="bus-aviso"><i class="ti ti-alert-triangle" aria-hidden="true"></i> No hay fechas con personal que cumpla <strong>todo</strong> hasta el ${r.busco_hasta}. Estas opciones incluyen personas con <strong>brecha técnica</strong> (algo capacitable).</div>` : '')
     + `<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn btn-ghost btn-sm" onclick="exportarPropuestaPDF()"><i class="ti ti-file-type-pdf" aria-hidden="true"></i> PDF interno</button></div>`
     + r.opciones.map((o, i) => tarjetaOpcionFechas(o, `g:${i}`, i === 0)).join('')
-    + (otras.length ? `
-      <div class="panel-section-title" style="margin:16px 0 8px">OTRAS PERSONAS QUE PODRÍAN</div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Toca un nombre para ver sus fechas más próximas.</div>
-      <div class="bus-personas">${otras.map((p, k) => `
-        <button class="bus-persona ${r.personaSel === k ? 'on' : ''}" onclick="elegirOtraPersona(${k})">
-          <i class="ti ti-user" aria-hidden="true"></i><span>${escHtml(p.nombre)}</span>
-          <span class="chip-extra">${fechaLarga(p.opciones[0].inicio)}</span>
-        </button>`).join('')}</div>
-      <div id="bus-persona-res">${r.personaSel != null && otras[r.personaSel] ? `
-        <div class="panel-section-title" style="margin:14px 0 8px">FECHAS CON ${escHtml(otras[r.personaSel].nombre.toUpperCase())}</div>
-        ${otras[r.personaSel].opciones.map((o, i) => tarjetaOpcionFechas(o, `p:${r.personaSel}:${i}`, false)).join('')}` : ''}</div>` : '');
+    + htmlPersonasBusqueda();
+}
+// Personas que aparecen en alguna fecha (opciones generales + "otras que podrían"). Se pueden elegir varias
+// (hasta el personal requerido) y se buscan las fechas en que TODAS estén libres y cumplan los requisitos.
+function personasBusqueda() {
+  const r = STATE._busqueda, mapa = new Map();
+  r.opciones.forEach(o => o.equipo_de_trabajo.forEach(p => { if (!mapa.has(p.id)) mapa.set(p.id, { id: p.id, nombre: p.nombre, primera: o.inicio }); }));
+  (r.otras_personas || []).forEach(p => { if (!mapa.has(p.id)) mapa.set(p.id, { id: p.id, nombre: p.nombre, primera: p.opciones[0]?.inicio }); });
+  return [...mapa.values()].sort((a, b) => (a.primera || '').localeCompare(b.primera || '') || a.nombre.localeCompare(b.nombre, 'es'));
+}
+function htmlPersonasBusqueda() {
+  const r = STATE._busqueda, lista = personasBusqueda(), req = r.params.personal_requerido || 1, sel = r.sel || [];
+  if (lista.length < 2) return '';
+  const nombre = id => lista.find(p => p.id === id)?.nombre || '';
+  let res = '';
+  if (sel.length === 1) {
+    const id = sel[0], k = (r.otras_personas || []).findIndex(p => p.id === id);
+    const ops = k >= 0 ? r.otras_personas[k].opciones.map((o, i) => tarjetaOpcionFechas(o, `p:${k}:${i}`, false))
+      : r.opciones.map((o, i) => o.equipo_de_trabajo.some(p => p.id === id) ? tarjetaOpcionFechas(o, `g:${i}`, false) : '').filter(Boolean);
+    res = `<div class="panel-section-title" style="margin:14px 0 8px">FECHAS CON ${escHtml(nombre(id).toUpperCase())}</div>${ops.join('')}`;
+  } else if (sel.length >= 2) {
+    const c = r.combo, titulo = sel.map(nombre).join(' + ').toUpperCase();
+    res = `<div class="panel-section-title" style="margin:14px 0 8px">FECHAS CON ${escHtml(titulo)}</div>`
+      + (!c || c.cargando ? `<div style="font-size:12px;color:var(--text3);padding:6px 0"><i class="ti ti-loader-2 ti-spin" aria-hidden="true"></i> Buscando fechas en que coincidan…</div>`
+        : c.opciones.length ? (c.modo === 'con_brecha' ? `<div class="bus-aviso"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Solo coinciden con <strong>brecha técnica</strong> (algo capacitable).</div>` : '')
+            + c.opciones.map((o, i) => tarjetaOpcionFechas(o, `c:${i}`, i === 0)).join('')
+        : `<div class="bus-aviso"><i class="ti ti-calendar-x" aria-hidden="true"></i> ${escHtml(c.motivo || 'No coinciden libres en ninguna fecha.')}</div>`);
+  }
+  return `
+    <div class="panel-section-title" style="margin:16px 0 4px">ARMAR EQUIPO DE TRABAJO</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Toca uno para ver sus fechas, o elige ${req > 1 ? `hasta ${req} personas` : 'una persona'} para ver cuándo coinciden libres${sel.length ? ` · <a href="#" onclick="event.preventDefault();limpiarSeleccionBusqueda()" style="color:var(--blue)">Limpiar selección</a>` : ''}.</div>
+    <div class="bus-personas">${lista.map(p => { const on = sel.includes(p.id); return `
+      <button class="bus-persona ${on ? 'on' : ''}" onclick="alternarPersonaBusqueda('${p.id}')" aria-pressed="${on}">
+        <i class="ti ${on ? 'ti-square-check' : 'ti-square'}" aria-hidden="true"></i><span>${escHtml(p.nombre)}</span>
+        <span class="chip-extra">${p.primera ? fechaLarga(p.primera) : ''}</span>
+      </button>`; }).join('')}</div>
+    <div id="bus-persona-res">${res}</div>`;
+}
+function limpiarSeleccionBusqueda() { const r = STATE._busqueda; r.sel = []; r.combo = null; pintarOpcionesFechas(); }
+async function alternarPersonaBusqueda(id) {
+  const r = STATE._busqueda, req = r.params.personal_requerido || 1;
+  r.sel = r.sel || [];
+  if (r.sel.includes(id)) r.sel = r.sel.filter(x => x !== id);
+  else {
+    if (r.sel.length >= Math.max(req, 1) && req > 1) { toast(`El proyecto necesita ${req} personas: quita una para elegir otra.`, 'error'); return; }
+    r.sel = req > 1 ? [...r.sel, id] : [id];
+  }
+  r.combo = null;
+  if (r.sel.length >= 2) {
+    const clave = [...r.sel].sort().join('|');
+    r.combo = { cargando: true, clave };
+    pintarOpcionesFechas();
+    setTimeout(() => desplazarPanelA(document.getElementById('bus-persona-res')), 60);
+    const res = await api('POST', '/planeacion/buscar-fechas', { ...r.params, fijar_personal: [...r.sel] });
+    if (STATE._busqueda !== r || r.combo?.clave !== clave) return;   // cambió la selección mientras buscaba
+    r.combo = res ? { clave, opciones: res.opciones || [], modo: res.modo, motivo: res.motivo } : { clave, opciones: [], motivo: 'No se pudo buscar. Intenta de nuevo.' };
+  }
+  pintarOpcionesFechas();
+  if (r.sel.length) setTimeout(() => desplazarPanelA(document.getElementById('bus-persona-res')), 60);
 }
 function opcionPorRef(ref) {
   const [t, a, b2] = ref.split(':');
+  if (t === 'c') return STATE._busqueda.combo.opciones[+a];
   return t === 'g' ? STATE._busqueda.opciones[+a] : STATE._busqueda.otras_personas[+a].opciones[+b2];
 }
 function elegirOtraPersona(k) {
