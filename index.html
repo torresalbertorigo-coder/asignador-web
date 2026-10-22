@@ -809,6 +809,19 @@ tbody tr:hover .td-action i{color:var(--text2)}
 
 /* MOBILE NAV (bottom) */
 @media(max-width:768px){ .um-solo-escritorio{display:none !important} }
+.um-solo-movil{display:none !important}
+@media(max-width:768px){ .um-solo-movil{display:flex !important} }
+/* Conmutador de rol: solo en celular, en el lugar del botón de tema */
+.rol-chip{display:none;align-items:center;gap:6px;height:34px;padding:0 11px 0 9px;border-radius:999px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;
+  border:1px solid var(--red-border);background:var(--red-bg);color:var(--red-text);-webkit-tap-highlight-color:transparent;transition:transform .1s ease}
+.rol-chip:active{transform:scale(.95)}
+.rol-chip i{font-size:16px}
+.rol-chip .rol-chip-swap{font-size:13px;opacity:.6;margin-left:1px}
+.rol-chip.tecnico{border-color:var(--amber-border);background:var(--amber-bg);color:var(--amber)}
+@media(max-width:768px){
+  #btn-tema-topbar{display:none !important}
+  .rol-chip.on{display:inline-flex !important}
+}
 .mobile-nav{display:none;background:var(--surface);border-top:1px solid var(--border);padding:8px 0 12px}
 .mobile-nav-items{display:flex;justify-content:space-around}
 .mobile-nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--text3);cursor:pointer;padding:4px 12px}
@@ -1445,6 +1458,7 @@ html.av-fs-abierto .content{overflow:hidden !important}
         <div style="display:flex;align-items:center;gap:14px">
           <div class="topbar-right" id="topbar-actions"></div>
           <button class="topbar-menu-btn" onclick="toggleTema()" aria-label="Cambiar tema" id="btn-tema-topbar"><i class="ti ti-moon" aria-hidden="true"></i></button>
+          <button class="rol-chip" id="rol-chip" onclick="switchModo()" aria-label="Cambiar de vista" style="display:none"></button>
           <div style="position:relative">
             <div class="user-menu" id="user-menu">
               <div class="user-menu-trigger" onclick="toggleUserMenu(event)" title="Mi cuenta">
@@ -1462,6 +1476,7 @@ html.av-fs-abierto .content{overflow:hidden !important}
                 <div class="user-menu-item" onclick="showSection('catalogo');toggleUserMenu()" id="um-catalogo" style="display:none"><i class="ti ti-tags" aria-hidden="true"></i> Catálogo de términos</div>
                 <div class="user-menu-item" onclick="showSection('permisos');toggleUserMenu()" id="um-permisos" style="display:none"><i class="ti ti-key" aria-hidden="true"></i> Cuentas y permisos</div>
                 <div class="user-menu-item" onclick="iniciarTutorial()" id="um-tutorial" style="display:none"><i class="ti ti-school" aria-hidden="true"></i> Ver tutorial</div>
+                <div class="user-menu-item um-solo-movil" onclick="toggleTema();toggleUserMenu()"><i class="ti ti-moon" aria-hidden="true"></i> Modo claro / oscuro</div>
                 <div class="user-menu-item um-solo-escritorio" onclick="cambiarDisenoMenu();toggleUserMenu()"><i class="ti ti-layout-sidebar" aria-hidden="true" id="um-layout-icono"></i> <span id="um-layout-label">Usar menú lateral</span></div>
                 <div class="user-menu-item" onclick="toggleUserMenu();instalarApp()" id="um-instalar" style="display:none"><i class="ti ti-device-mobile-down" aria-hidden="true"></i> Instalar app</div>
                 <div class="user-menu-item user-menu-item-danger" onclick="doLogout()"><i class="ti ti-logout" aria-hidden="true"></i> Cerrar sesión</div>
@@ -1777,6 +1792,7 @@ async function initApp() {
 }
 
 function buildNav() {
+  setTimeout(actualizarChipRol, 0);
   if (STATE.rol === 'administrador' || STATE.rol === 'director_proyecto') {
     document.getElementById('admin-nav').innerHTML = `
       <div class="nav-section">GESTIÓN</div>
@@ -1821,8 +1837,23 @@ function buildNav() {
   }
 }
 
+// Chip de rol (celular): muestra la vista activa; un toque cambia Admin ⇄ Técnico
+function actualizarChipRol() {
+  const chip = document.getElementById('rol-chip'); if (!chip) return;
+  const puede = ['administrador', 'director_proyecto'].includes(STATE.rol) && !!STATE.user?.empleado_id;
+  chip.classList.toggle('on', puede);
+  chip.style.display = '';
+  if (!puede) { chip.style.display = 'none'; return; }
+  const tec = !!STATE.modoTecnico;
+  chip.classList.toggle('tecnico', tec);
+  chip.innerHTML = tec
+    ? '<i class="ti ti-helmet" aria-hidden="true"></i>Técnico<i class="ti ti-arrows-exchange rol-chip-swap" aria-hidden="true"></i>'
+    : `<i class="ti ti-crown" aria-hidden="true"></i>${STATE.rol === 'director_proyecto' ? 'Director' : 'Admin'}<i class="ti ti-arrows-exchange rol-chip-swap" aria-hidden="true"></i>`;
+  chip.title = tec ? 'Estás en Vista Técnico · toca para volver a Administración' : 'Estás en Administración · toca para pasar a Vista Técnico';
+}
 function switchModo() {
   STATE.modoTecnico = !STATE.modoTecnico;
+  setTimeout(actualizarChipRol, 0);
   const adminNav = document.getElementById('admin-nav');
   const tecnicoNav = document.getElementById('tecnico-nav');
 
@@ -1852,7 +1883,7 @@ function switchModo() {
     tecnicoNav.style.display = 'none';
     buildMobileNavAdmin();
     document.getElementById('um-switch-label').textContent = 'Vista Técnico';
-    showSection('empleados');
+    showSection('mapa');   // regresa al tablero de Inicio
   }
 }
 
