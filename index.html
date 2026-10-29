@@ -8145,7 +8145,7 @@ function verProyectoTecnico(id) {
         <div>Sitio: <span style="color:var(--text)">${p.ciudad||'—'}${p.estado?', '+p.estado:''}</span></div>
       </div>
     </div>`,
-    `${p.estado!=='completado'&&p.estado!=='cancelado'&&!p.fecha_inicio_real?`<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="confirmarInicioProyecto('${p.id}','tecnico')"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Iniciar proyecto</button>`:''}${p.estado!=='completado'&&p.estado!=='cancelado'?`<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}','tecnico'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar proyecto</button>`:''}${avanceDisponible()?`<button class="btn btn-ghost btn-sm" style="color:var(--orange)" onclick="irAvance('${p.id}')"><i class="ti ti-flame" aria-hidden="true"></i> Avance</button>`:''}<button class="btn btn-primary btn-sm" onclick="showSection('checador');closePanel(null,true)"><i class="ti ti-clock" aria-hidden="true"></i> Ir al checador</button>`);
+    `${p.estado!=='completado'&&p.estado!=='cancelado'&&!p.fecha_inicio_real?`<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="confirmarInicioProyecto('${p.id}','tecnico')"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Iniciar proyecto</button>`:''}${p.estado!=='completado'&&p.estado!=='cancelado'?`<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}','tecnico'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar proyecto</button>`:''}${avanceDisponible()&&proyectoIniciado(p)&&!['completado','cancelado'].includes(p.estado)?`<button class="btn btn-ghost btn-sm" style="color:var(--orange)" onclick="irAvance('${p.id}')"><i class="ti ti-flame" aria-hidden="true"></i> Avance</button>`:''}<button class="btn btn-primary btn-sm" onclick="showSection('checador');closePanel(null,true)"><i class="ti ti-clock" aria-hidden="true"></i> Ir al checador</button>`);
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -8251,22 +8251,23 @@ async function renderAvance() {
   if (!(STATE.empleados || []).length) { try { await loadEmpleados(); } catch (e) {} }   // nombres del técnico responsable
   const A = STATE._av = Object.assign({ sel: new Set(), inc: new Set(), notasInc: {}, estatus: 'ok', fecha: isoLocal(new Date()), todos: false, vista: null }, STATE._av || {});
   const empId = STATE.user?.empleado_id;
-  const visibles = STATE.proyectos.filter(p => p.estado !== 'cancelado' && (A.todos || (p.tecnicos_asignados || []).includes(empId)));
+  // Solo proyectos en campo: ya iniciados (por quien sea) y sin finalizar ni cancelar
+  const enCampo = p => proyectoIniciado(p) && !['completado', 'cancelado'].includes(p.estado);
+  const visibles = STATE.proyectos.filter(p => enCampo(p) && (A.todos || (p.tecnicos_asignados || []).includes(empId)));
   let pid = A.pid || (() => { try { return localStorage.getItem('ws_av_pid'); } catch (e) { return null; } })();
-  if (pid && !STATE.proyectos.some(p => p.id === pid)) pid = null;
-  if (pid && !visibles.some(p => p.id === pid)) visibles.unshift(STATE.proyectos.find(p => p.id === pid));
+  if (pid && !visibles.some(p => p.id === pid)) pid = null;
   if (!pid && visibles.length) pid = (visibles.find(p => estadoProyectoVisible(p) === 'en_progreso') || visibles[0]).id;
   A.pid = pid;
   const selector = `
     <div class="av-card"><div class="av-top">
       <div class="field-group"><label class="field-label">PROYECTO</label>
-        <select class="field-select" onchange="cambiarProyectoAvance(this.value)">${visibles.length ? '' : '<option value="">Sin proyectos asignados</option>'}
+        <select class="field-select" onchange="cambiarProyectoAvance(this.value)">${visibles.length ? '' : '<option value="">Sin proyectos en campo</option>'}
           ${visibles.map(p => `<option value="${escHtml(p.id)}" ${p.id === pid ? 'selected' : ''}>${escHtml(p.nombre)} — ${escHtml(p.cliente || '')}</option>`).join('')}
         </select></div>
-      <label class="np-check" style="margin:0 0 10px"><input type="checkbox" ${A.todos ? 'checked' : ''} onchange="STATE._av.todos=this.checked;renderAvance()"> Ver todos los proyectos activos</label>
+      <label class="np-check" style="margin:0 0 10px"><input type="checkbox" ${A.todos ? 'checked' : ''} onchange="STATE._av.todos=this.checked;renderAvance()"> Ver también los de otros técnicos</label>
       <span class="av-piloto" style="margin-bottom:12px"><i class="ti ti-flask" aria-hidden="true"></i> Piloto</span>
     </div></div>`;
-  if (!pid) { html(`<div class="av-wrap">${selector}<div class="empty-state"><i class="ti ti-briefcase-off" aria-hidden="true"></i><p>Sin proyectos</p><span>Marca "Ver todos los proyectos activos" para elegir uno.</span></div></div>`); return; }
+  if (!pid) { html(`<div class="av-wrap">${selector}<div class="empty-state"><i class="ti ti-briefcase-off" aria-hidden="true"></i><p>Sin proyectos en campo</p><span>Aquí aparecen los proyectos ya iniciados y sin finalizar. Inicia el tuyo desde Mis asignaciones${A.todos ? '' : ', o marca "Ver también los de otros técnicos"'}.</span></div></div>`); return; }
   html(`<div class="av-wrap">${selector}<div id="av-cuerpo"><div class="empty-state"><i class="ti ti-loader-2 ti-spin" aria-hidden="true"></i><p>Cargando avance…</p></div></div></div>`);
   const d = await api('GET', `/avance/${encodeURIComponent(pid)}`);
   if (STATE._av.pid !== pid || STATE._seccion !== 'avance') return;
