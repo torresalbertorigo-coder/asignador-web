@@ -1245,6 +1245,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .cal-dot{width:4px;height:4px;border-radius:50%;background:var(--red-text);position:absolute;bottom:4px}
 /* ─── AVANCE DE OPERADORES ("To Flama") — piloto ─── */
 .av-wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px;padding-bottom:84px}
+#av-cuerpo{display:flex;flex-direction:column;gap:14px}
 .av-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
 .av-card-tit{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:12px}
 .av-card-tit .av-der{margin-left:auto;display:flex;gap:6px;align-items:center;text-transform:none;letter-spacing:0;font-weight:500}
@@ -1515,6 +1516,45 @@ html.av-fs-abierto .content{overflow:hidden !important}
   .panel-footer{flex-wrap:wrap;justify-content:stretch;padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px))}
   .panel-footer>.btn{flex:1 1 calc(50% - 4px);justify-content:center;min-height:42px;white-space:normal;text-align:center;line-height:1.25}
   .panel-footer>.btn-primary{flex-basis:100%;order:9}
+}
+
+/* Avance: proyectos sin mapa (registro por notas) */
+:root{--av-proc:#D97706;--av-proc-bg:rgba(217,119,6,.16);--av-proc-tx:#FBBF24}
+:root[data-theme="light"]{--av-proc-bg:#FEF3C7;--av-proc-tx:#B45309}
+.av-dot.proc{background:var(--av-proc)}
+.av-cfg-parque[hidden]{display:none!important}
+.av-tipos{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.avl-resumen{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.avl-n{display:flex;flex-direction:column;align-items:flex-start;padding-right:18px;border-right:1px solid var(--border)}
+.avl-n strong{font-size:34px;font-weight:800;line-height:1;color:var(--text)}
+.avl-n span{font-size:11.5px;color:var(--text3);margin-top:2px}
+.avl-proy{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.avl-proy b{font-size:14px;color:var(--text)}
+.avl-proy>span{font-size:12px;color:var(--text3)}
+.avl-proy .avl-ult{color:var(--text2);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.avl-pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.avl-pill i{font-size:13px}
+.avl-pill.ok{background:var(--av-ok-bg);color:var(--av-ok-tx)}
+.avl-pill.proc{background:var(--av-proc-bg);color:var(--av-proc-tx)}
+.avl-pill.inc{background:var(--av-inc-bg);color:var(--av-inc-tx)}
+.avl-fila{display:grid;grid-template-columns:minmax(0,170px) minmax(0,1fr);gap:10px}
+.avl-est{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.avl-op{display:flex;align-items:center;gap:9px;text-align:left;padding:11px 12px;border:1.5px solid var(--border2);border-radius:10px;background:var(--surface2);color:var(--text2);font:inherit;font-size:12.5px;font-weight:600;line-height:1.3;cursor:pointer;min-height:52px}
+.avl-op .av-dot{width:11px;height:11px}
+.avl-op.on.ok{border-color:var(--av-ok);background:var(--av-ok-bg);color:var(--text)}
+.avl-op.on.proc{border-color:var(--av-proc);background:var(--av-proc-bg);color:var(--text)}
+.avl-op.on.inc{border-color:var(--av-inc);background:var(--av-inc-bg);color:var(--text)}
+.avl-nota-tit{display:flex;align-items:center;justify-content:space-between;margin:16px 0 6px}
+.avl-formato{background:none;border:none;color:var(--blue);font:inherit;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;padding:2px 0}
+.avl-nota{width:100%;min-height:150px;resize:vertical;line-height:1.55;font-size:13.5px}
+.avl-pie{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+.avl-guardar{margin-left:auto;min-height:44px}
+.avl-txt{white-space:pre-wrap;color:var(--text);margin:6px 0 4px;line-height:1.5}
+@media (max-width:640px){
+  .avl-fila{grid-template-columns:minmax(0,1fr)}
+  .avl-est{grid-template-columns:minmax(0,1fr)}
+  .avl-n{border-right:none;padding-right:0}
+  .avl-guardar{width:100%;justify-content:center;margin-left:0}
 }
 </style>
 </head>
@@ -8120,11 +8160,13 @@ const AV_COL = {
   ok:   { c: [22, 163, 74],   bg: [220, 252, 231], tx: [21, 128, 61] },    // #16A34A / #DCFCE7
   inc:  { c: [220, 38, 38],   bg: [254, 226, 226], tx: [185, 28, 28] },    // #DC2626 / #FEE2E2
   pend: { c: [100, 116, 139], bg: [241, 245, 249], tx: [71, 85, 105] },    // #64748B / #F1F5F9
+  proc: { c: [217, 119, 6],   bg: [254, 243, 199], tx: [180, 83, 9] },     // #D97706 / #FEF3C7 (en proceso, proyectos sin mapa)
 };
 const avHex = rgb => '#' + rgb.map(v => v.toString(16).padStart(2, '0')).join('');
 const AV_TIPOS = {
   eolico: { nombre: 'Eólico', icono: 'building-wind-turbine', uno: 'WTG', varios: 'WTGs', prefijo: 'WTG-', ok: 'Inspección concluida / OK' },
   solar:  { nombre: 'Solar',  icono: 'solar-panel',           uno: 'bloque', varios: 'bloques', prefijo: 'B-', ok: 'Bloque concluido' },
+  libre:  { nombre: 'Sin mapa', icono: 'notes',                uno: 'reporte', varios: 'reportes', prefijo: '', ok: 'Completado' },
 };
 const avanceDisponible = () => !!STATE._avancePiloto && STATE.rol === 'administrador' && STATE.modoTecnico;
 
@@ -8159,11 +8201,14 @@ function irAvance(pid) {
 }
 
 // ── Cálculos ──
+// Capacitaciones, inducciones, trámites, visitas… no tienen WTGs ni bloques: se registran por notas
+const RE_AV_LIBRE = /CAPACIT|INDUCC|CURSO|COMISION|TRAMITE|VISITA|ACREDIT|AUDITOR|ENTRENAMIENTO|TALLER|REUNION|JUNTA|CERTIFICACION|EVALUACION|GESTION|PERMISO/;
 function tipoSugeridoAvance(p) {
+  if (RE_AV_LIBRE.test(sinAcentos(`${p?.nombre || ''} ${p?.descripcion || ''}`))) return 'libre';
   const t = sinAcentos(JSON.stringify(p || {}));
   if (/EOLIC|WTG|AEROGENER|PALAS?\b|TURBIN|WIND/.test(t)) return 'eolico';
   if (/SOLAR|FOTOVOLT|PFV|PANEL|MODULO|TERMOGRAF|STRING/.test(t)) return 'solar';
-  return 'eolico';
+  return 'libre';   // sin parque que medir: registro por notas
 }
 const numUnidad = id => { const m = String(id).match(/(\d+)(?!.*\d)/); return m ? parseInt(m[1], 10) : null; };
 const etqCorta = id => { const m = String(id).match(/(\d+[A-Za-z]?)(?!.*\d)/); return m ? m[1] : String(id).slice(0, 4); };
@@ -8203,6 +8248,7 @@ async function renderAvance() {
     return;
   }
   await loadProyectos();
+  if (!(STATE.empleados || []).length) { try { await loadEmpleados(); } catch (e) {} }   // nombres del técnico responsable
   const A = STATE._av = Object.assign({ sel: new Set(), inc: new Set(), notasInc: {}, estatus: 'ok', fecha: isoLocal(new Date()), todos: false, vista: null }, STATE._av || {});
   const empId = STATE.user?.empleado_id;
   const visibles = STATE.proyectos.filter(p => p.estado !== 'cancelado' && (A.todos || (p.tecnicos_asignados || []).includes(empId)));
@@ -8228,6 +8274,7 @@ async function renderAvance() {
   pintarAvance();
 }
 function cambiarProyectoAvance(pid) {
+  STATE._av.forzarLibre = false; STATE._av.libre = null;
   STATE._av.pid = pid; STATE._av.sel = new Set(); STATE._av.inc = new Set(); STATE._av.notasInc = {}; STATE._av.vista = null;
   try { localStorage.setItem('ws_av_pid', pid); } catch (e) {}
   renderAvance();
@@ -8237,13 +8284,15 @@ function pintarAvance() {
   if (!cont) return;
   if (!A.inc) A.inc = new Set(); if (!A.notasInc) A.notasInc = {};
   const p = STATE.proyectos.find(x => x.id === A.pid) || {};
+  if (esAvanceLibre(cfg, p)) { pintarAvanceLibre(p, cfg); return; }
   if (!cfg) {
     const t = AV_TIPOS[tipoSugeridoAvance(p)];
     cont.innerHTML = `<div class="av-card" style="text-align:center;padding:28px 18px">
       <i class="ti ti-${t.icono}" aria-hidden="true" style="font-size:38px;color:var(--text3)"></i>
       <div style="font-size:15px;font-weight:700;color:var(--text);margin:8px 0 4px">Este proyecto aún no tiene su parque configurado</div>
       <div class="av-nota" style="max-width:420px;margin:0 auto 16px">Define si es eólico (avance por WTG) o solar (por bloques), cuántas unidades tiene y, si quieres, sube el mapa del parque.</div>
-      <button class="btn btn-primary" onclick="abrirConfigAvance()"><i class="ti ti-settings" aria-hidden="true"></i> Configurar parque</button></div>`;
+      <button class="btn btn-primary" onclick="abrirConfigAvance()"><i class="ti ti-settings" aria-hidden="true"></i> Configurar parque</button>
+      <div class="av-nota" style="margin-top:12px">¿No tiene WTGs ni bloques (capacitación, trámite, visita)? <a href="#" onclick="event.preventDefault();STATE._av.forzarLibre=true;pintarAvance()" style="color:var(--blue)">Registrar por notas, sin mapa</a></div></div>`;
     return;
   }
   const T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico, R = calcAvance(cfg, A.data.registros), hoy = isoLocal(new Date());
@@ -8752,17 +8801,17 @@ async function borrarRegistroAvance(rid) {
 // ── Configuración del parque ──
 function abrirConfigAvance() {
   const A = STATE._av, p = STATE.proyectos.find(x => x.id === A.pid) || {}, cfg = A.data?.config;
-  const tipo = cfg?.tipo || tipoSugeridoAvance(p);
+  const tipo = cfg?.tipo || (A.forzarLibre ? 'libre' : tipoSugeridoAvance(p));
   STATE._avCfg = { tipo, mapa_url: cfg?.mapa_url || null, pos: Object.fromEntries((cfg?.unidades || []).filter(u => u.x != null).map(u => [u.id, { x: u.x, y: u.y, poly: u.poly }])) };
   const lista = (cfg?.unidades || []).map(u => u.id).join('\n');
   openPanel('Configurar parque', `
     <div class="panel-section">
       <div class="panel-section-title">TIPO DE PROYECTO</div>
       <div class="av-tipos">${Object.entries(AV_TIPOS).map(([k, t]) => `<button type="button" class="av-tipo-op ${k === tipo ? 'on' : ''}" data-tipo="${k}" onclick="elegirTipoAvance('${k}')">
-        <i class="ti ti-${t.icono}" aria-hidden="true"></i><b>${t.nombre}</b><span>${k === 'eolico' ? 'Avance por máquina completa (WTG). Sin desglose por pala.' : 'Avance por bloques o secciones del parque.'}</span></button>`).join('')}</div>
+        <i class="ti ti-${t.icono}" aria-hidden="true"></i><b>${t.nombre}</b><span>${k === 'eolico' ? 'Avance por máquina completa (WTG). Sin desglose por pala.' : k === 'solar' ? 'Avance por bloques o secciones del parque.' : 'Capacitaciones, inducciones, trámites o visitas: estatus y notas por jornada.'}</span></button>`).join('')}</div>
       ${!cfg ? `<div class="av-nota" style="margin-top:8px"><i class="ti ti-sparkles" aria-hidden="true"></i> Sugerido según el proyecto.</div>` : ''}
     </div>
-    <div class="panel-section">
+    <div class="panel-section av-cfg-parque" ${tipo === 'libre' ? 'hidden' : ''}>
       <div class="panel-section-title" id="av-cfg-tit-unid">${tipo === 'solar' ? 'BLOQUES DEL PARQUE' : 'AEROGENERADORES (WTGs)'}</div>
       <div class="field-row">
         <div class="field-group"><label class="field-label">CANTIDAD</label><input class="field-input" id="av-cfg-n" type="number" min="1" max="2000" placeholder="30"></div>
@@ -8774,7 +8823,7 @@ function abrirConfigAvance() {
         <textarea class="field-input" id="av-cfg-lista" rows="6" style="font-family:var(--mono);font-size:12.5px" oninput="contarListaAvance()">${escHtml(lista)}</textarea>
         <div class="av-nota" id="av-cfg-cuenta" style="margin-top:4px"></div></div>
     </div>
-    <div class="panel-section">
+    <div class="panel-section av-cfg-parque" ${tipo === 'libre' ? 'hidden' : ''}>
       <div class="panel-section-title">MAPA DEL PARQUE <span class="np-opc" style="text-transform:none;letter-spacing:0">opcional</span></div>
       <div class="av-nota" style="margin-bottom:8px">Sube una imagen o esquema (JPG/PNG). Después ubicas cada ${tipo === 'solar' ? 'bloque (como punto o dibujando su área)' : 'WTG'} y el sistema lo pinta solo: verde concluido, rojo incidencia, gris pendiente.</div>
       <div id="av-cfg-mapa"></div>
@@ -8786,8 +8835,9 @@ function abrirConfigAvance() {
 function elegirTipoAvance(k) {
   const prev = STATE._avCfg.tipo; STATE._avCfg.tipo = k;
   document.querySelectorAll('.av-tipo-op').forEach(b => b.classList.toggle('on', b.dataset.tipo === k));
+  document.querySelectorAll('.av-cfg-parque').forEach(el => { el.hidden = k === 'libre'; });
   const pre = document.getElementById('av-cfg-pre');
-  if (pre && (!pre.value || pre.value === AV_TIPOS[prev].prefijo)) pre.value = AV_TIPOS[k].prefijo;
+  if (pre && k !== 'libre' && (!pre.value || pre.value === AV_TIPOS[prev].prefijo)) pre.value = AV_TIPOS[k].prefijo;
   const t = document.getElementById('av-cfg-tit-unid'); if (t) t.textContent = k === 'solar' ? 'BLOQUES DEL PARQUE' : 'AEROGENERADORES (WTGs)';
   STATE._panelDirty = true;
 }
@@ -8846,11 +8896,17 @@ async function subirMapaAvance(input) {
 }
 async function guardarConfigAvance(luegoUbicar) {
   const C = STATE._avCfg, ids = listaConfigAvance();
+  if (C.tipo === 'libre') {   // sin mapa: no lleva unidades; los registros existentes se conservan
+    const r = await api('PUT', `/avance/${encodeURIComponent(STATE._av.pid)}/config`, { tipo: 'libre', unidades: [], mapa_url: null });
+    if (!r) return;
+    STATE._av.data.config = r; STATE._av.forzarLibre = false;
+    STATE._panelDirty = false; closePanel(null, true); toast('Proyecto en registro por notas'); pintarAvance(); return;
+  }
   if (!ids.length) { toast('Agrega al menos un aerogenerador o bloque.', 'error'); return; }
   const unidades = ids.map(id => C.pos[id] ? { id, x: C.pos[id].x, y: C.pos[id].y, ...(C.pos[id].poly ? { poly: C.pos[id].poly } : {}) } : { id });
   const r = await api('PUT', `/avance/${encodeURIComponent(STATE._av.pid)}/config`, { tipo: C.tipo, unidades, mapa_url: C.mapa_url });
   if (!r) return;
-  STATE._av.data.config = r; STATE._av.vista = null;
+  STATE._av.data.config = r; STATE._av.vista = null; STATE._av.forzarLibre = false;
   const validas = new Set(ids); STATE._av.sel = new Set([...STATE._av.sel].filter(x => validas.has(x)));
   STATE._panelDirty = false; closePanel(null, true);
   if (luegoUbicar) abrirUbicadorAvance(); else { toast('Parque configurado'); pintarAvance(); }
@@ -8955,6 +9011,7 @@ async function guardarUbicadorAvance() {
 // ── Salida: WhatsApp ──
 // Reporte diario para WhatsApp: formato B2B sobrio (sin barras de cuadritos ni emojis decorativos)
 function textoWhatsAppAvance(fecha) {
+  if (esAvanceLibre(STATE._av.data.config, STATE.proyectos.find(x => x.id === STATE._av.pid))) return textoWhatsAppLibre(fecha);
   const A = STATE._av, cfg = A.data.config, T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico;
   const p = STATE.proyectos.find(x => x.id === A.pid) || {};
   const R = calcAvance(cfg, A.data.registros.filter(r => r.fecha <= fecha));   // estatus al cierre de esa fecha
@@ -8995,8 +9052,8 @@ function textoWhatsAppAvance(fecha) {
 }
 function abrirWhatsAppAvance() {
   const A = STATE._av, fechas = [...new Set(A.data.registros.map(r => r.fecha))].sort().reverse();
-  const hoy = isoLocal(new Date());
-  const f = fechas.includes(A.fecha) ? A.fecha : (fechas.includes(hoy) ? hoy : (fechas[0] || hoy));
+  const hoy = isoLocal(new Date()), fSel = A.libre?.fecha || A.fecha;
+  const f = fechas.includes(fSel) ? fSel : (fechas.includes(hoy) ? hoy : (fechas[0] || hoy));
   let ov = document.getElementById('selector-overlay');
   if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; ov.style.zIndex = 1100; document.body.appendChild(ov); }
   ov.className = 'modal-overlay open';
@@ -9025,6 +9082,298 @@ async function copiarWhatsAppAvance(btn) {
   catch (e) { t.select(); document.execCommand('copy'); }
   btn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Copiado';
   setTimeout(() => { if (btn.isConnected) btn.innerHTML = '<i class="ti ti-copy" aria-hidden="true"></i> Copiar'; }, 1800);
+}
+
+
+// ── Proyectos sin mapa ("libre"): capacitaciones, inducciones, trámites, visitas ──
+// Sin WTGs ni bloques: cada jornada se registra con un estatus y una bitácora de notas.
+const AV_EST_LIBRE = {
+  ok:         { t: 'Completado / Asistido',                corto: 'Completado', ico: 'circle-check',   cls: 'ok',   emoji: '🟢' },
+  proceso:    { t: 'En proceso / Pendiente de liberación', corto: 'En proceso', ico: 'progress',       cls: 'proc', emoji: '🟡' },
+  incidencia: { t: 'Incidencia / No acreditado',           corto: 'Incidencia', ico: 'alert-triangle', cls: 'inc',  emoji: '🔴' },
+};
+const AV_FORMATO_LIBRE = 'Actividades realizadas:\n• \n\nResultados / acuerdos:\n• \n\nPendientes:\n• ';
+const esAvanceLibre = (cfg, p) => cfg ? cfg.tipo === 'libre' : (STATE._av?.forzarLibre || tipoSugeridoAvance(p) === 'libre');
+const colLibre = e => e === 'ok' ? AV_COL.ok : e === 'proceso' ? AV_COL.proc : AV_COL.inc;
+
+// Personal asignado al proyecto (para elegir al técnico responsable); siempre incluye a quien registra
+function tecnicosLibre(p) {
+  const yo = STATE.user?.empleado_id, ids = [...new Set([...(p.tecnicos_asignados || []), ...(yo ? [yo] : [])])];
+  return ids.map(id => {
+    const e = (STATE.empleados || []).find(x => x.id === id);
+    return { id, nombre: e ? `${e.nombre} ${e.apellido}`.trim() : (id === yo ? (STATE.user?.nombre || 'Yo') : id) };
+  });
+}
+// Resumen por jornada: el último reporte del día manda el estatus del día
+function resumenLibre(regs) {
+  const ord = ordenRegistros(regs), dias = {};
+  ord.forEach(r => { dias[r.fecha] = r.estatus; });
+  const cuenta = { ok: 0, proceso: 0, incidencia: 0 };
+  Object.values(dias).forEach(e => { if (cuenta[e] != null) cuenta[e]++; });
+  const fechas = Object.keys(dias).sort();
+  return { dias, cuenta, fechas, n: fechas.length, ultima: fechas[fechas.length - 1] || null };
+}
+
+function pintarAvanceLibre(p, cfg) {
+  const A = STATE._av, cont = document.getElementById('av-cuerpo'), hoy = isoLocal(new Date());
+  const L = A.libre = Object.assign({ fecha: hoy, estatus: 'ok', nota: '', emp: STATE.user?.empleado_id || '' }, A.libre || {});
+  const regs = A.data.registros, S = resumenLibre(regs), tecs = tecnicosLibre(p);
+  if (L.emp && !tecs.some(t => t.id === L.emp)) L.emp = tecs[0]?.id || '';
+  const ult = S.ultima ? AV_EST_LIBRE[S.dias[S.ultima]] : null;
+  const delDia = regs.filter(r => r.fecha === L.fecha).length;
+  cont.innerHTML = `
+    <div class="av-card">
+      <div class="av-card-tit"><i class="ti ti-notes" aria-hidden="true"></i> Seguimiento del proyecto
+        <div class="av-der"><span class="av-tipo"><i class="ti ti-notes" aria-hidden="true"></i>Sin mapa · por notas</span>
+        <button class="btn btn-ghost btn-sm" onclick="abrirConfigAvance()" title="Cambiar a eólico o solar"><i class="ti ti-settings" aria-hidden="true"></i></button></div></div>
+      <div class="avl-resumen">
+        <div class="avl-n"><strong>${S.n}</strong><span>jornada${S.n === 1 ? '' : 's'} reportada${S.n === 1 ? '' : 's'}</span></div>
+        <div class="avl-proy"><b>${escHtml(p.nombre || '')}</b><span>${escHtml([p.cliente, p.ciudad].filter(Boolean).join(' · '))}</span>
+          ${ult ? `<span class="avl-ult">Última: ${escHtml(fechaLargaAv(S.ultima))} · <span class="avl-pill ${ult.cls}"><i class="ti ti-${ult.ico}" aria-hidden="true"></i>${ult.corto}</span></span>` : '<span class="avl-ult">Sin reportes todavía</span>'}</div>
+      </div>
+      ${S.n ? `<div class="av-chips" style="margin-top:12px">
+        <span class="av-chip"><span class="av-dot ok"></span>Completado <b>${S.cuenta.ok}</b></span>
+        <span class="av-chip"><span class="av-dot proc"></span>En proceso <b>${S.cuenta.proceso}</b></span>
+        <span class="av-chip"><span class="av-dot inc"></span>Incidencia <b>${S.cuenta.incidencia}</b></span></div>` : ''}
+    </div>
+
+    <div class="av-card">
+      <div class="av-card-tit"><i class="ti ti-pencil" aria-hidden="true"></i> Reporte del día</div>
+      <div class="avl-fila">
+        <div class="field-group"><label class="field-label" for="avl-fecha">FECHA</label>
+          <input class="field-input" type="date" id="avl-fecha" value="${L.fecha}" max="${hoy}" onchange="STATE._av.libre.fecha=this.value;pintarAvance()"></div>
+        <div class="field-group"><label class="field-label" for="avl-tec">TÉCNICO RESPONSABLE</label>
+          <select class="field-select" id="avl-tec" onchange="STATE._av.libre.emp=this.value">${tecs.map(t => `<option value="${escHtml(t.id)}" ${t.id === L.emp ? 'selected' : ''}>${escHtml(t.nombre)}</option>`).join('')}</select></div>
+      </div>
+      <div class="field-label" style="margin:14px 0 6px">ESTATUS DE LA JORNADA</div>
+      <div class="avl-est" role="radiogroup" aria-label="Estatus de la jornada">${Object.entries(AV_EST_LIBRE).map(([k, e]) => `
+        <button type="button" role="radio" aria-checked="${L.estatus === k}" class="avl-op ${e.cls} ${L.estatus === k ? 'on' : ''}" onclick="STATE._av.libre.estatus='${k}';document.querySelectorAll('.avl-op').forEach(b=>{const on=b===this;b.classList.toggle('on',on);b.setAttribute('aria-checked',on)})">
+          <span class="av-dot ${e.cls}"></span><span>${e.t}</span></button>`).join('')}</div>
+      <div class="avl-nota-tit"><label class="field-label" for="avl-nota">BITÁCORA / NOTAS DE ACTIVIDAD</label>
+        <button type="button" class="avl-formato" onclick="usarFormatoLibre()"><i class="ti ti-list-details" aria-hidden="true"></i> Usar formato</button></div>
+      <textarea class="field-input avl-nota" id="avl-nota" rows="7" maxlength="4000" placeholder="Ej. Asistencia a capacitación obligatoria para acceso a planta Cemex. Se entregaron constancias DC-3 a los 2 técnicos; queda pendiente la liberación de gafetes." oninput="STATE._av.libre.nota=this.value;document.getElementById('avl-cuenta').textContent=this.value.length+' / 4000'">${escHtml(L.nota)}</textarea>
+      <div class="avl-pie">
+        <span class="av-nota" id="avl-cuenta">${L.nota.length} / 4000</span>
+        ${delDia ? `<span class="av-nota">· ya hay ${delDia} reporte${delDia === 1 ? '' : 's'} de este día</span>` : ''}
+        <button class="btn btn-primary avl-guardar" onclick="ejecutarConCarga(this, guardarReporteLibre)"><i class="ti ti-device-floppy" aria-hidden="true"></i> Guardar reporte</button>
+      </div>
+    </div>
+
+    <div class="av-card">
+      <div class="av-card-tit"><i class="ti ti-send" aria-hidden="true"></i> Reporte en 1 clic</div>
+      <div class="av-salida">
+        <button class="btn av-btn-wa" onclick="abrirWhatsAppAvance()" ${regs.length ? '' : 'disabled'}><i class="ti ti-brand-whatsapp" aria-hidden="true"></i> WhatsApp</button>
+        <button class="btn btn-ghost" onclick="ejecutarConCarga(this, exportarAvancePDF, 'Generando…')" ${regs.length ? '' : 'disabled'}><i class="ti ti-file-type-pdf" aria-hidden="true"></i> PDF</button>
+      </div>
+    </div>
+
+    <div class="av-card">
+      <div class="av-card-tit"><i class="ti ti-list-details" aria-hidden="true"></i> Bitácora histórica <div class="av-der">${regs.length} reporte${regs.length === 1 ? '' : 's'}</div></div>
+      ${htmlHistorialLibre()}
+    </div>
+    ${cfg ? '' : `<div class="av-nota" style="text-align:center;margin-top:-4px">¿Este proyecto sí tiene WTGs o bloques? <a href="#" onclick="event.preventDefault();abrirConfigAvance()" style="color:var(--blue)">Configurar parque con mapa</a></div>`}`;
+}
+function usarFormatoLibre() {
+  const t = document.getElementById('avl-nota'); if (!t) return;
+  if (!t.value.trim()) t.value = AV_FORMATO_LIBRE;
+  else if (!t.value.includes('Actividades realizadas:')) t.value = AV_FORMATO_LIBRE.replace('• \n\nResultados', '• ' + t.value.trim() + '\n\nResultados');
+  STATE._av.libre.nota = t.value;
+  document.getElementById('avl-cuenta').textContent = t.value.length + ' / 4000';
+  t.focus(); const i = t.value.indexOf('• ') + 2; t.setSelectionRange(i, i);
+}
+function htmlHistorialLibre() {
+  const regs = ordenRegistros(STATE._av.data.registros).reverse();
+  if (!regs.length) return `<div class="av-nota">Aún no hay reportes. Cada reporte que guardes aparece aquí, agrupado por día.</div>`;
+  const dias = {}; regs.forEach(r => (dias[r.fecha] = dias[r.fecha] || []).push(r));
+  return Object.entries(dias).map(([f, rs]) => `<div class="av-dia"><div class="av-dia-tit"><i class="ti ti-calendar" aria-hidden="true"></i>${escHtml(fechaLargaAv(f))}</div>
+    ${rs.map(r => { const e = AV_EST_LIBRE[r.estatus] || AV_EST_LIBRE.ok; return `<div class="av-reg">
+      <span class="av-dot ${e.cls}" style="margin-top:6px"></span>
+      <div class="av-reg-cuerpo"><span class="avl-pill ${e.cls}"><i class="ti ti-${e.ico}" aria-hidden="true"></i>${e.corto}</span>
+        <div class="avl-txt">${escHtml(r.nota || '')}</div>
+        <em>${escHtml(r.tecnico || '')}${r.creado_en ? ' · ' + new Date(r.creado_en + 'Z').toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : ''}</em></div>
+      <button class="btn btn-ghost btn-sm" title="Borrar reporte" onclick="borrarRegistroAvance(${r.id})"><i class="ti ti-trash" aria-hidden="true"></i></button>
+    </div>`; }).join('')}</div>`).join('');
+}
+// Quita del formato los renglones "•" vacíos y los encabezados que quedaron sin contenido
+function limpiarFormatoLibre(t) {
+  const ENC = /^(Actividades realizadas|Resultados \/ acuerdos|Pendientes):\s*$/;
+  const lin = t.split('\n').filter(l => l.trim() !== '•'), out = [];
+  for (let i = 0; i < lin.length; i++) {
+    if (ENC.test(lin[i].trim())) {
+      let j = i + 1; while (j < lin.length && !lin[j].trim()) j++;
+      if (j >= lin.length || ENC.test(lin[j].trim())) continue;
+    }
+    out.push(lin[i]);
+  }
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+async function guardarReporteLibre() {
+  const A = STATE._av, L = A.libre;
+  const nota = (document.getElementById('avl-nota')?.value || '').trim();
+  L.fecha = document.getElementById('avl-fecha')?.value || L.fecha;
+  L.emp = document.getElementById('avl-tec')?.value || L.emp;
+  if (!L.fecha) { toast('Elige la fecha.', 'error'); return; }
+  if (nota.replace(/[•\s]|Actividades realizadas:|Resultados \/ acuerdos:|Pendientes:/g, '').length < 3) {
+    toast('Escribe en la bitácora lo que se hizo en la jornada.', 'error'); document.getElementById('avl-nota')?.focus(); return;
+  }
+  const limpia = limpiarFormatoLibre(nota);
+  const r = await postAvance(`/avance/${encodeURIComponent(A.pid)}/registros`, { fecha: L.fecha, estatus: L.estatus, nota: limpia || nota, empleado_id: L.emp || null });
+  if (!r.ok) { toast(`No se guardó el reporte: ${r.error}`, 'error'); return; }
+  A.data.registros.push(r.data);
+  if (!A.data.config) A.data.config = { proyecto_id: A.pid, tipo: 'libre', unidades: [], mapa_url: null };
+  L.nota = ''; L.estatus = 'ok';
+  toast(`Reporte guardado · ${AV_EST_LIBRE[r.data.estatus]?.corto || ''}`);
+  pintarAvance();
+}
+
+function textoWhatsAppLibre(fecha) {
+  const A = STATE._av, p = STATE.proyectos.find(x => x.id === A.pid) || {};
+  const delDia = ordenRegistros(A.data.registros.filter(r => r.fecha === fecha));
+  const S = resumenLibre(A.data.registros.filter(r => r.fecha <= fecha));
+  const est = delDia.length ? AV_EST_LIBRE[delDia[delDia.length - 1].estatus] : null;
+  const tecnicos = [...new Set(delDia.map(r => r.tecnico).filter(Boolean))];
+  const ubic = [p.cliente, p.ciudad].filter(Boolean).join(' · ');
+  const bloques = delDia.length > 1
+    ? delDia.flatMap(r => [`▸ ${r.tecnico || ''} · ${AV_EST_LIBRE[r.estatus]?.corto || ''}`, (r.nota || '').trim(), ''])
+    : delDia.map(r => (r.nota || '').trim());
+  return [
+    '📋 REPORTE DIARIO DE ACTIVIDADES | WORKSYNC',
+    `Proyecto: ${p.nombre || ''}${ubic ? ` (${ubic})` : ''}`,
+    `Fecha: ${fechaLargaAv(fecha).replace(/^./, c => c.toUpperCase())}`,
+    `Técnico: ${tecnicos.length ? tecnicos.join(', ') : (STATE.user?.nombre || '—')}`,
+    `Estatus de la jornada: ${est ? `${est.emoji} ${est.t}` : 'Sin reporte'}`,
+    '',
+    '1. BITÁCORA DE ACTIVIDADES',
+    ...(bloques.length ? bloques : ['Sin actividades registradas en esta fecha.']),
+    '',
+    '2. SEGUIMIENTO DEL PROYECTO',
+    `• Jornadas reportadas: ${S.n}`,
+    `• Completadas: ${S.cuenta.ok} · En proceso: ${S.cuenta.proceso} · Con incidencia: ${S.cuenta.incidencia}`,
+    '',
+    '────────────────────────',
+    'Documento emitido vía WorkSync',
+  ].join('\n').replace(/\n{3,}/g, '\n\n');
+}
+
+// PDF A4 horizontal: bloque ejecutivo de la última jornada + minuta + firmas (sin mapa)
+async function exportarAvanceLibrePDF() {
+  const A = STATE._av, p = STATE.proyectos.find(x => x.id === A.pid) || {};
+  const regs = ordenRegistros(A.data.registros), S = resumenLibre(regs);
+  if (!regs.length) { toast('Aún no hay reportes para el PDF.', 'error'); return; }
+  const P = await nuevaPlantillaPDF('landscape', 'a4'), { doc, C } = P, { W, H, M } = P;
+  const ancho = W - 2 * M, GAP = 8, colL = (ancho - GAP) * 0.58, colR = ancho - GAP - colL, xR = M + colL + GAP;
+  P.encabezado('Reporte de actividades', p.id || '', p.nombre || 'Proyecto', [p.cliente, p.ciudad, 'Registro por notas · sin mapa'].filter(Boolean).join(' · '));
+  const secCol = (titulo, x, w, y, extra) => {
+    P.relleno(C.rojo); doc.rect(x, y - 3.1, 1.3, 3.8, 'F');
+    P.font('bold', 8.2, C.tinta); doc.text(titulo, x + 3.6, y, { charSpace: 0.55 });
+    if (extra) { P.font('medium', 6.8, C.gris); doc.text(extra, x + w, y, { align: 'right' }); }
+    P.trazo(C.linea, 0.25); doc.line(x, y + 2.4, x + w, y + 2.4);
+    return y + 8;
+  };
+  const pastilla = (est, x, y, tam = 6.4) => {   // pastilla de estatus del color del día
+    const e = AV_EST_LIBRE[est] || AV_EST_LIBRE.ok, k = colLibre(est);
+    P.font('bold', tam); const w = doc.getTextWidth(e.t) + 8, h = tam * 0.78;
+    P.relleno(k.bg); doc.roundedRect(x, y - h + 1.2, w, h + 1, 1.6, 1.6, 'F');
+    P.relleno(k.c); doc.circle(x + 3, y - h / 2 + 1.7, 0.9, 'F');
+    P.font('bold', tam, k.tx); doc.text(e.t, x + 5, y);
+    return x + w;
+  };
+  const Y_TOP = 35;
+
+  // ── 1) Bloque ejecutivo: la jornada más reciente ──
+  const fUlt = S.ultima, delUlt = regs.filter(r => r.fecha === fUlt), estUlt = S.dias[fUlt];
+  let y = secCol('BLOQUE EJECUTIVO · ÚLTIMA JORNADA', M, colL, Y_TOP);
+  const kUlt = colLibre(estUlt), cajaY = y - 2;
+  // alto de la caja según las notas (se recortan para que quepa en la mitad superior)
+  P.font('normal', 7.6); const anchoTxt = colL - 12;
+  const lineas = [];
+  delUlt.forEach((r, i) => {
+    if (delUlt.length > 1) lineas.push({ t: `${r.tecnico || ''} · ${AV_EST_LIBRE[r.estatus]?.corto || ''}`, b: true });
+    doc.splitTextToSize((r.nota || '').trim(), anchoTxt).forEach(t => lineas.push({ t }));
+    if (i < delUlt.length - 1) lineas.push({ t: '' });
+  });
+  const maxLin = 13, cortadas = lineas.length > maxLin, vis = lineas.slice(0, maxLin);
+  const cajaH = 26 + vis.length * 3.6 + (cortadas ? 4 : 0);
+  P.relleno(C.fondo); doc.roundedRect(M, cajaY, colL, cajaH, 2, 2, 'F');
+  P.relleno(kUlt.c); doc.rect(M, cajaY + 4, 1.1, cajaH - 8, 'F');
+  P.font('bold', 11, C.tinta); doc.text(fechaLargaAv(fUlt).replace(/^./, c => c.toUpperCase()), M + 6, cajaY + 8.5);
+  pastilla(estUlt, M + 6, cajaY + 15.6, 6.8);
+  P.font('medium', 7, C.gris); doc.text(`Técnico responsable: ${[...new Set(delUlt.map(r => r.tecnico).filter(Boolean))].join(', ') || '—'}`, M + 6, cajaY + 21.5);
+  let ly = cajaY + 27.5;
+  vis.forEach(l => { P.font(l.b ? 'bold' : 'normal', 7.6, l.b ? C.tinta : C.texto); doc.text(l.t, M + 6, ly); ly += 3.6; });
+  if (cortadas) { P.font('normal', 6.4, C.gris); doc.text('Continúa en la minuta de actividades.', M + 6, ly + 0.6); }
+  const finIzq = cajaY + cajaH;
+
+  // ── 2) Columna derecha: seguimiento del proyecto ──
+  y = secCol('SEGUIMIENTO DEL PROYECTO', xR, colR, Y_TOP);
+  const kpis = [['Completado / Asistido', 'ok'], ['En proceso / Pendiente', 'proceso'], ['Incidencia / No acreditado', 'incidencia']];
+  let ky = y - 2;
+  kpis.forEach(([t, e]) => {
+    const k = colLibre(e), n = S.cuenta[e];
+    P.relleno(k.bg); doc.roundedRect(xR, ky, colR, 7.6, 1.6, 1.6, 'F');
+    P.relleno(k.c); doc.rect(xR, ky + 1.6, 0.9, 4.4, 'F');
+    P.font('medium', 7, C.texto); doc.text(t, xR + 3.4, ky + 5);
+    P.font('bold', 9.5, k.tx); doc.text(String(n), xR + colR - 16, ky + 5.2, { align: 'right' });
+    P.font('semibold', 6.4, k.tx); doc.text(n === 1 ? 'jornada' : 'jornadas', xR + colR - 3, ky + 5.1, { align: 'right' });
+    ky += 9.2;
+  });
+  const tecs = [...new Set(regs.map(r => r.tecnico).filter(Boolean))];
+  P.font('normal', 6.8, C.gris);
+  const periodo = S.fechas.length > 1 ? `${fCorta(S.fechas[0])} a ${fLargaAnio(S.fechas[S.fechas.length - 1])}` : fLargaAnio(S.fechas[0]);
+  doc.text(`${S.n} jornada${S.n === 1 ? '' : 's'} reportada${S.n === 1 ? '' : 's'} · ${periodo}`, xR, ky + 2.6);
+  doc.text(doc.splitTextToSize(`Personal: ${tecs.join(', ') || '—'}`, colR).slice(0, 2), xR, ky + 6.6);
+  ky += 13;
+  // tira de jornadas: un cuadro por día reportado, del color de su estatus
+  if (S.fechas.length) {
+    P.font('semibold', 6.2, C.gris); doc.text('ESTATUS POR JORNADA', xR, ky, { charSpace: 0.4 }); ky += 3;
+    const dd = S.fechas.slice(-21), cw = Math.min(9, (colR - (dd.length - 1) * 1.2) / dd.length);
+    dd.forEach((f, i) => {
+      const x = xR + i * (cw + 1.2), k = colLibre(S.dias[f]);
+      P.relleno(k.bg); doc.roundedRect(x, ky, cw, 6, 1, 1, 'F');
+      P.relleno(k.c); doc.rect(x, ky + 5, cw, 1, 'F');
+      if (cw >= 7) { P.font('semibold', 4.8, k.tx); doc.text(fCorta(f).split(' ')[0], x + cw / 2, ky + 3.6, { align: 'center' }); }
+    });
+    ky += 10;
+  }
+  const finDer = ky;
+
+  // ── 3) Minuta de actividades (ancho completo, puede continuar en otra hoja) ──
+  y = P.seccion('MINUTA DE ACTIVIDADES', Math.max(finIzq, finDer) + 9, `${regs.length} reporte${regs.length === 1 ? '' : 's'}`);
+  const BADGE_W = 27;
+  doc.autoTable({
+    startY: y - 2, margin: { left: M, right: M, bottom: 22, top: 20 }, rowPageBreak: 'avoid',
+    columns: [{ header: 'Fecha', dataKey: 'f' }, { header: 'Técnico', dataKey: 't' }, { header: 'Estatus', dataKey: 'e' }, { header: 'Actividades y observaciones', dataKey: 'n' }],
+    body: regs.map(r => ({ f: fCorta(r.fecha), t: r.tecnico || '—', e: (AV_EST_LIBRE[r.estatus] || AV_EST_LIBRE.ok).corto, _e: r.estatus, n: (r.nota || '').trim() })),
+    theme: 'plain',
+    styles: { font: window._fuentesPDF ? 'Montserrat' : 'helvetica', fontSize: 7.2, textColor: C.texto, cellPadding: { top: 2, bottom: 2, left: 2.2, right: 2.2 }, valign: 'top', lineColor: C.linea, overflow: 'linebreak' },
+    headStyles: { fontStyle: 'bold', textColor: C.gris, fontSize: 6.4, fillColor: C.fondo, valign: 'middle' },
+    columnStyles: { f: { cellWidth: 18, fontStyle: 'bold', textColor: C.tinta }, t: { cellWidth: 46 }, e: { cellWidth: BADGE_W + 5 } },
+    didParseCell: d => {
+      if (d.section !== 'body') return;
+      d.cell.styles.lineWidth = { bottom: 0.15 };
+      if (d.column.dataKey === 'e') d.cell.text = [''];
+      if (d.row.raw._e === 'incidencia' && d.column.dataKey === 'n') d.cell.styles.textColor = [127, 29, 29];
+    },
+    didDrawCell: d => {
+      if (d.section !== 'body' || d.column.dataKey !== 'e') return;
+      const k = colLibre(d.row.raw._e), h = 4.2, x = d.cell.x + 2, yy = d.cell.y + 1.6;
+      P.relleno(k.bg); doc.roundedRect(x, yy, BADGE_W, h, 1.4, 1.4, 'F');
+      P.font('bold', 5.8, k.tx); doc.text(d.row.raw.e, x + BADGE_W / 2, yy + 2.95, { align: 'center' });
+    },
+  });
+
+  // ── 4) Firmas de aprobación ──
+  let fy = doc.lastAutoTable.finalY + 14;
+  if (fy + 22 > H - 20) { P.nuevaPagina('landscape'); fy = 40; }
+  const fw = 70, f1 = M + 10, f2 = W - M - 10 - fw;
+  const elaboro = delUlt.map(r => r.tecnico).filter(Boolean)[0] || STATE.user?.nombre || '';
+  [[f1, 'Elaboró', elaboro, 'Técnico responsable'], [f2, 'Revisó y aprobó', '', 'Supervisor / Cliente']].forEach(([x, tit, nombre, rol]) => {
+    P.trazo(C.texto, 0.3); doc.line(x, fy + 10, x + fw, fy + 10);
+    P.font('semibold', 6.2, C.gris); doc.text(tit.toUpperCase(), x + fw / 2, fy, { align: 'center', charSpace: 0.4 });
+    if (nombre) { P.font('bold', 7.6, C.tinta); doc.text(nombre, x + fw / 2, fy + 14, { align: 'center' }); }
+    P.font('normal', 6.4, C.gris); doc.text(rol, x + fw / 2, fy + (nombre ? 18 : 14), { align: 'center' });
+  });
+  P.cerrar(limpiarNombreArchivo(`Reporte de actividades ${p.nombre || A.pid} ${isoLocal(new Date())}.pdf`), true);
 }
 
 // ── Salida: PDF / imagen (1 página, plantilla WorkSync) ──
@@ -9126,7 +9475,9 @@ function donaAvanceCanvas(R) {
   return cv.toDataURL('image/png');
 }
 async function exportarAvancePDF() {
-  const A = STATE._av, cfg = A.data?.config; if (!cfg) return;
+  const A = STATE._av, cfg = A.data?.config;
+  if (esAvanceLibre(cfg, STATE.proyectos.find(x => x.id === A.pid))) return exportarAvanceLibrePDF();
+  if (!cfg) return;
   const p = STATE.proyectos.find(x => x.id === A.pid) || {}, T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico;
   const R = calcAvance(cfg, A.data.registros), regs = ordenRegistros(A.data.registros);
   const P = await nuevaPlantillaPDF('landscape', 'a4'), { doc, C } = P, { W, H, M } = P;
@@ -10283,7 +10634,7 @@ function pedirAvanceFinJornada(proyectoId) {
     <div class="panel-section" style="text-align:center;padding-top:6px">
       <i class="ti ti-flame" aria-hidden="true" style="font-size:38px;color:var(--orange)"></i>
       <div style="font-size:15px;font-weight:700;color:var(--text);margin:8px 0 4px">¿Registramos el avance de hoy?</div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.5">${escHtml(p.nombre)}<br>Marca los WTG o bloques que se concluyeron hoy y manda el reporte.</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.5">${escHtml(p.nombre)}<br>${tipoSugeridoAvance(p) === 'libre' ? 'Escribe lo que se hizo hoy, marca el estatus de la jornada y manda el reporte.' : 'Marca los WTG o bloques que se concluyeron hoy y manda el reporte.'}</div>
     </div>`,
     `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Ahora no</button><button class="btn btn-primary btn-sm" onclick="irAvance('${p.id}')"><i class="ti ti-flame" aria-hidden="true"></i> Registrar avance</button>`);
 }
