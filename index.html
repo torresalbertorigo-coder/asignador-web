@@ -1489,6 +1489,33 @@ html.av-fs-abierto .content{overflow:hidden !important}
 .sim-tag{font-size:9px;font-weight:700;letter-spacing:.06em;color:var(--red);background:var(--red-bg);padding:1px 6px;border-radius:8px;text-transform:uppercase}
 @media (max-width:1100px){.sim-grid{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:768px){.sim-oc{display:none}.sim-gl{flex-basis:130px;width:130px}.sim-hero-n strong{font-size:38px}.sim-hero-det{border-left:none;padding-left:0}.sim-act-campos{grid-template-columns:1fr 1fr}.sim-act-campos .sim-campo:last-child{grid-column:1/-1}}
+
+/* Inicio de proyecto: aviso + confirmación */
+.ini-info{background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--text2);line-height:1.5}
+.ini-tit{font-weight:700;color:var(--text);margin-bottom:6px;display:flex;gap:6px;align-items:center}
+.ini-tit i{color:var(--blue);font-size:16px}
+.ini-info ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px}
+.ini-info strong{color:var(--text)}
+.ini-alerta{display:flex;gap:8px;align-items:flex-start;margin-top:10px;background:var(--amber-bg);border:1px solid var(--amber-border);color:var(--amber);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.45}
+.ini-alerta i{font-size:16px;margin-top:1px}
+.ini-alerta strong{color:inherit}
+.ini-check{display:flex;gap:10px;align-items:flex-start;margin-top:14px;padding:12px;border:1px solid var(--border2);border-radius:10px;cursor:pointer;font-size:13px;color:var(--text);line-height:1.4}
+.ini-check input{width:18px;height:18px;margin:1px 0 0;accent-color:var(--red);flex-shrink:0}
+.panel-footer .btn:disabled{opacity:.45;cursor:not-allowed}
+/* Mis asignaciones: proyectos anteriores archivados */
+.asg-archivo{margin-top:18px}
+.asg-archivo summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--text3);padding:10px 2px;border-top:1px solid var(--border);margin-bottom:10px}
+.asg-archivo summary::-webkit-details-marker{display:none}
+.asg-archivo summary span{background:var(--surface2);border-radius:10px;padding:1px 8px;font-size:11px}
+.asg-flecha{margin-left:auto;transition:transform .15s}
+.asg-archivo[open] .asg-flecha{transform:rotate(180deg)}
+.asg-anterior{opacity:.62}
+/* Botones del panel en celular: se acomodan en renglones, sin recortarse */
+@media (max-width:768px){
+  .panel-footer{flex-wrap:wrap;justify-content:stretch;padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px))}
+  .panel-footer>.btn{flex:1 1 calc(50% - 4px);justify-content:center;min-height:42px;white-space:normal;text-align:center;line-height:1.25}
+  .panel-footer>.btn-primary{flex-basis:100%;order:9}
+}
 </style>
 </head>
 <body>
@@ -3469,7 +3496,7 @@ async function verProyecto(id) {
       footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="abrirFinalizarProyectoManual('${p.id}')"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar</button>`;
     } else {
       if (!p.fecha_inicio_real) {
-        footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="ejecutarConCarga(this, () => iniciarProyecto('${p.id}'))"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Iniciar proyecto</button>`;
+        footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="confirmarInicioProyecto('${p.id}')"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Iniciar proyecto</button>`;
       }
       footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar</button>`;
     }
@@ -3870,6 +3897,38 @@ async function cambiarEstadoProyecto(id, nuevoEstado) {
   verProyecto(id);
 }
 
+// Antes de iniciar: aviso de cuándo hacerlo y quién puede hacerlo, con confirmación explícita.
+function avisoInicioHTML(p, idCheck) {
+  const hoy = isoLocal(new Date());
+  const dif = p.fecha_inicio ? Math.round((fechaLocal(p.fecha_inicio) - fechaLocal(hoy)) / 86400000) : 0;
+  const extra = dif > 0
+    ? `<div class="ini-alerta"><i class="ti ti-calendar-exclamation" aria-hidden="true"></i><span>El inicio planeado es el <strong>${fechaLarga(p.fecha_inicio)}</strong> (faltan ${dif} día${dif === 1 ? '' : 's'}). Si el personal todavía no sale hacia el sitio, espera a ese momento.</span></div>`
+    : dif < -2 ? `<div class="ini-alerta"><i class="ti ti-history" aria-hidden="true"></i><span>El inicio planeado era el <strong>${fechaLarga(p.fecha_inicio)}</strong>. Si en realidad arrancó otro día, pide a un administrador que capture la fecha real.</span></div>` : '';
+  return `
+    <div class="ini-info">
+      <div class="ini-tit"><i class="ti ti-info-circle" aria-hidden="true"></i> ¿Cuándo se inicia un proyecto?</div>
+      <ul>
+        <li>Solo cuando el personal <strong>ya se está movilizando</strong> hacia el sitio o <strong>ya está en sitio</strong>.</li>
+        <li>La fecha en que lo inicies queda como <strong>inicio real</strong> para todo el equipo: desde ahí cuentan los días en campo, el checador y las métricas. Si se inicia antes de tiempo, la fecha queda mal.</li>
+        <li>Lo puede iniciar <strong>cualquier técnico asignado</strong> o un administrador. Basta con que lo haga una persona.</li>
+      </ul>
+    </div>
+    ${extra}
+    <label class="ini-check"><input type="checkbox" id="${idCheck}" onchange="document.querySelectorAll('[data-req-ini]').forEach(b => b.disabled = !this.checked)">
+      <span>Confirmo que el personal ya se está movilizando o ya está en sitio.</span></label>`;
+}
+function confirmarInicioProyecto(id, volverA) {
+  const p = STATE.proyectos.find(x => x.id === id); if (!p) return;
+  const volver = volverA === 'tecnico' ? `verProyectoTecnico('${id}')` : `verProyecto('${id}')`;
+  openPanel('Iniciar proyecto', `
+    <div class="panel-section">
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px">${escHtml(p.nombre)}</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px"><i class="ti ti-calendar" aria-hidden="true"></i> Planeado: ${p.fecha_inicio || '—'} → ${p.fecha_fin_estimada || '—'}</div>
+      ${avisoInicioHTML(p, 'ini-ok')}
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="${volver}">Cancelar</button><button class="btn btn-primary btn-sm" id="ini-confirmar" data-req-ini disabled onclick="ejecutarConCarga(this, () => iniciarProyecto('${id}'${volverA ? `,'${volverA}'` : ''}))"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Sí, iniciar hoy</button>`);
+}
+
 async function iniciarProyecto(id, volverA, fecha) {
   const r = await api('POST', `/proyectos/proyectos/${id}/iniciar`, fecha ? { fecha_inicio_real: fecha } : {});
   if (!r) { toast('Error al iniciar el proyecto','error'); return; }
@@ -3919,9 +3978,10 @@ function abrirIniciarProyectoManual(id) {
   openPanel('Iniciar proyecto — fecha real', `
     <div class="panel-section">
       <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Captura la fecha en que el proyecto realmente arrancó en campo (útil cuando no hubo señal para marcarlo el mismo día).</p>
-      <div class="field-group"><label class="field-label">FECHA REAL DE INICIO</label><input type="date" class="field-input" id="man-inicio" value="${p.fecha_inicio_real||hoy}"></div>
+      <div class="field-group" style="margin-bottom:14px"><label class="field-label">FECHA REAL DE INICIO</label><input type="date" class="field-input" id="man-inicio" value="${p.fecha_inicio_real||hoy}"></div>
+      ${p.fecha_inicio_real ? '' : avisoInicioHTML(p, 'man-ini-ok')}
     </div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="verProyecto('${id}')">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => iniciarProyecto('${id}', null, document.getElementById('man-inicio').value))"><i class="ti ti-check" aria-hidden="true"></i> Guardar</button>`);
+    `<button class="btn btn-ghost btn-sm" onclick="verProyecto('${id}')">Cancelar</button><button class="btn btn-primary btn-sm" ${p.fecha_inicio_real ? '' : 'data-req-ini disabled'} onclick="ejecutarConCarga(this, () => iniciarProyecto('${id}', null, document.getElementById('man-inicio').value))"><i class="ti ti-check" aria-hidden="true"></i> Guardar</button>`);
 }
 
 function abrirFinalizarProyectoManual(id) {
@@ -8003,23 +8063,30 @@ async function generarMetricas() {
 async function renderMisAsignaciones() {
   await loadProyectos();
   const empId = STATE.user?.empleado_id;
-  const proyectos = STATE.proyectos.filter(p => (p.tecnicos_asignados||[]).includes(empId));
-  html(`
-    <div style="margin-bottom:16px"><h2 style="font-size:17px;font-weight:600;margin-bottom:4px">Hola, ${STATE.user?.nombre?.split(' ')[0]||'Técnico'}</h2><p style="font-size:13px;color:var(--text2)">${new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</p></div>
-    ${avanceDisponible()?`<div class="av-banner" onclick="showSection('avance')"><i class="ti ti-flame" aria-hidden="true"></i><div style="flex:1"><b>Avance de obra</b><span>Registra WTGs o bloques concluidos y manda el reporte en 1 clic.</span></div><span class="av-piloto">Piloto</span></div>`:''}
-    ${proyectos.length===0?`<div class="empty-state"><i class="ti ti-calendar-off" aria-hidden="true"></i><p>Sin proyectos asignados</p><span>Disfruta tu día libre</span></div>`:
-    proyectos.map(p=>`<div class="table-section" style="margin-bottom:12px;cursor:pointer" onclick="verProyectoTecnico('${p.id}')">
+  const mios = STATE.proyectos.filter(p => (p.tecnicos_asignados||[]).includes(empId));
+  const cerrado = p => ['completado','cancelado'].includes(p.estado) || !!p.fecha_fin_real;
+  // primero los que están en campo, luego los que vienen por fecha de inicio
+  const activos = mios.filter(p => !cerrado(p)).sort((a, b) => (proyectoIniciado(b) - proyectoIniciado(a)) || (a.fecha_inicio||'9999').localeCompare(b.fecha_inicio||'9999'));
+  const anteriores = mios.filter(cerrado).sort((a, b) => (b.fecha_fin_real||b.fecha_fin_estimada||'').localeCompare(a.fecha_fin_real||a.fecha_fin_estimada||''));
+  const tarjeta = (p, apagada) => `<div class="table-section${apagada ? ' asg-anterior' : ''}" style="margin-bottom:12px;cursor:pointer" onclick="verProyectoTecnico('${p.id}')">
       <div style="padding:16px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-          <div><div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">${p.nombre}</div><div style="font-size:12px;color:var(--text2)">${p.cliente||'—'}</div></div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px">
+          <div style="min-width:0"><div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">${p.nombre}</div><div style="font-size:12px;color:var(--text2)">${p.cliente||'—'}</div></div>
           ${badge(estadoProyectoVisible(p))}
         </div>
-        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px">
+        <div style="display:flex;gap:6px 16px;flex-wrap:wrap;font-size:12px">
           <span style="color:var(--text3)"><i class="ti ti-calendar" aria-hidden="true"></i> ${p.fecha_inicio} → ${p.fecha_fin_estimada}</span>
           <span style="color:var(--text3)"><i class="ti ti-map-pin" aria-hidden="true"></i> ${p.ciudad||'—'}</span>
         </div>
       </div>
-    </div>`).join('')}`);
+    </div>`;
+  html(`
+    <div style="margin-bottom:16px"><h2 style="font-size:17px;font-weight:600;margin-bottom:4px">Hola, ${STATE.user?.nombre?.split(' ')[0]||'Técnico'}</h2><p style="font-size:13px;color:var(--text2)">${new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</p></div>
+    ${activos.length ? activos.map(p => tarjeta(p)).join('') : `<div class="empty-state"><i class="ti ti-calendar-off" aria-hidden="true"></i><p>Sin proyectos activos</p><span>Cuando te asignen uno, aparecerá aquí.</span></div>`}
+    ${anteriores.length ? `<details class="asg-archivo"${STATE._asgArchivo ? ' open' : ''} ontoggle="STATE._asgArchivo = this.open">
+      <summary><i class="ti ti-archive" aria-hidden="true"></i> Proyectos anteriores <span>${anteriores.length}</span><i class="ti ti-chevron-down asg-flecha" aria-hidden="true"></i></summary>
+      ${anteriores.map(p => tarjeta(p, true)).join('')}
+    </details>` : ''}`);
 }
 
 function verProyectoTecnico(id) {
@@ -8038,7 +8105,7 @@ function verProyectoTecnico(id) {
         <div>Sitio: <span style="color:var(--text)">${p.ciudad||'—'}${p.estado?', '+p.estado:''}</span></div>
       </div>
     </div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>${p.estado!=='completado'&&p.estado!=='cancelado'&&!p.fecha_inicio_real?`<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="ejecutarConCarga(this, () => iniciarProyecto('${p.id}','tecnico'))"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Iniciar proyecto</button>`:''}${p.estado!=='completado'&&p.estado!=='cancelado'?`<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}','tecnico'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar proyecto</button>`:''}${avanceDisponible()?`<button class="btn btn-ghost btn-sm" style="color:var(--orange)" onclick="irAvance('${p.id}')"><i class="ti ti-flame" aria-hidden="true"></i> Avance</button>`:''}<button class="btn btn-primary btn-sm" onclick="showSection('checador');closePanel(null,true)"><i class="ti ti-clock" aria-hidden="true"></i> Ir al checador</button>`);
+    `${p.estado!=='completado'&&p.estado!=='cancelado'&&!p.fecha_inicio_real?`<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="confirmarInicioProyecto('${p.id}','tecnico')"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Iniciar proyecto</button>`:''}${p.estado!=='completado'&&p.estado!=='cancelado'?`<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}','tecnico'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar proyecto</button>`:''}${avanceDisponible()?`<button class="btn btn-ghost btn-sm" style="color:var(--orange)" onclick="irAvance('${p.id}')"><i class="ti ti-flame" aria-hidden="true"></i> Avance</button>`:''}<button class="btn btn-primary btn-sm" onclick="showSection('checador');closePanel(null,true)"><i class="ti ti-clock" aria-hidden="true"></i> Ir al checador</button>`);
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -9775,7 +9842,7 @@ const PASOS_TUTORIAL = [
   { titulo: 'Bienvenido a WorkSync', texto: 'Vamos a practicar con un <strong>proyecto ficticio</strong>. Nada de lo que hagas aquí se guarda, así que equivócate con confianza.<br><br>Toca lo que se ilumine para avanzar.', avanza: 'boton', boton: 'Empezar' },
   { sel: nav('mis-asignaciones'), titulo: 'Tus proyectos', texto: 'Aquí aparecen los proyectos a los que te asignan. Toca <strong>Mis Asignaciones</strong>.', avanza: 'click' },
   { sel: [`[onclick*="verProyectoTecnico('${TUT_ID}')"]`], titulo: 'Abre el proyecto', texto: 'Este es tu proyecto de práctica. Tócalo para ver sus detalles.', avanza: 'click' },
-  { sel: [`button[onclick*="iniciarProyecto('${TUT_ID}'"]`], titulo: 'Inicia al llegar al sitio', texto: 'Cuando llegues al sitio, dale <strong>Iniciar proyecto</strong>. Así empieza a contar tu tiempo en campo. <em>Es muy importante no olvidarlo.</em>', avanza: () => !!T().proyecto.fecha_inicio_real },
+  { sel: ['#ini-ok', `button[onclick*="confirmarInicioProyecto('${TUT_ID}'"]`], titulo: 'Inicia al salir o al llegar', texto: 'Cuando el equipo ya vaya en camino o esté en sitio, dale <strong>Iniciar proyecto</strong>, marca la confirmación y toca <strong>Sí, iniciar hoy</strong>. <em>Es muy importante no olvidarlo.</em>', avanza: () => !!T().proyecto.fecha_inicio_real },
   { sel: ['#panel-footer button[onclick*="checador"]', `button[onclick*="showSection('checador')"]`, ...nav('checador')], titulo: 'Ahora el checador', texto: 'Ve al <strong>checador</strong> para marcar tu entrada.', avanza: () => document.getElementById('btn-checar') },
   { sel: ['#btn-checar'], titulo: 'Marca tu entrada', texto: 'Un solo toque registra tu <strong>entrada</strong> con la hora exacta. Tócalo.', avanza: () => T().checadas.length >= 1 },
   { sel: ['#btn-checar'], titulo: 'Y tu salida', texto: 'Al terminar tu jornada, el mismo botón marca tu <strong>salida</strong>. Tócalo.', avanza: () => T().checadas.length >= 2 },
@@ -10132,7 +10199,11 @@ async function renderChecador() {
   const empId = STATE.user?.empleado_id;
   const misProyectos = STATE.proyectos.filter(p => (p.tecnicos_asignados||[]).includes(empId));
   const miEmpleado = STATE.empleados.find(e=>e.id===empId);
-  const proyectoActual = proyectoVigenteDe(empId)?.id;
+  // Solo proyectos activos que ya alguien inició (tú u otra persona del equipo)
+  const proyectosChecador = misProyectos.filter(p => proyectoIniciado(p) && !['completado','cancelado'].includes(p.estado));
+  const sinIniciar = misProyectos.filter(p => !p.fecha_inicio_real && !['completado','cancelado'].includes(p.estado));
+  const vig = proyectoVigenteDe(empId)?.id;
+  const proyectoActual = proyectosChecador.some(p => p.id === vig) ? vig : proyectosChecador[0]?.id;
   // Siempre las checadas de ESTA cuenta: sin empleado_id, el backend le
   // regresa a admin/director las de todos (vista "comunitaria" en Vista Técnico).
   if (!empId) {
@@ -10162,8 +10233,9 @@ async function renderChecador() {
         <label class="field-label">PROYECTO</label>
         <select class="field-select" id="chk-proyecto">
           <option value="">Sin proyecto específico</option>
-          ${misProyectos.map(p=>`<option value="${p.id}" ${p.id===proyectoActual?'selected':''}>${p.nombre}</option>`).join('')}
+          ${proyectosChecador.map(p=>`<option value="${p.id}" ${p.id===proyectoActual?'selected':''}>${p.nombre}</option>`).join('')}
         </select>
+        ${sinIniciar.length && !proyectosChecador.length ? `<div style="font-size:11px;color:var(--text3);margin-top:6px;text-align:left"><i class="ti ti-info-circle" aria-hidden="true"></i> ¿No aparece tu proyecto? Aparece cuando alguien del equipo lo inicia en <a href="#" onclick="event.preventDefault();showSection('mis-asignaciones')" style="color:var(--blue)">Mis asignaciones</a>.</div>` : ''}
       </div>
       <!-- Un toque: la hora la pone el servidor -->
       <button class="btn-checar ${puedeEntrada?'entrada':'salida'}" id="btn-checar" onclick="ejecutarConCarga(this, () => checarAhora('${puedeEntrada?'entrada':'salida'}'), 'Registrando...')">
@@ -10199,7 +10271,21 @@ async function checarAhora(tipo) {
   const r = await api('POST', '/checador', { tipo, proyecto_id: proyectoId, tz_offset_min: new Date().getTimezoneOffset() });   // sin hora: el servidor pone la hora local del celular
   if (!r) return;
   toast(`${tipo === 'entrada' ? 'Entrada' : 'Salida'} registrada · ${new Date(r.fecha_hora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`);
-  renderChecador();
+  await renderChecador();
+  if (tipo === 'salida') pedirAvanceFinJornada(proyectoId);
+}
+// Al cerrar la jornada: invitación a registrar el avance del día (módulo de avance)
+function pedirAvanceFinJornada(proyectoId) {
+  if (STATE.tutorial || !avanceDisponible()) return;
+  const p = (STATE.proyectos || []).find(x => x.id === (proyectoId || proyectoVigenteDe(STATE.user?.empleado_id)?.id));
+  if (!p || !proyectoIniciado(p)) return;
+  openPanel('Fin de jornada', `
+    <div class="panel-section" style="text-align:center;padding-top:6px">
+      <i class="ti ti-flame" aria-hidden="true" style="font-size:38px;color:var(--orange)"></i>
+      <div style="font-size:15px;font-weight:700;color:var(--text);margin:8px 0 4px">¿Registramos el avance de hoy?</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.5">${escHtml(p.nombre)}<br>Marca los WTG o bloques que se concluyeron hoy y manda el reporte.</div>
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Ahora no</button><button class="btn btn-primary btn-sm" onclick="irAvance('${p.id}')"><i class="ti ti-flame" aria-hidden="true"></i> Registrar avance</button>`);
 }
 async function checarManual(tipo) {
   const fechaHora = document.getElementById('chk-fecha-hora')?.value;
@@ -10210,7 +10296,8 @@ async function checarManual(tipo) {
   const r = await api('POST', '/checador', { tipo, fecha_hora: fechaHora, proyecto_id: proyectoId, motivo_manual: motivo, tz_offset_min: new Date().getTimezoneOffset() });
   if (!r) return;
   toast(`${tipo === 'entrada' ? 'Entrada' : 'Salida'} manual registrada`);
-  renderChecador();
+  await renderChecador();
+  if (tipo === 'salida') pedirAvanceFinJornada(proyectoId);
 }
 async function marcarEntrada() {
   const fechaHora = document.getElementById('chk-fecha-hora')?.value;
