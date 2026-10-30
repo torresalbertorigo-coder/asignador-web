@@ -1558,6 +1558,14 @@ html.av-fs-abierto .content{overflow:hidden !important}
 }
 .mk-accion{flex-basis:100%;display:flex;gap:6px;align-items:baseline;font-size:12px;color:var(--text);padding-left:24px}
 .mk-accion i{color:var(--red-text);font-size:13px}
+.cp-motivos{display:flex;flex-wrap:wrap;gap:6px}
+.cp-motivo{border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font:inherit;font-size:11.5px;border-radius:999px;padding:4px 10px;cursor:pointer}
+.cp-motivo:hover{color:var(--text);border-color:var(--text3)}
+.mp-cambios{margin-top:10px;font-size:12px;color:var(--text2);display:grid;gap:4px}
+.mp-cambios .mp-lab{margin-bottom:2px}
+.mp-cambio{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.mp-cambio i{font-size:13px}
+.mp-cambio em{font-style:normal;color:var(--text3);font-size:11px}
 </style>
 </head>
 <body>
@@ -3660,13 +3668,40 @@ async function verProyecto(id) {
     STATE.rol !== 'tecnico' ? `<button class="btn btn-ghost btn-sm" onclick="exportarGanttProyectoPDF('${p.id}')" title="Generar Gantt en PDF"><i class="ti ti-file-download" aria-hidden="true"></i> PDF</button>
      <button class="btn btn-ghost btn-sm" onclick="descargarKitDocumentos('${p.id}','${escHtml(p.nombre)}')" title="Descargar documentación de personal, equipo y vehículos asignados"><i class="ti ti-folder-download" aria-hidden="true"></i> Kit de documentos</button>` : '', { ancho: true });
 }
-// Cambiar técnico: lo quita del proyecto y abre la evaluación para elegir a otra persona
-async function cambiarTecnicoProyecto(pid, empId) {
+// Cambiar técnico: pide el motivo, lo quita del proyecto y abre la evaluación para elegir a otra persona
+const MOTIVOS_CAMBIO = ['Reasignado a otro proyecto', 'Vacaciones o permiso', 'Incapacidad', 'Solicitud del cliente', 'Falta de certificación o requisito', 'Proyecto en pausa', 'Desempeño'];
+function cambiarTecnicoProyecto(pid, empId) {
   const p = (STATE.proyectos || []).find(x => x.id === pid), e = (STATE.empleados || []).find(x => x.id === empId);
   const nombre = e ? `${e.nombre} ${e.apellido}` : 'esta persona';
-  if (!confirm(`¿Quitar a ${nombre} de "${p?.nombre || 'este proyecto'}" y elegir a alguien más?${p?.fecha_inicio_real ? '\n\nEl proyecto ya inició: sus checadas se conservan.' : ''}\n\nSe le avisará con una notificación.`)) return;
-  const r = await api('DELETE', `/proyectos/proyectos/${encodeURIComponent(pid)}/personal/${encodeURIComponent(empId)}`);
+  let ov = document.getElementById('selector-overlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; ov.style.zIndex = 1100; document.body.appendChild(ov); }
+  ov.className = 'modal-overlay open';
+  ov.onclick = ev => { if (ev.target === ov) cerrarSelectorTerminos(); };
+  ov.innerHTML = `
+    <div class="sel-card" style="max-width:480px;padding:18px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <i class="ti ti-user-share" aria-hidden="true" style="font-size:24px;color:var(--red)"></i>
+        <div style="flex:1;font-weight:700;color:var(--text);font-size:14px">Cambiar personal</div>
+        <button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button>
+      </div>
+      <div style="font-size:12.5px;color:var(--text2);line-height:1.5;margin-bottom:12px">Se quitará a <b style="color:var(--text)">${escHtml(nombre)}</b> de <b style="color:var(--text)">${escHtml(p?.nombre || 'este proyecto')}</b> y elegirás a alguien más.${p?.fecha_inicio_real ? ' El proyecto ya inició: sus checadas se conservan.' : ''} Se le avisará con una notificación.</div>
+      <div class="field-label" style="margin-bottom:6px">MOTIVO DEL CAMBIO</div>
+      <div class="cp-motivos">${MOTIVOS_CAMBIO.map(m => `<button type="button" class="cp-motivo" onclick="const t=document.getElementById('cp-motivo');t.value=this.textContent;t.focus()">${m}</button>`).join('')}</div>
+      <textarea class="field-input" id="cp-motivo" rows="3" maxlength="300" placeholder="Ej. Se reasignó a PE Ingenio por urgencia del cliente" style="width:100%;margin-top:8px"></textarea>
+      <div class="av-nota" style="margin-top:4px">Queda en el historial del proyecto y en el reporte de métricas.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+        <button class="btn btn-ghost" style="justify-content:center;min-height:42px" onclick="cerrarSelectorTerminos()">Cancelar</button>
+        <button class="btn btn-primary" style="justify-content:center;min-height:42px" onclick="ejecutarConCarga(this, () => confirmarCambioTecnico('${pid}','${empId}'))"><i class="ti ti-user-minus" aria-hidden="true"></i> Quitar y elegir reemplazo</button>
+      </div>
+    </div>`;
+  setTimeout(() => document.getElementById('cp-motivo')?.focus(), 50);
+}
+async function confirmarCambioTecnico(pid, empId) {
+  const motivo = (document.getElementById('cp-motivo')?.value || '').trim();
+  if (motivo.length < 3) { toast('Escribe o elige el motivo del cambio', 'error'); document.getElementById('cp-motivo')?.focus(); return; }
+  const r = await api('DELETE', `/proyectos/proyectos/${encodeURIComponent(pid)}/personal/${encodeURIComponent(empId)}?motivo=${encodeURIComponent(motivo)}`);
   if (!r) return;
+  cerrarSelectorTerminos();
   toast(r.mensaje || 'Técnico quitado del proyecto');
   await Promise.all([loadProyectos(true), loadEmpleados(true)]);
   closePanel(null, true);
@@ -8075,6 +8110,8 @@ function htmlKpisMetricas(datos) {
       </tbody></table></div></details>` : ''}
   </div>`;
 }
+// La bitácora guarda la hora en UTC: se pasa a la fecha local
+const fechaCambioPersonal = c => isoLocal(new Date(String(c.fecha).replace(/Z?$/, 'Z')));
 function htmlProyectoMetricas(p) {
   const f = infoProyectoMetricas(p), C = KPI_COLOR;
   const dato = (lab, val, det, sem) => `<div class="mp-dato"><div class="mp-lab">${lab}</div><div class="mp-val" style="color:${sem ? C[sem] : 'var(--text)'}">${val}</div><div class="mp-det">${det}</div></div>`;
@@ -8086,6 +8123,9 @@ function htmlProyectoMetricas(p) {
     <div class="mp-fila">${dato('Cumplimiento de checada', f.cumpl, f.cumplDet, f.ch.cumplimiento == null ? 'na' : f.cumplSem)}${dato('Días sin registro de checada', f.sinReg, f.ch.dias_sin_registro ? 'días laborables sin entrada registrada' : 'todos los días con registro', f.sinRegSem)}${dato('Horas registradas', f.horasTxt, f.horasDet, (p.asistencia?.horas_aprox || 0) > 0 ? null : 'na')}</div>
     <div class="mp-badges">${f.insignias.map(([t, s]) => `<span class="mp-badge" style="--b:${C[s]}">${t}</span>`).join('')}</div>
     ${recursos.length ? `<div class="mp-rec">${recursos.map(([l, v]) => `<span><b>${l}:</b> ${v.map(escHtml).join(', ')}</span>`).join('')}</div>` : ''}
+    ${(p.cambios_personal || []).length ? `<div class="mp-cambios"><div class="mp-lab">Cambios de personal</div>
+      ${p.cambios_personal.map(c => `<div class="mp-cambio"><i class="ti ${c.tipo === 'salida' ? 'ti-user-minus' : 'ti-user-plus'}" style="color:${c.tipo === 'salida' ? 'var(--amber)' : 'var(--green)'}" aria-hidden="true"></i>
+        <span>${fCorta(fechaCambioPersonal(c))} · ${c.tipo === 'salida' ? 'Salió' : 'Entró'} <b style="color:var(--text)">${escHtml(c.nombre)}</b>${c.tipo === 'salida' ? ` — ${c.motivo ? escHtml(c.motivo) : '<em>sin motivo registrado (cambio anterior)</em>'}` : ''}</span></div>`).join('')}</div>` : ''}
     ${(p.incidencias || []).length ? `<div class="mp-inc"><div class="mp-lab">Incidencias registradas (posibles causas)</div>
       ${p.incidencias.map(i => `<div>• <strong>${escHtml(i.tipo)}</strong> (${escHtml(i.severidad)}) — ${escHtml(i.descripcion || 'sin descripción')} <span>${fCorta((i.fecha || '').split('T')[0] || isoLocal(new Date()))}</span></div>`).join('')}</div>` : ''}
   </div>`;
@@ -12948,7 +12988,9 @@ async function exportarMetricasPDF() {
     const tecs = (p.por_tecnico || []).length ? p.por_tecnico
       : (p.personal_asignado_nombres || []).map(n => ({ nombre: n, horas_aprox: 0 }));
     const altoTec = tecs.length ? 8 + tecs.length * 5.2 : 0;
-    const alto = 60 + filasIns * 6.5 + altoTec + (recursos.length ? 6 : 0) + (inc.length ? 9 + inc.length * 5.6 : 0);
+    const cambios = p.cambios_personal || [];
+    const altoCamb = cambios.length ? 7 + cambios.length * 5 : 0;
+    const alto = 60 + filasIns * 6.5 + altoTec + altoCamb + (recursos.length ? 6 : 0) + (inc.length ? 9 + inc.length * 5.6 : 0);
     if (y + alto > T.H - 20) { T.nuevaPagina(); T.encabezado('Reporte de métricas', codigo, 'Métricas de proyectos', 'Detalle por proyecto (continuación)'); y = 36; }
     T.relleno(C.fondo); doc.roundedRect(M, y, w, alto, 2, 2, 'F');
     let yy = y + 8;
@@ -13016,7 +13058,7 @@ async function exportarMetricasPDF() {
       tecs.forEach(t => {
         yy += 5.2;
         T.trazo(C.linea, 0.15); doc.line(c1, yy - 3.9, c4, yy - 3.9);
-        T.font('semibold', 7, C.tinta); doc.text(recortarTexto(doc, t.nombre || '—', c2 - c1 - 4), c1, yy);
+        T.font('semibold', 7, t.ex ? C.gris : C.tinta); doc.text(recortarTexto(doc, (t.nombre || '—') + (t.ex ? '  (ya no asignado)' : ''), c2 - c1 - 4), c1, yy);
         const hrs = t.horas_aprox || 0;
         T.relleno(C.linea); doc.roundedRect(c2, yy - 2.2, bwMax, 1.8, 0.9, 0.9, 'F');
         if (hrs > 0) { T.relleno(SEM.ok); doc.roundedRect(c2, yy - 2.2, Math.max(1.8, bwMax * hrs / maxH), 1.8, 0.9, 0.9, 'F'); }
@@ -13030,6 +13072,23 @@ async function exportarMetricasPDF() {
         doc.text(recortarTexto(doc, det.join(' · ') || 'sin checadas', c4 - c3), c3, yy);
       });
       yy += 6.5;
+    }
+    if (cambios.length) {   // historial de cambios de personal con su motivo
+      T.etiqueta('Cambios de personal', M + 5, yy, C.gris, 5.6); yy += 1;
+      cambios.forEach(cb => {
+        yy += 5;
+        const sal = cb.tipo === 'salida', col = sal ? C.ambar : SEM.ok;
+        T.relleno(col); doc.circle(M + 6, yy - 1.1, 0.9, 'F');
+        T.font('bold', 6.8, C.tinta); const f0 = `${fCorta(fechaCambioPersonal(cb))}`; doc.text(f0, M + 8.5, yy);
+        let cx = M + 8.5 + doc.getTextWidth(f0) + 2.5;
+        T.font('normal', 6.8, C.texto); const verbo = sal ? 'Salió ' : 'Entró '; doc.text(verbo, cx, yy); cx += doc.getTextWidth(verbo);
+        T.font('semibold', 6.8, C.tinta); doc.text(cb.nombre, cx, yy); cx += doc.getTextWidth(cb.nombre) + 2;
+        if (sal) {
+          T.font('normal', 6.8, cb.motivo ? C.texto : C.grisClaro);
+          doc.text(recortarTexto(doc, `— ${cb.motivo || 'sin motivo registrado (cambio anterior)'}`, M + w - 5 - cx), cx, yy);
+        }
+      });
+      yy += 6;
     }
     if (recursos.length) {
       let rx = M + 5;
