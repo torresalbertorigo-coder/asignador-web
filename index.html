@@ -10552,7 +10552,7 @@ async function renderChecador() {
   const misProyectos = STATE.proyectos.filter(p => (p.tecnicos_asignados||[]).includes(empId));
   const miEmpleado = STATE.empleados.find(e=>e.id===empId);
   // Solo proyectos activos que ya alguien inició (tú u otra persona del equipo)
-  const proyectosChecador = misProyectos.filter(p => proyectoIniciado(p) && !['completado','cancelado'].includes(p.estado));
+  const proyectosChecador = misProyectos.filter(p => proyectoIniciado(p) && !['completado','cancelado','pausado'].includes(p.estado));
   const sinIniciar = misProyectos.filter(p => !p.fecha_inicio_real && !['completado','cancelado'].includes(p.estado));
   const vig = proyectoVigenteDe(empId)?.id;
   const proyectoActual = proyectosChecador.some(p => p.id === vig) ? vig : proyectosChecador[0]?.id;
@@ -10572,6 +10572,11 @@ async function renderChecador() {
   const proyectosReportables = misProyectos.filter(p => p.fecha_inicio_real && !['completado','cancelado'].includes(p.estado));
   const ultima = historial[0];
   const puedeEntrada = !ultima || ultima.tipo === 'salida';
+  // Con una entrada abierta, la salida va al mismo proyecto de esa entrada (no se puede cambiar)
+  const pidAbierto = !puedeEntrada ? (ultima.proyecto_id || '') : null;
+  const pAbierto = pidAbierto ? STATE.proyectos.find(p => p.id === pidAbierto) : null;
+  if (pAbierto && !proyectosChecador.includes(pAbierto)) proyectosChecador.unshift(pAbierto);
+  const pidSel = pidAbierto !== null ? pidAbierto : proyectoActual;
   const ahoraLocal = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
 
   html(`
@@ -10583,10 +10588,11 @@ async function renderChecador() {
       <div class="check-date" id="check-date">${new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
       <div class="field-group" style="max-width:300px;margin:14px auto 0">
         <label class="field-label">PROYECTO</label>
-        <select class="field-select" id="chk-proyecto">
+        <select class="field-select" id="chk-proyecto" ${pidAbierto !== null ? 'disabled' : ''}>
           <option value="">Sin proyecto específico</option>
-          ${proyectosChecador.map(p=>`<option value="${p.id}" ${p.id===proyectoActual?'selected':''}>${p.nombre}</option>`).join('')}
+          ${proyectosChecador.map(p=>`<option value="${p.id}" ${p.id===pidSel?'selected':''}>${p.nombre}</option>`).join('')}
         </select>
+        ${pidAbierto !== null ? `<div style="font-size:11px;color:var(--text3);margin-top:6px;text-align:left"><i class="ti ti-lock" aria-hidden="true"></i> La salida se registra en el mismo proyecto de tu entrada.</div>` : ''}
         ${sinIniciar.length && !proyectosChecador.length ? `<div style="font-size:11px;color:var(--text3);margin-top:6px;text-align:left"><i class="ti ti-info-circle" aria-hidden="true"></i> ¿No aparece tu proyecto? Aparece cuando alguien del equipo lo inicia en <a href="#" onclick="event.preventDefault();showSection('mis-asignaciones')" style="color:var(--blue)">Mis asignaciones</a>.</div>` : ''}
       </div>
       <!-- Un toque: la hora la pone el servidor -->
