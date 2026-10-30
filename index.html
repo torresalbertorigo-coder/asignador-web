@@ -1566,6 +1566,38 @@ html.av-fs-abierto .content{overflow:hidden !important}
 .mp-cambio{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 .mp-cambio i{font-size:13px}
 .mp-cambio em{font-style:normal;color:var(--text3);font-size:11px}
+
+/* Cierre con el cliente */
+.badge-cierre{background:rgba(124,92,201,.14);color:#a78bfa;border:1px solid rgba(124,92,201,.4)}
+:root[data-theme="light"] .badge-cierre{color:#6d4fc2;background:#efeafc;border-color:#d6c9f5}
+.stats-grid.stats-6{grid-template-columns:repeat(6,1fr)}
+.stat-card.c-purple{border-left-color:#8b6fd6}
+.stat-click.c-purple.stat-activa{border-color:#8b6fd6;box-shadow:inset 0 0 0 1px #8b6fd6}
+html.layout-moderno .stat-card.c-purple::before{background:#8b6fd6}
+html.layout-moderno .stat-card.c-purple{border-left-color:var(--border)}
+.ci-card{border:1px solid rgba(124,92,201,.45);background:rgba(124,92,201,.07);border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;flex-direction:column;gap:12px}
+.ci-card.cerrado{border-color:var(--green-border);background:var(--green-bg)}
+.ci-card.ci-min{flex-direction:row;align-items:center;gap:10px;font-size:12.5px;color:var(--text2);flex-wrap:wrap}
+.ci-card.ci-min .btn{margin-left:auto}
+.ci-tit{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);flex-wrap:wrap}
+.ci-tit>i{font-size:16px;color:#a78bfa}
+.ci-estado{margin-left:auto;text-transform:none;letter-spacing:0;font-size:12.5px;font-weight:700}
+.ci-pasos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.ci-paso{display:flex;gap:9px;align-items:flex-start;padding:9px 10px;border-radius:10px;background:var(--surface);border:1px solid var(--border);min-width:0}
+.ci-paso b{display:block;font-size:12.5px;color:var(--text)}
+.ci-paso em{display:block;font-style:normal;font-size:11.5px;color:var(--text3);line-height:1.35}
+.ci-num{flex:0 0 22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:1.5px solid var(--border2);color:var(--text3)}
+.ci-paso.ok .ci-num{background:var(--green);border-color:var(--green);color:#fff}
+.ci-paso.act{border-color:rgba(124,92,201,.6)}
+.ci-paso.act .ci-num{border-color:#a78bfa;color:#a78bfa}
+.ci-fila{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.ci-fila .field-group{flex:1;min-width:180px}
+.ci-fila input[type=date]{width:auto}
+.ci-accion{display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid var(--border)}
+.ci-link{font-size:11.5px;color:var(--text3);align-self:flex-start}
+.ci-falta{font-size:12px;color:var(--amber);display:flex;gap:6px;align-items:center}
+.ci-nota-txt{font-size:12.5px;color:var(--text2)}
+@media (max-width:768px){.ci-pasos{grid-template-columns:minmax(0,1fr)}.stats-grid.stats-6>.stat-card:first-child{grid-column:auto}}
 </style>
 </head>
 <body>
@@ -2645,6 +2677,8 @@ function proyectoIniciado(p) {
   return !!p && !!p.fecha_inicio_real && !p.fecha_fin_real;
 }
 
+// Terminó en campo pero sigue el cierre con el cliente (reporte y visto bueno)
+const enCierre = p => p?.estado === 'completado' && ['pendiente', 'entregado'].includes(p.cierre_estado);
 function estadoProyectoVisible(p) {
   // El estado guardado en BD pasa a 'asignado' apenas se completa el
   // personal requerido (ver registrar_asignacion en el backend). Aquí solo
@@ -2653,6 +2687,7 @@ function estadoProyectoVisible(p) {
   //   2 días antes, o ya llegó la fecha pero nadie ha dado "Iniciar"
   //                              → "En preparativos"
   //   alguien dio "Iniciar proyecto" → "En progreso"
+  if (enCierre(p)) return 'en_cierre';
   if (p.estado !== 'asignado' || !p.fecha_inicio) return p.estado || 'pendiente_asignacion';
   if (p.fecha_inicio_real) return 'en_progreso';
   const hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -2678,7 +2713,7 @@ function badge(val) {
     mantenimiento:'badge-mant MANTENIMIENTO', pendiente_asignacion:'badge-pend PENDIENTE', en_progreso:'badge-proy EN PROG.',
     pausado:'badge-orange PAUSADO', completado:'badge-libre COMPLETADO', cancelado:'badge-gray CANCELADO',
     en_preparacion:'badge-mant EN PREPARACIÓN', oficina:'badge-libre OFICINA', baja:'badge-proy BAJA',
-    en_espera_inicio:'badge-orange EN ESPERA DE INICIO',
+    en_espera_inicio:'badge-orange EN ESPERA DE INICIO', en_cierre:'badge-cierre EN CIERRE',
     archivado:'badge-proy ARCHIVADO', rechazado:'badge-proy RECHAZADO', suspendido:'badge-proy SUSPENDIDO',
     incompleto:'badge-pend INCOMPLETO', pendiente_validacion:'badge-mant PENDIENTE VALID.',
     disponible:'badge-libre DISPONIBLE', ausente:'badge-ausente AUSENTE' };
@@ -3428,7 +3463,9 @@ async function renderProyectos() {
   const programados = proyectos.filter(p => ['asignado','en_preparacion','en_espera_inicio'].includes(estadoProyectoVisible(p))).length;
   const enCampo = proyectos.filter(p => estadoProyectoVisible(p) === 'en_progreso').length;
   const pausados = proyectos.filter(p => p.estado === 'pausado').length;
-  const finalizados = proyectos.filter(p => p.estado === 'completado').length;
+  const finalizados = proyectos.filter(p => p.estado === 'completado' && !enCierre(p)).length;
+  const nCierre = proyectos.filter(enCierre).length;
+  const cierreVencidos = proyectos.filter(p => enCierre(p) && !p.cierre_entregado && p.cierre_compromiso && fechaLocal(p.cierre_compromiso) < new Date(new Date().setHours(0,0,0,0))).length;
 
   const filtro = (STATE._pryFiltro||'').toLowerCase().trim();
   if (filtro) {
@@ -3440,18 +3477,19 @@ async function renderProyectos() {
     );
   }
   // Las tarjetas de arriba son el filtro: una vista a la vez (por defecto Activos)
-  const esHist = p => ['completado', 'cancelado'].includes(p.estado);
+  const esHist = p => ['completado', 'cancelado'].includes(p.estado) && !enCierre(p);
   const VISTAS = {
-    activos:     { fn: p => !esHist(p), titulo: 'PROYECTOS ACTIVOS', vacio: 'No hay proyectos activos' },
+    activos:     { fn: p => !esHist(p) && !enCierre(p), titulo: 'PROYECTOS ACTIVOS', vacio: 'No hay proyectos activos' },
     pendientes:  { fn: p => estadoProyectoVisible(p) === 'pendiente_asignacion', titulo: 'PENDIENTES DE ASIGNAR', vacio: 'No hay proyectos pendientes de asignar' },
     programados: { fn: p => ['asignado', 'en_preparacion', 'en_espera_inicio'].includes(estadoProyectoVisible(p)), titulo: 'PROGRAMADOS', vacio: 'No hay proyectos programados' },
     en_campo:    { fn: p => estadoProyectoVisible(p) === 'en_progreso', titulo: 'EN CAMPO', vacio: 'No hay proyectos en campo' },
+    cierre:      { fn: enCierre, titulo: 'EN CIERRE CON CLIENTE', vacio: 'No hay proyectos en cierre' },
     historico:   { fn: p => esHist(p), titulo: 'FINALIZADOS', vacio: 'Aún no hay proyectos finalizados' },
   };
   const vista = VISTAS[STATE._pryVista] ? STATE._pryVista : 'activos';
   const tab = vista === 'historico' ? 'historico' : 'activos';
   const nVista = STATE.proyectos.filter(VISTAS[vista].fn).length;
-  const nActivos = STATE.proyectos.filter(p => !esHist(p)).length;
+  const nActivos = STATE.proyectos.filter(p => !esHist(p) && !enCierre(p)).length;
   const cancelados = STATE.proyectos.filter(p => p.estado === 'cancelado').length;
   proyectos = proyectos.filter(VISTAS[vista].fn);
   const filtroEstadoPry = '';
@@ -3470,12 +3508,13 @@ async function renderProyectos() {
   }
 
   html(`
-    <div class="stats-grid stats-5 pry-vistas">
+    <div class="stats-grid stats-5 stats-6 pry-vistas">
       ${[
         ['activos', 'c-red', 'ACTIVOS', nActivos, `sin terminar · ${STATE.proyectos.length} en sistema`],
         ['pendientes', 'c-amber', 'PENDIENTES', pend, 'sin asignar'],
         ['programados', 'c-blue', 'PROGRAMADOS', programados, 'asignados, aún no inician'],
         ['en_campo', 'c-red', 'EN CAMPO', enCampo, pausados ? `iniciados · ${pausados} en pausa aparte` : 'iniciados, sin finalizar'],
+        ['cierre', 'c-purple', 'EN CIERRE', nCierre, cierreVencidos ? `${cierreVencidos} con reporte vencido` : 'reporte y visto bueno'],
         ['historico', 'c-green', 'FINALIZADOS', finalizados + cancelados, cancelados ? `${finalizados} completados · ${cancelados} cancelados` : 'completados'],
       ].map(([v, c, lbl, n, sub]) => `<div class="stat-card ${c} stat-click${vista === v ? ' stat-activa' : ''}" role="button" tabindex="0" aria-pressed="${vista === v}"
           onclick="STATE._pryVista='${v}';renderProyectos()" onkeydown="if(event.key==='Enter')this.click()">
@@ -3543,12 +3582,12 @@ async function verProyecto(id) {
     }
     if (STATE.rol !== 'tecnico') {
       footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="abrirIniciarProyectoManual('${p.id}')"><i class="ti ti-player-play-filled" aria-hidden="true"></i> ${p.fecha_inicio_real?'Editar inicio':'Iniciar proyecto'}</button>`;
-      footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="abrirFinalizarProyectoManual('${p.id}')"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar</button>`;
+      footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="abrirFinalizarProyectoManual('${p.id}')"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar campo</button>`;
     } else {
       if (!p.fecha_inicio_real) {
         footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="confirmarInicioProyecto('${p.id}')"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Iniciar proyecto</button>`;
       }
-      footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar</button>`;
+      footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar campo</button>`;
     }
     footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="if(confirm('¿Cancelar este proyecto? Se liberará al personal asignado.'))ejecutarConCarga(this, () => cambiarEstadoProyecto('${p.id}','cancelado'))"><i class="ti ti-ban" aria-hidden="true"></i> Cancelar</button>`;
   }
@@ -3565,6 +3604,7 @@ async function verProyecto(id) {
   const durPlan = p.fecha_inicio && p.fecha_fin_estimada ? Math.round((fechaLocal(p.fecha_fin_estimada) - fechaLocal(p.fecha_inicio)) / 86400000) + 1 : null;
   const reprog = p.reprogramaciones_resumen || [];
   openPanel(p.nombre, `
+    ${p.fecha_fin_real && p.estado === 'completado' ? htmlCierreProyecto(p) : ''}
     <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
       <div style="flex:1;min-width:140px;background:${personalOk?'var(--green-bg)':'var(--amber-bg)'};border:1px solid ${personalOk?'var(--green-border)':'var(--amber-border)'};border-radius:var(--radius);padding:10px 14px">
         <div style="font-size:10px;color:${personalOk?'var(--green)':'var(--amber)'};font-weight:700">PERSONAL ${personalOk?'✓ COMPLETO':'⚠ INCOMPLETO'}</div>
@@ -3668,6 +3708,77 @@ async function verProyecto(id) {
     STATE.rol !== 'tecnico' ? `<button class="btn btn-ghost btn-sm" onclick="exportarGanttProyectoPDF('${p.id}')" title="Generar Gantt en PDF"><i class="ti ti-file-download" aria-hidden="true"></i> PDF</button>
      <button class="btn btn-ghost btn-sm" onclick="descargarKitDocumentos('${p.id}','${escHtml(p.nombre)}')" title="Descargar documentación de personal, equipo y vehículos asignados"><i class="ti ti-folder-download" aria-hidden="true"></i> Kit de documentos</button>` : '', { ancho: true });
 }
+
+// ─── CIERRE CON EL CLIENTE (después de terminar en campo) ────────────────────
+// Campo terminado → reporte entregado → visto bueno del cliente. Un responsable da
+// seguimiento a que se cumpla; la fecha de entrega la compromete él/ella por proyecto.
+function diasEntre(a, b) { return Math.round((fechaLocal(b) - fechaLocal(a)) / 86400000); }
+function estadoEntregaCierre(p) {
+  const hoy = isoLocal(new Date());
+  if (p.cierre_entregado) {
+    if (!p.cierre_compromiso) return { txt: `Entregado el ${fCorta(p.cierre_entregado)}`, sem: 'ok' };
+    const d = diasEntre(p.cierre_compromiso, p.cierre_entregado);
+    return d <= 0 ? { txt: `Entregado a tiempo · ${fCorta(p.cierre_entregado)}`, sem: 'ok' } : { txt: `Entregado ${plural(d, 'día')} tarde · ${fCorta(p.cierre_entregado)}`, sem: 'bad' };
+  }
+  if (!p.cierre_compromiso) return { txt: 'Sin fecha comprometida', sem: 'warn' };
+  const d = diasEntre(hoy, p.cierre_compromiso);
+  return d < 0 ? { txt: `Vencido hace ${plural(-d, 'día')} · era el ${fCorta(p.cierre_compromiso)}`, sem: 'bad' }
+    : d === 0 ? { txt: 'Vence hoy', sem: 'warn' } : { txt: `Vence en ${plural(d, 'día')} · ${fCorta(p.cierre_compromiso)}`, sem: d <= 2 ? 'warn' : 'ok' };
+}
+function htmlCierreProyecto(p) {
+  const admin = ['administrador', 'director_proyecto'].includes(STATE.rol), hoy = isoLocal(new Date());
+  if (!p.cierre_estado) {   // finalizados antes de existir la etapa de cierre
+    return admin ? `<div class="ci-card ci-min"><i class="ti ti-file-check" aria-hidden="true"></i><span>Proyecto finalizado sin seguimiento de cierre.</span>
+      <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => guardarCierre('${p.id}', {}))"><i class="ti ti-plus" aria-hidden="true"></i> Dar seguimiento de cierre</button></div>` : '';
+  }
+  const ent = estadoEntregaCierre(p), C = KPI_COLOR;
+  const resp = (STATE.empleados || []).find(e => e.id === p.cierre_responsable_id);
+  const paso = (n, tit, hecho, det, actual) => `<div class="ci-paso ${hecho ? 'ok' : actual ? 'act' : ''}"><span class="ci-num">${hecho ? '<i class="ti ti-check" aria-hidden="true"></i>' : n}</span><div><b>${tit}</b><em>${det}</em></div></div>`;
+  const empleados = (STATE.empleados || []).filter(e => e.estado_perfil !== 'archivado').sort((a, b) => `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`, 'es'));
+  let accion = '';
+  if (admin && p.cierre_estado === 'pendiente') accion = `
+      <div class="ci-accion"><label class="field-label" for="ci-ent">REPORTE ENTREGADO AL CLIENTE EL</label>
+        <div class="ci-fila"><input type="date" class="field-input" id="ci-ent" value="${hoy}" max="${hoy}">
+        <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarCierre('${p.id}', { entregado: document.getElementById('ci-ent').value }))"><i class="ti ti-send" aria-hidden="true"></i> Registrar entrega</button></div></div>`;
+  else if (admin && p.cierre_estado === 'entregado') accion = `
+      <div class="ci-accion"><label class="field-label" for="ci-vb">VISTO BUENO DEL CLIENTE</label>
+        <div class="ci-fila"><input type="date" class="field-input" id="ci-vb" value="${hoy}" max="${hoy}">
+        <input class="field-input" id="ci-nota" placeholder="Nota (opcional): ej. aprobado por correo de Ing. Pérez" maxlength="500" style="flex:2;min-width:180px">
+        <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarCierre('${p.id}', { aprobado: document.getElementById('ci-vb').value, nota: document.getElementById('ci-nota').value }))"><i class="ti ti-circle-check" aria-hidden="true"></i> Registrar visto bueno</button></div>
+        <a href="#" class="ci-link" onclick="event.preventDefault();ejecutarConCarga(this, () => guardarCierre('${p.id}', { limpiar: ['entregado'] }))">Deshacer entrega</a></div>`;
+  else if (admin && p.cierre_estado === 'aprobado') accion = `<a href="#" class="ci-link" onclick="event.preventDefault();ejecutarConCarga(this, () => guardarCierre('${p.id}', { limpiar: ['aprobado'] }))">Reabrir cierre (quitar visto bueno)</a>`;
+  return `<div class="ci-card ${p.cierre_estado === 'aprobado' ? 'cerrado' : ''}">
+    <div class="ci-tit"><i class="ti ti-file-certificate" aria-hidden="true"></i> Cierre con el cliente
+      <span class="ci-estado" style="color:${p.cierre_estado === 'aprobado' ? C.ok : C[ent.sem]}">${p.cierre_estado === 'aprobado' ? `Cerrado el ${fCorta(p.cierre_aprobado)}` : ent.txt}</span></div>
+    <div class="ci-pasos">
+      ${paso(1, 'Trabajo en campo', true, `terminó el ${fCorta(p.fecha_fin_real)}`)}
+      ${paso(2, 'Reporte entregado', !!p.cierre_entregado, p.cierre_entregado ? ent.txt : p.cierre_compromiso ? `compromiso: ${fCorta(p.cierre_compromiso)}` : 'sin fecha comprometida', p.cierre_estado === 'pendiente')}
+      ${paso(3, 'Visto bueno del cliente', !!p.cierre_aprobado, p.cierre_aprobado ? fCorta(p.cierre_aprobado) : p.cierre_entregado ? `esperando · ${plural(diasEntre(p.cierre_entregado, hoy), 'día')}` : 'pendiente', p.cierre_estado === 'entregado')}
+    </div>
+    ${admin ? `<div class="ci-fila ci-datos">
+      <div class="field-group"><label class="field-label" for="ci-resp">RESPONSABLE DEL SEGUIMIENTO</label>
+        <select class="field-select" id="ci-resp" onchange="if(this.value)guardarCierre('${p.id}', { responsable_id: this.value })" ${p.cierre_estado === 'aprobado' ? 'disabled' : ''}>
+          <option value="">— Elegir responsable —</option>
+          ${empleados.map(e => `<option value="${e.id}" ${e.id === p.cierre_responsable_id ? 'selected' : ''}>${escHtml(`${e.nombre} ${e.apellido}`)}</option>`).join('')}
+        </select></div>
+      <div class="field-group"><label class="field-label" for="ci-comp">ENTREGA COMPROMETIDA</label>
+        <input type="date" class="field-input" id="ci-comp" value="${p.cierre_compromiso || ''}" min="${p.fecha_fin_real}" onchange="if(this.value)guardarCierre('${p.id}', { compromiso: this.value })" ${p.cierre_entregado ? 'disabled' : ''}></div>
+    </div>` : `<div class="ci-nota-txt">Responsable: <b>${resp ? escHtml(`${resp.nombre} ${resp.apellido}`) : 'sin asignar'}</b></div>`}
+    ${admin && p.cierre_estado === 'pendiente' && (!p.cierre_responsable_id || !p.cierre_compromiso) ? `<div class="ci-falta"><i class="ti ti-info-circle" aria-hidden="true"></i> Asigna al responsable y la fecha en que se comprometió a entregar el reporte.</div>` : ''}
+    ${p.cierre_nota ? `<div class="ci-nota-txt"><i class="ti ti-message" aria-hidden="true"></i> ${escHtml(p.cierre_nota)}</div>` : ''}
+    ${accion}
+  </div>`;
+}
+async function guardarCierre(pid, cuerpo) {
+  const r = await api('PATCH', `/proyectos/proyectos/${encodeURIComponent(pid)}/cierre`, cuerpo);
+  if (!r) return;
+  const i = STATE.proyectos.findIndex(x => x.id === pid);
+  if (i >= 0) STATE.proyectos[i] = { ...STATE.proyectos[i], ...r };
+  STATE._panelDirty = false;
+  toast(r.cierre_estado === 'aprobado' ? 'Proyecto cerrado con el cliente' : 'Cierre actualizado');
+  verProyecto(pid);
+}
+
 // Cambiar técnico: pide el motivo, lo quita del proyecto y abre la evaluación para elegir a otra persona
 const MOTIVOS_CAMBIO = ['Reasignado a otro proyecto', 'Vacaciones o permiso', 'Incapacidad', 'Solicitud del cliente', 'Falta de certificación o requisito', 'Proyecto en pausa', 'Desempeño'];
 function cambiarTecnicoProyecto(pid, empId) {
@@ -4015,7 +4126,7 @@ async function iniciarProyecto(id, volverA, fecha) {
 }
 
 async function finalizarProyecto(id, volverA, fechaFin, fechaInicio) {
-  if (!fechaFin && !confirm('¿Finalizar este proyecto? Se marcará como completado con la fecha de hoy como fecha real de término. Esto no se puede deshacer.')) return;
+  if (!fechaFin && !confirm('¿Finalizar el trabajo en campo? Hoy quedará como fecha real de término en sitio y se libera al personal.\n\nDespués sigue el cierre con el cliente (entrega del reporte y visto bueno).')) return;
   await loadEmpleados();
   const pAntes = STATE.proyectos.find(x=>x.id===id);
   const idsAsignadosAntes = pAntes ? (pAntes.tecnicos_asignados||[]) : [];
@@ -4065,9 +4176,9 @@ function abrirFinalizarProyectoManual(id) {
   const p = STATE.proyectos.find(x=>x.id===id);
   if (!p) return;
   const hoy = new Date().toISOString().split('T')[0];
-  openPanel('Finalizar proyecto — fechas reales', `
+  openPanel('Finalizar trabajo en campo — fechas reales', `
     <div class="panel-section">
-      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Captura las fechas reales de campo (útil cuando no hubo señal para marcarlas el mismo día). Marca el proyecto como completado.</p>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Captura las fechas reales de campo (útil cuando no hubo señal para marcarlas el mismo día). Se libera al personal y el proyecto pasa a <b>cierre con el cliente</b>: entrega del reporte y visto bueno.</p>
       ${!p.fecha_inicio_real ? `<div class="field-group" style="margin-bottom:10px"><label class="field-label">FECHA REAL DE INICIO</label><input type="date" class="field-input" id="man-inicio2" value="${p.fecha_inicio||hoy}"></div>` : ''}
       <div class="field-group"><label class="field-label">FECHA REAL DE FIN</label><input type="date" class="field-input" id="man-fin" value="${hoy}"></div>
     </div>`,
@@ -7979,7 +8090,20 @@ function infoProyectoMetricas(p) {
   if (p.dias_pausa) insignias.push([`En pausa ${plural(p.dias_pausa, 'día')}`, 'pausa']);
   if (p.dias_descanso) insignias.push([`Descanso: ${plural(p.dias_descanso, 'día-persona', 'días-persona')}`, 'desc']);
   if (p.dias_standby) insignias.push([`Standby: ${plural(p.dias_standby, 'día-persona', 'días-persona')}`, 'warn']);
-  return { est, estRango, real, realRango, desv, desvDet, desvSem, estado, ch, cumpl, cumplDet, cumplSem: semaforoKpi(ch.cumplimiento, 90, 70),
+  const ci = p.cierre;
+  let cierreTxt = '';
+  if (ci) {
+    if (ci.estado === 'aprobado') insignias.push([`Cerrado con el cliente · ${fCorta(ci.aprobado)}`, 'ok']);
+    else if (ci.dias_vencido) insignias.push([`Reporte vencido · ${plural(ci.dias_vencido, 'día')}`, 'bad']);
+    else if (ci.estado === 'entregado') insignias.push([`Esperando visto bueno · ${plural(ci.dias_esperando_vb || 0, 'día')}`, 'warn']);
+    else insignias.push([ci.compromiso ? `Reporte por entregar · ${fCorta(ci.compromiso)}` : 'Cierre sin fecha de entrega', ci.compromiso ? 'curso' : 'warn']);
+    const partes = [`Responsable: ${ci.responsable || 'sin asignar'}`];
+    if (ci.compromiso) partes.push(`entrega comprometida ${fCorta(ci.compromiso)}`);
+    if (ci.entregado) partes.push(`entregado ${fCorta(ci.entregado)}${ci.entrega_a_tiempo === false ? ' (tarde)' : ci.entrega_a_tiempo ? ' (a tiempo)' : ''}`);
+    partes.push(ci.aprobado ? `visto bueno ${fCorta(ci.aprobado)}` : 'visto bueno pendiente');
+    cierreTxt = partes.join(' · ');
+  }
+  return { cierreTxt, est, estRango, real, realRango, desv, desvDet, desvSem, estado, ch, cumpl, cumplDet, cumplSem: semaforoKpi(ch.cumplimiento, 90, 70),
     sinReg: plural(ch.dias_sin_registro, 'día'), sinRegSem: ch.dias_sin_registro ? 'bad' : 'ok', horasTxt, horasDet, insignias };
 }
 function calcularKpisMetricas(datos) {
@@ -8013,7 +8137,11 @@ function calcularKpisMetricas(datos) {
     ['Cumplimiento de checadas', cumplOrDash(cumpl), proy ? `${comp} de ${plural(proy, 'día laborable', 'días laborables')} completos` : 'sin días laborables que medir', semaforoKpi(cumpl, 90, 70), cumpl],
   ];
   // Indicadores secundarios (una línea discreta)
+  const ciEnt = datos.map(p => p.cierre).filter(c => c && c.entregado && c.compromiso), ciOk = ciEnt.filter(c => c.entrega_a_tiempo).length;
+  const ciAbiertos = datos.filter(p => p.cierre && p.cierre.estado !== 'aprobado').length;
   k.secundarios = [
+    ['Reportes entregados a tiempo', ciEnt.length ? `${pct(ciOk, ciEnt.length)} % (${ciOk} de ${ciEnt.length})` : '—'],
+    ['En cierre con cliente', String(ciAbiertos)],
     ['Inicio puntual', conInicio.length ? `${pct(inicioOk, conInicio.length)} % (${inicioOk} de ${conInicio.length})` : '—'],
     ['Reprogramados', `${reprog} de ${datos.length}`],
     ['Incidencias', inc ? `${inc}${incAltas ? ` (${incAltas} alta${incAltas === 1 ? '' : 's'})` : ''}` : 'Ninguna'],
@@ -8039,6 +8167,12 @@ function calcularKpisMetricas(datos) {
     if (ch.dias_sin_registro) { it.push(['Sin registro de checada', plural(ch.dias_sin_registro, 'día')]); peso += 10 + ch.dias_sin_registro * 2; }
     if (ch.dias_incompletos) { it.push(['Checadas incompletas', String(ch.dias_incompletos)]); peso += 3 + ch.dias_incompletos; }
     if (p.incidencias_altas) { it.push(['Incidencias altas', String(p.incidencias_altas)]); peso += 25; }
+    const ci = p.cierre;
+    if (ci && ci.estado !== 'aprobado') {
+      if (ci.dias_vencido) { it.push(['Reporte vencido', `${plural(ci.dias_vencido, 'día')}${ci.responsable ? ` · ${ci.responsable}` : ''}`]); peso += 12 + ci.dias_vencido * 2; }
+      else if (ci.estado === 'pendiente' && (!ci.responsable || !ci.compromiso)) { it.push(['Cierre', !ci.responsable ? 'sin responsable' : 'sin fecha de entrega']); peso += 8; }
+      else if ((ci.dias_esperando_vb || 0) >= 7) { it.push(['Esperando visto bueno', plural(ci.dias_esperando_vb, 'día')]); peso += 5 + ci.dias_esperando_vb / 2; }
+    }
     const diasPausa = p.pausado && p.pausado_desde ? Math.round((new Date().setHours(0, 0, 0, 0) - fechaLocal(p.pausado_desde)) / 86400000) + 1 : 0;
     if (diasPausa >= 7) { it.push(['En pausa', plural(diasPausa, 'día')]); peso += 6 + Math.min(20, diasPausa / 2); }
     return { nombre: p.nombre, it, peso, accion: accionAlertaMetricas(p, ch, diasPausa),
@@ -8058,25 +8192,29 @@ function calcularKpisMetricas(datos) {
   return k;
 }
 // Acción gerencial sugerida para cada alerta de "Atender primero" (la causa de mayor peso manda)
-function accionAlertaMetricas(p, ch, diasPausa) {
-  const tecs = p.por_tecnico || [];
+function accionAlertaMetricas(p, ch, diasPausa) {   // hasta 2 acciones, la más urgente primero
+  const tecs = p.por_tecnico || [], acc = [];
   const conFalta = (campo) => tecs.filter(t => t[campo]).map(t => `${t.nombre} (${t[campo]})`).join(', ');
-  if (p.incidencias_altas) return 'Dar seguimiento a las incidencias altas y confirmar su cierre antes del siguiente reporte.';
-  if (p.retraso_actual > 0) return 'Confirmar con el cliente la nueva fecha de cierre y reprogramar si se acordó; si no, reforzar al equipo en sitio.';
+  const ci = p.cierre && p.cierre.estado !== 'aprobado' ? p.cierre : null;
+  if (p.incidencias_altas) acc.push('Dar seguimiento a las incidencias altas y confirmar su cierre antes del siguiente reporte.');
+  if (p.retraso_actual > 0) acc.push('Confirmar con el cliente la nueva fecha de cierre y reprogramar si se acordó; si no, reforzar al equipo en sitio.');
+  if (ci?.dias_vencido) acc.push(`Pedir ${ci.responsable ? `a ${ci.responsable} ` : ''}una nueva fecha de entrega del reporte y revisar qué lo está deteniendo.`);
   if (ch.dias_sin_registro) {
     const nadie = tecs.length && tecs.every(t => !(t.horas_aprox > 0) && !t.dias_completos && !t.dias_incompletos);
     const quien = conFalta('dias_sin_registro');
-    return nadie
+    acc.push(nadie
       ? `Nadie del equipo ha checado: confirmar que tienen acceso a WorkSync y validar la asistencia con su bitácora de campo${quien ? ` · ${quien}` : ''}.`
-      : `Validar la asistencia de esos días y registrarla como checada manual con motivo${quien ? ` · ${quien}` : ''}.`;
+      : `Validar la asistencia de esos días y registrarla como checada manual con motivo${quien ? ` · ${quien}` : ''}.`);
   }
   if (ch.dias_incompletos) {
     const quien = conFalta('dias_incompletos');
-    return `Pedir que se registre la entrada o salida faltante como checada manual con motivo${quien ? ` · ${quien}` : ''}.`;
+    acc.push(`Pedir que se registre la entrada o salida faltante como checada manual con motivo${quien ? ` · ${quien}` : ''}.`);
   }
-  if (p.retraso_dias > 0) return 'Documentar la causa del retraso para el cierre con el cliente y ajustar la duración en proyectos similares.';
-  if (diasPausa) return 'Revisar con el cliente el estatus de liberación y acordar fecha para reanudar o cerrar el proyecto.';
-  return '';
+  if (ci && ci.estado === 'pendiente' && (!ci.responsable || !ci.compromiso)) acc.push('Asignar al responsable del cierre y la fecha en que se compromete a entregar el reporte.');
+  if (p.retraso_dias > 0) acc.push('Documentar la causa del retraso para el cierre con el cliente y ajustar la duración en proyectos similares.');
+  if ((ci?.dias_esperando_vb || 0) >= 7) acc.push('Dar seguimiento con el cliente para obtener el visto bueno del reporte entregado.');
+  if (diasPausa) acc.push('Revisar con el cliente el estatus de liberación y acordar fecha para reanudar o cerrar el proyecto.');
+  return acc.slice(0, 2);
 }
 function cumplOrDash(v) { return v == null ? '—' : `${v} %`; }
 const KPI_COLOR = { ok: 'var(--green)', warn: 'var(--amber)', bad: 'var(--red-text)', na: 'var(--text3)', neutro: 'var(--text)', curso: '#60a5fa', pausa: 'var(--text3)', desc: '#a78bfa' };
@@ -8101,7 +8239,7 @@ function htmlKpisMetricas(datos) {
     <div class="mk-caja"><div class="mk-tit">Atender primero</div>${k.alertas.length ? k.alertas.map(a => `
       <div class="mk-alerta"><i class="ti ${a.grave ? 'ti-alert-triangle' : 'ti-alert-circle'}" style="color:${a.grave ? 'var(--red-text)' : 'var(--amber)'}" aria-hidden="true"></i>
         <b>${escHtml(a.nombre)}</b><span>${a.it.map(([l, v]) => `${l}: <strong>${v}</strong>`).join(' · ')}</span>
-        ${a.accion ? `<div class="mk-accion"><i class="ti ti-arrow-right" aria-hidden="true"></i>${escHtml(a.accion)}</div>` : ''}</div>`).join('')
+        ${(a.accion || []).map(t => `<div class="mk-accion"><i class="ti ti-arrow-right" aria-hidden="true"></i>${escHtml(t)}</div>`).join('')}</div>`).join('')
       : '<div class="mk-ok-msg"><i class="ti ti-circle-check" aria-hidden="true"></i> Sin alertas: ningún proyecto con retraso ni días sin registro de checada.</div>'}</div>
     ${k.tecnicos.length ? `<details class="mk-caja mk-tec"><summary class="mk-tit">Checadas por técnico <span>${plural(k.tecnicos.length, 'persona')} · solo en pantalla</span></summary>
       <div style="overflow-x:auto"><table class="mk-tabla"><thead><tr><th>Técnico</th><th>Proyectos</th><th>Días laborables</th><th>Completas</th><th>Incompletas</th><th>Sin registro</th><th>Horas</th><th>Cumplimiento</th></tr></thead><tbody>
@@ -8123,6 +8261,7 @@ function htmlProyectoMetricas(p) {
     <div class="mp-fila">${dato('Cumplimiento de checada', f.cumpl, f.cumplDet, f.ch.cumplimiento == null ? 'na' : f.cumplSem)}${dato('Días sin registro de checada', f.sinReg, f.ch.dias_sin_registro ? 'días laborables sin entrada registrada' : 'todos los días con registro', f.sinRegSem)}${dato('Horas registradas', f.horasTxt, f.horasDet, (p.asistencia?.horas_aprox || 0) > 0 ? null : 'na')}</div>
     <div class="mp-badges">${f.insignias.map(([t, s]) => `<span class="mp-badge" style="--b:${C[s]}">${t}</span>`).join('')}</div>
     ${recursos.length ? `<div class="mp-rec">${recursos.map(([l, v]) => `<span><b>${l}:</b> ${v.map(escHtml).join(', ')}</span>`).join('')}</div>` : ''}
+    ${f.cierreTxt ? `<div class="mp-cambios"><div class="mp-lab">Cierre con el cliente</div><div>${escHtml(f.cierreTxt)}${p.cierre?.nota ? ` · <em>${escHtml(p.cierre.nota)}</em>` : ''}</div></div>` : ''}
     ${(p.cambios_personal || []).length ? `<div class="mp-cambios"><div class="mp-lab">Cambios de personal</div>
       ${p.cambios_personal.map(c => `<div class="mp-cambio"><i class="ti ${c.tipo === 'salida' ? 'ti-user-minus' : 'ti-user-plus'}" style="color:${c.tipo === 'salida' ? 'var(--amber)' : 'var(--green)'}" aria-hidden="true"></i>
         <span>${fCorta(fechaCambioPersonal(c))} · ${c.tipo === 'salida' ? 'Salió' : 'Entró'} <b style="color:var(--text)">${escHtml(c.nombre)}</b>${c.tipo === 'salida' ? ` — ${c.motivo ? escHtml(c.motivo) : '<em>sin motivo registrado (cambio anterior)</em>'}` : ''}</span></div>`).join('')}</div>` : ''}
@@ -8212,7 +8351,7 @@ function verProyectoTecnico(id) {
         <div>Sitio: <span style="color:var(--text)">${p.ciudad||'—'}${p.estado?', '+p.estado:''}</span></div>
       </div>
     </div>`,
-    `${p.estado!=='completado'&&p.estado!=='cancelado'&&!p.fecha_inicio_real?`<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="confirmarInicioProyecto('${p.id}','tecnico')"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Iniciar proyecto</button>`:''}${p.estado!=='completado'&&p.estado!=='cancelado'?`<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}','tecnico'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar proyecto</button>`:''}${avanceDisponible()&&proyectoIniciado(p)&&!['completado','cancelado'].includes(p.estado)?`<button class="btn btn-ghost btn-sm" style="color:var(--orange)" onclick="irAvance('${p.id}')"><i class="ti ti-flame" aria-hidden="true"></i> Avance</button>`:''}<button class="btn btn-primary btn-sm" onclick="showSection('checador');closePanel(null,true)"><i class="ti ti-clock" aria-hidden="true"></i> Ir al checador</button>`);
+    `${p.estado!=='completado'&&p.estado!=='cancelado'&&!p.fecha_inicio_real?`<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="confirmarInicioProyecto('${p.id}','tecnico')"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Iniciar proyecto</button>`:''}${p.estado!=='completado'&&p.estado!=='cancelado'?`<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}','tecnico'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar trabajo en campo</button>`:''}${avanceDisponible()&&proyectoIniciado(p)&&!['completado','cancelado'].includes(p.estado)?`<button class="btn btn-ghost btn-sm" style="color:var(--orange)" onclick="irAvance('${p.id}')"><i class="ti ti-flame" aria-hidden="true"></i> Avance</button>`:''}<button class="btn btn-primary btn-sm" onclick="showSection('checador');closePanel(null,true)"><i class="ti ti-clock" aria-hidden="true"></i> Ir al checador</button>`);
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -12912,6 +13051,8 @@ async function exportarMetricasPDF() {
   // Indicadores secundarios en una línea
   let sx = M;
   k.secundarios.forEach(([l, v], i) => {
+    T.font('normal', 6.6); const anchoItem = doc.getTextWidth(`${l}: `) + (T.font('semibold', 6.6), doc.getTextWidth(v));
+    if (sx > M && sx + anchoItem > W - M) { sx = M; y += 4; }   // si no cabe, pasa al siguiente renglón
     T.font('normal', 6.6, C.gris); doc.text(`${l}: `, sx, y); sx += doc.getTextWidth(`${l}: `);
     T.font('semibold', 6.6, C.tinta); doc.text(v, sx, y); sx += doc.getTextWidth(v);
     if (i < k.secundarios.length - 1) { T.font('normal', 6.6, C.grisClaro); doc.text('   ·   ', sx, y); sx += doc.getTextWidth('   ·   '); }
@@ -12952,8 +13093,9 @@ async function exportarMetricasPDF() {
   }
   k.alertas.forEach(a => {
     const col = a.grave ? PDF_EST.progreso : { c: C.ambar, bg: C.ambarBg };
-    T.font('semibold', 7); const linAcc = a.accion ? doc.splitTextToSize(a.accion, W - 2 * M - 29).slice(0, 2) : [];
-    const h = 12.5 + (linAcc.length ? 3 + linAcc.length * 3.4 : 0);
+    T.font('semibold', 7);
+    const linAcc = (a.accion || []).flatMap((t, j) => doc.splitTextToSize(t, W - 2 * M - 29).slice(0, 2).map((l, k) => ({ l, nueva: k === 0 && j > 0 }))).slice(0, 4);
+    const h = 12.5 + (linAcc.length ? 3 + linAcc.length * 3.4 + (linAcc.filter(x => x.nueva).length) : 0);
     T.relleno(C.fondo); doc.roundedRect(M, y - 4, W - 2 * M, h, 1.6, 1.6, 'F');
     T.relleno(col.c); doc.rect(M, y - 1, 0.9, h - 6, 'F');
     T.font('bold', 8, C.tinta); doc.text(recortarTexto(doc, a.nombre, W - 2 * M - 10), M + 4.5, y + 0.6);
@@ -12967,7 +13109,8 @@ async function exportarMetricasPDF() {
       const ay = y + 10.6;
       T.trazo(C.linea, 0.2); doc.line(M + 4.5, ay - 3.4, M + W - 2 * M - 4.5, ay - 3.4);
       T.etiqueta('Acción', M + 4.5, ay, col.c, 5.4);
-      T.font('semibold', 7, C.tinta); linAcc.forEach((l, j) => doc.text(l, M + 20, ay + j * 3.4));
+      T.font('semibold', 7, C.tinta);
+      let dy = 0; linAcc.forEach(({ l, nueva }) => { if (nueva) dy += 1; doc.text(l, M + 20, ay + dy); dy += 3.4; });
     }
     y += h + 3;
   });
@@ -12990,7 +13133,9 @@ async function exportarMetricasPDF() {
     const altoTec = tecs.length ? 8 + tecs.length * 5.2 : 0;
     const cambios = p.cambios_personal || [];
     const altoCamb = cambios.length ? 7 + cambios.length * 5 : 0;
-    const alto = 60 + filasIns * 6.5 + altoTec + altoCamb + (recursos.length ? 6 : 0) + (inc.length ? 9 + inc.length * 5.6 : 0);
+    T.font('normal', 6.8); const linCierre = f.cierreTxt ? doc.splitTextToSize(f.cierreTxt + (p.cierre?.nota ? ` · ${p.cierre.nota}` : ''), w - 10).slice(0, 2) : [];
+    const altoCierre = linCierre.length ? 6 + linCierre.length * 3.6 : 0;
+    const alto = 60 + filasIns * 6.5 + altoTec + altoCamb + altoCierre + (recursos.length ? 6 : 0) + (inc.length ? 9 + inc.length * 5.6 : 0);
     if (y + alto > T.H - 20) { T.nuevaPagina(); T.encabezado('Reporte de métricas', codigo, 'Métricas de proyectos', 'Detalle por proyecto (continuación)'); y = 36; }
     T.relleno(C.fondo); doc.roundedRect(M, y, w, alto, 2, 2, 'F');
     let yy = y + 8;
@@ -13072,6 +13217,11 @@ async function exportarMetricasPDF() {
         doc.text(recortarTexto(doc, det.join(' · ') || 'sin checadas', c4 - c3), c3, yy);
       });
       yy += 6.5;
+    }
+    if (linCierre.length) {   // cierre con el cliente: responsable, entrega y visto bueno
+      T.etiqueta('Cierre con el cliente', M + 5, yy, C.gris, 5.6); yy += 4.6;
+      T.font('normal', 6.8, C.texto); linCierre.forEach((l, j) => doc.text(l, M + 5, yy + j * 3.6));
+      yy += linCierre.length * 3.6 + 2.4;
     }
     if (cambios.length) {   // historial de cambios de personal con su motivo
       T.etiqueta('Cambios de personal', M + 5, yy, C.gris, 5.6); yy += 1;
