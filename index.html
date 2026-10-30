@@ -1556,6 +1556,8 @@ html.av-fs-abierto .content{overflow:hidden !important}
   .avl-n{border-right:none;padding-right:0}
   .avl-guardar{width:100%;justify-content:center;margin-left:0}
 }
+.mk-accion{flex-basis:100%;display:flex;gap:6px;align-items:baseline;font-size:12px;color:var(--text);padding-left:24px}
+.mk-accion i{color:var(--red-text);font-size:13px}
 </style>
 </head>
 <body>
@@ -8002,7 +8004,10 @@ function calcularKpisMetricas(datos) {
     if (ch.dias_sin_registro) { it.push(['Sin registro de checada', plural(ch.dias_sin_registro, 'día')]); peso += 10 + ch.dias_sin_registro * 2; }
     if (ch.dias_incompletos) { it.push(['Checadas incompletas', String(ch.dias_incompletos)]); peso += 3 + ch.dias_incompletos; }
     if (p.incidencias_altas) { it.push(['Incidencias altas', String(p.incidencias_altas)]); peso += 25; }
-    return { nombre: p.nombre, it, peso, grave: p.retraso_actual > 0 || p.retraso_dias > 0 || p.incidencias_altas > 0 };
+    const diasPausa = p.pausado && p.pausado_desde ? Math.round((new Date().setHours(0, 0, 0, 0) - fechaLocal(p.pausado_desde)) / 86400000) + 1 : 0;
+    if (diasPausa >= 7) { it.push(['En pausa', plural(diasPausa, 'día')]); peso += 6 + Math.min(20, diasPausa / 2); }
+    return { nombre: p.nombre, it, peso, accion: accionAlertaMetricas(p, ch, diasPausa),
+      grave: p.retraso_actual > 0 || p.retraso_dias > 0 || p.incidencias_altas > 0 };
   }).filter(x => x.peso).sort((a, b) => b.peso - a.peso).slice(0, 3);
   // Por técnico (solo en pantalla)
   const tec = new Map();
@@ -8016,6 +8021,27 @@ function calcularKpisMetricas(datos) {
   k.tecnicos = [...tec.values()].map(r => ({ ...r, horas: Math.round(r.horas * 10) / 10, pct: pct(r.comp, r.proy) }))
     .sort((a, b) => (a.pct ?? 101) - (b.pct ?? 101) || b.sinReg - a.sinReg);
   return k;
+}
+// Acción gerencial sugerida para cada alerta de "Atender primero" (la causa de mayor peso manda)
+function accionAlertaMetricas(p, ch, diasPausa) {
+  const tecs = p.por_tecnico || [];
+  const conFalta = (campo) => tecs.filter(t => t[campo]).map(t => `${t.nombre} (${t[campo]})`).join(', ');
+  if (p.incidencias_altas) return 'Dar seguimiento a las incidencias altas y confirmar su cierre antes del siguiente reporte.';
+  if (p.retraso_actual > 0) return 'Confirmar con el cliente la nueva fecha de cierre y reprogramar si se acordó; si no, reforzar al equipo en sitio.';
+  if (ch.dias_sin_registro) {
+    const nadie = tecs.length && tecs.every(t => !(t.horas_aprox > 0) && !t.dias_completos && !t.dias_incompletos);
+    const quien = conFalta('dias_sin_registro');
+    return nadie
+      ? `Nadie del equipo ha checado: confirmar que tienen acceso a WorkSync y validar la asistencia con su bitácora de campo${quien ? ` · ${quien}` : ''}.`
+      : `Validar la asistencia de esos días y registrarla como checada manual con motivo${quien ? ` · ${quien}` : ''}.`;
+  }
+  if (ch.dias_incompletos) {
+    const quien = conFalta('dias_incompletos');
+    return `Pedir que se registre la entrada o salida faltante como checada manual con motivo${quien ? ` · ${quien}` : ''}.`;
+  }
+  if (p.retraso_dias > 0) return 'Documentar la causa del retraso para el cierre con el cliente y ajustar la duración en proyectos similares.';
+  if (diasPausa) return 'Revisar con el cliente el estatus de liberación y acordar fecha para reanudar o cerrar el proyecto.';
+  return '';
 }
 function cumplOrDash(v) { return v == null ? '—' : `${v} %`; }
 const KPI_COLOR = { ok: 'var(--green)', warn: 'var(--amber)', bad: 'var(--red-text)', na: 'var(--text3)', neutro: 'var(--text)', curso: '#60a5fa', pausa: 'var(--text3)', desc: '#a78bfa' };
@@ -8039,7 +8065,8 @@ function htmlKpisMetricas(datos) {
     </div>
     <div class="mk-caja"><div class="mk-tit">Atender primero</div>${k.alertas.length ? k.alertas.map(a => `
       <div class="mk-alerta"><i class="ti ${a.grave ? 'ti-alert-triangle' : 'ti-alert-circle'}" style="color:${a.grave ? 'var(--red-text)' : 'var(--amber)'}" aria-hidden="true"></i>
-        <b>${escHtml(a.nombre)}</b><span>${a.it.map(([l, v]) => `${l}: <strong>${v}</strong>`).join(' · ')}</span></div>`).join('')
+        <b>${escHtml(a.nombre)}</b><span>${a.it.map(([l, v]) => `${l}: <strong>${v}</strong>`).join(' · ')}</span>
+        ${a.accion ? `<div class="mk-accion"><i class="ti ti-arrow-right" aria-hidden="true"></i>${escHtml(a.accion)}</div>` : ''}</div>`).join('')
       : '<div class="mk-ok-msg"><i class="ti ti-circle-check" aria-hidden="true"></i> Sin alertas: ningún proyecto con retraso ni días sin registro de checada.</div>'}</div>
     ${k.tecnicos.length ? `<details class="mk-caja mk-tec"><summary class="mk-tit">Checadas por técnico <span>${plural(k.tecnicos.length, 'persona')} · solo en pantalla</span></summary>
       <div style="overflow-x:auto"><table class="mk-tabla"><thead><tr><th>Técnico</th><th>Proyectos</th><th>Días laborables</th><th>Completas</th><th>Incompletas</th><th>Sin registro</th><th>Horas</th><th>Cumplimiento</th></tr></thead><tbody>
@@ -12884,7 +12911,9 @@ async function exportarMetricasPDF() {
     y += 10;
   }
   k.alertas.forEach(a => {
-    const h = 12.5, col = a.grave ? PDF_EST.progreso : { c: C.ambar, bg: C.ambarBg };
+    const col = a.grave ? PDF_EST.progreso : { c: C.ambar, bg: C.ambarBg };
+    T.font('semibold', 7); const linAcc = a.accion ? doc.splitTextToSize(a.accion, W - 2 * M - 29).slice(0, 2) : [];
+    const h = 12.5 + (linAcc.length ? 3 + linAcc.length * 3.4 : 0);
     T.relleno(C.fondo); doc.roundedRect(M, y - 4, W - 2 * M, h, 1.6, 1.6, 'F');
     T.relleno(col.c); doc.rect(M, y - 1, 0.9, h - 6, 'F');
     T.font('bold', 8, C.tinta); doc.text(recortarTexto(doc, a.nombre, W - 2 * M - 10), M + 4.5, y + 0.6);
@@ -12894,6 +12923,12 @@ async function exportarMetricasPDF() {
       T.font('bold', 6.8, l === 'Retraso' || l === 'Incidencias altas' ? col.c : C.texto); doc.text(v, ax, y + 5.4); ax += doc.getTextWidth(v);
       if (i < a.it.length - 1) { T.font('normal', 6.8, C.grisClaro); doc.text('   ·   ', ax, y + 5.4); ax += doc.getTextWidth('   ·   '); }
     });
+    if (linAcc.length) {   // acción sugerida para el administrador
+      const ay = y + 10.6;
+      T.trazo(C.linea, 0.2); doc.line(M + 4.5, ay - 3.4, M + W - 2 * M - 4.5, ay - 3.4);
+      T.etiqueta('Acción', M + 4.5, ay, col.c, 5.4);
+      T.font('semibold', 7, C.tinta); linAcc.forEach((l, j) => doc.text(l, M + 20, ay + j * 3.4));
+    }
     y += h + 3;
   });
 
@@ -12909,8 +12944,11 @@ async function exportarMetricasPDF() {
     const anchoIns = f.insignias.map(([t]) => doc.getTextWidth(t) + 6);
     let filasIns = 1, acc = 0;
     anchoIns.forEach(a => { if (acc + a > w - 10) { filasIns++; acc = 0; } acc += a + 2; });
-    const recursos = [['Personal', p.personal_asignado_nombres], ['Equipo', p.equipo_usado], ['Vehículo', p.vehiculo_usado]].filter(([, l]) => (l || []).length);
-    const alto = 60 + filasIns * 6.5 + (recursos.length ? 6 : 0) + (inc.length ? 9 + inc.length * 5.6 : 0);
+    const recursos = [['Equipo', p.equipo_usado], ['Vehículo', p.vehiculo_usado]].filter(([, l]) => (l || []).length);
+    const tecs = (p.por_tecnico || []).length ? p.por_tecnico
+      : (p.personal_asignado_nombres || []).map(n => ({ nombre: n, horas_aprox: 0 }));
+    const altoTec = tecs.length ? 8 + tecs.length * 5.2 : 0;
+    const alto = 60 + filasIns * 6.5 + altoTec + (recursos.length ? 6 : 0) + (inc.length ? 9 + inc.length * 5.6 : 0);
     if (y + alto > T.H - 20) { T.nuevaPagina(); T.encabezado('Reporte de métricas', codigo, 'Métricas de proyectos', 'Detalle por proyecto (continuación)'); y = 36; }
     T.relleno(C.fondo); doc.roundedRect(M, y, w, alto, 2, 2, 'F');
     let yy = y + 8;
@@ -12969,6 +13007,30 @@ async function exportarMetricasPDF() {
       ix += anchoIns[i] + 2;
     });
     yy += 6.5;
+    if (tecs.length) {   // desglose de horas y checadas por técnico
+      const c1 = M + 5, c2 = M + 74, c3 = M + 120, c4 = M + w - 5;
+      T.etiqueta('Personal', c1, yy, C.gris, 5.6); T.etiqueta('Horas registradas', c2, yy, C.gris, 5.6);
+      T.etiqueta('Checadas', c3, yy, C.gris, 5.6);
+      yy += 1.6;
+      const maxH = Math.max(1, ...tecs.map(t => t.horas_aprox || 0)), bwMax = c3 - c2 - 22;
+      tecs.forEach(t => {
+        yy += 5.2;
+        T.trazo(C.linea, 0.15); doc.line(c1, yy - 3.9, c4, yy - 3.9);
+        T.font('semibold', 7, C.tinta); doc.text(recortarTexto(doc, t.nombre || '—', c2 - c1 - 4), c1, yy);
+        const hrs = t.horas_aprox || 0;
+        T.relleno(C.linea); doc.roundedRect(c2, yy - 2.2, bwMax, 1.8, 0.9, 0.9, 'F');
+        if (hrs > 0) { T.relleno(SEM.ok); doc.roundedRect(c2, yy - 2.2, Math.max(1.8, bwMax * hrs / maxH), 1.8, 0.9, 0.9, 'F'); }
+        T.font('bold', 7.2, hrs > 0 ? C.tinta : C.grisClaro); doc.text(hrs > 0 ? `${hrs} h` : '0 h', c2 + bwMax + 3, yy);
+        const det = [];
+        if (t.dias_proyectados) det.push(`${t.dias_completos || 0} de ${plural(t.dias_proyectados, 'día')} completos`);
+        if (t.dias_incompletos) det.push(`${t.dias_incompletos} incompleta${t.dias_incompletos === 1 ? '' : 's'}`);
+        if (t.dias_sin_registro) det.push(`${t.dias_sin_registro} sin registro`);
+        const semT = t.dias_sin_registro ? 'bad' : t.dias_incompletos ? 'warn' : null;
+        T.font('normal', 6.6, semT ? SEM_TX[semT] : C.texto);
+        doc.text(recortarTexto(doc, det.join(' · ') || 'sin checadas', c4 - c3), c3, yy);
+      });
+      yy += 6.5;
+    }
     if (recursos.length) {
       let rx = M + 5;
       recursos.forEach(([l, v], i) => {
