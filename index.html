@@ -721,6 +721,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .mp-rec{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--text2);margin-top:10px}
 .mp-rec b{color:var(--text3);font-weight:600}
 .mp-inc{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--text2)}
+.mp-inc-tabla td{vertical-align:top}.mp-inc-tabla .mp-inc-desc{white-space:normal;min-width:220px;color:var(--text2)}
 .mp-inc .mp-lab{margin-bottom:6px}.mp-inc div{padding:2px 0}.mp-inc strong{color:var(--text)}.mp-inc span{color:var(--text3)}
 @media (max-width:700px){.mp-fila{grid-template-columns:1fr 1fr}.mp-head{flex-direction:column}}
 .mk-tile{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px 14px;overflow:hidden}
@@ -1301,7 +1302,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .av-chip-ok i{opacity:.55;font-size:12px}.av-chip-ok:hover i{opacity:1;color:var(--red-text)}
 .av-hallazgos{margin-top:12px;border:1px solid var(--red-border);background:var(--red-bg);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
 .av-hallazgos-tit{font-size:11.5px;font-weight:700;color:var(--red-text);display:flex;align-items:center;gap:6px}
-.av-hallazgo{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
+.av-hallazgo{display:grid;grid-template-columns:minmax(0,auto) 1fr auto;gap:8px;align-items:center}
 .av-hallazgo label{font-size:12.5px;color:var(--text2);white-space:nowrap}
 .av-hallazgo label b{font-family:var(--mono);color:var(--text)}
 .av-hallazgo .field-input{min-height:40px}
@@ -1522,7 +1523,38 @@ html.av-fs-abierto .content{overflow:hidden !important}
 :root{--av-proc:#D97706;--av-proc-bg:rgba(217,119,6,.16);--av-proc-tx:#FBBF24}
 :root[data-theme="light"]{--av-proc-bg:#FEF3C7;--av-proc-tx:#B45309}
 .av-dot.proc{background:var(--av-proc)}
-.av-cfg-parque[hidden]{display:none!important}
+.av-cfg-parque[hidden],.av-cfg-cant[hidden]{display:none!important}
+:root{--av-proc-bd:rgba(217,119,6,.5)}:root[data-theme="light"]{--av-proc-bd:#FCD34D}
+.av-barra .proc{background:var(--av-proc)}
+.av-seg button.on.proc{background:var(--av-proc-bg);color:var(--av-proc-tx)}
+.av-tile.proc{border-color:var(--av-proc-bd);background:var(--av-proc-bg);color:var(--av-proc-tx)}
+.av-tile.selproc{box-shadow:0 0 0 2px var(--av-proc)}.av-tile.selproc::after{background:var(--av-proc) !important}
+.av-tile.vacio{border-style:dashed;background:transparent;cursor:default;color:var(--text3);opacity:.7}
+.av-tile.nuevo{border-style:dashed;border-color:var(--blue)}
+.av-dot.selproc{background:transparent;box-shadow:inset 0 0 0 2px var(--av-proc)}
+.av-pin.proc{background:#D97706}.av-pin.sel.selproc{outline-color:#f59e0b;background:#d97706}
+.av-polys .proc{fill:#D97706;stroke:#B45309}.av-polys .sel.selproc{fill:#D97706;stroke:#F59E0B}
+.av-hallazgos.proc{border-color:var(--av-proc-bd);background:var(--av-proc-bg)}
+.av-hallazgos.proc .av-hallazgos-tit{color:var(--av-proc-tx)}
+.av-hallazgos.proc .av-hallazgo.falta .field-input{box-shadow:inset 0 0 0 1px var(--av-proc)}
+.av-mini-seg{display:inline-flex;border:1px solid var(--border2);border-radius:8px;overflow:hidden}
+.av-mini-seg button{border:0;background:var(--surface);color:var(--text3);padding:0 10px;min-height:40px;cursor:pointer;font-size:16px}
+.av-mini-seg button + button{border-left:1px solid var(--border2)}
+.av-mini-seg button.on.proc{background:var(--av-proc-bg);color:var(--av-proc-tx)}.av-mini-seg button.on.inc{background:var(--red-bg);color:var(--red-text)}
+.av-mini-seg button:not(.on):hover{color:var(--text)}
+.av-chip-ok button{border:0;background:transparent;color:inherit;padding:0 2px;cursor:pointer;opacity:.6;font-size:13px;display:inline-flex}
+.av-chip-ok button:hover{opacity:1}
+.av-inc-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.av-nota-dia{margin-top:12px}.av-nota-dia .field-label{margin-bottom:4px;display:block}
+.av-setup{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.av-setup-op{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;padding:18px 16px;border:1.5px solid var(--border2);border-radius:12px;background:var(--surface2);color:var(--text2);font:inherit;cursor:pointer;min-height:130px;transition:border-color .12s,transform .08s}
+.av-setup-op:hover{border-color:var(--blue)}.av-setup-op:active{transform:scale(.98)}
+.av-setup-op > i{font-size:30px;color:var(--text)}
+.av-setup-op b{font-size:15px;color:var(--text)}
+.av-setup-op span{font-size:12.5px;line-height:1.4}
+.av-setup-op.sug{border-color:var(--blue);background:var(--blue-bg,var(--surface2))}
+.av-setup-sug{position:absolute;top:10px;right:10px;font-size:10.5px !important;font-weight:700;color:var(--blue);display:inline-flex;gap:3px;align-items:center}
+@media (max-width:768px){.av-hallazgo{grid-template-columns:1fr auto}.av-setup{grid-template-columns:1fr 1fr}.av-setup-op{min-height:120px;padding:14px 12px}}
 .av-tipos{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 .avl-resumen{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
 .avl-n{display:flex;flex-direction:column;align-items:flex-start;padding-right:18px;border-right:1px solid var(--border)}
@@ -7191,7 +7223,7 @@ async function armarReporteWhatsApp() {
   if (!hoyInact.length && !pausados.length && !incAbiertas.length) L.push('• Sin novedades en la jornada.');
   hoyInact.forEach(g => L.push(`• ${g.tipo === 'standby' ? 'Standby' : 'Descanso'}: ${g.empleado_nombre || nombreEmp(g.empleado_id) || ''} — ${g.proyecto_nombre || pryNombre(g.proyecto_id)}${g.motivo ? ` (${g.motivo})` : ''}${g.estado === 'pendiente' ? ' [por aprobar]' : ''}`));
   pausados.forEach(p => L.push(`• Proyecto en pausa: ${p.nombre}${p.pausas_resumen?.length ? `, desde el ${fCorta(p.pausas_resumen.at(-1).inicio)}` : ''}`));
-  incAbiertas.forEach(i => L.push(`• Incidencia ${i.severidad || ''}: ${i.tipo}${pryNombre(i.proyecto_id) ? ` — ${pryNombre(i.proyecto_id)}` : ''}${i.descripcion ? `. ${punto(i.descripcion)}` : ''}`.replace('Incidencia :', 'Incidencia:')));
+  incAbiertas.forEach(i => L.push(`• Incidencia ${i.severidad || ''}: ${etiquetaIncidencia(i.tipo)}${pryNombre(i.proyecto_id) ? ` — ${pryNombre(i.proyecto_id)}` : ''}${i.descripcion ? `. ${punto(i.descripcion)}` : ''}`.replace('Incidencia :', 'Incidencia:')));
 
   // Recursos en campo, agrupados por proyecto
   const enCampo = new Map();
@@ -7272,7 +7304,7 @@ async function renderIncidencias() {
     <div class="table-section">
       <div class="table-header"><span class="table-title">INCIDENCIAS DE CAMPO</span></div>
       ${inc.map(i=>`<div class="inc-card ${i.severidad}" style="${i.estado==='resuelta'?'opacity:.55':''}">
-        <div class="inc-head"><span class="inc-tipo">${i.tipo||'Incidencia'}</span><div style="display:flex;gap:6px;align-items:center">${i.estado==='resuelta'?badge('completado'):badge(i.severidad||'baja')}${STATE.rol!=='tecnico' && i.estado!=='resuelta' ? `<button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px" onclick="ejecutarConCarga(this, () => marcarIncidenciaResuelta('${i.id}'))">Marcar resuelta</button>` : ''}${STATE.rol!=='tecnico' ? `<button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px;color:var(--red-text)" onclick="eliminarIncidenciaConfirm('${i.id}')"><i class="ti ti-trash" aria-hidden="true"></i></button>` : ''}</div></div>
+        <div class="inc-head"><span class="inc-tipo">${escHtml(etiquetaIncidencia(i.tipo))}</span><div style="display:flex;gap:6px;align-items:center">${i.estado==='resuelta'?badge('completado'):badge(i.severidad||'baja')}${STATE.rol!=='tecnico' && i.estado!=='resuelta' ? `<button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px" onclick="ejecutarConCarga(this, () => marcarIncidenciaResuelta('${i.id}'))">Marcar resuelta</button>` : ''}${STATE.rol!=='tecnico' ? `<button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px;color:var(--red-text)" onclick="eliminarIncidenciaConfirm('${i.id}')"><i class="ti ti-trash" aria-hidden="true"></i></button>` : ''}</div></div>
         <div class="inc-meta"><i class="ti ti-folder" aria-hidden="true"></i> ${nombreProyecto(i.proyecto_id)} · <i class="ti ti-user" aria-hidden="true"></i> ${nombreEmpleado(i.empleado_id)} · <i class="ti ti-calendar" aria-hidden="true"></i> ${(i.fecha||'').split('T')[0]}</div>
         <div class="inc-desc">${i.descripcion}</div>
       </div>`).join('')}
@@ -8060,6 +8092,11 @@ function checadaDe(p) {
   return { dias_proyectados: proy, dias_completos: comp, dias_incompletos: inc, dias_sin_registro: sinReg, cumplimiento: proy ? Math.round(comp * 100 / proy) : null };
 }
 // Todo lo que se muestra de un proyecto, ya redactado (pantalla y PDF usan lo mismo)
+// Incidencias abiertas del proyecto (las resueltas ya no piden acción)
+function incAbiertasMetricas(p) {
+  const ab = (p.incidencias || []).filter(i => (i.estado || 'abierta') !== 'resuelta');
+  return { n: ab.length, altas: ab.filter(i => i.severidad === 'alta').length, medias: ab.filter(i => i.severidad === 'media').length };
+}
 function infoProyectoMetricas(p) {
   const r = p.retraso_dias;
   const est = p.duracion_estimada_dias != null ? plural(p.duracion_estimada_dias, 'día') : '—';
@@ -8084,7 +8121,8 @@ function infoProyectoMetricas(p) {
   const horasTxt = horas > 0 ? `${horas} h` : (activo ? 'Sin horas registradas aún' : 'Sin horas registradas');
   const horasDet = trab ? `${plural(trab, 'día')} con registro${horas > 0 && ch.dias_completos ? ` · ${Math.round(horas / ch.dias_completos * 10) / 10} h por jornada` : ''}` : (activo ? 'sin checadas todavía' : 'sin checadas');
   const insignias = [];
-  insignias.push(p.total_incidencias ? [`${plural(p.total_incidencias, 'incidencia')}${p.incidencias_altas ? ` · ${p.incidencias_altas} alta${p.incidencias_altas === 1 ? '' : 's'}` : ''}`, p.incidencias_altas ? 'bad' : 'warn'] : ['Sin incidencias', 'ok']);
+  const ia = incAbiertasMetricas(p);
+  insignias.push(p.total_incidencias ? [`${plural(p.total_incidencias, 'incidencia')}${ia.n ? ` · ${ia.n} abierta${ia.n === 1 ? '' : 's'}` : ' · todas resueltas'}${ia.altas ? ` (${ia.altas} alta${ia.altas === 1 ? '' : 's'})` : ''}`, ia.altas ? 'bad' : ia.n ? 'warn' : 'ok'] : ['Sin incidencias', 'ok']);
   if (ch.dias_incompletos) insignias.push([plural(ch.dias_incompletos, 'checada incompleta', 'checadas incompletas'), 'warn']);
   if (p.veces_reprogramado) insignias.push([`Reprogramado ${plural(p.veces_reprogramado, 'vez', 'veces')}`, 'warn']);
   if (p.dias_pausa) insignias.push([`En pausa ${plural(p.dias_pausa, 'día')}`, 'pausa']);
@@ -8124,6 +8162,7 @@ function calcularKpisMetricas(datos) {
   const inicioOk = conInicio.filter(p => p.fecha_inicio_real <= p.fecha_inicio_estimada).length;
   const reprog = datos.filter(p => p.veces_reprogramado > 0).length;
   const inc = suma(datos, p => p.total_incidencias), incAltas = suma(datos, p => p.incidencias_altas);
+  const incAb = suma(datos, p => incAbiertasMetricas(p).n), incAbAltas = suma(datos, p => incAbiertasMetricas(p).altas);
   const partes = [[fin.length, 'finalizado'], [activos.length, 'en curso', 'en curso'], [pausados.length, 'en pausa', 'en pausa']]
     .filter(([n]) => n).map(([n, s, pl]) => plural(n, s, pl)).join(' · ');
   const k = { n: datos.length, horas, horasJornada: comp && horas ? Math.round(horas / comp * 10) / 10 : null };
@@ -8145,6 +8184,7 @@ function calcularKpisMetricas(datos) {
     ['Inicio puntual', conInicio.length ? `${pct(inicioOk, conInicio.length)} % (${inicioOk} de ${conInicio.length})` : '—'],
     ['Reprogramados', `${reprog} de ${datos.length}`],
     ['Incidencias', inc ? `${inc}${incAltas ? ` (${incAltas} alta${incAltas === 1 ? '' : 's'})` : ''}` : 'Ninguna'],
+    ['Incidencias abiertas', incAb ? `${incAb}${incAbAltas ? ` (${incAbAltas} alta${incAbAltas === 1 ? '' : 's'})` : ''}` : '0'],
     ['Días sin registro de checada', plural(sinReg, 'día')],
     ['Horas registradas', `${horas} h`],
   ];
@@ -8166,7 +8206,8 @@ function calcularKpisMetricas(datos) {
     else if (p.retraso_dias > 0) { it.push(['Retraso', `terminó +${plural(p.retraso_dias, 'día')} tarde`]); peso += 20 + p.retraso_dias * 3; }
     if (ch.dias_sin_registro) { it.push(['Sin registro de checada', plural(ch.dias_sin_registro, 'día')]); peso += 10 + ch.dias_sin_registro * 2; }
     if (ch.dias_incompletos) { it.push(['Checadas incompletas', String(ch.dias_incompletos)]); peso += 3 + ch.dias_incompletos; }
-    if (p.incidencias_altas) { it.push(['Incidencias altas', String(p.incidencias_altas)]); peso += 25; }
+    const ia = incAbiertasMetricas(p);
+    if (ia.altas || ia.medias) { it.push(['Incidencias abiertas', `${ia.altas + ia.medias}${ia.altas ? ` (${ia.altas} alta${ia.altas === 1 ? '' : 's'})` : ''}`]); peso += ia.altas ? 25 : 8 + ia.medias * 2; }
     const ci = p.cierre;
     if (ci && ci.estado !== 'aprobado') {
       if (ci.dias_vencido) { it.push(['Reporte vencido', `${plural(ci.dias_vencido, 'día')}${ci.responsable ? ` · ${ci.responsable}` : ''}`]); peso += 12 + ci.dias_vencido * 2; }
@@ -8176,7 +8217,7 @@ function calcularKpisMetricas(datos) {
     const diasPausa = p.pausado && p.pausado_desde ? Math.round((new Date().setHours(0, 0, 0, 0) - fechaLocal(p.pausado_desde)) / 86400000) + 1 : 0;
     if (diasPausa >= 7) { it.push(['En pausa', plural(diasPausa, 'día')]); peso += 6 + Math.min(20, diasPausa / 2); }
     return { nombre: p.nombre, it, peso, accion: accionAlertaMetricas(p, ch, diasPausa),
-      grave: p.retraso_actual > 0 || p.retraso_dias > 0 || p.incidencias_altas > 0 };
+      grave: p.retraso_actual > 0 || p.retraso_dias > 0 || incAbiertasMetricas(p).altas > 0 };
   }).filter(x => x.peso).sort((a, b) => b.peso - a.peso).slice(0, 3);
   // Por técnico (solo en pantalla)
   const tec = new Map();
@@ -8196,7 +8237,8 @@ function accionAlertaMetricas(p, ch, diasPausa) {   // hasta 2 acciones, la más
   const tecs = p.por_tecnico || [], acc = [];
   const conFalta = (campo) => tecs.filter(t => t[campo]).map(t => `${t.nombre} (${t[campo]})`).join(', ');
   const ci = p.cierre && p.cierre.estado !== 'aprobado' ? p.cierre : null;
-  if (p.incidencias_altas) acc.push('Dar seguimiento a las incidencias altas y confirmar su cierre antes del siguiente reporte.');
+  const ia = incAbiertasMetricas(p);
+  if (ia.altas || ia.medias) acc.push(`Dar seguimiento a ${ia.altas + ia.medias === 1 ? 'la incidencia abierta' : `las ${ia.altas + ia.medias} incidencias abiertas`}${ia.altas ? ' (prioridad alta)' : ''} y marcarla${ia.altas + ia.medias === 1 ? '' : 's'} como resuelta${ia.altas + ia.medias === 1 ? '' : 's'}.`);
   if (p.retraso_actual > 0) acc.push('Confirmar con el cliente la nueva fecha de cierre y reprogramar si se acordó; si no, reforzar al equipo en sitio.');
   if (ci?.dias_vencido) acc.push(`Pedir ${ci.responsable ? `a ${ci.responsable} ` : ''}una nueva fecha de entrega del reporte y revisar qué lo está deteniendo.`);
   if (ch.dias_sin_registro) {
@@ -8266,7 +8308,12 @@ function htmlProyectoMetricas(p) {
       ${p.cambios_personal.map(c => `<div class="mp-cambio"><i class="ti ${c.tipo === 'salida' ? 'ti-user-minus' : 'ti-user-plus'}" style="color:${c.tipo === 'salida' ? 'var(--amber)' : 'var(--green)'}" aria-hidden="true"></i>
         <span>${fCorta(fechaCambioPersonal(c))} · ${c.tipo === 'salida' ? 'Salió' : 'Entró'} <b style="color:var(--text)">${escHtml(c.nombre)}</b>${c.tipo === 'salida' ? ` — ${c.motivo ? escHtml(c.motivo) : '<em>sin motivo registrado (cambio anterior)</em>'}` : ''}</span></div>`).join('')}</div>` : ''}
     ${(p.incidencias || []).length ? `<div class="mp-inc"><div class="mp-lab">Incidencias registradas (posibles causas)</div>
-      ${p.incidencias.map(i => `<div>• <strong>${escHtml(i.tipo)}</strong> (${escHtml(i.severidad)}) — ${escHtml(i.descripcion || 'sin descripción')} <span>${fCorta((i.fecha || '').split('T')[0] || isoLocal(new Date()))}</span></div>`).join('')}</div>` : ''}
+      <div style="overflow-x:auto"><table class="mk-tabla mp-inc-tabla"><thead><tr><th>Fecha</th><th>Tipo</th><th>Severidad</th><th>Estado</th><th>Descripción</th></tr></thead><tbody>
+      ${p.incidencias.map(i => { const ab = (i.estado || 'abierta') !== 'resuelta', sv = i.severidad || 'baja';
+        return `<tr><td>${fCorta(String(i.fecha || '').slice(0, 10) || isoLocal(new Date()))}</td><td><b>${escHtml(etiquetaIncidencia(i.tipo))}</b></td>
+        <td style="color:${sv === 'alta' ? 'var(--red-text)' : sv === 'media' ? 'var(--amber)' : 'var(--text2)'};font-weight:600">${escHtml(sv.replace(/^./, c => c.toUpperCase()))}</td>
+        <td style="color:${ab ? 'var(--amber)' : 'var(--green)'};font-weight:600">${ab ? 'Abierta' : 'Resuelta'}</td><td class="mp-inc-desc">${escHtml(i.descripcion || 'sin descripción')}</td></tr>`; }).join('')}
+      </tbody></table></div></div>` : ''}
   </div>`;
 }
 
@@ -8372,8 +8419,40 @@ const avHex = rgb => '#' + rgb.map(v => v.toString(16).padStart(2, '0')).join(''
 const AV_TIPOS = {
   eolico: { nombre: 'Eólico', icono: 'building-wind-turbine', uno: 'WTG', varios: 'WTGs', prefijo: 'WTG-', ok: 'Inspección concluida / OK' },
   solar:  { nombre: 'Solar',  icono: 'solar-panel',           uno: 'bloque', varios: 'bloques', prefijo: 'B-', ok: 'Bloque concluido' },
+  cantidad: { nombre: 'Por cantidad', icono: 'list-numbers', uno: 'unidad', varios: 'unidades', prefijo: '', ok: 'Concluida', fem: true },
   libre:  { nombre: 'Sin mapa', icono: 'notes',                uno: 'reporte', varios: 'reportes', prefijo: '', ok: 'Completado' },
 };
+// Textos según el tipo; en "por cantidad" salen del nombre que se le dio (máquinas → máquina)
+function tiposAv(cfg) {
+  const T = AV_TIPOS[cfg?.tipo] || AV_TIPOS.eolico;
+  if (cfg?.tipo !== 'cantidad') return T;
+  const varios = String(cfg.etiqueta || '').trim().toLowerCase() || 'unidades';
+  const uno = /[dlnr]es$/.test(varios) ? varios.slice(0, -2) : varios.replace(/s$/, '');
+  return { ...T, varios, uno, fem: /as$/.test(varios) || /des$/.test(varios) };
+}
+const conclAv = T => T.fem ? 'concluidas' : 'concluidos';
+// Estatus de captura (marcado) y su clase visual
+const EST_AV = {
+  ok:         { t: 'OK',             largo: 'Concluido',      cls: 'ok',   ico: 'circle-check' },
+  proceso:    { t: 'En proceso',     largo: 'En proceso',     cls: 'proc', ico: 'progress' },
+  incidencia: { t: 'Con incidencia', largo: 'Con incidencia', cls: 'inc',  ico: 'alert-triangle' },
+  nota:       { t: 'Nota del día',   largo: 'Nota del día',   cls: 'pend', ico: 'note' },
+};
+const colAv = e => e === 'ok' ? AV_COL.ok : e === 'incidencia' ? AV_COL.inc : e === 'proceso' ? AV_COL.proc : AV_COL.pend;
+const estMarcaAv = id => STATE._av.est?.[id] || 'ok';
+const marcadosAv = est => [...STATE._av.sel].filter(id => estMarcaAv(id) === est);
+function claseMarcaAv(id) {
+  const A = STATE._av; if (!A.sel.has(id)) return '';
+  const e = estMarcaAv(id); return e === 'incidencia' ? ' sel selinc' : e === 'proceso' ? ' sel selproc' : ' sel';
+}
+const txtMarcaAv = id => STATE._av.sel.has(id) ? ` · marcado ${estMarcaAv(id) === 'ok' ? 'OK' : EST_AV[estMarcaAv(id)].t.toLowerCase()}` : '';
+function ponerMarcaAv(id, e) { const A = STATE._av; if (!A.est) A.est = {}; A.sel.add(id); if (e === 'ok') delete A.est[id]; else A.est[id] = e; }
+function quitarMarcaAv(id) {
+  const A = STATE._av; A.sel.delete(id); if (A.est) delete A.est[id];
+  if (A.nuevos) A.nuevos = A.nuevos.filter(x => x !== id);
+}
+// Orden de captura: el del parque + los nombrados recién (por cantidad, aún sin guardar)
+const ordenAv = cfg => [...(cfg?.unidades || []).map(u => u.id), ...(STATE._av?.nuevos || [])];
 const avanceDisponible = () => !!STATE._avancePiloto && STATE.rol === 'administrador' && STATE.modoTecnico;
 
 async function cargarAccesoAvance() {
@@ -8400,7 +8479,7 @@ function refrescarNavAvance() {
   }
 }
 function irAvance(pid) {
-  STATE._av = Object.assign(STATE._av || {}, { pid, sel: new Set(), inc: new Set(), notasInc: {} });
+  STATE._av = Object.assign(STATE._av || {}, { pid, sel: new Set(), est: {}, notasInc: {}, nuevos: [] });
   try { localStorage.setItem('ws_av_pid', pid); } catch (e) {}
   closePanel(null, true);
   showSection('avance');
@@ -8425,15 +8504,17 @@ function calcAvance(cfg, regs) {
   const ids = (cfg?.unidades || []).map(u => u.id), validas = new Set(ids);
   const estado = {};
   ordenRegistros(regs).forEach(r => (r.unidades || []).forEach(u => {
-    if (validas.has(u)) estado[u] = { estatus: r.estatus, fecha: r.fecha, nota: r.nota, tecnico: r.tecnico };
+    if (validas.has(u) && EST_AV[r.estatus] && r.estatus !== 'nota') estado[u] = { estatus: r.estatus, fecha: r.fecha, nota: r.nota, tecnico: r.tecnico };
   }));
   const ok = ids.filter(u => estado[u]?.estatus === 'ok').length;
   const inc = ids.filter(u => estado[u]?.estatus === 'incidencia').length;
-  const total = ids.length;
-  return { estado, total, ok, inc, pend: total - ok - inc, pct: total ? Math.round(ok * 100 / total) : 0 };
+  const proc = ids.filter(u => estado[u]?.estatus === 'proceso').length;
+  const total = cfg?.tipo === 'cantidad' ? Math.max(cfg.total || 0, ids.length) : ids.length;
+  return { estado, total, ok, inc, proc, pend: Math.max(0, total - ok - inc - proc), sinNombre: Math.max(0, total - ids.length), pct: total ? Math.round(ok * 100 / total) : 0 };
 }
 // "B-23, B-24, B-25, B-26" → "B-23 a B-26" (según el orden configurado)
 function rangosUnidades(cfg, lista) {
+  if (cfg?.tipo === 'cantidad') return [...new Set(lista)].join(', ');
   const orden = (cfg?.unidades || []).map(u => u.id), pos = id => orden.indexOf(id);
   const xs = [...new Set(lista)].sort((a, b) => pos(a) - pos(b));
   const out = []; let i = 0;
@@ -8455,7 +8536,7 @@ async function renderAvance() {
   }
   await loadProyectos();
   if (!(STATE.empleados || []).length) { try { await loadEmpleados(); } catch (e) {} }   // nombres del técnico responsable
-  const A = STATE._av = Object.assign({ sel: new Set(), inc: new Set(), notasInc: {}, estatus: 'ok', fecha: isoLocal(new Date()), todos: false, vista: null }, STATE._av || {});
+  const A = STATE._av = Object.assign({ sel: new Set(), est: {}, notasInc: {}, nuevos: [], estatus: 'ok', incTipo: 'otro', incSev: 'media', fecha: isoLocal(new Date()), todos: false, vista: null }, STATE._av || {});
   const empId = STATE.user?.empleado_id;
   // Solo proyectos en campo: ya iniciados (por quien sea) y sin finalizar ni cancelar
   const enCampo = p => proyectoIniciado(p) && !['completado', 'cancelado'].includes(p.estado);
@@ -8475,59 +8556,71 @@ async function renderAvance() {
     </div></div>`;
   if (!pid) { html(`<div class="av-wrap">${selector}<div class="empty-state"><i class="ti ti-briefcase-off" aria-hidden="true"></i><p>Sin proyectos en campo</p><span>Aquí aparecen los proyectos ya iniciados y sin finalizar. Inicia el tuyo desde Mis asignaciones${A.todos ? '' : ', o marca "Ver también los de otros técnicos"'}.</span></div></div>`); return; }
   html(`<div class="av-wrap">${selector}<div id="av-cuerpo"><div class="empty-state"><i class="ti ti-loader-2 ti-spin" aria-hidden="true"></i><p>Cargando avance…</p></div></div></div>`);
-  const d = await api('GET', `/avance/${encodeURIComponent(pid)}`);
+  const [d, incs] = await Promise.all([api('GET', `/avance/${encodeURIComponent(pid)}`), api('GET', `/incidencias?proyecto_id=${encodeURIComponent(pid)}`)]);
   if (STATE._av.pid !== pid || STATE._seccion !== 'avance') return;
   A.data = d || { config: null, registros: [] };
+  A.incidencias = Array.isArray(incs) ? incs : [];
   pintarAvance();
 }
 function cambiarProyectoAvance(pid) {
   STATE._av.forzarLibre = false; STATE._av.libre = null;
-  STATE._av.pid = pid; STATE._av.sel = new Set(); STATE._av.inc = new Set(); STATE._av.notasInc = {}; STATE._av.vista = null;
+  STATE._av.pid = pid; STATE._av.sel = new Set(); STATE._av.est = {}; STATE._av.notasInc = {}; STATE._av.nuevos = []; STATE._av.vista = null;
   try { localStorage.setItem('ws_av_pid', pid); } catch (e) {}
   renderAvance();
 }
 function pintarAvance() {
   const A = STATE._av, cfg = A.data?.config, cont = document.getElementById('av-cuerpo');
   if (!cont) return;
-  if (!A.inc) A.inc = new Set(); if (!A.notasInc) A.notasInc = {};
+  if (!A.est) A.est = {}; if (!A.notasInc) A.notasInc = {}; if (!A.nuevos) A.nuevos = [];
   const p = STATE.proyectos.find(x => x.id === A.pid) || {};
   if (esAvanceLibre(cfg, p)) { pintarAvanceLibre(p, cfg); return; }
   if (!cfg) {
-    const t = AV_TIPOS[tipoSugeridoAvance(p)];
-    cont.innerHTML = `<div class="av-card" style="text-align:center;padding:28px 18px">
-      <i class="ti ti-${t.icono}" aria-hidden="true" style="font-size:38px;color:var(--text3)"></i>
-      <div style="font-size:15px;font-weight:700;color:var(--text);margin:8px 0 4px">Este proyecto aún no tiene su parque configurado</div>
-      <div class="av-nota" style="max-width:420px;margin:0 auto 16px">Define si es eólico (avance por WTG) o solar (por bloques), cuántas unidades tiene y, si quieres, sube el mapa del parque.</div>
-      <button class="btn btn-primary" onclick="abrirConfigAvance()"><i class="ti ti-settings" aria-hidden="true"></i> Configurar parque</button>
-      <div class="av-nota" style="margin-top:12px">¿No tiene WTGs ni bloques (capacitación, trámite, visita)? <a href="#" onclick="event.preventDefault();STATE._av.forzarLibre=true;pintarAvance()" style="color:var(--blue)">Registrar por notas, sin mapa</a></div></div>`;
+    const sug = tipoSugeridoAvance(p);
+    const ops = [
+      ['eolico', 'Por WTG', 'building-wind-turbine', 'Parque eólico: avance por aerogenerador. Mapa opcional.'],
+      ['solar', 'Por bloques', 'solar-panel', 'Parque solar: avance por bloque o sección. Mapa opcional.'],
+      ['cantidad', 'Por cantidad', 'list-numbers', 'Un total (ej. 12 máquinas) y al avanzar escribes cuál fue (ej. 1.6).'],
+      ['libre', 'Por notas', 'notes', 'Capacitaciones, trámites o visitas: estatus y notas por jornada.'],
+    ];
+    cont.innerHTML = `<div class="av-card">
+      <div class="av-card-tit"><i class="ti ti-settings" aria-hidden="true"></i> ¿Cómo se va a medir el avance de este proyecto?</div>
+      <div class="av-setup">${ops.map(([k, t, ic, d]) => `<button type="button" class="av-setup-op ${k === sug ? 'sug' : ''}" onclick="${k === 'libre' ? 'STATE._av.forzarLibre=true;pintarAvance()' : `abrirConfigAvance('${k}')`}">
+        ${k === sug ? '<span class="av-setup-sug"><i class="ti ti-sparkles" aria-hidden="true"></i> Sugerido</span>' : ''}
+        <i class="ti ti-${ic}" aria-hidden="true"></i><b>${t}</b><span>${d}</span></button>`).join('')}</div>
+      <div class="av-nota" style="margin-top:10px">Lo puedes cambiar después desde el engrane <i class="ti ti-settings" aria-hidden="true"></i>.</div></div>`;
     return;
   }
-  const T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico, R = calcAvance(cfg, A.data.registros), hoy = isoLocal(new Date());
+  const T = tiposAv(cfg), R = calcAvance(cfg, A.data.registros), hoy = isoLocal(new Date());
   const regsHoy = A.data.registros.filter(r => r.fecha === hoy);
   const hoySet = new Set(regsHoy.flatMap(r => r.unidades));
   // de lo intervenido hoy, cuántos quedaron OK y cuántos con incidencia (último registro del día manda)
   const estHoy = {}; ordenRegistros(regsHoy).forEach(r => r.unidades.forEach(u => { estHoy[u] = r.estatus; }));
   const hoyOk = Object.values(estHoy).filter(e => e === 'ok').length, hoyInc = Object.values(estHoy).filter(e => e === 'incidencia').length;
-  const pctInc = R.total ? R.inc * 100 / R.total : 0;
-  const conMapa = !!cfg.mapa_url && cfg.unidades.some(u => u.x != null);
+  const hoyProc = Object.values(estHoy).filter(e => e === 'proceso').length;
+  const pctInc = R.total ? R.inc * 100 / R.total : 0, pctProc = R.total ? R.proc * 100 / R.total : 0;
+  const esCant = cfg.tipo === 'cantidad';
+  const conMapa = !esCant && !!cfg.mapa_url && cfg.unidades.some(u => u.x != null);
+  const incHoy = (A.incidencias || []).filter(i => String(i.fecha || '').slice(0, 10) === hoy).length;
   if (A.vista == null) A.vista = conMapa ? 'mapa' : 'grid';
   const vista = conMapa ? A.vista : 'grid';
   cont.innerHTML = `
     <div class="av-card">
       <div class="av-card-tit"><i class="ti ti-chart-donut" aria-hidden="true"></i> Avance global
         <div class="av-der"><span class="av-tipo"><i class="ti ti-${T.icono}" aria-hidden="true"></i>${T.nombre}</span>
-        <button class="btn btn-ghost btn-sm" onclick="abrirConfigAvance()" title="Configurar parque"><i class="ti ti-settings" aria-hidden="true"></i></button></div></div>
+        <button class="btn btn-ghost btn-sm" onclick="abrirConfigAvance()" title="Configurar avance"><i class="ti ti-settings" aria-hidden="true"></i></button></div></div>
       <div class="av-kpi">
         <div class="av-kpi-pct">${R.pct}<small>%</small></div>
-        <div><div class="av-kpi-main">${R.ok} / ${R.total} ${T.varios} concluidos</div>
+        <div><div class="av-kpi-main">${R.ok} / ${R.total} ${T.varios} ${conclAv(T)}</div>
           <div class="av-kpi-sub">${escHtml(p.nombre || '')}${p.cliente ? ' · ' + escHtml(p.cliente) : ''}</div></div>
-        <div class="av-barra" role="img" aria-label="${R.pct}% de avance"><span class="ok" style="width:${R.total ? R.ok * 100 / R.total : 0}%"></span><span class="inc" style="width:${pctInc}%"></span></div>
+        <div class="av-barra" role="img" aria-label="${R.pct}% de avance"><span class="ok" style="width:${R.total ? R.ok * 100 / R.total : 0}%"></span><span class="proc" style="width:${pctProc}%"></span><span class="inc" style="width:${pctInc}%"></span></div>
         <div class="av-chips">
-          <span class="av-chip"><span class="av-dot ok"></span>Concluidos <b>${R.ok}</b></span>
+          <span class="av-chip"><span class="av-dot ok"></span>${conclAv(T).replace(/^./, c => c.toUpperCase())} <b>${R.ok}</b></span>
+          ${R.proc ? `<span class="av-chip"><span class="av-dot proc"></span>En proceso <b>${R.proc}</b></span>` : ''}
           <span class="av-chip"><span class="av-dot pend"></span>Pendientes <b>${R.pend}</b></span>
           ${R.inc ? `<span class="av-chip"><span class="av-dot inc"></span>Con incidencia <b>${R.inc}</b></span>` : ''}
           <span class="av-chip av-chip-hoy"><i class="ti ti-calendar-event" aria-hidden="true"></i>Intervenidos hoy <b>${hoySet.size}</b>
-            <span class="av-chip-det">(<span style="color:var(--av-ok-tx)">${hoyOk} OK</span>, <span style="color:var(--av-inc-tx)">${hoyInc} ${hoyInc === 1 ? 'incidencia' : 'incidencias'}</span>)</span></span>
+            <span class="av-chip-det">(<span style="color:var(--av-ok-tx)">${hoyOk} OK</span>${hoyProc ? `, <span style="color:var(--av-proc-tx)">${hoyProc} en proceso</span>` : ''}, <span style="color:var(--av-inc-tx)">${hoyInc} ${hoyInc === 1 ? 'incidencia' : 'incidencias'}</span>)</span></span>
+          ${incHoy ? `<span class="av-chip" style="border-color:var(--red-border)"><i class="ti ti-alert-octagon" aria-hidden="true" style="color:var(--red-text)"></i>Incidencias reportadas hoy <b>${incHoy}</b></span>` : ''}
         </div>
       </div>
     </div>
@@ -8540,19 +8633,26 @@ function pintarAvance() {
         <span class="av-nota" style="margin-right:-4px">Marcar como:</span>
         <div class="av-seg">
           <button class="ok ${A.estatus === 'ok' ? 'on' : ''}" onclick="cambiarModoAvance('ok')"><i class="ti ti-circle-check" aria-hidden="true"></i>${cfg.tipo === 'eolico' ? 'Concluida / OK' : 'Concluido'}</button>
+          <button class="proc ${A.estatus === 'proceso' ? 'on' : ''}" onclick="cambiarModoAvance('proceso')"><i class="ti ti-progress" aria-hidden="true"></i>En proceso</button>
           <button class="inc ${A.estatus === 'incidencia' ? 'on' : ''}" onclick="cambiarModoAvance('incidencia')"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Con incidencia</button>
         </div>
       </div>
-      <div class="av-fila" style="margin-top:10px">
+      ${esCant ? `<div class="av-fila" style="margin-top:10px">
+        <input class="field-input" id="av-cant-in" list="av-cant-dl" autocomplete="off" placeholder="¿Cuál ${T.uno}? Ej: 1.6" style="flex:1;min-width:150px" onkeydown="if(event.key==='Enter'){agregarCantidadAvance();}">
+        <datalist id="av-cant-dl">${cfg.unidades.filter(u => R.estado[u.id]?.estatus !== 'ok').map(u => `<option value="${escHtml(u.id)}">`).join('')}</datalist>
+        <button class="btn btn-primary btn-sm" style="min-height:42px" onclick="agregarCantidadAvance()"><i class="ti ti-plus" aria-hidden="true"></i> Marcar +1</button>
+        <button class="btn btn-ghost btn-sm" style="min-height:42px" onclick="limpiarMarcasAvance()">Limpiar</button>
+      </div>
+      <div class="av-nota" style="margin-top:6px">Van <b>${cfg.unidades.length + A.nuevos.length}</b> de <b>${R.total}</b> ${T.varios} con nombre. Escribe la nomenclatura de la que avanzaste; si ya existe, se marca esa.</div>` : `<div class="av-fila" style="margin-top:10px">
         <input class="field-input" id="av-rango" placeholder="Rápido: ${cfg.tipo === 'solar' ? '23-28, 31' : '1-4, 7'}" style="flex:1;min-width:150px" onkeydown="if(event.key==='Enter'){aplicarRangoAvance();}">
         <button class="btn btn-ghost btn-sm" style="min-height:42px" onclick="aplicarRangoAvance()"><i class="ti ti-select" aria-hidden="true"></i> Marcar</button>
         <button class="btn btn-ghost btn-sm" style="min-height:42px" onclick="seleccionarPendientesAvance()" title="Marcar todos los pendientes">Pendientes</button>
-        <button class="btn btn-ghost btn-sm" style="min-height:42px" onclick="STATE._av.sel=new Set();STATE._av.inc=new Set();STATE._av.ofrecerModo=null;pintarAvance()">Limpiar</button>
-      </div>
+        <button class="btn btn-ghost btn-sm" style="min-height:42px" onclick="limpiarMarcasAvance()">Limpiar</button>
+      </div>`}
       <div class="av-ley-barra">
-        <span><span class="av-dot ok"></span>Concluido</span><span><span class="av-dot pend"></span>Pendiente</span><span><span class="av-dot inc"></span>Con incidencia</span>
+        <span><span class="av-dot ok"></span>Concluido</span><span><span class="av-dot proc"></span>En proceso</span><span><span class="av-dot pend"></span>Pendiente</span><span><span class="av-dot inc"></span>Con incidencia</span>
         <span class="av-ley-sep"></span>
-        <span><span class="av-dot sel"></span>Marcado OK</span><span><span class="av-dot selinc"></span>Marcado incidencia</span>
+        <span><span class="av-dot sel"></span>Marcado OK</span><span><span class="av-dot selproc"></span>Marcado en proceso</span><span><span class="av-dot selinc"></span>Marcado incidencia</span>
       </div>
       ${vista === 'mapa' && esCelular() ? `<button class="btn btn-primary av-btn-fs" onclick="abrirMapaFs()"><i class="ti ti-zoom-in" aria-hidden="true"></i> Abrir mapa en pantalla completa</button>
         <div class="av-mini" onclick="abrirMapaFs()">${htmlMapaAvance(cfg, R, 'captura')}<span class="av-mini-tip"><i class="ti ti-hand-finger" aria-hidden="true"></i> Toca para seleccionar</span></div>` : ''}
@@ -8561,10 +8661,12 @@ function pintarAvance() {
         <div class="av-aviso-modo" id="av-pines-aviso" style="display:none"><i class="ti ti-hand-finger" aria-hidden="true"></i><span>Los ${T.varios} están muy juntos para tocarlos con precisión. Usa <b>Acercar</b> o la vista <b>Lista</b>.</span>
           <button class="btn btn-ghost btn-sm" onclick="STATE._av.vista='grid';pintarAvance()"><i class="ti ti-layout-grid" aria-hidden="true"></i> Lista</button></div>` : ''}
       ${vista === 'mapa' && cfg.unidades.some(u => u.x == null) ? `<div class="av-nota" style="margin:12px 0 6px">Sin ubicar en el mapa:</div>` : ''}
-      <div class="av-grid" ${vista === 'mapa' ? '' : ''}>${cfg.unidades.map((u, i) => (vista === 'mapa' && u.x != null) ? '' :
-        `<div class="av-tile ${claseUnidadAv(R, u.id)} ${A.sel.has(u.id) ? (A.inc.has(u.id) ? 'sel selinc' : 'sel') : ''} ${hoySet.has(u.id) ? 'hoy' : ''}" onclick="alternarUnidadAvance(${i})" title="${escHtml(tituloUnidadAv(R, u.id))}">${escHtml(u.id)}</div>`).join('')}</div>
+      <div class="av-grid">${cfg.unidades.map((u, i) => (vista === 'mapa' && u.x != null) ? '' :
+        `<div class="av-tile ${claseUnidadAv(R, u.id)}${claseMarcaAv(u.id)} ${hoySet.has(u.id) ? 'hoy' : ''}" onclick="alternarUnidadAvance(${i})" title="${escHtml(tituloUnidadAv(R, u.id))}">${escHtml(u.id)}</div>`).join('')}${esCant ? htmlVaciosCantidad(R) : ''}</div>
       ${htmlHallazgosAvance(cfg)}
-      <input class="field-input" id="av-nota" placeholder="${A.inc.size ? 'Nota para los concluidos (opcional)' : 'Nota corta (opcional)'}" maxlength="500" style="margin-top:12px;width:100%" value="${escHtml(A.nota || '')}" oninput="STATE._av.nota=this.value">
+      <div class="av-nota-dia">
+        <label class="field-label" for="av-nota">${A.sel.size ? (marcadosAv('ok').length ? 'NOTA PARA LOS CONCLUIDOS <span class="np-opc">opcional</span>' : 'NOTA DEL DÍA <span class="np-opc">opcional · clima, accesos, pendientes</span>') : 'NOTA DEL DÍA <span class="np-opc">sin marcar unidades: se guarda sola</span>'}</label>
+        <input class="field-input" id="av-nota" placeholder="${A.sel.size ? 'Nota corta (opcional)' : 'Ej: Sin acceso al parque por lluvia; se reprograma.'}" maxlength="500" style="width:100%" value="${escHtml(A.nota || '')}" oninput="STATE._av.nota=this.value;estadoBotonAvance()"></div>
       <div class="av-registrar ${A.sel.size ? 'flota' : ''}">
         <div class="av-registrar-txt" id="av-reg-txt"></div>
         <button class="btn btn-primary" id="av-btn-reg" onclick="ejecutarConCarga(this, registrarAvance)"><i class="ti ti-device-floppy" aria-hidden="true"></i> Guardar registro</button>
@@ -8576,6 +8678,7 @@ function pintarAvance() {
       <div class="av-salida">
         <button class="btn av-btn-wa" onclick="abrirWhatsAppAvance()"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i> WhatsApp</button>
         <button class="btn btn-ghost" onclick="ejecutarConCarga(this, exportarAvancePDF, 'Generando…')"><i class="ti ti-file-type-pdf" aria-hidden="true"></i> PDF / Imagen</button>
+        <button class="btn btn-ghost" onclick="reportarIncidenciaDesdeAvance()"><i class="ti ti-alert-octagon" aria-hidden="true"></i> Reportar incidencia</button>
       </div>
     </div>
 
@@ -8599,80 +8702,123 @@ function ajustarPinesAvance() {
   const av = document.getElementById('av-pines-aviso');
   if (av) av.style.display = (sep < 14 && !STATE._av.zoom && !esCelular()) ? 'flex' : 'none';   // demasiado juntos para el dedo
 }
-// Un campo obligatorio por cada unidad marcada con incidencia
+// Un campo obligatorio por cada unidad marcada en proceso o con incidencia
 function cambiarModoAvance(modo) {
   const A = STATE._av; A.estatus = modo;
-  // ¿hay unidades ya marcadas con el otro estatus? → se ofrece pasarlas (antes se quedaban como OK sin avisar)
-  const otras = [...A.sel].filter(id => (modo === 'incidencia') !== A.inc.has(id));
+  // ¿hay unidades ya marcadas con otro estatus? → se ofrece pasarlas todas
+  const otras = [...A.sel].filter(id => estMarcaAv(id) !== modo);
   A.ofrecerModo = otras.length ? modo : null;
   pintarAvance();
 }
+function limpiarMarcasAvance() { const A = STATE._av; A.sel = new Set(); A.est = {}; A.nuevos = []; A.ofrecerModo = null; pintarAvance(); }
 function aplicarModoATodosAvance() {
-  const A = STATE._av;
-  const nota = (A.nota || '').trim();
+  const A = STATE._av, modo = A.estatus, nota = (A.nota || '').trim();
   [...A.sel].forEach(id => {
-    if (A.estatus === 'incidencia') {
-      // la nota que ya se había escrito en el campo general pasa como hallazgo de cada unidad (no se pierde)
-      if (!A.inc.has(id) && nota && !(A.notasInc[id] || '').trim()) A.notasInc[id] = nota;
-      A.inc.add(id);
-    } else A.inc.delete(id);
+    // la nota que ya se había escrito en el campo general pasa como nota de cada unidad (no se pierde)
+    if (modo !== 'ok' && estMarcaAv(id) !== modo && nota && !(A.notasInc[id] || '').trim()) A.notasInc[id] = nota;
+    ponerMarcaAv(id, modo);
   });
-  if (A.estatus === 'incidencia' && nota) A.nota = '';
+  if (modo !== 'ok' && nota) A.nota = '';
   A.ofrecerModo = null; pintarAvance();
   setTimeout(() => document.querySelector('.av-hallazgo.falta input')?.focus(), 50);
 }
-// Lista de lo marcado: cada unidad se puede cambiar OK ⇄ incidencia; las de incidencia piden su nota
+function cambiarMarcaAvance(id, e) {
+  ponerMarcaAv(id, e); STATE._av.ofrecerModo = null; pintarAvance();
+  if (e !== 'ok') setTimeout(() => document.querySelector(`.av-hallazgo[data-id="${CSS.escape(id)}"] input`)?.focus(), 50);
+}
+// Lista de lo marcado: cada unidad se puede cambiar OK / en proceso / incidencia; las dos últimas piden su nota
 function htmlHallazgosAvance(cfg) {
-  const A = STATE._av, orden = cfg.unidades.map(u => u.id), porOrden = (a, b) => orden.indexOf(a) - orden.indexOf(b);
-  const ids = [...A.inc].filter(id => A.sel.has(id)).sort(porOrden);
-  const oks = [...A.sel].filter(id => !A.inc.has(id)).sort(porOrden);
+  const A = STATE._av, T = tiposAv(cfg), orden = ordenAv(cfg), porOrden = (a, b) => orden.indexOf(a) - orden.indexOf(b);
   if (!A.sel.size) return '';
-  const uno = cfg.tipo === 'solar' ? 'bloque' : 'WTG';
-  const otras = A.ofrecerModo === A.estatus ? [...A.sel].filter(id => (A.estatus === 'incidencia') !== A.inc.has(id)) : [];
+  const oks = marcadosAv('ok').sort(porOrden), procs = marcadosAv('proceso').sort(porOrden), incs = marcadosAv('incidencia').sort(porOrden);
+  const otras = A.ofrecerModo === A.estatus ? [...A.sel].filter(id => estMarcaAv(id) !== A.estatus) : [];
+  const nomModo = e => e === 'ok' ? 'OK' : EST_AV[e].t.toLowerCase();
+  const j = id => escHtml(JSON.stringify(id));
+  const fila = (id, est) => `<div class="av-hallazgo ${(A.notasInc[id] || '').trim() ? '' : 'falta'}" data-id="${escHtml(id)}">
+      <label>${est === 'proceso' ? '¿Qué se avanzó en' : 'Hallazgo en'} <b>${escHtml(id)}</b>?</label>
+      <input class="field-input" maxlength="500" placeholder="${est === 'proceso' ? 'Ej: Se hicieron palas 2 y 3; falta pala 1.' : 'Escriba el hallazgo…'}" value="${escHtml(A.notasInc[id] || '')}" oninput="notaHallazgoAvance(this)">
+      <div class="av-mini-seg">
+        <button title="Pasar a concluido OK" onclick="cambiarMarcaAvance(${j(id)},'ok')"><i class="ti ti-circle-check" aria-hidden="true"></i></button>
+        <button class="${est === 'proceso' ? 'on proc' : ''}" title="En proceso" onclick="cambiarMarcaAvance(${j(id)},'proceso')"><i class="ti ti-progress" aria-hidden="true"></i></button>
+        <button class="${est === 'incidencia' ? 'on inc' : ''}" title="Con incidencia" onclick="cambiarMarcaAvance(${j(id)},'incidencia')"><i class="ti ti-alert-triangle" aria-hidden="true"></i></button>
+      </div>
+    </div>`;
   return `
     ${otras.length ? `<div class="av-aviso-modo"><i class="ti ti-info-circle" aria-hidden="true"></i>
-      <span>Ya tienes ${otras.length} ${otras.length === 1 ? uno : uno + 's'} marcado${otras.length === 1 ? '' : 's'} como <b>${A.estatus === 'incidencia' ? 'OK' : 'incidencia'}</b>. Lo que toques ahora se marca como <b>${A.estatus === 'incidencia' ? 'incidencia' : 'OK'}</b>.</span>
-      <button class="btn btn-sm ${A.estatus === 'incidencia' ? 'av-btn-inc' : 'btn-ghost'}" onclick="aplicarModoATodosAvance()">Pasar ${otras.length === 1 ? 'ese' : 'los ' + otras.length} a ${A.estatus === 'incidencia' ? 'incidencia' : 'OK'}</button></div>` : ''}
+      <span>Ya tienes ${otras.length} ${otras.length === 1 ? T.uno : T.varios} marcado${otras.length === 1 ? '' : 's'} con otro estatus. Lo que toques ahora se marca como <b>${nomModo(A.estatus)}</b>.</span>
+      <button class="btn btn-sm ${A.estatus === 'incidencia' ? 'av-btn-inc' : 'btn-ghost'}" onclick="aplicarModoATodosAvance()">Pasar ${otras.length === 1 ? 'ese' : 'los ' + otras.length} a ${nomModo(A.estatus)}</button></div>` : ''}
     ${oks.length ? `<div class="av-marcados"><span class="av-marcados-tit"><i class="ti ti-circle-check" aria-hidden="true"></i> OK (${oks.length})</span>
-      ${oks.map(id => `<button class="av-chip-ok" title="Cambiar ${escHtml(id)} a incidencia" onclick="STATE._av.inc.add(${escHtml(JSON.stringify(id))});pintarAvance();setTimeout(()=>document.querySelector('.av-hallazgo.falta input')?.focus(),50)">${escHtml(id)} <i class="ti ti-alert-triangle" aria-hidden="true"></i></button>`).join('')}
-      <span class="av-nota" style="font-size:11px">Toca uno para pasarlo a incidencia</span></div>` : ''}
-    ${ids.length ? `<div class="av-hallazgos">
-    <div class="av-hallazgos-tit"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Con incidencia (${ids.length}) · la nota es obligatoria por cada ${uno}</div>
-    <div class="av-nota" style="font-size:11px;margin-top:-4px">Escribe la nota y toca <b>Guardar registro</b>; no hace falta confirmarla.</div>
-    ${ids.map(id => `<div class="av-hallazgo ${(A.notasInc[id] || '').trim() ? '' : 'falta'}" data-id="${escHtml(id)}">
-      <label>Nota para <b>${escHtml(id)}</b></label>
-      <input class="field-input" maxlength="500" placeholder="Escriba el hallazgo…" value="${escHtml(A.notasInc[id] || '')}" oninput="notaHallazgoAvance(this)">
-      <button class="btn btn-ghost btn-sm" title="Quitar la incidencia: ${escHtml(id)} pasa a concluido OK" onclick="STATE._av.inc.delete(${escHtml(JSON.stringify(id))});pintarAvance()"><i class="ti ti-arrow-back-up" aria-hidden="true"></i> Quitar incidencia</button>
-    </div>`).join('')}
-  </div>` : ''}`;
+      ${oks.map(id => `<span class="av-chip-ok">${escHtml(id)}<button title="${escHtml(id)}: en proceso" onclick="cambiarMarcaAvance(${j(id)},'proceso')"><i class="ti ti-progress" aria-hidden="true"></i></button><button title="${escHtml(id)}: con incidencia" onclick="cambiarMarcaAvance(${j(id)},'incidencia')"><i class="ti ti-alert-triangle" aria-hidden="true"></i></button></span>`).join('')}
+      <span class="av-nota" style="font-size:11px">Usa los íconos para pasarlo a en proceso o incidencia</span></div>` : ''}
+    ${procs.length ? `<div class="av-hallazgos proc">
+      <div class="av-hallazgos-tit"><i class="ti ti-progress" aria-hidden="true"></i> En proceso (${procs.length}) · se intervino pero no se terminó: anota lo que se hizo</div>
+      ${procs.map(id => fila(id, 'proceso')).join('')}
+    </div>` : ''}
+    ${incs.length ? `<div class="av-hallazgos">
+      <div class="av-hallazgos-tit"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Con incidencia (${incs.length}) · la nota es obligatoria por cada ${T.uno}</div>
+      <div class="av-inc-meta">
+        <div class="field-group"><label class="field-label">TIPO</label><select class="field-select" onchange="STATE._av.incTipo=this.value">${opcionesTipoIncidencia(A.incTipo || 'otro')}</select></div>
+        <div class="field-group"><label class="field-label">SEVERIDAD</label><select class="field-select" onchange="STATE._av.incSev=this.value">${[['baja', 'Baja — Informativo'], ['media', 'Media — Seguimiento'], ['alta', 'Alta — Atención inmediata']].map(([k, t]) => `<option value="${k}"${k === (A.incSev || 'media') ? ' selected' : ''}>${t}</option>`).join('')}</select></div>
+      </div>
+      <div class="av-nota" style="font-size:11px;margin-top:-2px">Se registra también como incidencia del proyecto (aparece en Incidencias y Métricas). No significa que no se vaya a hacer: cuando se termine, márcala OK.</div>
+      ${incs.map(id => fila(id, 'incidencia')).join('')}
+    </div>` : ''}`;
 }
 function notaHallazgoAvance(el) {
   const fila = el.closest('.av-hallazgo'); STATE._av.notasInc[fila.dataset.id] = el.value;
   fila.classList.toggle('falta', !el.value.trim());
   estadoBotonAvance();
 }
-// Habilita "Guardar registro" solo si hay algo marcado y ninguna incidencia sin nota
+// Habilita "Guardar registro" si hay algo marcado (o una nota del día) y ninguna nota obligatoria vacía
 function estadoBotonAvance() {
   const A = STATE._av, cfg = A.data?.config, btn = document.getElementById('av-btn-reg'), txt = document.getElementById('av-reg-txt');
   if (!cfg || !btn) return;
-  const T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico;
-  const inc = [...A.inc].filter(id => A.sel.has(id)), ok = [...A.sel].filter(id => !A.inc.has(id));
-  const faltan = inc.filter(id => !(A.notasInc[id] || '').trim());
-  btn.disabled = !A.sel.size || faltan.length > 0;
+  const T = tiposAv(cfg);
+  const ok = marcadosAv('ok'), pr = marcadosAv('proceso'), inc = marcadosAv('incidencia');
+  const faltan = [...pr, ...inc].filter(id => !(A.notasInc[id] || '').trim());
+  const notaDia = !A.sel.size && (A.nota || '').trim().length >= 3;
+  btn.disabled = (!A.sel.size && !notaDia) || faltan.length > 0;
   const err = A.errorGuardado ? `<div style="color:var(--red-text);font-size:11.5px;margin-top:3px;font-weight:600"><i class="ti ti-alert-circle" aria-hidden="true"></i> ${escHtml(A.errorGuardado)}</div>` : '';
-  if (!A.sel.size) { txt.innerHTML = `Toca los ${T.varios} atendidos` + err; return; }
+  if (!A.sel.size) {
+    txt.innerHTML = (notaDia ? 'Se guardará como <b>nota del día</b>' : `Toca los ${T.varios} atendidos o escribe una nota del día`) + err; return;
+  }
   const partes = [];
   if (ok.length) partes.push(`<b style="color:var(--green)">${ok.length} OK</b>`);
+  if (pr.length) partes.push(`<b style="color:var(--av-proc-tx)">${pr.length} en proceso</b>`);
   if (inc.length) partes.push(`<b style="color:var(--red-text)">${inc.length} con incidencia</b>`);
   txt.innerHTML = partes.join(' · ') + (faltan.length
     ? `<div style="color:var(--red-text);font-size:11.5px;margin-top:2px"><i class="ti ti-pencil" aria-hidden="true"></i> Falta la nota de ${escHtml(faltan.join(', '))}</div>`
     : `<div style="font-size:11.5px;color:var(--text3);margin-top:2px">${escHtml(rangosUnidades(cfg, [...A.sel]))}</div>`) + err;
 }
-function claseUnidadAv(R, id) { const e = R.estado[id]?.estatus; return e === 'ok' ? 'ok' : e === 'incidencia' ? 'inc' : 'pend'; }
+// Por cantidad: lugares aún sin nombre (se nombran al avanzar)
+function htmlVaciosCantidad(R) {
+  const A = STATE._av, n = Math.max(0, R.sinNombre - A.nuevos.length), MAX = 40;
+  return A.nuevos.map((id, k) => `<div class="av-tile pend nuevo${claseMarcaAv(id)}" onclick="alternarNuevoAvance(${k})" title="${escHtml(id)} · nuevo (se agrega al guardar)">${escHtml(id)}</div>`).join('')
+    + Array.from({ length: Math.min(n, MAX) }, () => `<div class="av-tile vacio" title="Sin nombre todavía: escríbelo arriba al avanzar">·</div>`).join('')
+    + (n > MAX ? `<div class="av-tile vacio">+${n - MAX}</div>` : '');
+}
+function alternarNuevoAvance(k) { const id = STATE._av.nuevos[k]; if (id == null) return; marcarUnidadAvance(id, true); pintarAvance(); }
+function agregarCantidadAvance() {
+  const A = STATE._av, cfg = A.data.config, T = tiposAv(cfg), el = document.getElementById('av-cant-in');
+  const v = (el?.value || '').trim().replace(/\s+/g, ' ');
+  if (!v) { toast(`Escribe cuál ${T.uno} (ej: 1.6)`, 'error'); el?.focus(); return; }
+  if (v.length > 60) { toast('Nombre muy largo (máx. 60).', 'error'); return; }
+  const igual = x => x.toUpperCase() === v.toUpperCase();
+  let id = cfg.unidades.find(u => igual(u.id))?.id || A.nuevos.find(igual);
+  if (!id) {
+    const R = calcAvance(cfg, A.data.registros);
+    if (cfg.unidades.length + A.nuevos.length >= R.total) { toast(`Ya van ${R.total} de ${R.total}: ajusta el total en la configuración para agregar más.`, 'error'); return; }
+    A.nuevos.push(v); id = v;
+  }
+  marcarUnidadAvance(id, false);
+  pintarAvance();
+  setTimeout(() => document.getElementById('av-cant-in')?.focus(), 30);
+}
+function claseUnidadAv(R, id) { const e = R.estado[id]?.estatus; return e === 'ok' ? 'ok' : e === 'incidencia' ? 'inc' : e === 'proceso' ? 'proc' : 'pend'; }
 function tituloUnidadAv(R, id) {
   const e = R.estado[id];
   if (!e) return `${id} · pendiente`;
-  return `${id} · ${e.estatus === 'ok' ? 'concluido' : 'con incidencia'} el ${fCorta(e.fecha)}${e.nota ? ' — ' + e.nota : ''}`;
+  return `${id} · ${(EST_AV[e.estatus]?.largo || e.estatus).toLowerCase()} el ${fCorta(e.fecha)}${e.nota ? ' — ' + e.nota : ''}`;
 }
 // modo: 'captura' (toca para seleccionar) | 'ubicar' (editor de posiciones)
 // Áreas (polígonos) dibujadas sobre el mapa, como en Google Earth. Coordenadas en % de la imagen.
@@ -8699,7 +8845,7 @@ function svgPolysAvance(unidades, clase, borrador) {
 }
 // modo: 'captura' (embebido) | 'fs' (pantalla completa, celular) | 'ubicar' (editor)
 function htmlCapasMapaAvance(cfg, R, modo, actual) {
-  const A = STATE._av, marca = u => A.sel.has(u.id) ? (A.inc?.has(u.id) ? ' sel selinc' : ' sel') : '';
+  const marca = u => claseMarcaAv(u.id);
   return `${modo !== 'ubicar' ? svgPolysAvance(cfg.unidades, u => claseUnidadAv(R, u.id) + marca(u)) : ''}
     ${cfg.unidades.map((u, i) => u.x == null ? '' : `<div class="av-pin ${modo === 'ubicar' ? (i === actual ? 'actual' : 'ok') : claseUnidadAv(R, u.id) + marca(u)}" style="left:${u.x}%;top:${u.y}%"
       ${modo === 'ubicar' ? `onclick="event.stopPropagation();STATE._avUb.i=${i};pintarUbicador()"` : `data-i="${i}"`} title="${escHtml(modo === 'ubicar' ? u.id : tituloUnidadAv(R, u.id))}">${escHtml(etqCorta(u.id))}</div>`).join('')}`;
@@ -8714,14 +8860,15 @@ function htmlMapaAvance(cfg, R, modo, actual) {
 function htmlHistorialAvance(cfg) {
   const regs = ordenRegistros(STATE._av.data.registros).reverse();
   if (!regs.length) return `<div class="av-nota">Aún no hay registros. Lo que captures aparece aquí, agrupado por día.</div>`;
-  const T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico, dias = {};
+  const T = tiposAv(cfg), dias = {};
   regs.forEach(r => (dias[r.fecha] = dias[r.fecha] || []).push(r));
+  const etq = e => e === 'ok' ? 'Concluido' : e === 'proceso' ? '<span style="color:var(--av-proc-tx)">En proceso</span>' : e === 'incidencia' ? '<span style="color:var(--red-text)">Con incidencia</span>' : escHtml(EST_AV[e]?.t || e);
   return Object.entries(dias).map(([f, rs]) => {
     const n = new Set(rs.flatMap(r => r.unidades)).size;
     return `<div class="av-dia"><div class="av-dia-tit"><i class="ti ti-calendar" aria-hidden="true"></i>${escHtml(fechaLargaAv(f))}<span>· ${n} ${n === 1 ? T.uno : T.varios}</span></div>
       ${rs.map(r => `<div class="av-reg">
-        <span class="av-dot ${r.estatus === 'ok' ? 'ok' : 'inc'}" style="margin-top:6px"></span>
-        <div class="av-reg-cuerpo"><b>${escHtml(rangosUnidades(cfg, r.unidades))}</b> · ${r.estatus === 'ok' ? 'Concluido' : '<span style="color:var(--red-text)">Con incidencia</span>'}
+        ${r.estatus === 'nota' ? '<i class="ti ti-note" aria-hidden="true" style="color:var(--text3);margin-top:2px"></i>' : `<span class="av-dot ${EST_AV[r.estatus]?.cls || 'pend'}" style="margin-top:6px"></span>`}
+        <div class="av-reg-cuerpo">${r.unidades.length ? `<b>${escHtml(rangosUnidades(cfg, r.unidades))}</b> · ${etq(r.estatus)}` : '<b>Nota del día</b>'}
           ${r.nota ? `<div>${escHtml(r.nota)}</div>` : ''}<em>${escHtml(r.tecnico || '')}${r.creado_en ? ' · ' + new Date(r.creado_en + 'Z').toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : ''}</em></div>
         <button class="btn btn-ghost btn-sm" title="Borrar registro" onclick="borrarRegistroAvance(${r.id})"><i class="ti ti-trash" aria-hidden="true"></i></button>
       </div>`).join('')}</div>`;
@@ -8733,10 +8880,10 @@ function htmlHistorialAvance(cfg) {
 // solo actualiza los puntos del visor; al "Aplicar" se regresa al formulario con todo marcado.
 function abrirMapaFs() {
   const A = STATE._av, cfg = A.data?.config; if (!cfg?.mapa_url) return;
-  A._fsPrev = { sel: new Set(A.sel), inc: new Set(A.inc), estatus: A.estatus };
+  A._fsPrev = { sel: new Set(A.sel), est: { ...(A.est || {}) }, estatus: A.estatus };
   let ov = document.getElementById('av-fs');
   if (!ov) { ov = document.createElement('div'); ov.id = 'av-fs'; ov.className = 'av-fs'; document.body.appendChild(ov); }
-  const T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico;
+  const T = tiposAv(cfg);
   ov.innerHTML = `
     <div class="av-fs-top">
       <button class="av-fs-x" onclick="cerrarMapaFs(false)" aria-label="Cancelar"><i class="ti ti-x" aria-hidden="true"></i></button>
@@ -8768,7 +8915,7 @@ function abrirMapaFs() {
 }
 function cerrarMapaFs(aplicar) {
   const A = STATE._av, ov = document.getElementById('av-fs');
-  if (!aplicar && A._fsPrev) { A.sel = A._fsPrev.sel; A.inc = A._fsPrev.inc; A.estatus = A._fsPrev.estatus; }
+  if (!aplicar && A._fsPrev) { A.sel = A._fsPrev.sel; A.est = A._fsPrev.est; A.estatus = A._fsPrev.estatus; }
   A._fsPrev = null; A.ofrecerModo = null;
   if (ov) { ov.style.display = 'none'; ov.innerHTML = ''; }
   document.documentElement.classList.remove('av-fs-abierto');
@@ -8786,11 +8933,12 @@ function pintarFsAvance() {
   mapa.insertAdjacentHTML('beforeend', htmlCapasMapaAvance(cfg, R, 'fs'));
   ov.querySelector('#av-fs-modo').innerHTML = `
     <button class="ok ${A.estatus === 'ok' ? 'on' : ''}" onclick="STATE._av.estatus='ok';pintarFsAvance()"><i class="ti ti-circle-check" aria-hidden="true"></i>OK</button>
+    <button class="proc ${A.estatus === 'proceso' ? 'on' : ''}" onclick="STATE._av.estatus='proceso';pintarFsAvance()"><i class="ti ti-progress" aria-hidden="true"></i>En proceso</button>
     <button class="inc ${A.estatus === 'incidencia' ? 'on' : ''}" onclick="STATE._av.estatus='incidencia';pintarFsAvance()"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Incidencia</button>`;
-  const T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico, n = A.sel.size;
-  const nInc = [...A.inc].filter(id => A.sel.has(id)).length, nOk = n - nInc;
+  const T = tiposAv(cfg), n = A.sel.size;
+  const nInc = marcadosAv('incidencia').length, nProc = marcadosAv('proceso').length, nOk = n - nInc - nProc;
   ov.querySelector('#av-fs-cuenta').innerHTML = n
-    ? `<b style="color:var(--av-ok-tx)">${nOk} OK</b> · <b style="color:var(--av-inc-tx)">${nInc} incidencia${nInc === 1 ? '' : 's'}</b>`
+    ? `<b style="color:var(--av-ok-tx)">${nOk} OK</b>${nProc ? ` · <b style="color:var(--av-proc-tx)">${nProc} en proceso</b>` : ''} · <b style="color:var(--av-inc-tx)">${nInc} incidencia${nInc === 1 ? '' : 's'}</b>`
     : `Toca los ${T.varios} atendidos`;
   const ok = ov.querySelector('#av-fs-ok');
   ok.innerHTML = `<i class="ti ti-check" aria-hidden="true"></i> ${n ? `Aplicar selección (${n} ${n === 1 ? T.uno : T.varios})` : 'Listo'}`;
@@ -8868,7 +9016,7 @@ function tocarMapaFs(x, y) {
   if (lista.length === 1) { marcarUnidadAvance(cfg.unidades[lista[0]].id, true); pintarFsAvance(); return; }
   const R = calcAvance(cfg, A.data.registros), el = document.getElementById('av-fs-elige');
   el.innerHTML = `<div class="av-elige-tit">Hay ${lista.length} juntos, ¿cuál?</div>
-    ${lista.map(i => { const id = cfg.unidades[i].id, marca = A.sel.has(id) ? (A.inc.has(id) ? ' · marcado incidencia' : ' · marcado OK') : '';
+    ${lista.map(i => { const id = cfg.unidades[i].id, marca = txtMarcaAv(id);
       return `<button onclick="document.getElementById('av-fs-elige').hidden=true;marcarUnidadAvance(${escHtml(JSON.stringify(id))}, true);pintarFsAvance()"><span class="av-dot ${claseUnidadAv(R, id)}"></span>${escHtml(id)}<span style="font-family:var(--sans);font-weight:500;font-size:11px;color:var(--text3)">${marca}</span></button>`; }).join('')}
     <button class="av-fs-elige-no" onclick="document.getElementById('av-fs-elige').hidden=true">Cancelar</button>`;
   el.hidden = false;
@@ -8909,7 +9057,7 @@ function clicMapaCaptura(ev) {
   mapa.insertAdjacentHTML('beforeend', `<div class="av-elige" style="left:${ev.clientX - box.left}px;top:${ev.clientY - box.top}px">
     <div class="av-elige-tit">Hay ${lista.length} juntos, ¿cuál?</div>
     ${lista.map(i => { const id = cfg.unidades[i].id;
-      const marca = A.sel.has(id) ? (A.inc.has(id) ? ' · marcado incidencia' : ' · marcado OK') : '';
+      const marca = txtMarcaAv(id);
       return `<button onclick="event.stopPropagation();this.closest('.av-elige').remove();alternarUnidadAvance(${i})"><span class="av-dot ${claseUnidadAv(R, id)}"></span>${escHtml(id)}<span style="font-family:var(--sans);font-weight:500;font-size:11px;color:var(--text3)">${marca}</span></button>`; }).join('')}
   </div>`);
 }
@@ -8923,11 +9071,10 @@ function alternarUnidadAvance(i) {
 }
 // Modo OK: toca = marcar OK / cambiar a OK / quitar.  Modo incidencia: igual, con incidencia.
 function marcarUnidadAvance(id, alternar) {
-  const A = STATE._av, inc = A.estatus === 'incidencia';
+  const A = STATE._av, e = A.estatus || 'ok';
   A.ofrecerModo = null;   // ya está marcando uno por uno: el aviso de "pasar todos" sobra
-  const yaIgual = A.sel.has(id) && A.inc.has(id) === inc;
-  if (alternar && yaIgual) { A.sel.delete(id); A.inc.delete(id); return; }
-  A.sel.add(id); inc ? A.inc.add(id) : A.inc.delete(id);
+  if (alternar && A.sel.has(id) && estMarcaAv(id) === e) { quitarMarcaAv(id); return; }
+  ponerMarcaAv(id, e);
 }
 function aplicarRangoAvance() {
   const A = STATE._av, cfg = A.data.config, txt = document.getElementById('av-rango')?.value || '';
@@ -8946,7 +9093,7 @@ function aplicarRangoAvance() {
 }
 function seleccionarPendientesAvance() {
   const A = STATE._av, R = calcAvance(A.data.config, A.data.registros);
-  A.data.config.unidades.forEach(u => { if (!R.estado[u.id]) marcarUnidadAvance(u.id, false); });
+  A.data.config.unidades.forEach(u => { if (!R.estado[u.id] || R.estado[u.id].estatus === 'proceso') marcarUnidadAvance(u.id, false); });
   pintarAvance();
 }
 // POST con el motivo exacto si falla (el aviso normal dura 3 s y se pierde)
@@ -8960,41 +9107,55 @@ async function postAvance(path, body) {
   } catch (e) { return { ok: false, error: 'sin conexión con el servidor' }; }
 }
 async function registrarAvance() {
-  const A = STATE._av, cfg = A.data.config, T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico;
+  const A = STATE._av, cfg = A.data.config, T = tiposAv(cfg);
   const fecha = document.getElementById('av-fecha')?.value || A.fecha;
   if (!fecha) { toast('Elige la fecha.', 'error'); return; }
-  const orden = cfg.unidades.map(u => u.id), porOrden = (a, b) => orden.indexOf(a) - orden.indexOf(b);
-  const inc = [...A.inc].filter(id => A.sel.has(id)).sort(porOrden), ok = [...A.sel].filter(id => !A.inc.has(id)).sort(porOrden);
-  if (A.estatus === 'incidencia' && !inc.length && ok.length) {
-    if (confirm(`Tienes "Con incidencia" elegido, pero ${ok.length === 1 ? 'la unidad marcada está' : `las ${ok.length} unidades marcadas están`} como OK.\n\n¿Pasarlas a incidencia para escribir el hallazgo?\n\n(Cancelar = no se guarda nada todavía)`)) { A.ofrecerModo = A.estatus; aplicarModoATodosAvance(); return; }
-    A.errorGuardado = 'No se guardó nada. Elige qué WTGs van con incidencia o cambia a "Concluida / OK".'; estadoBotonAvance(); return;
+  const orden = ordenAv(cfg), porOrden = (a, b) => orden.indexOf(a) - orden.indexOf(b);
+  const ok = marcadosAv('ok').sort(porOrden), pr = marcadosAv('proceso').sort(porOrden), inc = marcadosAv('incidencia').sort(porOrden);
+  const notaGen = (A.nota || '').trim();
+  if (!A.sel.size && notaGen.length < 3) { toast(`Marca ${T.varios} o escribe una nota del día.`, 'error'); return; }
+  if (A.estatus !== 'ok' && ok.length && !pr.length && !inc.length) {
+    const nom = A.estatus === 'incidencia' ? 'Con incidencia' : 'En proceso';
+    if (confirm(`Tienes "${nom}" elegido, pero ${ok.length === 1 ? 'lo marcado está' : `los ${ok.length} marcados están`} como OK.\n\n¿Pasarlos a "${nom}" para escribir su nota?\n\n(Cancelar = no se guarda nada todavía)`)) { A.ofrecerModo = A.estatus; aplicarModoATodosAvance(); return; }
+    A.errorGuardado = `No se guardó nada. Elige cuáles van "${nom}" o cambia a OK.`; estadoBotonAvance(); return;
   }
-  const faltan = inc.filter(id => !(A.notasInc[id] || '').trim());
+  const faltan = [...pr, ...inc].filter(id => !(A.notasInc[id] || '').trim());
   if (faltan.length) {
-    toast(`Falta la nota del hallazgo: ${faltan.join(', ')}`, 'error');
+    toast(`Falta la nota de: ${faltan.join(', ')}`, 'error');
     document.querySelector('.av-hallazgo.falta input')?.focus(); return;
   }
   const lotes = [];
-  if (ok.length) lotes.push({ unidades: ok, estatus: 'ok', nota: (A.nota || '').trim() || null });
-  inc.forEach(id => lotes.push({ unidades: [id], estatus: 'incidencia', nota: A.notasInc[id].trim() }));
-  let guardadas = 0;
+  if (ok.length) lotes.push({ unidades: ok, estatus: 'ok', nota: notaGen || null, _gen: true });
+  pr.forEach(id => lotes.push({ unidades: [id], estatus: 'proceso', nota: A.notasInc[id].trim() }));
+  inc.forEach(id => lotes.push({ unidades: [id], estatus: 'incidencia', nota: A.notasInc[id].trim(), incidencia_tipo: A.incTipo || 'otro', incidencia_severidad: A.incSev || 'media' }));
+  if (!ok.length && notaGen) lotes.push({ unidades: [], estatus: 'ok', nota: notaGen, _gen: true });   // nota del día
+  let guardadas = 0, notaDia = false, nIncs = 0;
   for (const l of lotes) {
-    const r = await postAvance(`/avance/${encodeURIComponent(A.pid)}/registros`, { fecha, ...l });
+    const { _gen, ...body } = l;
+    const r = await postAvance(`/avance/${encodeURIComponent(A.pid)}/registros`, { fecha, ...body });
     if (!r.ok) {   // lo que no se guardó se queda marcado para reintentar, con el motivo a la vista
-      A.errorGuardado = `No se guardó ${l.unidades.join(', ')} (${l.estatus === 'ok' ? 'OK' : 'incidencia'}): ${r.error}`;
-      console.error('[Avance] registro rechazado', { enviado: { fecha, ...l }, respuesta: r });
+      A.errorGuardado = `No se guardó ${l.unidades.length ? l.unidades.join(', ') : 'la nota del día'} (${l.unidades.length ? (l.estatus === 'ok' ? 'OK' : EST_AV[l.estatus].t.toLowerCase()) : 'nota'}): ${r.error}`;
+      console.error('[Avance] registro rechazado', { enviado: { fecha, ...body }, respuesta: r });
       break;
     }
     A.errorGuardado = null;
-    A.data.registros.push(r.data);
-    l.unidades.forEach(id => { A.sel.delete(id); A.inc.delete(id); delete A.notasInc[id]; });
-    if (l.estatus === 'ok') A.nota = '';
-    guardadas += l.unidades.length;
+    const { config: cfgNueva, incidencia_id, ...reg } = r.data;
+    A.data.registros.push(reg);
+    if (cfgNueva) A.data.config = cfgNueva;
+    if (incidencia_id) { nIncs++; (A.incidencias = A.incidencias || []).push({ id: incidencia_id, proyecto_id: A.pid, tipo: body.incidencia_tipo, severidad: body.incidencia_severidad, descripcion: `${body.unidades.join(', ')}: ${body.nota}`, fecha: `${fecha}T12:00:00`, estado: 'abierta', _deAvance: true }); }
+    l.unidades.forEach(id => { quitarMarcaAv(id); delete A.notasInc[id]; });
+    if (_gen) A.nota = '';
+    if (l.unidades.length) guardadas += l.unidades.length; else notaDia = true;
   }
-  if (guardadas) toast(`${guardadas} ${guardadas === 1 ? T.uno : T.varios} registrado${guardadas === 1 ? '' : 's'}`);
+  const cfgF = A.data.config;
+  if (guardadas || notaDia) toast([guardadas ? `${guardadas} ${guardadas === 1 ? tiposAv(cfgF).uno : tiposAv(cfgF).varios} registrado${guardadas === 1 ? '' : 's'}` : '', notaDia ? 'nota del día guardada' : '', nIncs ? `${nIncs} incidencia${nIncs === 1 ? '' : 's'} reportada${nIncs === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ').replace(/^./, c => c.toUpperCase()));
   A.fecha = fecha;
   if (!A.sel.size) { A.estatus = 'ok'; A.ofrecerModo = null; }
   pintarAvance();
+}
+function reportarIncidenciaDesdeAvance() {
+  STATE._repPre = STATE._av?.pid || null;
+  showSection('reportar');
 }
 async function borrarRegistroAvance(rid) {
   if (!confirm('¿Borrar este registro de avance?')) return;
@@ -9006,19 +9167,26 @@ async function borrarRegistroAvance(rid) {
 }
 
 // ── Configuración del parque ──
-function abrirConfigAvance() {
+function abrirConfigAvance(tipoPre) {
   const A = STATE._av, p = STATE.proyectos.find(x => x.id === A.pid) || {}, cfg = A.data?.config;
-  const tipo = cfg?.tipo || (A.forzarLibre ? 'libre' : tipoSugeridoAvance(p));
+  const tipo = (typeof tipoPre === 'string' && AV_TIPOS[tipoPre]) ? tipoPre : (cfg?.tipo || (A.forzarLibre ? 'libre' : tipoSugeridoAvance(p)));
   STATE._avCfg = { tipo, mapa_url: cfg?.mapa_url || null, pos: Object.fromEntries((cfg?.unidades || []).filter(u => u.x != null).map(u => [u.id, { x: u.x, y: u.y, poly: u.poly }])) };
   const lista = (cfg?.unidades || []).map(u => u.id).join('\n');
-  openPanel('Configurar parque', `
+  openPanel('Configurar avance', `
     <div class="panel-section">
       <div class="panel-section-title">TIPO DE PROYECTO</div>
       <div class="av-tipos">${Object.entries(AV_TIPOS).map(([k, t]) => `<button type="button" class="av-tipo-op ${k === tipo ? 'on' : ''}" data-tipo="${k}" onclick="elegirTipoAvance('${k}')">
-        <i class="ti ti-${t.icono}" aria-hidden="true"></i><b>${t.nombre}</b><span>${k === 'eolico' ? 'Avance por máquina completa (WTG). Sin desglose por pala.' : k === 'solar' ? 'Avance por bloques o secciones del parque.' : 'Capacitaciones, inducciones, trámites o visitas: estatus y notas por jornada.'}</span></button>`).join('')}</div>
-      ${!cfg ? `<div class="av-nota" style="margin-top:8px"><i class="ti ti-sparkles" aria-hidden="true"></i> Sugerido según el proyecto.</div>` : ''}
+        <i class="ti ti-${t.icono}" aria-hidden="true"></i><b>${t.nombre}</b><span>${k === 'eolico' ? 'Avance por máquina completa (WTG). Lo parcial se marca "en proceso".' : k === 'solar' ? 'Avance por bloques o secciones del parque.' : k === 'cantidad' ? 'Un total y, al avanzar, escribes cuál fue (ej. 1.6).' : 'Capacitaciones, inducciones, trámites o visitas: estatus y notas por jornada.'}</span></button>`).join('')}</div>
     </div>
-    <div class="panel-section av-cfg-parque" ${tipo === 'libre' ? 'hidden' : ''}>
+    <div class="panel-section av-cfg-cant" ${tipo === 'cantidad' ? '' : 'hidden'}>
+      <div class="panel-section-title">TOTAL A REALIZAR</div>
+      <div class="field-row">
+        <div class="field-group"><label class="field-label">TOTAL</label><input class="field-input" id="av-cfg-total" type="number" min="1" max="2000" placeholder="12" value="${cfg?.tipo === 'cantidad' ? (cfg.total || '') : ''}"></div>
+        <div class="field-group"><label class="field-label">¿QUÉ SE CUENTA? <span class="np-opc">en plural</span></label><input class="field-input" id="av-cfg-etq" maxlength="40" placeholder="máquinas" value="${escHtml(cfg?.tipo === 'cantidad' ? (cfg.etiqueta || '') : '')}"></div>
+      </div>
+      <div class="av-nota">No hace falta capturar la lista: cada vez que avances escribes la nomenclatura de la que se hizo (ej. 1.6) y se va guardando.${cfg?.tipo === 'cantidad' && cfg.unidades.length ? ` Ya hay ${cfg.unidades.length} con nombre: ${escHtml(cfg.unidades.map(u => u.id).join(', '))}.` : ''}</div>
+    </div>
+    <div class="panel-section av-cfg-parque" ${['libre', 'cantidad'].includes(tipo) ? 'hidden' : ''}>
       <div class="panel-section-title" id="av-cfg-tit-unid">${tipo === 'solar' ? 'BLOQUES DEL PARQUE' : 'AEROGENERADORES (WTGs)'}</div>
       <div class="field-row">
         <div class="field-group"><label class="field-label">CANTIDAD</label><input class="field-input" id="av-cfg-n" type="number" min="1" max="2000" placeholder="30"></div>
@@ -9030,7 +9198,7 @@ function abrirConfigAvance() {
         <textarea class="field-input" id="av-cfg-lista" rows="6" style="font-family:var(--mono);font-size:12.5px" oninput="contarListaAvance()">${escHtml(lista)}</textarea>
         <div class="av-nota" id="av-cfg-cuenta" style="margin-top:4px"></div></div>
     </div>
-    <div class="panel-section av-cfg-parque" ${tipo === 'libre' ? 'hidden' : ''}>
+    <div class="panel-section av-cfg-parque" ${['libre', 'cantidad'].includes(tipo) ? 'hidden' : ''}>
       <div class="panel-section-title">MAPA DEL PARQUE <span class="np-opc" style="text-transform:none;letter-spacing:0">opcional</span></div>
       <div class="av-nota" style="margin-bottom:8px">Sube una imagen o esquema (JPG/PNG). Después ubicas cada ${tipo === 'solar' ? 'bloque (como punto o dibujando su área)' : 'WTG'} y el sistema lo pinta solo: verde concluido, rojo incidencia, gris pendiente.</div>
       <div id="av-cfg-mapa"></div>
@@ -9042,9 +9210,10 @@ function abrirConfigAvance() {
 function elegirTipoAvance(k) {
   const prev = STATE._avCfg.tipo; STATE._avCfg.tipo = k;
   document.querySelectorAll('.av-tipo-op').forEach(b => b.classList.toggle('on', b.dataset.tipo === k));
-  document.querySelectorAll('.av-cfg-parque').forEach(el => { el.hidden = k === 'libre'; });
+  document.querySelectorAll('.av-cfg-parque').forEach(el => { el.hidden = k === 'libre' || k === 'cantidad'; });
+  document.querySelectorAll('.av-cfg-cant').forEach(el => { el.hidden = k !== 'cantidad'; });
   const pre = document.getElementById('av-cfg-pre');
-  if (pre && k !== 'libre' && (!pre.value || pre.value === AV_TIPOS[prev].prefijo)) pre.value = AV_TIPOS[k].prefijo;
+  if (pre && !['libre', 'cantidad'].includes(k) && (!pre.value || pre.value === AV_TIPOS[prev].prefijo)) pre.value = AV_TIPOS[k].prefijo;
   const t = document.getElementById('av-cfg-tit-unid'); if (t) t.textContent = k === 'solar' ? 'BLOQUES DEL PARQUE' : 'AEROGENERADORES (WTGs)';
   STATE._panelDirty = true;
 }
@@ -9108,6 +9277,16 @@ async function guardarConfigAvance(luegoUbicar) {
     if (!r) return;
     STATE._av.data.config = r; STATE._av.forzarLibre = false;
     STATE._panelDirty = false; closePanel(null, true); toast('Proyecto en registro por notas'); pintarAvance(); return;
+  }
+  if (C.tipo === 'cantidad') {
+    const total = parseInt(document.getElementById('av-cfg-total')?.value, 10) || 0;
+    const etiqueta = (document.getElementById('av-cfg-etq')?.value || '').trim().toLowerCase() || null;
+    if (total < 1) { toast('Escribe el total (ej. 12).', 'error'); return; }
+    const prev = STATE._av.data?.config, unidades = prev?.tipo === 'cantidad' ? prev.unidades.map(u => ({ id: u.id })) : [];
+    const r = await api('PUT', `/avance/${encodeURIComponent(STATE._av.pid)}/config`, { tipo: 'cantidad', unidades, mapa_url: null, total, etiqueta });
+    if (!r) return;
+    STATE._av.data.config = r; STATE._av.vista = 'grid'; STATE._av.forzarLibre = false;
+    STATE._panelDirty = false; closePanel(null, true); toast('Avance por cantidad configurado'); pintarAvance(); return;
   }
   if (!ids.length) { toast('Agrega al menos un aerogenerador o bloque.', 'error'); return; }
   const unidades = ids.map(id => C.pos[id] ? { id, x: C.pos[id].x, y: C.pos[id].y, ...(C.pos[id].poly ? { poly: C.pos[id].poly } : {}) } : { id });
@@ -9217,24 +9396,39 @@ async function guardarUbicadorAvance() {
 
 // ── Salida: WhatsApp ──
 // Reporte diario para WhatsApp: formato B2B sobrio (sin barras de cuadritos ni emojis decorativos)
+// Incidencias del proyecto reportadas aparte (no las que ya salen como "con incidencia" en el avance)
+function incidenciasExtraAv(fecha) {
+  const A = STATE._av, regs = (A.data?.registros || []).filter(r => r.estatus === 'incidencia');
+  const deAv = new Set(regs.map(r => `${r.fecha}|${r.unidades.length ? r.unidades.join(', ') + ': ' : ''}${r.nota}`));
+  return (A.incidencias || []).filter(i => {
+    const f = String(i.fecha || '').slice(0, 10);
+    return (!fecha || f === fecha) && !i._deAvance && !deAv.has(`${f}|${i.descripcion}`);
+  }).sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
+}
+const textoIncidenciaAv = i => `${etiquetaIncidencia(i.tipo)}${i.severidad ? ` (${i.severidad})` : ''}${i.estado === 'resuelta' ? ' · resuelta' : ''}: ${String(i.descripcion || 'sin descripción').trim()}`;
 function textoWhatsAppAvance(fecha) {
   if (esAvanceLibre(STATE._av.data.config, STATE.proyectos.find(x => x.id === STATE._av.pid))) return textoWhatsAppLibre(fecha);
-  const A = STATE._av, cfg = A.data.config, T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico;
+  const A = STATE._av, cfg = A.data.config, T = tiposAv(cfg);
   const p = STATE.proyectos.find(x => x.id === A.pid) || {};
   const R = calcAvance(cfg, A.data.registros.filter(r => r.fecha <= fecha));   // estatus al cierre de esa fecha
   const delDia = ordenRegistros(A.data.registros.filter(r => r.fecha === fecha));
-  const okDia = [...new Set(delDia.filter(r => r.estatus === 'ok').flatMap(r => r.unidades))];
-  const incDia = [...new Set(delDia.filter(r => r.estatus === 'incidencia').flatMap(r => r.unidades))];
+  const deEst = e => [...new Set(delDia.filter(r => r.estatus === e).flatMap(r => r.unidades))];
+  const okDia = deEst('ok'), procDia = deEst('proceso').filter(u => !okDia.includes(u)), incDia = deEst('incidencia');
+  const extra = incidenciasExtraAv(fecha);
   const tecnicos = [...new Set(delDia.map(r => r.tecnico).filter(Boolean))];
-  const unidad = cfg.tipo === 'solar' ? 'bloques' : 'WTGs';
+  const unidad = T.varios;
   const lista = ids => ids.length ? rangosCortosAv(cfg, ids) : '—';
   const punto = t => /[.!?…]$/.test(t.trim()) ? t.trim() : t.trim() + '.';
-  // Observaciones: primero los hallazgos (uno por unidad), luego notas de lo concluido
+  // Observaciones: hallazgos, lo que quedó en proceso, notas de lo concluido, incidencias reportadas aparte y la nota del día
   const obs = [
-    ...delDia.filter(r => r.estatus === 'incidencia').map(r => `• ${rangosCortosAv(cfg, r.unidades)}: ${punto(r.nota || 'Incidencia sin descripción')}`),
-    ...delDia.filter(r => r.estatus === 'ok' && r.nota).map(r => `• ${rangosCortosAv(cfg, r.unidades)}: ${punto(r.nota)}`),
+    ...delDia.filter(r => r.estatus === 'incidencia').map(r => `• ⚠️ ${rangosCortosAv(cfg, r.unidades)}: ${punto(r.nota || 'Incidencia sin descripción')}`),
+    ...delDia.filter(r => r.estatus === 'proceso').map(r => `• ⏳ ${rangosCortosAv(cfg, r.unidades)} (en proceso): ${punto(r.nota || 'Sin detalle')}`),
+    ...delDia.filter(r => r.estatus === 'ok' && r.unidades.length && r.nota).map(r => `• ${rangosCortosAv(cfg, r.unidades)}: ${punto(r.nota)}`),
+    ...extra.map(i => `• ⚠️ ${punto(textoIncidenciaAv(i))}`),
+    ...delDia.filter(r => r.estatus === 'nota' || (!r.unidades.length && r.nota)).map(r => `• 📝 Nota del día: ${punto(r.nota)}`),
   ];
   const ubic = [p.cliente, p.ciudad].filter(Boolean).join(' · ');
+  const Concl = conclAv(T).replace(/^./, c => c.toUpperCase());
   return [
     '📋 REPORTE DE AVANCE DIARIO | WORKSYNC',
     `Proyecto: ${p.nombre || ''}${ubic ? ` (${ubic})` : ''}`,
@@ -9242,11 +9436,14 @@ function textoWhatsAppAvance(fecha) {
     `Técnico: ${tecnicos.length ? tecnicos.join(', ') : (STATE.user?.nombre || '—')}`,
     '',
     '1. RESUMEN DE LA JORNADA',
-    `• Concluidos (${okDia.length}): ${lista(okDia)}`,
-    `• Incidencias (${incDia.length}): ${lista(incDia)}`,
+    `• ${Concl} (${okDia.length}): ${lista(okDia)}`,
+    ...(procDia.length ? [`• En proceso (${procDia.length}): ${lista(procDia)}`] : []),
+    `• Con incidencia (${incDia.length}): ${lista(incDia)}`,
+    ...(extra.length ? [`• Incidencias reportadas: ${extra.length}`] : []),
     '',
     '2. ESTATUS GLOBAL DEL PROYECTO',
     `• Avance acumulado: ${R.pct}% (${R.ok} de ${R.total} ${unidad})`,
+    ...(R.proc ? [`• En proceso: ${R.proc} ${unidad}`] : []),
     `• Pendientes: ${R.pend} ${unidad}`,
     `• Incidencias activas: ${R.inc} ${unidad}`,
     '',
@@ -9300,7 +9497,7 @@ const AV_EST_LIBRE = {
   incidencia: { t: 'Incidencia / No acreditado',           corto: 'Incidencia', ico: 'alert-triangle', cls: 'inc',  emoji: '🔴' },
 };
 const AV_FORMATO_LIBRE = 'Actividades realizadas:\n• \n\nResultados / acuerdos:\n• \n\nPendientes:\n• ';
-const esAvanceLibre = (cfg, p) => cfg ? cfg.tipo === 'libre' : (STATE._av?.forzarLibre || tipoSugeridoAvance(p) === 'libre');
+const esAvanceLibre = (cfg, p) => cfg ? cfg.tipo === 'libre' : !!STATE._av?.forzarLibre;
 const colLibre = e => e === 'ok' ? AV_COL.ok : e === 'proceso' ? AV_COL.proc : AV_COL.inc;
 
 // Personal asignado al proyecto (para elegir al técnico responsable); siempre incluye a quien registra
@@ -9332,7 +9529,7 @@ function pintarAvanceLibre(p, cfg) {
     <div class="av-card">
       <div class="av-card-tit"><i class="ti ti-notes" aria-hidden="true"></i> Seguimiento del proyecto
         <div class="av-der"><span class="av-tipo"><i class="ti ti-notes" aria-hidden="true"></i>Sin mapa · por notas</span>
-        <button class="btn btn-ghost btn-sm" onclick="abrirConfigAvance()" title="Cambiar a eólico o solar"><i class="ti ti-settings" aria-hidden="true"></i></button></div></div>
+        <button class="btn btn-ghost btn-sm" onclick="abrirConfigAvance()" title="Cambiar la forma de medir"><i class="ti ti-settings" aria-hidden="true"></i></button></div></div>
       <div class="avl-resumen">
         <div class="avl-n"><strong>${S.n}</strong><span>jornada${S.n === 1 ? '' : 's'} reportada${S.n === 1 ? '' : 's'}</span></div>
         <div class="avl-proy"><b>${escHtml(p.nombre || '')}</b><span>${escHtml([p.cliente, p.ciudad].filter(Boolean).join(' · '))}</span>
@@ -9378,7 +9575,7 @@ function pintarAvanceLibre(p, cfg) {
       <div class="av-card-tit"><i class="ti ti-list-details" aria-hidden="true"></i> Bitácora histórica <div class="av-der">${regs.length} reporte${regs.length === 1 ? '' : 's'}</div></div>
       ${htmlHistorialLibre()}
     </div>
-    ${cfg ? '' : `<div class="av-nota" style="text-align:center;margin-top:-4px">¿Este proyecto sí tiene WTGs o bloques? <a href="#" onclick="event.preventDefault();abrirConfigAvance()" style="color:var(--blue)">Configurar parque con mapa</a></div>`}`;
+    ${cfg ? '' : `<div class="av-nota" style="text-align:center;margin-top:-4px">¿Se mide mejor por WTG, bloques o cantidad? <a href="#" onclick="event.preventDefault();STATE._av.forzarLibre=false;pintarAvance()" style="color:var(--blue)">Elegir otra forma de medir</a></div>`}`;
 }
 function usarFormatoLibre() {
   const t = document.getElementById('avl-nota'); if (!t) return;
@@ -9604,16 +9801,16 @@ async function mapaAvanceCanvas(cfg, R) {
   // áreas (polígonos) con el color del estatus, semitransparentes, debajo de los números
   cfg.unidades.forEach(u => {
     if (!(u.poly?.length >= 3)) return;
-    const e = R.estado[u.id]?.estatus, k = e === 'ok' ? AV_COL.ok : e === 'incidencia' ? AV_COL.inc : AV_COL.pend;
+    const e = R.estado[u.id]?.estatus, k = colAv(e);
     cx.beginPath(); u.poly.forEach(([px, py], i) => { const X = pad + px * w / 100, Y = pad + py * h / 100; i ? cx.lineTo(X, Y) : cx.moveTo(X, Y); }); cx.closePath();
     cx.fillStyle = `rgba(${k.c.join(',')},${e ? 0.55 : 0.32})`; cx.fill();
     cx.lineWidth = Math.max(2, w / 600); cx.strokeStyle = avHex(k.tx); cx.lineJoin = 'round'; cx.stroke();
   });
   // pendientes → concluidas → incidencias (las rojas quedan siempre encima). Si un pin cae encima de otro, va como punto sin número
-  const prio = u => ({ incidencia: 2, ok: 1 })[R.estado[u.id]?.estatus] || 0;
+  const prio = u => ({ incidencia: 3, proceso: 2, ok: 1 })[R.estado[u.id]?.estatus] || 0;
   const puestos = [];
   [...ubic].sort((a, b) => prio(a) - prio(b)).forEach(u => {
-    const e = R.estado[u.id]?.estatus, col = avHex((e === 'ok' ? AV_COL.ok : e === 'incidencia' ? AV_COL.inc : AV_COL.pend).c);
+    const e = R.estado[u.id]?.estatus, col = avHex(colAv(e).c);
     const x = pad + u.x * w / 100, y = pad + u.y * h / 100, t = etqCorta(u.id);
     cx.font = `800 ${Math.round(rad * 0.92)}px Montserrat, Arial, sans-serif`;
     const tw = Math.max(rad * 2.1, cx.measureText(t).width + rad * 1.3);
@@ -9636,6 +9833,7 @@ async function mapaAvanceCanvas(cfg, R) {
 }
 // "WTG-01, WTG-02, WTG-05…WTG-08" → "WTG-01, 02, 05–08" (rango desde 3 seguidos, según el orden del parque)
 function rangosCortosAv(cfg, lista) {
+  if (cfg?.tipo === 'cantidad') return [...new Set(lista)].join(', ');
   const orden = (cfg?.unidades || []).map(u => u.id), pos = id => orden.indexOf(id);
   const xs = [...new Set(lista)].sort((a, b) => pos(a) - pos(b));
   const pref = id => String(id).replace(/(\d+[A-Za-z]?)$/, '');
@@ -9654,21 +9852,22 @@ const recortarNotaAv = t => { t = String(t || '').trim(); return t.length > 110 
 function agruparRegistrosDia(regs) {
   const grupos = [], idx = {};
   ordenRegistros(regs).forEach(r => {
-    if (r.estatus !== 'ok') { grupos.push({ fecha: r.fecha, tecnico: r.tecnico, estatus: r.estatus, unidades: [...r.unidades], notas: r.nota ? [r.nota] : [] }); return; }
+    if (r.estatus !== 'ok' || !r.unidades.length) { grupos.push({ fecha: r.fecha, tecnico: r.tecnico, estatus: r.unidades.length ? r.estatus : 'nota', unidades: [...r.unidades], notas: r.nota ? [r.nota] : [] }); return; }
     const k = `${r.fecha}|${r.tecnico || ''}`;
     if (!idx[k]) { idx[k] = { fecha: r.fecha, tecnico: r.tecnico, estatus: 'ok', unidades: [], notas: [] }; grupos.push(idx[k]); }
     const g = idx[k];
     r.unidades.forEach(u => { if (!g.unidades.includes(u)) g.unidades.push(u); });
     if (r.nota && !g.notas.includes(r.nota)) g.notas.push(r.nota);
   });
-  // dentro de cada día: primero lo concluido, luego las incidencias
-  return grupos.map((g, i) => ({ g, i })).sort((a, b) => a.g.fecha.localeCompare(b.g.fecha) || (a.g.estatus === 'ok' ? 0 : 1) - (b.g.estatus === 'ok' ? 0 : 1) || a.i - b.i).map(x => x.g);
+  // dentro de cada día: concluido → en proceso → incidencias → nota del día
+  const ord = g => ({ ok: 0, proceso: 1, incidencia: 2, nota: 3 })[g.estatus] ?? 2;
+  return grupos.map((g, i) => ({ g, i })).sort((a, b) => a.g.fecha.localeCompare(b.g.fecha) || ord(a.g) - ord(b.g) || a.i - b.i).map(x => x.g);
 }
 // Dona de avance (canvas → PNG nítido): verde concluido, rojo incidencia, gris pendiente
 function donaAvanceCanvas(R) {
   const S = 640, cv = document.createElement('canvas'); cv.width = cv.height = S;
   const cx = cv.getContext('2d'), r = S / 2 - 6, grosor = r * 0.3;
-  const partes = [[R.ok, AV_COL.ok.c], [R.inc, AV_COL.inc.c], [R.pend, AV_COL.pend.c]].filter(([n]) => n > 0);
+  const partes = [[R.ok, AV_COL.ok.c], [R.proc || 0, AV_COL.proc.c], [R.inc, AV_COL.inc.c], [R.pend, AV_COL.pend.c]].filter(([n]) => n > 0);
   const total = R.total || 1;
   let a = -Math.PI / 2;
   if (!partes.length) partes.push([1, AV_COL.pend.bg]);
@@ -9685,12 +9884,12 @@ async function exportarAvancePDF() {
   const A = STATE._av, cfg = A.data?.config;
   if (esAvanceLibre(cfg, STATE.proyectos.find(x => x.id === A.pid))) return exportarAvanceLibrePDF();
   if (!cfg) return;
-  const p = STATE.proyectos.find(x => x.id === A.pid) || {}, T = AV_TIPOS[cfg.tipo] || AV_TIPOS.eolico;
+  const p = STATE.proyectos.find(x => x.id === A.pid) || {}, T = tiposAv(cfg);
   const R = calcAvance(cfg, A.data.registros), regs = ordenRegistros(A.data.registros);
   const P = await nuevaPlantillaPDF('landscape', 'a4'), { doc, C } = P, { W, H, M } = P;
   const ancho = W - 2 * M, GAP = 8, colL = (ancho - GAP) * 0.55, colR = ancho - GAP - colL, xR = M + colL + GAP;
   const Tit = T.varios.charAt(0).toUpperCase() + T.varios.slice(1);
-  P.encabezado('Reporte de avance', p.id || '', p.nombre || 'Proyecto', [p.cliente, p.ciudad, `${T.nombre} · avance por ${cfg.tipo === 'solar' ? 'bloques' : 'WTG'}`].filter(Boolean).join(' · '));
+  P.encabezado('Reporte de avance', p.id || '', p.nombre || 'Proyecto', [p.cliente, p.ciudad, cfg.tipo === 'cantidad' ? `Avance por cantidad (${T.varios})` : `${T.nombre} · avance por ${cfg.tipo === 'solar' ? 'bloques' : 'WTG'}`].filter(Boolean).join(' · '));
   // Título de sección dentro de una columna
   const secCol = (titulo, x, w, y, extra) => {
     P.relleno(C.rojo); doc.rect(x, y - 3.1, 1.3, 3.8, 'F');
@@ -9701,7 +9900,10 @@ async function exportarAvancePDF() {
   };
 
   // ── 1) Bitácora (abajo, ancho completo): se calcula primero cuánto espacio necesita ──
-  const grupos = agruparRegistrosDia(regs), nInc = grupos.filter(g => g.estatus !== 'ok').length;
+  const empNom = id => (STATE.empleados || []).find(e => e.id === id)?.nombre || '—';
+  const grupos = agruparRegistrosDia(regs).concat(incidenciasExtraAv(null).map(i => ({ fecha: String(i.fecha).slice(0, 10), tecnico: empNom(i.empleado_id), estatus: 'incidencia', unidades: [], notas: [textoIncidenciaAv(i)], _rep: true })))
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const nInc = grupos.filter(g => g.estatus === 'incidencia').length;
   const filaH = 5.9, Y_TOP = 35, ALTO_ARRIBA_MIN = 100, PIE = H - 20;
   const pesoFila = g => (g.estatus !== 'ok' && g.notas.join(' · ').length > 95) ? 1.7 : 1;
   const maxPeso = Math.max(1, Math.floor((PIE - (Y_TOP + ALTO_ARRIBA_MIN) - 4 - 8 - 6.5) / filaH));
@@ -9716,9 +9918,9 @@ async function exportarAvancePDF() {
   const yFinArriba = Math.min(yTabla - 5, Y_TOP + 128);
 
   // ── 2) Columna izquierda (55 %): soporte visual ──
-  let y = secCol('SOPORTE VISUAL', M, colL, Y_TOP, `${cfg.tipo === 'solar' ? 'Bloques' : 'Aerogeneradores'} (${R.total} ${T.varios})`);
+  let y = secCol('SOPORTE VISUAL', M, colL, Y_TOP, `${cfg.tipo === 'solar' ? 'Bloques' : cfg.tipo === 'cantidad' ? Tit : 'Aerogeneradores'} (${R.total} ${T.varios})`);
   let lx = M;
-  [['Concluido', R.ok, AV_COL.ok.c], ['Pendiente', R.pend, AV_COL.pend.c], ['Con incidencia', R.inc, AV_COL.inc.c]].forEach(([t, n, c]) => {
+  [['Concluido', R.ok, AV_COL.ok.c], ...(R.proc ? [['En proceso', R.proc, AV_COL.proc.c]] : []), ['Pendiente', R.pend, AV_COL.pend.c], ['Con incidencia', R.inc, AV_COL.inc.c]].forEach(([t, n, c]) => {
     P.relleno(c); doc.circle(lx + 1.3, y - 1.1, 1.3, 'F');
     P.font('medium', 6.8, C.texto); doc.text(t, lx + 3.6, y); const wt = doc.getTextWidth(t);
     P.font('bold', 6.8, C.tinta); doc.text(String(n), lx + 3.6 + wt + 1.5, y);
@@ -9739,7 +9941,7 @@ async function exportarAvancePDF() {
   }
   if (!dibujado) {
     // se elige el número de columnas que da los cuadros más grandes y aprovecha todo el espacio de la columna
-    const n = cfg.unidades.length, gap = 1.6;
+    const n = Math.max(cfg.unidades.length, R.total), gap = 1.6;
     let mejor = null;
     for (let c = 1; c <= Math.min(n, 30); c++) {
       const w = (colL - gap * (c - 1)) / c, filasG = Math.ceil(n / c);
@@ -9752,10 +9954,14 @@ async function exportarAvancePDF() {
     const cols = mejor.c, tw = mejor.w, th = mejor.h, tam = Math.max(4.6, Math.min(9.5, th * 0.78, tw * 0.42));
     cfg.unidades.forEach((u, i) => {
       const x = M + (i % cols) * (tw + gap), yy = y + Math.floor(i / cols) * (th + gap);
-      const e = R.estado[u.id]?.estatus, k = e === 'ok' ? AV_COL.ok : e === 'incidencia' ? AV_COL.inc : AV_COL.pend;
+      const k = colAv(R.estado[u.id]?.estatus);
       P.relleno(k.bg); doc.roundedRect(x, yy, tw, th, 1, 1, 'F');
-      P.font('bold', tam, k.tx); doc.text(recortarTexto(doc, cols > 12 ? etqCorta(u.id) : u.id, tw - 1.5), x + tw / 2, yy + th / 2 + tam * 0.13, { align: 'center' });
+      P.font('bold', tam, k.tx); doc.text(recortarTexto(doc, (cols > 12 && cfg.tipo !== 'cantidad') ? etqCorta(u.id) : u.id, tw - 1.5), x + tw / 2, yy + th / 2 + tam * 0.13, { align: 'center' });
     });
+    for (let i = cfg.unidades.length; i < n; i++) {   // por cantidad: lugares aún sin nombre
+      const x = M + (i % cols) * (tw + gap), yy = y + Math.floor(i / cols) * (th + gap);
+      P.trazo([203, 213, 225], 0.2); doc.roundedRect(x, yy, tw, th, 1, 1, 'S');
+    }
   }
 
   // ── 3) Columna derecha (45 %): dona + KPIs ──
@@ -9771,6 +9977,7 @@ async function exportarAvancePDF() {
   const dias = new Set(regs.map(r => r.fecha)).size;
   const kpis = [
     ['Concluidos', `${R.ok}`, `${pc(R.ok)}%`, AV_COL.ok],
+    ...(R.proc ? [['En proceso', `${R.proc}`, `${pc(R.proc)}%`, AV_COL.proc]] : []),
     ['Con incidencia', `${R.inc}`, `${pc(R.inc)}%`, AV_COL.inc],
     ['Pendientes', `${R.pend}`, `${pc(R.pend)}%`, AV_COL.pend],
   ];
@@ -9781,7 +9988,7 @@ async function exportarAvancePDF() {
     P.font('medium', 7, C.texto); doc.text(t, kx + 3.4, ky + 5);
     P.font('bold', 9.5, k.tx); doc.text(n, kx + kw - 14, ky + 5.2, { align: 'right' });
     P.font('semibold', 6.8, k.tx); doc.text(pct, kx + kw - 3, ky + 5.1, { align: 'right' });
-    ky += 9.2;
+    ky += R.proc ? 8.4 : 9.2;
   });
   P.font('normal', 6.6, C.gris);
   doc.text(`${R.total} ${T.varios} en total · ${dias} día${dias === 1 ? '' : 's'} de trabajo`, kx, ky + 2.4, { maxWidth: kw });
@@ -9793,7 +10000,7 @@ async function exportarAvancePDF() {
     y = secCol('AVANCE POR DÍA', xR, colR, y);
     const TEND = [71, 85, 105];
     P.font('medium', 6, C.gris);
-    let lx2 = xR + colR; const t2 = 'Avance acumulado', t1 = `${Tit} concluidos en el día`;
+    let lx2 = xR + colR; const t2 = 'Avance acumulado', t1 = `${Tit} ${conclAv(T)} en el día`;
     lx2 -= doc.getTextWidth(t2); doc.text(t2, lx2, y - 1.4); P.trazo(TEND, 0.6); doc.line(lx2 - 6, y - 2.3, lx2 - 1.5, y - 2.3); P.relleno(TEND); doc.circle(lx2 - 3.75, y - 2.3, 0.7, 'F');
     lx2 -= 10 + doc.getTextWidth(t1); P.font('medium', 6, C.gris); doc.text(t1, lx2, y - 1.4); P.relleno(AV_COL.ok.bg); doc.rect(lx2 - 4.5, y - 3.5, 3, 2.6, 'F');
     const top = y + 3, gh = Math.max(14, Math.min(34, yFinArriba - top - 9)), base = top + gh, ejeX = xR + 8, gw = colR - 9;
@@ -9818,13 +10025,13 @@ async function exportarAvancePDF() {
   }
 
   // ── 5) Bitácora diaria (ancho completo) ──
-  y = P.seccion('BITÁCORA DIARIA DE ACTIVIDADES', yTabla, `${regs.length} registro${regs.length === 1 ? '' : 's'}${nInc ? ` · ${nInc} hallazgo${nInc === 1 ? '' : 's'}` : ''}`);
-  if (!regs.length) { P.font('normal', 8, C.gris); doc.text('Aún no hay registros de avance.', M, y + 2); }
+  y = P.seccion('BITÁCORA DIARIA DE ACTIVIDADES', yTabla, `${regs.length} registro${regs.length === 1 ? '' : 's'}${nInc ? ` · ${nInc} incidencia${nInc === 1 ? '' : 's'}` : ''}`);
+  if (!grupos.length) { P.font('normal', 8, C.gris); doc.text('Aún no hay registros de avance.', M, y + 2); }
   else {
     if (omitidas) { P.font('normal', 6.8, C.gris); doc.text(`Se muestran las ${filas.length} filas más recientes (${omitidas} anteriores no caben en la hoja; ver plataforma).`, M, y); y += 3; }
     // filas como objetos: la fecha (y el técnico, si es el mismo) se combinan verticalmente en una sola celda
-    const body = filas.map(r => ({ est: r.estatus === 'ok' ? 'Concluido' : 'Con incidencia',
-      u: `${rangosCortosAv(cfg, r.unidades)}  (${r.unidades.length} ${r.unidades.length === 1 ? T.uno : T.varios})`,
+    const body = filas.map(r => ({ est: r._rep ? 'Incidencia' : (EST_AV[r.estatus]?.largo || 'Con incidencia'), _e: r.estatus,
+      u: r.unidades.length ? `${rangosCortosAv(cfg, r.unidades)}  (${r.unidades.length} ${r.unidades.length === 1 ? T.uno : T.varios})` : (r._rep ? 'Reporte de campo' : '—'),
       n: recortarNotaAv(r.notas.join(' · ')) || (r.estatus === 'ok' ? 'Sin novedad' : '—'), _f: r.fecha, _t: r.tecnico || '—' }));
     for (let i = 0; i < body.length; ) {
       let j = i; while (j + 1 < body.length && body[j + 1]._f === body[i]._f) j++;
@@ -9846,21 +10053,26 @@ async function exportarAvancePDF() {
       columnStyles: { f: { cellWidth: 16, fontStyle: 'bold', textColor: C.tinta }, t: { cellWidth: 50 }, u: { cellWidth: 72 }, est: { cellWidth: 30 } },
       didParseCell: d => {
         if (d.section !== 'body') return;
-        const k = d.column.dataKey, inc = d.row.raw.est !== 'Concluido';
+        const k = d.column.dataKey, e = d.row.raw._e, inc = e === 'incidencia';
         d.cell.styles.lineWidth = { bottom: 0.15 };
         if (k === 'est') d.cell.text = [''];
         if (inc && k !== 'f' && k !== 't') {                   // solo la parte propia del hallazgo va sombreada
           d.cell.styles.fillColor = [254, 242, 242];
           if (k === 'n') { d.cell.styles.overflow = 'linebreak'; d.cell.styles.textColor = [127, 29, 29]; d.cell.styles.fontStyle = window._fuentesPDF ? 'semibold' : 'bold'; }
         }
+        if (e === 'proceso' && k !== 'f' && k !== 't') {
+          d.cell.styles.fillColor = [255, 251, 235];
+          if (k === 'n') { d.cell.styles.overflow = 'linebreak'; d.cell.styles.textColor = [120, 53, 15]; }
+        }
+        if (e === 'nota' && k === 'n') { d.cell.styles.overflow = 'linebreak'; d.cell.styles.fontStyle = window._fuentesPDF ? 'italic' : 'italic'; }
         if (!inc && k === 'n' && d.cell.raw === 'Sin novedad') d.cell.styles.textColor = C.grisClaro;
       },
       didDrawCell: d => {
         if (d.section !== 'body' || d.column.dataKey !== 'est') return;
-        const ok = d.row.raw.est === 'Concluido', k = ok ? AV_COL.ok : AV_COL.inc, t = d.row.raw.est;
+        const e = d.row.raw._e, k = colAv(e), t = d.row.raw.est;
         const h = 4.2, x = d.cell.x + 2, yy = d.cell.y + (d.cell.height - h) / 2;
         // badge uniforme: mismo ancho y estilo para todos (fondo suave, borde y texto del color del estatus)
-        P.relleno(ok ? k.bg : [254, 202, 202]); doc.roundedRect(x, yy, BADGE_W, h, 1.4, 1.4, 'F');   // en la fila rosa, rojo claro un tono más firme
+        P.relleno(e === 'incidencia' ? [254, 202, 202] : k.bg); doc.roundedRect(x, yy, BADGE_W, h, 1.4, 1.4, 'F');   // en la fila rosa, rojo claro un tono más firme
         P.font('bold', 5.8, k.tx); doc.text(t, x + BADGE_W / 2, yy + 2.95, { align: 'center' });
       },
     });
@@ -10883,29 +11095,37 @@ async function marcarSalida() {
 }
 
 // ─── SECCIÓN: REPORTAR ────────────────────────────────────────────────────────
-async function renderReportar() {
+const TIPOS_INCIDENCIA = { retraso: 'Retraso en proyecto', falla_equipo: 'Falla de equipo', condicion_clima: 'Condición climática',
+  seguridad: 'Problema de seguridad', avance_normal: 'Avance normal', otro: 'Otro' };
+function etiquetaIncidencia(t) {
+  if (!t) return 'Incidencia';
+  return TIPOS_INCIDENCIA[t] || String(t).replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
+}
+function opcionesTipoIncidencia(sel) {
+  return Object.entries(TIPOS_INCIDENCIA).map(([k, v]) => `<option value="${k}"${k === sel ? ' selected' : ''}>${v}</option>`).join('');
+}
+async function renderReportar(proyectoPre) {
+  if (!proyectoPre && STATE._repPre) { proyectoPre = STATE._repPre; STATE._repPre = null; }
   await loadProyectos();
   const empId = STATE.user?.empleado_id;
-  const misProyectos = STATE.proyectos.filter(p => (p.tecnicos_asignados||[]).includes(empId));
+  const asignados = STATE.proyectos.filter(p => (p.tecnicos_asignados||[]).includes(empId));
+  const misProyectos = asignados.filter(p => proyectoIniciado(p) && !['completado','cancelado','pausado'].includes(p.estado));
+  if (proyectoPre && !misProyectos.some(p => p.id === proyectoPre)) { const x = STATE.proyectos.find(p => p.id === proyectoPre); if (x) misProyectos.unshift(x); }
+  const preId = proyectoPre || proyectoVigenteDe(empId)?.id;
   html(`
     <div class="table-section" style="padding:20px" id="form-reportar">
       <div class="panel-section-title" style="margin-bottom:16px">NUEVO REPORTE DE INCIDENCIA</div>
       <div class="field-row">
         <div class="field-group"><label class="field-label">PROYECTO</label>
           <select class="field-select" id="rep-proyecto">
-            ${misProyectos.length ? misProyectos.map(p=>`<option value="${p.id}">${p.nombre}</option>`).join('') : '<option value="">Sin proyectos asignados</option>'}
+            ${misProyectos.length ? misProyectos.map(p=>`<option value="${p.id}"${p.id === preId ? ' selected' : ''}>${escHtml(p.nombre)}</option>`).join('') : '<option value="">Sin proyectos en curso</option>'}
           </select>
         </div>
       </div>
       <div class="field-row" style="margin-top:10px">
         <div class="field-group"><label class="field-label">TIPO DE INCIDENCIA</label>
           <select class="field-select" id="rep-tipo">
-            <option value="retraso">Retraso en proyecto</option>
-            <option value="falla_equipo">Falla de equipo</option>
-            <option value="condicion_clima">Condición climática</option>
-            <option value="seguridad">Problema de seguridad</option>
-            <option value="avance_normal">Avance normal</option>
-            <option value="otro">Otro</option>
+            ${opcionesTipoIncidencia('retraso')}
           </select>
         </div>
         <div class="field-group"><label class="field-label">SEVERIDAD</label>
@@ -10915,7 +11135,7 @@ async function renderReportar() {
             <option value="alta">Alta — Atención inmediata</option>
           </select>
         </div>
-        <div class="field-group"><label class="field-label">FECHA</label><input type="date" class="field-input" id="rep-fecha" value="${new Date().toISOString().split('T')[0]}"></div>
+        <div class="field-group"><label class="field-label">FECHA</label><input type="date" class="field-input" id="rep-fecha" value="${isoLocal(new Date())}"></div>
       </div>
       <div class="field-row full" style="margin-top:10px">
         <div class="field-group"><label class="field-label">DESCRIPCIÓN</label>
@@ -10931,7 +11151,7 @@ async function renderReportar() {
 async function enviarReporte() {
   const proyecto_id = document.getElementById('rep-proyecto')?.value;
   const desc = document.getElementById('rep-desc')?.value.trim();
-  if (!proyecto_id) { toast('No tienes proyectos asignados para reportar','error'); return; }
+  if (!proyecto_id) { toast('No tienes proyectos en curso para reportar','error'); return; }
   if (!desc) { toast('Escribe una descripción antes de enviar','error'); return; }
   const tipo = document.getElementById('rep-tipo')?.value;
   const sev  = document.getElementById('rep-sev')?.value;
@@ -13255,8 +13475,10 @@ async function exportarMetricasPDF() {
         const sev = String(i.severidad || '').toUpperCase();
         const st = ['ALTA', 'CRITICA', 'CRÍTICA'].includes(sev) ? PDF_EST.progreso : PDF_EST.prep;
         const fx = T.pastilla(sev || '—', M + 5, yy, st.c, st.bg);
-        T.font('semibold', 7, C.tinta); const tp = String(i.tipo || ''); doc.text(tp, fx + 2.5, yy);
-        const at = doc.getTextWidth(tp);
+        const ab = (i.estado || 'abierta') !== 'resuelta';
+        T.font('semibold', 7, C.tinta); const tp = `${fCorta(String(i.fecha || '').slice(0, 10) || isoLocal(new Date()))} · ${etiquetaIncidencia(i.tipo)}`; doc.text(tp, fx + 2.5, yy);
+        let at = doc.getTextWidth(tp) + 2.5;
+        T.font('semibold', 6.6, ab ? [180, 83, 9] : [21, 128, 61]); const et = ab ? 'Abierta' : 'Resuelta'; doc.text(et, fx + 2.5 + at, yy); at += doc.getTextWidth(et);
         T.font('normal', 6.8, C.gris); doc.text(recortarTexto(doc, i.descripcion || 'sin descripción', w - (fx - M) - at - 12), fx + 2.5 + at + 2.5, yy);
       });
     }
