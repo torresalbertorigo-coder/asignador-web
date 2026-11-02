@@ -8428,6 +8428,7 @@ const AV_COL = {
   inc:  { c: [220, 38, 38],   bg: [254, 226, 226], tx: [185, 28, 28] },    // #DC2626 / #FEE2E2
   pend: { c: [100, 116, 139], bg: [241, 245, 249], tx: [71, 85, 105] },    // #64748B / #F1F5F9
   proc: { c: [217, 119, 6],   bg: [254, 243, 199], tx: [180, 83, 9] },     // #D97706 / #FEF3C7 (en proceso, proyectos sin mapa)
+  desc: { c: [124, 58, 237],  bg: [237, 233, 254], tx: [109, 40, 217] },   // #7C3AED / #EDE9FE (día de descanso)
 };
 const avHex = rgb => '#' + rgb.map(v => v.toString(16).padStart(2, '0')).join('');
 const AV_TIPOS = {
@@ -8451,8 +8452,10 @@ const EST_AV = {
   proceso:    { t: 'En proceso',     largo: 'En proceso',     cls: 'proc', ico: 'progress' },
   incidencia: { t: 'Con incidencia', largo: 'Con incidencia', cls: 'inc',  ico: 'alert-triangle' },
   nota:       { t: 'Nota del día',   largo: 'Nota del día',   cls: 'pend', ico: 'note' },
+  descanso:   { t: 'Descanso',       largo: 'Día de descanso', cls: 'desc', ico: 'zzz' },
+  standby:    { t: 'Standby',        largo: 'Standby',        cls: 'proc', ico: 'player-pause' },
 };
-const colAv = e => e === 'ok' ? AV_COL.ok : e === 'incidencia' ? AV_COL.inc : e === 'proceso' ? AV_COL.proc : AV_COL.pend;
+const colAv = e => e === 'ok' ? AV_COL.ok : e === 'incidencia' ? AV_COL.inc : (e === 'proceso' || e === 'standby') ? AV_COL.proc : e === 'descanso' ? AV_COL.desc : AV_COL.pend;
 const estMarcaAv = id => STATE._av.est?.[id] || 'ok';
 const marcadosAv = est => [...STATE._av.sel].filter(id => estMarcaAv(id) === est);
 function claseMarcaAv(id) {
@@ -8570,10 +8573,12 @@ async function renderAvance() {
     </div></div>`;
   if (!pid) { html(`<div class="av-wrap">${selector}<div class="empty-state"><i class="ti ti-briefcase-off" aria-hidden="true"></i><p>Sin proyectos en campo</p><span>Aquí aparecen los proyectos ya iniciados y sin finalizar. Inicia el tuyo desde Mis asignaciones${A.todos ? '' : ', o marca "Ver también los de otros técnicos"'}.</span></div></div>`); return; }
   html(`<div class="av-wrap">${selector}<div id="av-cuerpo"><div class="empty-state"><i class="ti ti-loader-2 ti-spin" aria-hidden="true"></i><p>Cargando avance…</p></div></div></div>`);
-  const [d, incs] = await Promise.all([api('GET', `/avance/${encodeURIComponent(pid)}`), api('GET', `/incidencias?proyecto_id=${encodeURIComponent(pid)}`)]);
+  const [d, incs, inact] = await Promise.all([api('GET', `/avance/${encodeURIComponent(pid)}`), api('GET', `/incidencias?proyecto_id=${encodeURIComponent(pid)}`),
+    STATE.rol === 'tecnico' ? null : api('GET', `/inactividad?estado=aprobado&proyecto_id=${encodeURIComponent(pid)}`)]);
   if (STATE._av.pid !== pid || STATE._seccion !== 'avance') return;
   A.data = d || { config: null, registros: [] };
   A.incidencias = Array.isArray(incs) ? incs : [];
+  A.inact = Array.isArray(inact) ? inact.filter(g => g.proyecto_id === pid && g.estado === 'aprobado') : [];
   pintarAvance();
 }
 function cambiarProyectoAvance(pid) {
@@ -8872,14 +8877,18 @@ function htmlMapaAvance(cfg, R, modo, actual) {
   </div>`;
 }
 function htmlHistorialAvance(cfg) {
-  const regs = ordenRegistros(STATE._av.data.registros).reverse();
-  if (!regs.length) return `<div class="av-nota">Aún no hay registros. Lo que captures aparece aquí, agrupado por día.</div>`;
+  const regs = ordenRegistros(STATE._av.data.registros).reverse(), inactD = inactPorDiaAv(), hoyIso = isoLocal(new Date());
+  if (!regs.length && !Object.keys(inactD).length) return `<div class="av-nota">Aún no hay registros. Lo que captures aparece aquí, agrupado por día.</div>`;
   const T = tiposAv(cfg), dias = {};
   regs.forEach(r => (dias[r.fecha] = dias[r.fecha] || []).push(r));
+  Object.keys(inactD).filter(f => f <= hoyIso).forEach(f => { dias[f] = dias[f] || []; });
+  const ordenDias = Object.keys(dias).sort().reverse();
   const etq = e => e === 'ok' ? 'Concluido' : e === 'proceso' ? '<span style="color:var(--av-proc-tx)">En proceso</span>' : e === 'incidencia' ? '<span style="color:var(--red-text)">Con incidencia</span>' : escHtml(EST_AV[e]?.t || e);
-  return Object.entries(dias).map(([f, rs]) => {
-    const n = new Set(rs.flatMap(r => r.unidades)).size;
+  return ordenDias.map(f => {
+    const rs = dias[f], n = new Set(rs.flatMap(r => r.unidades)).size;
     return `<div class="av-dia"><div class="av-dia-tit"><i class="ti ti-calendar" aria-hidden="true"></i>${escHtml(fechaLargaAv(f))}<span>· ${n} ${n === 1 ? T.uno : T.varios}</span></div>
+      ${(inactD[f] || []).map(e => `<div class="av-reg"><i class="ti ${e.tipo === 'standby' ? 'ti-player-pause' : 'ti-zzz'}" aria-hidden="true" style="color:${e.tipo === 'standby' ? 'var(--amber)' : '#a78bfa'};margin-top:2px"></i>
+        <div class="av-reg-cuerpo"><b>${e.tipo === 'standby' ? 'Standby' : 'Día de descanso'}</b> · ${escHtml(e.nombres.join(', '))}${e.motivos.length ? `<div>${escHtml(e.motivos.join('; '))}</div>` : ''}<em>Registrado en Descansos / standby</em></div></div>`).join('')}
       ${rs.map(r => `<div class="av-reg">
         ${r.estatus === 'nota' ? '<i class="ti ti-note" aria-hidden="true" style="color:var(--text3);margin-top:2px"></i>' : `<span class="av-dot ${EST_AV[r.estatus]?.cls || 'pend'}" style="margin-top:6px"></span>`}
         <div class="av-reg-cuerpo">${r.unidades.length ? `<b>${escHtml(rangosUnidades(cfg, r.unidades))}</b> · ${etq(r.estatus)}` : '<b>Nota del día</b>'}
@@ -9419,6 +9428,18 @@ function incidenciasExtraAv(fecha) {
     return (!fecha || f === fecha) && !i._deAvance && !deAv.has(`${f}|${i.descripcion}`);
   }).sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
 }
+// Descansos / standby aprobados del proyecto por día: { '2026-10-29': [{ tipo, nombres, motivos }] }
+function inactPorDiaAv() {
+  const out = {};
+  (STATE._av?.inact || []).forEach(g => (g.fechas || []).forEach(f => {
+    const L = out[f] = out[f] || []; let e = L.find(x => x.tipo === g.tipo);
+    if (!e) L.push(e = { tipo: g.tipo, nombres: [], motivos: [] });
+    if (!e.nombres.includes(g.empleado_nombre)) e.nombres.push(g.empleado_nombre);
+    const m = String(g.motivo || '').trim(); if (m && !e.motivos.includes(m)) e.motivos.push(m);
+  }));
+  return out;
+}
+const textoInactAv = (e, emoji = true) => `${e.tipo === 'standby' ? (emoji ? '⏸️ ' : '') + 'Standby' : (emoji ? '😴 ' : '') + 'Día de descanso'} (${e.nombres.join(', ')})${e.motivos.length ? ': ' + e.motivos.join('; ') : ''}`;
 const textoIncidenciaAv = i => `${etiquetaIncidencia(i.tipo)}${i.severidad ? ` (${i.severidad})` : ''}${i.estado === 'resuelta' ? ' · resuelta' : ''}: ${String(i.descripcion || 'sin descripción').trim()}`;
 function textoWhatsAppAvance(fecha) {
   if (esAvanceLibre(STATE._av.data.config, STATE.proyectos.find(x => x.id === STATE._av.pid))) return textoWhatsAppLibre(fecha);
@@ -9440,6 +9461,7 @@ function textoWhatsAppAvance(fecha) {
     ...delDia.filter(r => r.estatus === 'ok' && r.unidades.length && r.nota).map(r => `• ${rangosCortosAv(cfg, r.unidades)}: ${punto(r.nota)}`),
     ...extra.map(i => `• ⚠️ ${punto(textoIncidenciaAv(i))}`),
     ...delDia.filter(r => r.estatus === 'nota' || (!r.unidades.length && r.nota)).map(r => `• 📝 Nota del día: ${punto(r.nota)}`),
+    ...(inactPorDiaAv()[fecha] || []).map(e => `• ${punto(textoInactAv(e))}`),
   ];
   const ubic = [p.cliente, p.ciudad].filter(Boolean).join(' · ');
   const Concl = conclAv(T).replace(/^./, c => c.toUpperCase());
@@ -9472,7 +9494,8 @@ function textoWhatsAppAvance(fecha) {
 const fechaCortaAv = iso => fechaLocal(iso).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' }).replace(/^./, c => c.toUpperCase());
 function encabezadoResumenAv(titulo, regs, extras) {
   const A = STATE._av, p = STATE.proyectos.find(x => x.id === A.pid) || {};
-  const fechas = [...new Set([...regs.map(r => r.fecha), ...extras.map(i => String(i.fecha).slice(0, 10))])].sort();
+  const hoyIso = isoLocal(new Date());
+  const fechas = [...new Set([...regs.map(r => r.fecha), ...extras.map(i => String(i.fecha).slice(0, 10)), ...Object.keys(inactPorDiaAv()).filter(f => f <= hoyIso)])].sort();
   const tecnicos = [...new Set(regs.map(r => r.tecnico).filter(Boolean))];
   const ubic = [p.cliente, p.ciudad].filter(Boolean).join(' · ');
   const periodo = !fechas.length ? 'Sin registros todavía'
@@ -9499,6 +9522,7 @@ function textoResumenWhatsAppAvance() {
     d.filter(r => r.estatus === 'incidencia').forEach(r => L.push(`• ⚠️ ${rangosCortosAv(cfg, r.unidades)}: ${punto(r.nota || 'Incidencia sin descripción')}`));
     ex.forEach(i => L.push(`• ⚠️ ${punto(textoIncidenciaAv(i))}`));
     d.filter(r => !r.unidades.length && r.nota).forEach(r => L.push(`• 📝 Nota del día: ${punto(r.nota)}`));
+    (inactPorDiaAv()[f] || []).forEach(e => L.push(`• ${punto(textoInactAv(e))}`));
     return [...L, ''];
   });
   return [...H.lineas, '',
@@ -9524,7 +9548,7 @@ function textoResumenWhatsAppLibre() {
     const est = d.length ? AV_EST_LIBRE[d[d.length - 1].estatus] : null;
     return [`📅 ${fechaCortaAv(f)}${est ? ` · ${est.emoji} ${est.corto}` : ''}`,
       ...d.map(r => (d.length > 1 ? `▸ ${r.tecnico || ''}: ` : '') + (r.nota || '').trim()).filter(t => t.trim()),
-      ...ex.map(i => `⚠️ ${punto(textoIncidenciaAv(i))}`), ''];
+      ...ex.map(i => `⚠️ ${punto(textoIncidenciaAv(i))}`), ...(inactPorDiaAv()[f] || []).map(e => punto(textoInactAv(e))), ''];
   });
   return [...H.lineas, '',
     '1. SEGUIMIENTO DEL PROYECTO',
@@ -9724,9 +9748,9 @@ function textoWhatsAppLibre(fecha) {
   const est = delDia.length ? AV_EST_LIBRE[delDia[delDia.length - 1].estatus] : null;
   const tecnicos = [...new Set(delDia.map(r => r.tecnico).filter(Boolean))];
   const ubic = [p.cliente, p.ciudad].filter(Boolean).join(' · ');
-  const bloques = delDia.length > 1
+  const bloques = (delDia.length > 1
     ? delDia.flatMap(r => [`▸ ${r.tecnico || ''} · ${AV_EST_LIBRE[r.estatus]?.corto || ''}`, (r.nota || '').trim(), ''])
-    : delDia.map(r => (r.nota || '').trim());
+    : delDia.map(r => (r.nota || '').trim())).concat((inactPorDiaAv()[fecha] || []).map(e => textoInactAv(e)));
   return [
     '📋 REPORTE DIARIO DE ACTIVIDADES | WORKSYNC',
     `Proyecto: ${p.nombre || ''}${ubic ? ` (${ubic})` : ''}`,
@@ -9947,7 +9971,7 @@ function agruparRegistrosDia(regs) {
     if (r.nota && !g.notas.includes(r.nota)) g.notas.push(r.nota);
   });
   // dentro de cada día: concluido → en proceso → incidencias → nota del día
-  const ord = g => ({ ok: 0, proceso: 1, incidencia: 2, nota: 3 })[g.estatus] ?? 2;
+  const ord = g => ({ ok: 0, proceso: 1, incidencia: 2, nota: 3, descanso: 4, standby: 4 })[g.estatus] ?? 2;
   return grupos.map((g, i) => ({ g, i })).sort((a, b) => a.g.fecha.localeCompare(b.g.fecha) || ord(a.g) - ord(b.g) || a.i - b.i).map(x => x.g);
 }
 // Dona de avance (canvas → PNG nítido): verde concluido, rojo incidencia, gris pendiente
@@ -9988,20 +10012,18 @@ async function exportarAvancePDF() {
 
   // ── 1) Bitácora (abajo, ancho completo): se calcula primero cuánto espacio necesita ──
   const empNom = id => (STATE.empleados || []).find(e => e.id === id)?.nombre || '—';
-  const grupos = agruparRegistrosDia(regs).concat(incidenciasExtraAv(null).map(i => ({ fecha: String(i.fecha).slice(0, 10), tecnico: empNom(i.empleado_id), estatus: 'incidencia', unidades: [], notas: [textoIncidenciaAv(i)], _rep: true })))
+  const hoyIso = isoLocal(new Date());
+  const filasInact = Object.entries(inactPorDiaAv()).filter(([f]) => f <= hoyIso).flatMap(([f, L]) => L.map(e => ({ fecha: f, tecnico: e.nombres.join(', '), estatus: e.tipo === 'standby' ? 'standby' : 'descanso', unidades: [], notas: e.motivos })));
+  const grupos = agruparRegistrosDia(regs).concat(incidenciasExtraAv(null).map(i => ({ fecha: String(i.fecha).slice(0, 10), tecnico: empNom(i.empleado_id), estatus: 'incidencia', unidades: [], notas: [textoIncidenciaAv(i)], _rep: true })), filasInact)
     .sort((a, b) => a.fecha.localeCompare(b.fecha));
   const nInc = grupos.filter(g => g.estatus === 'incidencia').length;
   const filaH = 5.9, Y_TOP = 35, ALTO_ARRIBA_MIN = 100, PIE = H - 20;
   const pesoFila = g => (g.estatus !== 'ok' && g.notas.join(' · ').length > 95) ? 1.7 : 1;
   const maxPeso = Math.max(1, Math.floor((PIE - (Y_TOP + ALTO_ARRIBA_MIN) - 4 - 8 - 6.5) / filaH));
-  let filas = grupos, omitidas = 0;
-  if (grupos.reduce((a, g) => a + pesoFila(g), 0) > maxPeso) {
-    let suma = 0, k = grupos.length;
-    while (k > 0 && suma + pesoFila(grupos[k - 1]) <= maxPeso - 0.6) { suma += pesoFila(grupos[k - 1]); k--; }
-    filas = grupos.slice(k); omitidas = k;
-  }
-  const altoTabla = 8 + 6.5 + Math.max(1, filas.reduce((a, g) => a + pesoFila(g), 0)) * filaH + (omitidas ? 3 : 0);
-  const yTabla = PIE - altoTabla;
+  // Si la bitácora no cabe en la primera hoja, continúa en las siguientes (antes se recortaba)
+  const filas = grupos, omitidas = 0, multi = grupos.reduce((a, g) => a + pesoFila(g), 0) > maxPeso;
+  const altoTabla = 8 + 6.5 + Math.max(1, filas.reduce((a, g) => a + pesoFila(g), 0)) * filaH;
+  const yTabla = multi ? Y_TOP + ALTO_ARRIBA_MIN + 18 : PIE - altoTabla;
   const yFinArriba = Math.min(yTabla - 5, Y_TOP + 128);
 
   // ── 2) Columna izquierda (55 %): soporte visual ──
@@ -10118,7 +10140,7 @@ async function exportarAvancePDF() {
     if (omitidas) { P.font('normal', 6.8, C.gris); doc.text(`Se muestran las ${filas.length} filas más recientes (${omitidas} anteriores no caben en la hoja; ver plataforma).`, M, y); y += 3; }
     // filas como objetos: la fecha (y el técnico, si es el mismo) se combinan verticalmente en una sola celda
     const body = filas.map(r => ({ est: r._rep ? 'Incidencia' : (EST_AV[r.estatus]?.largo || 'Con incidencia'), _e: r.estatus,
-      u: r.unidades.length ? `${rangosCortosAv(cfg, r.unidades)}  (${r.unidades.length} ${r.unidades.length === 1 ? T.uno : T.varios})` : (r._rep ? 'Reporte de campo' : '—'),
+      u: r.unidades.length ? `${rangosCortosAv(cfg, r.unidades)}  (${r.unidades.length} ${r.unidades.length === 1 ? T.uno : T.varios})` : (r._rep ? 'Reporte de campo' : ['descanso', 'standby'].includes(r.estatus) ? 'Sin actividad' : '—'),
       n: recortarNotaAv(r.notas.join(' · ')) || (r.estatus === 'ok' ? 'Sin novedad' : '—'), _f: r.fecha, _t: r.tecnico || '—' }));
     for (let i = 0; i < body.length; ) {
       let j = i; while (j + 1 < body.length && body[j + 1]._f === body[i]._f) j++;
@@ -10132,9 +10154,14 @@ async function exportarAvancePDF() {
     }
     const BADGE_W = 25;
     doc.autoTable({
-      startY: y, margin: { left: M, right: M, bottom: 18 },
+      startY: y, margin: { left: M, right: M, bottom: 22, top: 24 },
       columns: [{ header: 'Fecha', dataKey: 'f' }, { header: 'Técnico', dataKey: 't' }, { header: Tit, dataKey: 'u' }, { header: 'Estatus', dataKey: 'est' }, { header: 'Nota', dataKey: 'n' }],
-      body, theme: 'plain', pageBreak: 'avoid', rowPageBreak: 'avoid',
+      body, theme: 'plain', pageBreak: multi ? 'auto' : 'avoid', rowPageBreak: 'avoid',
+      didDrawPage: d => {
+        if (!multi || doc.internal.getCurrentPageInfo().pageNumber === 1) return;
+        P.relleno(C.rojo); doc.rect(M, 12.4, 1.3, 3.8, 'F');
+        P.font('bold', 8.2, C.tinta); doc.text(`BITÁCORA DIARIA DE ACTIVIDADES (CONTINUACIÓN) · ${p.nombre || ''}`, M + 3.6, 15.5, { charSpace: 0.4 });
+      },
       styles: { font: window._fuentesPDF ? 'Montserrat' : 'helvetica', fontSize: 7, textColor: C.texto, cellPadding: { top: 1.5, bottom: 1.5, left: 2, right: 2 }, overflow: 'ellipsize', lineColor: C.linea, valign: 'middle' },
       headStyles: { fontStyle: 'bold', textColor: C.gris, fontSize: 6.4, fillColor: C.fondo },
       columnStyles: { f: { cellWidth: 16, fontStyle: 'bold', textColor: C.tinta }, t: { cellWidth: 50 }, u: { cellWidth: 72 }, est: { cellWidth: 30 } },
@@ -10164,7 +10191,7 @@ async function exportarAvancePDF() {
       },
     });
   }
-  while (doc.internal.getNumberOfPages() > 1) doc.deletePage(doc.internal.getNumberOfPages());
+  if (!multi) while (doc.internal.getNumberOfPages() > 1) doc.deletePage(doc.internal.getNumberOfPages());
   P.cerrar(limpiarNombreArchivo(`Avance ${p.nombre || A.pid} ${isoLocal(new Date())}.pdf`), false);
 }
 
