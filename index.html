@@ -10034,7 +10034,7 @@ async function exportarAvancePDF() {
   const hoyIso = isoLocal(new Date());
   const filasInact = Object.entries(inactPorDiaAv()).filter(([f]) => f <= hoyIso).flatMap(([f, L]) => L.map(e => ({ fecha: f, tecnico: e.nombres.join(', '), estatus: e.tipo === 'standby' ? 'standby' : 'descanso', unidades: [], notas: e.motivos })));
   const grupos = agruparRegistrosDia(regs).concat(incidenciasExtraAv(null).map(i => ({ fecha: String(i.fecha).slice(0, 10), tecnico: empNom(i.empleado_id), estatus: 'incidencia', unidades: [], notas: [textoIncidenciaAv(i)], _rep: true })), filasInact)
-    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+    .sort((a, b) => b.fecha.localeCompare(a.fecha));   // lo más reciente arriba (dentro del día se conserva el orden)
   const nInc = grupos.filter(g => g.estatus === 'incidencia').length;
   const filaH = 5.9, Y_TOP = 35, ALTO_ARRIBA_MIN = 100, PIE = H - 20;
   const pesoFila = g => (g.estatus !== 'ok' && g.notas.join(' · ').length > 95) ? 1.7 : 1;
