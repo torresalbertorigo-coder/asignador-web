@@ -8097,6 +8097,13 @@ function incAbiertasMetricas(p) {
   const ab = (p.incidencias || []).filter(i => (i.estado || 'abierta') !== 'resuelta');
   return { n: ab.length, altas: ab.filter(i => i.severidad === 'alta').length, medias: ab.filter(i => i.severidad === 'media').length };
 }
+// "23 – 24 oct" si son seguidos; si no, "23, 26 oct"
+function fechasInactMetricas(g) {
+  const fs = g.fechas || [g.desde];
+  const seguidos = fs.length > 1 && Math.round((fechaLocal(g.hasta) - fechaLocal(g.desde)) / 86400000) + 1 === fs.length;
+  return fs.length === 1 ? fCorta(fs[0]) : seguidos ? `${fCorta(g.desde)} – ${fCorta(g.hasta)}` : fs.map(fCorta).join(', ');
+}
+const etqInact = t => t === 'standby' ? 'Standby' : 'Descanso';
 function infoProyectoMetricas(p) {
   const r = p.retraso_dias;
   const est = p.duracion_estimada_dias != null ? plural(p.duracion_estimada_dias, 'día') : '—';
@@ -8186,6 +8193,7 @@ function calcularKpisMetricas(datos) {
     ['Incidencias', inc ? `${inc}${incAltas ? ` (${incAltas} alta${incAltas === 1 ? '' : 's'})` : ''}` : 'Ninguna'],
     ['Incidencias abiertas', incAb ? `${incAb}${incAbAltas ? ` (${incAbAltas} alta${incAbAltas === 1 ? '' : 's'})` : ''}` : '0'],
     ['Días sin registro de checada', plural(sinReg, 'día')],
+    ['Descansos', plural(suma(datos, p => p.dias_descanso), 'día-persona', 'días-persona')],
     ['Horas registradas', `${horas} h`],
   ];
   k.estados = [
@@ -8223,7 +8231,8 @@ function calcularKpisMetricas(datos) {
   const tec = new Map();
   datos.forEach(p => (p.por_tecnico || []).forEach(t => {
     const c = t.dias_proyectados != null ? t : checadaDe({ asistencia: t, dias_faltantes: t.dias_faltantes });
-    const r = tec.get(t.empleado_id) || { nombre: t.nombre, proyectos: 0, proy: 0, comp: 0, inc: 0, sinReg: 0, horas: 0 };
+    const r = tec.get(t.empleado_id) || { nombre: t.nombre, proyectos: 0, proy: 0, comp: 0, inc: 0, sinReg: 0, horas: 0, desc: 0, stby: 0 };
+    (p.inactividad_detalle || []).filter(g => g.empleado_id === t.empleado_id).forEach(g => { if (g.tipo === 'standby') r.stby += g.dias; else r.desc += g.dias; });
     r.proyectos++; r.proy += c.dias_proyectados || 0; r.comp += c.dias_completos || 0; r.inc += c.dias_incompletos || 0;
     r.sinReg += c.dias_sin_registro || 0; r.horas += t.horas_aprox || 0;
     tec.set(t.empleado_id, r);
@@ -8284,8 +8293,8 @@ function htmlKpisMetricas(datos) {
         ${(a.accion || []).map(t => `<div class="mk-accion"><i class="ti ti-arrow-right" aria-hidden="true"></i>${escHtml(t)}</div>`).join('')}</div>`).join('')
       : '<div class="mk-ok-msg"><i class="ti ti-circle-check" aria-hidden="true"></i> Sin alertas: ningún proyecto con retraso ni días sin registro de checada.</div>'}</div>
     ${k.tecnicos.length ? `<details class="mk-caja mk-tec"><summary class="mk-tit">Checadas por técnico <span>${plural(k.tecnicos.length, 'persona')} · solo en pantalla</span></summary>
-      <div style="overflow-x:auto"><table class="mk-tabla"><thead><tr><th>Técnico</th><th>Proyectos</th><th>Días laborables</th><th>Completas</th><th>Incompletas</th><th>Sin registro</th><th>Horas</th><th>Cumplimiento</th></tr></thead><tbody>
-      ${k.tecnicos.map(t => { const c = KPI_COLOR[semaforoKpi(t.pct, 90, 70)]; return `<tr><td>${escHtml(t.nombre)}</td><td>${t.proyectos}</td><td>${t.proy}</td><td>${t.comp}</td><td style="color:${t.inc ? 'var(--amber)' : ''}">${t.inc}</td><td style="color:${t.sinReg ? 'var(--red-text)' : ''}">${t.sinReg}</td><td>${t.horas} h</td>
+      <div style="overflow-x:auto"><table class="mk-tabla"><thead><tr><th>Técnico</th><th>Proyectos</th><th>Días laborables</th><th>Completas</th><th>Incompletas</th><th>Sin registro</th><th>Descanso</th><th>Standby</th><th>Horas</th><th>Cumplimiento</th></tr></thead><tbody>
+      ${k.tecnicos.map(t => { const c = KPI_COLOR[semaforoKpi(t.pct, 90, 70)]; return `<tr><td>${escHtml(t.nombre)}</td><td>${t.proyectos}</td><td>${t.proy}</td><td>${t.comp}</td><td style="color:${t.inc ? 'var(--amber)' : ''}">${t.inc}</td><td style="color:${t.sinReg ? 'var(--red-text)' : ''}">${t.sinReg}</td><td style="color:${t.desc ? '#a78bfa' : ''}">${t.desc}</td><td>${t.stby}</td><td>${t.horas} h</td>
         <td><div class="mk-cumpl"><div class="mk-track"><span style="width:${t.pct ?? 0}%;background:${c}"></span></div><b style="color:${c}">${t.pct == null ? '—' : t.pct + ' %'}</b></div></td></tr>`; }).join('')}
       </tbody></table></div></details>` : ''}
   </div>`;
@@ -8307,6 +8316,11 @@ function htmlProyectoMetricas(p) {
     ${(p.cambios_personal || []).length ? `<div class="mp-cambios"><div class="mp-lab">Cambios de personal</div>
       ${p.cambios_personal.map(c => `<div class="mp-cambio"><i class="ti ${c.tipo === 'salida' ? 'ti-user-minus' : 'ti-user-plus'}" style="color:${c.tipo === 'salida' ? 'var(--amber)' : 'var(--green)'}" aria-hidden="true"></i>
         <span>${fCorta(fechaCambioPersonal(c))} · ${c.tipo === 'salida' ? 'Salió' : 'Entró'} <b style="color:var(--text)">${escHtml(c.nombre)}</b>${c.tipo === 'salida' ? ` — ${c.motivo ? escHtml(c.motivo) : '<em>sin motivo registrado (cambio anterior)</em>'}` : ''}</span></div>`).join('')}</div>` : ''}
+    ${(p.inactividad_detalle || []).length ? `<div class="mp-inc"><div class="mp-lab">Descansos y standby (aprobados)</div>
+      <div style="overflow-x:auto"><table class="mk-tabla mp-inc-tabla"><thead><tr><th>Técnico</th><th>Tipo</th><th>Días</th><th>Fechas</th><th>Motivo</th></tr></thead><tbody>
+      ${p.inactividad_detalle.map(g => `<tr><td><b>${escHtml(g.nombre)}</b></td><td style="color:${g.tipo === 'standby' ? 'var(--amber)' : '#a78bfa'};font-weight:600">${etqInact(g.tipo)}</td>
+        <td>${g.dias}</td><td>${escHtml(fechasInactMetricas(g))}</td><td class="mp-inc-desc">${escHtml(g.motivo || '—')}</td></tr>`).join('')}
+      </tbody></table></div></div>` : ''}
     ${(p.incidencias || []).length ? `<div class="mp-inc"><div class="mp-lab">Incidencias registradas (posibles causas)</div>
       <div style="overflow-x:auto"><table class="mk-tabla mp-inc-tabla"><thead><tr><th>Fecha</th><th>Tipo</th><th>Severidad</th><th>Estado</th><th>Descripción</th></tr></thead><tbody>
       ${p.incidencias.map(i => { const ab = (i.estado || 'abierta') !== 'resuelta', sv = i.severidad || 'baja';
@@ -9454,10 +9468,83 @@ function textoWhatsAppAvance(fecha) {
     'Documento emitido vía WorkSync',
   ].join('\n');
 }
+// Resumen de todo el proyecto en un solo mensaje: estatus global + lo de cada día
+const fechaCortaAv = iso => fechaLocal(iso).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' }).replace(/^./, c => c.toUpperCase());
+function encabezadoResumenAv(titulo, regs, extras) {
+  const A = STATE._av, p = STATE.proyectos.find(x => x.id === A.pid) || {};
+  const fechas = [...new Set([...regs.map(r => r.fecha), ...extras.map(i => String(i.fecha).slice(0, 10))])].sort();
+  const tecnicos = [...new Set(regs.map(r => r.tecnico).filter(Boolean))];
+  const ubic = [p.cliente, p.ciudad].filter(Boolean).join(' · ');
+  const periodo = !fechas.length ? 'Sin registros todavía'
+    : fechas.length === 1 ? fechaLargaAv(fechas[0]).replace(/^./, c => c.toUpperCase())
+    : `${fCorta(fechas[0])} – ${fLargaAnio(fechas[fechas.length - 1])}`;
+  return { fechas, lineas: [titulo, `Proyecto: ${p.nombre || ''}${ubic ? ` (${ubic})` : ''}`,
+    `Periodo: ${periodo}${fechas.length > 1 ? ` (${fechas.length} días con registro)` : ''}`,
+    `Técnico${tecnicos.length === 1 ? '' : 's'}: ${tecnicos.length ? tecnicos.join(', ') : (STATE.user?.nombre || '—')}`] };
+}
+function textoResumenWhatsAppAvance() {
+  const A = STATE._av, cfg = A.data.config;
+  if (esAvanceLibre(cfg, STATE.proyectos.find(x => x.id === A.pid))) return textoResumenWhatsAppLibre();
+  const T = tiposAv(cfg), regs = ordenRegistros(A.data.registros), extra = incidenciasExtraAv(null);
+  const R = calcAvance(cfg, regs), H = encabezadoResumenAv('📋 RESUMEN DE AVANCE | WORKSYNC', regs, extra);
+  const punto = t => /[.!?…]$/.test(t.trim()) ? t.trim() : t.trim() + '.';
+  const Concl = conclAv(T).replace(/^./, c => c.toUpperCase());
+  const dias = H.fechas.flatMap(f => {
+    const d = regs.filter(r => r.fecha === f), ex = extra.filter(i => String(i.fecha).slice(0, 10) === f);
+    const ok = [...new Set(d.filter(r => r.estatus === 'ok').flatMap(r => r.unidades))];
+    const L = [`📅 ${fechaCortaAv(f)}`];
+    if (ok.length) L.push(`• ${Concl} (${ok.length}): ${rangosCortosAv(cfg, ok)}`);
+    d.filter(r => r.estatus === 'ok' && r.unidades.length && r.nota).forEach(r => L.push(`   ${rangosCortosAv(cfg, r.unidades)}: ${punto(r.nota)}`));
+    d.filter(r => r.estatus === 'proceso').forEach(r => L.push(`• ⏳ ${rangosCortosAv(cfg, r.unidades)} en proceso: ${punto(r.nota || 'Sin detalle')}`));
+    d.filter(r => r.estatus === 'incidencia').forEach(r => L.push(`• ⚠️ ${rangosCortosAv(cfg, r.unidades)}: ${punto(r.nota || 'Incidencia sin descripción')}`));
+    ex.forEach(i => L.push(`• ⚠️ ${punto(textoIncidenciaAv(i))}`));
+    d.filter(r => !r.unidades.length && r.nota).forEach(r => L.push(`• 📝 Nota del día: ${punto(r.nota)}`));
+    return [...L, ''];
+  });
+  return [...H.lineas, '',
+    '1. ESTATUS GLOBAL DEL PROYECTO',
+    `• Avance acumulado: ${R.pct}% (${R.ok} de ${R.total} ${T.varios})`,
+    ...(R.proc ? [`• En proceso: ${R.proc} ${T.varios}`] : []),
+    `• Pendientes: ${R.pend} ${T.varios}`,
+    `• Incidencias activas: ${R.inc} ${T.varios}`,
+    ...(extra.length ? [`• Incidencias reportadas: ${extra.length}`] : []),
+    '',
+    '2. AVANCE POR DÍA',
+    ...(dias.length ? dias : ['Sin registros todavía.', '']),
+    '────────────────────────',
+    'Documento emitido vía WorkSync',
+  ].join('\n');
+}
+function textoResumenWhatsAppLibre() {
+  const A = STATE._av, regs = ordenRegistros(A.data.registros), extra = incidenciasExtraAv(null);
+  const S = resumenLibre(regs), H = encabezadoResumenAv('📋 RESUMEN DE ACTIVIDADES | WORKSYNC', regs, extra);
+  const punto = t => /[.!?…]$/.test(t.trim()) ? t.trim() : t.trim() + '.';
+  const dias = H.fechas.flatMap(f => {
+    const d = regs.filter(r => r.fecha === f), ex = extra.filter(i => String(i.fecha).slice(0, 10) === f);
+    const est = d.length ? AV_EST_LIBRE[d[d.length - 1].estatus] : null;
+    return [`📅 ${fechaCortaAv(f)}${est ? ` · ${est.emoji} ${est.corto}` : ''}`,
+      ...d.map(r => (d.length > 1 ? `▸ ${r.tecnico || ''}: ` : '') + (r.nota || '').trim()).filter(t => t.trim()),
+      ...ex.map(i => `⚠️ ${punto(textoIncidenciaAv(i))}`), ''];
+  });
+  return [...H.lineas, '',
+    '1. SEGUIMIENTO DEL PROYECTO',
+    `• Jornadas reportadas: ${S.n}`,
+    `• Completadas: ${S.cuenta.ok} · En proceso: ${S.cuenta.proceso} · Con incidencia: ${S.cuenta.incidencia}`,
+    '',
+    '2. BITÁCORA POR DÍA',
+    ...(dias.length ? dias : ['Sin actividades registradas.', '']),
+    '────────────────────────',
+    'Documento emitido vía WorkSync',
+  ].join('\n').replace(/\n{3,}/g, '\n\n');
+}
+const textoWhatsAppModoAv = modo => modo === 'resumen' ? textoResumenWhatsAppAvance() : textoWhatsAppAvance(isoLocal(new Date()));
+function modoWhatsAppAvance(modo) {
+  STATE._av.waModo = modo;
+  document.querySelectorAll('#av-wa-modo button').forEach(b => b.classList.toggle('on', b.dataset.m === modo));
+  document.getElementById('av-wa-txt').value = textoWhatsAppModoAv(modo);
+}
 function abrirWhatsAppAvance() {
-  const A = STATE._av, fechas = [...new Set(A.data.registros.map(r => r.fecha))].sort().reverse();
-  const hoy = isoLocal(new Date()), fSel = A.libre?.fecha || A.fecha;
-  const f = fechas.includes(fSel) ? fSel : (fechas.includes(hoy) ? hoy : (fechas[0] || hoy));
+  const A = STATE._av, modo = A.waModo === 'resumen' ? 'resumen' : 'hoy';
   let ov = document.getElementById('selector-overlay');
   if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; ov.style.zIndex = 1100; document.body.appendChild(ov); }
   ov.className = 'modal-overlay open';
@@ -9469,11 +9556,11 @@ function abrirWhatsAppAvance() {
         <div style="flex:1;font-weight:700;color:var(--text);font-size:14px">Resumen para WhatsApp</div>
         <button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button>
       </div>
-      <div class="field-group"><label class="field-label">DÍA DEL REPORTE</label>
-        <select class="field-select" id="av-wa-fecha" onchange="document.getElementById('av-wa-txt').value=textoWhatsAppAvance(this.value)">
-          ${(fechas.includes(hoy) ? fechas : [hoy, ...fechas]).map(x => `<option value="${x}" ${x === f ? 'selected' : ''}>${escHtml(fechaLargaAv(x))}${x === hoy ? ' (hoy)' : ''}</option>`).join('')}
-        </select></div>
-      <textarea class="field-input" id="av-wa-txt" rows="20" style="width:100%;font-size:12.5px;line-height:1.45;margin-top:8px">${escHtml(textoWhatsAppAvance(f))}</textarea>
+      <div class="av-seg" id="av-wa-modo" style="display:flex">
+        <button data-m="hoy" class="neu ${modo === 'hoy' ? 'on' : ''}" style="flex:1;justify-content:center" onclick="modoWhatsAppAvance('hoy')"><i class="ti ti-calendar-event" aria-hidden="true"></i>Hoy</button>
+        <button data-m="resumen" class="neu ${modo === 'resumen' ? 'on' : ''}" style="flex:1;justify-content:center" onclick="modoWhatsAppAvance('resumen')"><i class="ti ti-list-details" aria-hidden="true"></i>Resumen (todos los días)</button>
+      </div>
+      <textarea class="field-input" id="av-wa-txt" rows="20" style="width:100%;font-size:12.5px;line-height:1.45;margin-top:10px">${escHtml(textoWhatsAppModoAv(modo))}</textarea>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
         <button class="btn btn-ghost" style="min-height:44px;justify-content:center" onclick="copiarWhatsAppAvance(this)"><i class="ti ti-copy" aria-hidden="true"></i> Copiar</button>
         <button class="btn av-btn-wa" style="min-height:44px;justify-content:center" onclick="window.open('https://wa.me/?text='+encodeURIComponent(document.getElementById('av-wa-txt').value),'_blank')"><i class="ti ti-send" aria-hidden="true"></i> Abrir WhatsApp</button>
@@ -13353,9 +13440,10 @@ async function exportarMetricasPDF() {
     const altoTec = tecs.length ? 8 + tecs.length * 5.2 : 0;
     const cambios = p.cambios_personal || [];
     const altoCamb = cambios.length ? 7 + cambios.length * 5 : 0;
+    const inact = p.inactividad_detalle || [], altoInact = inact.length ? 7 + inact.length * 5 : 0;
     T.font('normal', 6.8); const linCierre = f.cierreTxt ? doc.splitTextToSize(f.cierreTxt + (p.cierre?.nota ? ` · ${p.cierre.nota}` : ''), w - 10).slice(0, 2) : [];
     const altoCierre = linCierre.length ? 6 + linCierre.length * 3.6 : 0;
-    const alto = 60 + filasIns * 6.5 + altoTec + altoCamb + altoCierre + (recursos.length ? 6 : 0) + (inc.length ? 9 + inc.length * 5.6 : 0);
+    const alto = 60 + filasIns * 6.5 + altoTec + altoCamb + altoInact + altoCierre + (recursos.length ? 6 : 0) + (inc.length ? 9 + inc.length * 5.6 : 0);
     if (y + alto > T.H - 20) { T.nuevaPagina(); T.encabezado('Reporte de métricas', codigo, 'Métricas de proyectos', 'Detalle por proyecto (continuación)'); y = 36; }
     T.relleno(C.fondo); doc.roundedRect(M, y, w, alto, 2, 2, 'F');
     let yy = y + 8;
@@ -13442,6 +13530,20 @@ async function exportarMetricasPDF() {
       T.etiqueta('Cierre con el cliente', M + 5, yy, C.gris, 5.6); yy += 4.6;
       T.font('normal', 6.8, C.texto); linCierre.forEach((l, j) => doc.text(l, M + 5, yy + j * 3.6));
       yy += linCierre.length * 3.6 + 2.4;
+    }
+    if (inact.length) {   // descansos y standby aprobados: quién, cuándo y por qué
+      T.etiqueta('Descansos y standby', M + 5, yy, C.gris, 5.6); yy += 1;
+      inact.forEach(g => {
+        yy += 5;
+        const col = g.tipo === 'standby' ? C.ambar : [124, 58, 237];
+        T.relleno(col); doc.circle(M + 6, yy - 1.1, 0.9, 'F');
+        T.font('bold', 6.8, C.tinta); const f0 = fechasInactMetricas(g); doc.text(f0, M + 8.5, yy);
+        let cx = M + 8.5 + doc.getTextWidth(f0) + 2.5;
+        T.font('semibold', 6.8, col); const tp = `${etqInact(g.tipo)} (${plural(g.dias, 'día')}) `; doc.text(tp, cx, yy); cx += doc.getTextWidth(tp);
+        T.font('semibold', 6.8, C.tinta); doc.text(g.nombre, cx, yy); cx += doc.getTextWidth(g.nombre) + 2;
+        if (g.motivo) { T.font('normal', 6.8, C.texto); doc.text(recortarTexto(doc, `— ${g.motivo}`, M + w - 5 - cx), cx, yy); }
+      });
+      yy += 6;
     }
     if (cambios.length) {   // historial de cambios de personal con su motivo
       T.etiqueta('Cambios de personal', M + 5, yy, C.gris, 5.6); yy += 1;
