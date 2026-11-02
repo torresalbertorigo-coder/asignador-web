@@ -8441,7 +8441,11 @@ const AV_TIPOS = {
 function tiposAv(cfg) {
   const T = AV_TIPOS[cfg?.tipo] || AV_TIPOS.eolico;
   if (cfg?.tipo !== 'cantidad') return T;
-  const varios = String(cfg.etiqueta || '').trim().toLowerCase() || 'unidades';
+  let varios = String(cfg.etiqueta || '').trim().replace(/[’`´]/g, "'") || 'unidades';
+  // siglas (WTG, CT, PCU…): "wtg's", "WTGS", "wtgs" → WTG / WTGs
+  const base = varios.replace(/'s$/i, '').replace(/s$/i, '');
+  if (/^[a-z]{2,5}$/i.test(base) && !/[aeiouáéíóú]/i.test(base)) { const B = base.toUpperCase(); return { ...T, uno: B, varios: B + 's', fem: false }; }
+  varios = varios.toLowerCase();
   const uno = /[dlnr]es$/.test(varios) ? varios.slice(0, -2) : varios.replace(/s$/, '');
   return { ...T, varios, uno, fem: /as$/.test(varios) || /des$/.test(varios) };
 }
@@ -9440,6 +9444,20 @@ function inactPorDiaAv() {
   return out;
 }
 const textoInactAv = (e, emoji = true) => `${e.tipo === 'standby' ? (emoji ? '⏸️ ' : '') + 'Standby' : (emoji ? '😴 ' : '') + 'Día de descanso'} (${e.nombres.join(', ')})${e.motivos.length ? ': ' + e.motivos.join('; ') : ''}`;
+// Notas para WhatsApp: punto final y, si traen varios renglones, los siguientes van sangrados bajo la viñeta
+function puntoAv(t) {
+  const lin = String(t || '').split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+  if (!lin.length) return '';
+  const fin = x => /[.!?…:;,)]$/.test(x) ? x : x + '.';
+  if (lin.length === 1) return fin(lin[0]);
+  return lin.map((x, i) => i ? '    ' + x.replace(/^[-–•·*]\s*/, '- ') : x).join('\n');
+}
+const cuentaAv = (n, T) => `${n} ${n === 1 ? T.uno : T.varios}`;
+// "2 (1 abierta, 1 resuelta)"
+function resumenIncidenciasAv() {
+  const L = STATE._av?.incidencias || [], ab = L.filter(i => (i.estado || 'abierta') !== 'resuelta').length, rs = L.length - ab;
+  return L.length ? `${L.length}${ab && rs ? ` (${ab} abierta${ab === 1 ? '' : 's'}, ${rs} resuelta${rs === 1 ? '' : 's'})` : rs ? ` (${rs === 1 ? 'resuelta' : 'todas resueltas'})` : ` (${ab === 1 ? 'abierta' : 'todas abiertas'})`}` : '0';
+}
 const textoIncidenciaAv = i => `${etiquetaIncidencia(i.tipo)}${i.severidad ? ` (${i.severidad})` : ''}${i.estado === 'resuelta' ? ' · resuelta' : ''}: ${String(i.descripcion || 'sin descripción').trim()}`;
 function textoWhatsAppAvance(fecha) {
   if (esAvanceLibre(STATE._av.data.config, STATE.proyectos.find(x => x.id === STATE._av.pid))) return textoWhatsAppLibre(fecha);
@@ -9453,7 +9471,7 @@ function textoWhatsAppAvance(fecha) {
   const tecnicos = [...new Set(delDia.map(r => r.tecnico).filter(Boolean))];
   const unidad = T.varios;
   const lista = ids => ids.length ? rangosCortosAv(cfg, ids) : '—';
-  const punto = t => /[.!?…]$/.test(t.trim()) ? t.trim() : t.trim() + '.';
+  const punto = puntoAv;
   // Observaciones: hallazgos, lo que quedó en proceso, notas de lo concluido, incidencias reportadas aparte y la nota del día
   const obs = [
     ...delDia.filter(r => r.estatus === 'incidencia').map(r => `• ⚠️ ${rangosCortosAv(cfg, r.unidades)}: ${punto(r.nota || 'Incidencia sin descripción')}`),
@@ -9475,13 +9493,14 @@ function textoWhatsAppAvance(fecha) {
     `• ${Concl} (${okDia.length}): ${lista(okDia)}`,
     ...(procDia.length ? [`• En proceso (${procDia.length}): ${lista(procDia)}`] : []),
     `• Con incidencia (${incDia.length}): ${lista(incDia)}`,
-    ...(extra.length ? [`• Incidencias reportadas: ${extra.length}`] : []),
+    ...(extra.length ? [`• Incidencias reportadas hoy: ${extra.length}`] : []),
     '',
     '2. ESTATUS GLOBAL DEL PROYECTO',
-    `• Avance acumulado: ${R.pct}% (${R.ok} de ${R.total} ${unidad})`,
-    ...(R.proc ? [`• En proceso: ${R.proc} ${unidad}`] : []),
-    `• Pendientes: ${R.pend} ${unidad}`,
-    `• Incidencias activas: ${R.inc} ${unidad}`,
+    `• Avance acumulado: ${R.pct}% (${R.ok} de ${cuentaAv(R.total, T)})`,
+    ...(R.proc ? [`• En proceso: ${cuentaAv(R.proc, T)}`] : []),
+    `• Pendientes: ${cuentaAv(R.pend, T)}`,
+    `• Con incidencia: ${cuentaAv(R.inc, T)}`,
+    `• Incidencias reportadas en el proyecto: ${resumenIncidenciasAv()}`,
     '',
     '3. OBSERVACIONES / INCIDENCIAS',
     ...(obs.length ? obs : ['• Sin observaciones en la jornada.']),
@@ -9510,7 +9529,7 @@ function textoResumenWhatsAppAvance() {
   if (esAvanceLibre(cfg, STATE.proyectos.find(x => x.id === A.pid))) return textoResumenWhatsAppLibre();
   const T = tiposAv(cfg), regs = ordenRegistros(A.data.registros), extra = incidenciasExtraAv(null);
   const R = calcAvance(cfg, regs), H = encabezadoResumenAv('📋 RESUMEN DE AVANCE | WORKSYNC', regs, extra);
-  const punto = t => /[.!?…]$/.test(t.trim()) ? t.trim() : t.trim() + '.';
+  const punto = puntoAv;
   const Concl = conclAv(T).replace(/^./, c => c.toUpperCase());
   const dias = H.fechas.flatMap(f => {
     const d = regs.filter(r => r.fecha === f), ex = extra.filter(i => String(i.fecha).slice(0, 10) === f);
@@ -9527,11 +9546,11 @@ function textoResumenWhatsAppAvance() {
   });
   return [...H.lineas, '',
     '1. ESTATUS GLOBAL DEL PROYECTO',
-    `• Avance acumulado: ${R.pct}% (${R.ok} de ${R.total} ${T.varios})`,
-    ...(R.proc ? [`• En proceso: ${R.proc} ${T.varios}`] : []),
-    `• Pendientes: ${R.pend} ${T.varios}`,
-    `• Incidencias activas: ${R.inc} ${T.varios}`,
-    ...(extra.length ? [`• Incidencias reportadas: ${extra.length}`] : []),
+    `• Avance acumulado: ${R.pct}% (${R.ok} de ${cuentaAv(R.total, T)})`,
+    ...(R.proc ? [`• En proceso: ${cuentaAv(R.proc, T)}`] : []),
+    `• Pendientes: ${cuentaAv(R.pend, T)}`,
+    `• Con incidencia: ${cuentaAv(R.inc, T)}`,
+    `• Incidencias reportadas: ${resumenIncidenciasAv()}`,
     '',
     '2. AVANCE POR DÍA',
     ...(dias.length ? dias : ['Sin registros todavía.', '']),
@@ -9542,7 +9561,7 @@ function textoResumenWhatsAppAvance() {
 function textoResumenWhatsAppLibre() {
   const A = STATE._av, regs = ordenRegistros(A.data.registros), extra = incidenciasExtraAv(null);
   const S = resumenLibre(regs), H = encabezadoResumenAv('📋 RESUMEN DE ACTIVIDADES | WORKSYNC', regs, extra);
-  const punto = t => /[.!?…]$/.test(t.trim()) ? t.trim() : t.trim() + '.';
+  const punto = puntoAv;
   const dias = H.fechas.flatMap(f => {
     const d = regs.filter(r => r.fecha === f), ex = extra.filter(i => String(i.fecha).slice(0, 10) === f);
     const est = d.length ? AV_EST_LIBRE[d[d.length - 1].estatus] : null;
