@@ -7193,6 +7193,29 @@ async function armarReporteWhatsApp() {
     const veces = rs.length > 1 ? ` (${rs.length} veces)` : '';
     return `   Reprogramado${veces}: antes ${rangoCorto(r.inicio_anterior, r.fin_anterior)}, ahora ${rangoCorto(r.inicio_nuevo, r.fin_nuevo)}.${r.motivo ? ` Motivo: ${punto(r.motivo)}` : ''}`;
   };
+  // Avance de obra de los proyectos en campo (los que tengan avance configurado)
+  const conAvance = activos.filter(p => p.fecha_inicio_real);
+  const avs = conAvance.length ? (await api('GET', `/avance/resumen?detalle=1&ids=${encodeURIComponent(conAvance.map(p => p.id).join(','))}`) || {}) : {};
+  const ayerIso = isoLocal(new Date(hoy.getTime() - 86400000));
+  const cuandoAv = f => f === hoyIso ? 'Hoy' : f === ayerIso ? `Ayer (${fCorta(f)})` : `Último registro (${fCorta(f)})`;
+  const lineasAvance = p => {
+    const a = avs[p.id]; if (!a) return [];
+    if (a.tipo === 'libre') {
+      const u = a.ultimo, e = u ? AV_EST_LIBRE[u.estatus] : null;
+      return [`   Seguimiento: ${plural(a.jornadas || 0, 'jornada reportada', 'jornadas reportadas')}${u ? ` · ${cuandoAv(u.fecha).replace(/^Último registro/, 'último')}: ${e ? e.corto : u.estatus}` : ''}`];
+    }
+    const cfg = { tipo: a.tipo, etiqueta: a.etiqueta, unidades: (a.orden || []).map(id => ({ id })) }, T = tiposAv(cfg);
+    const pct = a.total ? Math.round(a.ok * 100 / a.total) : 0;
+    const extra = [a.proc ? `${a.proc} en proceso` : '', a.inc ? `${a.inc} con incidencia` : ''].filter(Boolean).join(' · ');
+    const out = [`   Avance: ${pct}% (${a.ok} de ${cuentaAv(a.total, T)})${extra ? ' · ' + extra : ''}`];
+    const u = a.ultimo;
+    if (u) {
+      const partes = [u.ok.length ? `${rangosCortosAv(cfg, u.ok)} ${u.ok.length === 1 ? 'concluida' : 'concluidas'}` : '',
+        u.proc.length ? `${rangosCortosAv(cfg, u.proc)} en proceso` : '', u.inc.length ? `${rangosCortosAv(cfg, u.inc)} con incidencia` : ''].filter(Boolean);
+      out.push(`   ${cuandoAv(u.fecha)}: ${partes.length ? partes.join(' · ') : (u.nota_dia ? 'sin avance en unidades (nota del día)' : 'sin avance')}`);
+    }
+    return out;
+  };
   L.push('📋 ¿QUÉ TENEMOS HOY? | WORKSYNC', `Fecha: ${fechaTxt.charAt(0).toUpperCase() + fechaTxt.slice(1)}`, '');
 
   L.push(`1. PROYECTOS EN EJECUCIÓN (${activos.length})`);
@@ -7212,7 +7235,7 @@ async function armarReporteWhatsApp() {
     if (k) L.push('');
     L.push(`• ${p.nombre}${ubic ? ` (${ubic})` : ''}`,
       `   Personal: ${personal.length ? personal.join(', ') : 'Sin personal asignado'}`,
-      `   Estatus: ${estado}`);
+      `   Estatus: ${estado}`, ...lineasAvance(p));
     const rp = lineaReprog(p); if (rp) L.push(rp);
   });
 
