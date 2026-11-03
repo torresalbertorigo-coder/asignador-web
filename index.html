@@ -752,6 +752,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .mk-tec[open] summary::before{content:'▾'}
 .mk-tec[open] summary{margin-bottom:10px}
 .mk-tabla{width:100%;border-collapse:collapse;font-size:12px}
+.mk-nota-horas{font-size:11.5px;color:var(--text3);display:inline-flex;gap:5px;align-items:center;margin-left:auto;margin-right:10px}
 .mk-tabla th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);padding:6px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
 .mk-tabla td{padding:7px 8px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap}
 .mk-cumpl{display:flex;align-items:center;gap:8px;min-width:120px}.mk-cumpl .mk-track{flex:1;margin:0}
@@ -8171,7 +8172,9 @@ function infoProyectoMetricas(p) {
     partes.push(ci.aprobado ? `visto bueno ${fCorta(ci.aprobado)}` : 'visto bueno pendiente');
     cierreTxt = partes.join(' · ');
   }
-  return { cierreTxt, est, estRango, real, realRango, desv, desvDet, desvSem, estado, ch, cumpl, cumplDet, cumplSem: semaforoKpi(ch.cumplimiento, 90, 70),
+  const diasTxt = trab ? plural(trab, 'día') : (activo ? 'Sin días registrados aún' : 'Sin días registrados');
+  const diasDet = trab ? `${ch.dias_completos} con checada completa${ch.dias_incompletos ? ` · ${ch.dias_incompletos} incompleta${ch.dias_incompletos === 1 ? '' : 's'}` : ''}` : (activo ? 'sin checadas todavía' : 'sin checadas');
+  return { diasTxt, diasDet, cierreTxt, est, estRango, real, realRango, desv, desvDet, desvSem, estado, ch, cumpl, cumplDet, cumplSem: semaforoKpi(ch.cumplimiento, 90, 70),
     sinReg: plural(ch.dias_sin_registro, 'día'), sinRegSem: ch.dias_sin_registro ? 'bad' : 'ok', horasTxt, horasDet, insignias };
 }
 function calcularKpisMetricas(datos) {
@@ -8217,7 +8220,8 @@ function calcularKpisMetricas(datos) {
     ['Incidencias abiertas', incAb ? `${incAb}${incAbAltas ? ` (${incAbAltas} alta${incAbAltas === 1 ? '' : 's'})` : ''}` : '0'],
     ['Días sin registro de checada', plural(sinReg, 'día')],
     ['Descansos', plural(suma(datos, p => p.dias_descanso), 'día-persona', 'días-persona')],
-    ['Horas registradas', `${horas} h`],
+    ['Días-persona trabajados', String(suma(datos, p => p.asistencia?.dias_trabajados))],
+    ['Horas registradas', `${horas} h`],   // solo en pantalla (se omite en PDF)
   ];
   k.estados = [
     ['Finalizado a tiempo', finATiempo.length, 'ok'], ['Finalizado con retraso', finRetraso.length, 'bad'],
@@ -8381,6 +8385,7 @@ async function generarMetricas() {
   cont.innerHTML = `
     <div class="mk-top">
       <span>${plural(datos.length, 'proyecto')} en el resultado</span>
+      <span class="mk-nota-horas"><i class="ti ti-lock" aria-hidden="true"></i> Las horas solo se ven aquí y en el Excel de auditoría; el PDF muestra días trabajados.</span>
       <button class="btn btn-primary btn-sm" onclick="exportarMetricasPDF()"><i class="ti ti-file-download" aria-hidden="true"></i> Exportar a PDF</button>
     </div>
     ${htmlKpisMetricas(datos)}
@@ -13432,12 +13437,13 @@ async function exportarMetricasPDF() {
   y += th + 5;
   // Indicadores secundarios en una línea
   let sx = M;
-  k.secundarios.forEach(([l, v], i) => {
+  const secPDF = k.secundarios.filter(([l]) => !/^Horas/i.test(l));   // las horas solo se ven en la plataforma
+  secPDF.forEach(([l, v], i) => {
     T.font('normal', 6.6); const anchoItem = doc.getTextWidth(`${l}: `) + (T.font('semibold', 6.6), doc.getTextWidth(v));
     if (sx > M && sx + anchoItem > W - M) { sx = M; y += 4; }   // si no cabe, pasa al siguiente renglón
     T.font('normal', 6.6, C.gris); doc.text(`${l}: `, sx, y); sx += doc.getTextWidth(`${l}: `);
     T.font('semibold', 6.6, C.tinta); doc.text(v, sx, y); sx += doc.getTextWidth(v);
-    if (i < k.secundarios.length - 1) { T.font('normal', 6.6, C.grisClaro); doc.text('   ·   ', sx, y); sx += doc.getTextWidth('   ·   '); }
+    if (i < secPDF.length - 1) { T.font('normal', 6.6, C.grisClaro); doc.text('   ·   ', sx, y); sx += doc.getTextWidth('   ·   '); }
   });
   y += 10;
 
@@ -13464,7 +13470,7 @@ async function exportarMetricasPDF() {
     y = ly + Math.ceil(vis.length / 5) * 8 + 5;
   };
   apilada('ESTADO DE LOS PROYECTOS', plural(datos.length, 'proyecto'), k.estados);
-  apilada('USO DEL TIEMPO', `días-persona  ·  ${k.horas} h registradas${k.horasJornada ? `  ·  ${k.horasJornada} h por jornada completa` : ''}`, k.tiempo);
+  apilada('USO DEL TIEMPO', 'días-persona', k.tiempo);
 
   // ── BLOQUE INFERIOR: alertas operativas
   y = T.seccion('ATENDER PRIMERO', y + 1);
@@ -13566,7 +13572,7 @@ async function exportarMetricasPDF() {
     dato(2, 'Desviación', f.desv, f.desvDet, f.desvSem, 0);
     dato(0, 'Cumplimiento de checada', f.cumpl, f.cumplDet, f.ch.cumplimiento == null ? 'na' : f.cumplSem, 1);
     dato(1, 'Días sin registro de checada', f.sinReg, f.ch.dias_sin_registro ? 'días laborables sin entrada' : 'todos los días con registro', f.sinRegSem, 1);
-    dato(2, 'Horas registradas', f.horasTxt, f.horasDet, (p.asistencia?.horas_aprox || 0) > 0 ? null : 'na', 1);
+    dato(2, 'Días trabajados', f.diasTxt, f.diasDet, (p.asistencia?.dias_trabajados || 0) > 0 ? null : 'na', 1);
     yy += 28 + 2;
     // Insignias de estado (solo lo que aporta información)
     let ix = M + 5;
@@ -13577,20 +13583,21 @@ async function exportarMetricasPDF() {
       ix += anchoIns[i] + 2;
     });
     yy += 6.5;
-    if (tecs.length) {   // desglose de horas y checadas por técnico
+    if (tecs.length) {   // desglose de días y checadas por técnico (sin horas: solo en plataforma)
       const c1 = M + 5, c2 = M + 74, c3 = M + 120, c4 = M + w - 5;
-      T.etiqueta('Personal', c1, yy, C.gris, 5.6); T.etiqueta('Horas registradas', c2, yy, C.gris, 5.6);
+      T.etiqueta('Personal', c1, yy, C.gris, 5.6); T.etiqueta('Días trabajados', c2, yy, C.gris, 5.6);
       T.etiqueta('Checadas', c3, yy, C.gris, 5.6);
       yy += 1.6;
-      const maxH = Math.max(1, ...tecs.map(t => t.horas_aprox || 0)), bwMax = c3 - c2 - 22;
+      const diasT = t => (t.dias_completos || 0) + (t.dias_incompletos || 0);
+      const maxH = Math.max(1, ...tecs.map(diasT)), bwMax = c3 - c2 - 22;
       tecs.forEach(t => {
         yy += 5.2;
         T.trazo(C.linea, 0.15); doc.line(c1, yy - 3.9, c4, yy - 3.9);
         T.font('semibold', 7, t.ex ? C.gris : C.tinta); doc.text(recortarTexto(doc, (t.nombre || '—') + (t.ex ? '  (ya no asignado)' : ''), c2 - c1 - 4), c1, yy);
-        const hrs = t.horas_aprox || 0;
+        const dt = diasT(t);
         T.relleno(C.linea); doc.roundedRect(c2, yy - 2.2, bwMax, 1.8, 0.9, 0.9, 'F');
-        if (hrs > 0) { T.relleno(SEM.ok); doc.roundedRect(c2, yy - 2.2, Math.max(1.8, bwMax * hrs / maxH), 1.8, 0.9, 0.9, 'F'); }
-        T.font('bold', 7.2, hrs > 0 ? C.tinta : C.grisClaro); doc.text(hrs > 0 ? `${hrs} h` : '0 h', c2 + bwMax + 3, yy);
+        if (dt > 0) { T.relleno(SEM.ok); doc.roundedRect(c2, yy - 2.2, Math.max(1.8, bwMax * dt / maxH), 1.8, 0.9, 0.9, 'F'); }
+        T.font('bold', 7.2, dt > 0 ? C.tinta : C.grisClaro); doc.text(plural(dt, 'día'), c2 + bwMax + 3, yy);
         const det = [];
         if (t.dias_proyectados) det.push(`${t.dias_completos || 0} de ${plural(t.dias_proyectados, 'día')} completos`);
         if (t.dias_incompletos) det.push(`${t.dias_incompletos} incompleta${t.dias_incompletos === 1 ? '' : 's'}`);
