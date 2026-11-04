@@ -8391,9 +8391,14 @@ async function generarMetricas() {
   // Activo = en curso o en cierre con el cliente (aún sin visto bueno); finalizado = completado y cerrado
   const activoMet = p => !p.fecha_fin_real || (p.cierre && p.cierre.estado !== 'aprobado');
   const enCurso = datos.filter(activoMet);
-  const fis = enCurso.length ? (await api('GET', `/avance/resumen?ids=${encodeURIComponent(enCurso.map(p => p.id).join(','))}`) || {}) : {};
+  // las métricas traen proyecto_id y fecha_inicio_estimada (no id / fecha_inicio como el resto de la plataforma)
+  const pidMet = p => p.proyecto_id || p.id;
+  const fis = enCurso.length ? (await api('GET', `/avance/resumen?ids=${encodeURIComponent(enCurso.map(pidMet).join(','))}`) || {}) : {};
   const hoyM = new Date(); hoyM.setHours(0, 0, 0, 0);
-  datos.forEach(p => { p._finalizado = !activoMet(p); p._avance = p._finalizado ? null : avanceProyectoReporte(p, fis[p.id], hoyM); });
+  datos.forEach(p => {
+    p._finalizado = !activoMet(p);
+    p._avance = p._finalizado ? null : avanceProyectoReporte({ ...p, id: pidMet(p), fecha_inicio: p.fecha_inicio || p.fecha_inicio_estimada }, fis[pidMet(p)], hoyM);
+  });
   STATE._ultimasMetricas = datos;
   STATE._metricasRango = proyectoId ? null : { desde: desde || null, hasta: hasta || null };
 
@@ -12783,8 +12788,9 @@ function avanceProyectoReporte(p, fisico, hoy) {
     return { modo: 'fisico', pct, ok: fisico.ok, inc: fisico.inc, total: fisico.total,
       sub: `${fisico.ok} de ${cuentaAv(fisico.total, tiposAv(fisico))}${fisico.proc ? ` · ${fisico.proc} en proceso` : ''}`, etq: 'Avance físico' };
   }
-  const ini = fechaLocal(p.fecha_inicio_real || p.fecha_inicio), finPlan = fechaLocal(p.fecha_fin_estimada);
-  const total = Math.max(1, Math.round((finPlan - fechaLocal(p.fecha_inicio)) / 86400000) + 1);
+  const fIni = p.fecha_inicio || p.fecha_inicio_estimada || p.fecha_inicio_real;   // las métricas lo traen como fecha_inicio_estimada
+  const ini = fechaLocal(p.fecha_inicio_real || fIni), finPlan = fechaLocal(p.fecha_fin_estimada || fIni);
+  const total = Math.max(1, Math.round((finPlan - fechaLocal(fIni)) / 86400000) + 1);
   let trans = 0;
   if (p.fecha_fin_real) trans = total;
   else if (p.fecha_inicio_real || ini <= hoy) trans = Math.min(total, Math.max(0, Math.round((hoy - ini) / 86400000) + 1));
@@ -12796,7 +12802,7 @@ function avanceProyectoReporte(p, fisico, hoy) {
   return { modo: esCap ? 'tiempo' : 'tiempo-sin', pct, ok: trans, inc: 0, total, atraso,
     sub: p.fecha_fin_real ? `Concluido · ${total} día${total === 1 ? '' : 's'}`
       : atraso ? `Día ${diaReal} de ${total} · +${atraso} de retraso`
-      : trans ? `Día ${trans} de ${total}` : `Inicia ${fCorta(p.fecha_inicio)} · ${total} día${total === 1 ? '' : 's'}`,
+      : trans ? `Día ${trans} de ${total}` : `Inicia ${fCorta(fIni)} · ${total} día${total === 1 ? '' : 's'}`,
     etq: esCap ? 'Avance por tiempo' : 'Por tiempo · sin captura de campo' };
 }
 function donaPartesPNG(partes) {
@@ -13426,7 +13432,7 @@ async function exportarMetricasPDF() {
   const codigo = desde ? `${mesA === mesB ? mesA : `${mesA} – ${mesB}`} ${fechaLocal(hasta).getFullYear()}` : '';
   // Un solo proyecto (filtro "Proyecto específico"): sin la página de resumen global, directo a la ficha
   const unico = !STATE._metricasRango && datos.length === 1;
-  if (unico) T.encabezado('Ficha de métricas', datos[0].id || '', datos[0].nombre || 'Proyecto', [datos[0].cliente, datos[0].ciudad].filter(Boolean).join('  ·  '));
+  if (unico) T.encabezado('Ficha de métricas', datos[0].proyecto_id || datos[0].id || '', datos[0].nombre || 'Proyecto', [datos[0].cliente, datos[0].ciudad].filter(Boolean).join('  ·  '));
   else T.encabezado('Reporte de métricas', codigo, 'Métricas de proyectos', sub);
   const k = calcularKpisMetricas(datos);
   const SEM = { ok: PDF_EST.asignado.c, warn: C.ambar, bad: PDF_EST.progreso.c, na: C.grisClaro, neutro: C.tinta, curso: [96, 140, 200], pausa: PDF_EST.pausa.c, desc: PDF_EST.ausencia.c };
