@@ -752,6 +752,14 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .mk-tec[open] summary::before{content:'▾'}
 .mk-tec[open] summary{margin-bottom:10px}
 .mk-tabla{width:100%;border-collapse:collapse;font-size:12px}
+.mp-avance{margin:12px 0 2px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface2)}
+.mp-av-fila{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:4px}
+.mp-av-fila b{font-size:22px;font-weight:800;color:var(--text);min-width:58px}
+.mp-av-fila .mk-track{flex:1;min-width:120px;height:8px;margin-top:0;background:var(--border)}
+.mp-av-fila .mk-track span{display:block;height:100%;border-radius:2px}
+.mp-av-fila > span{font-size:12px;color:var(--text2)}.mp-av-fila em{color:var(--text3);font-style:normal}
+.mp-sello{margin:12px 0 2px;padding:9px 12px;border:1px solid var(--green-border);border-radius:10px;background:var(--green-bg);display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text2)}
+.mp-sello i{font-size:20px;color:var(--green)}.mp-sello b{color:var(--green)}
 .mk-nota-horas{font-size:11.5px;color:var(--text3);display:inline-flex;gap:5px;align-items:center;margin-left:auto;margin-right:10px}
 .mk-tabla th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);padding:6px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
 .mk-tabla td{padding:7px 8px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap}
@@ -8144,6 +8152,7 @@ function infoProyectoMetricas(p) {
   else if (p.retraso_actual > 0) { desv = `+${plural(p.retraso_actual, 'día')} de retraso`; desvDet = 'ya pasó su fecha de fin y sigue en curso'; desvSem = 'bad'; }
   else { desv = 'En tiempo'; desvDet = 'sigue en curso dentro de su fecha'; desvSem = 'ok'; }
   const estado = p.pausado ? [`Pausado desde el ${fCorta(p.pausado_desde || p.fecha_inicio_real)}`, 'pausa']
+    : (r != null && p.cierre && p.cierre.estado !== 'aprobado') ? [`En cierre con cliente${r > 0 ? ' · terminó con retraso' : ''}`, r > 0 ? 'warn' : 'curso']
     : r != null ? (r > 0 ? ['Finalizado con retraso', 'bad'] : ['Finalizado a tiempo', 'ok'])
     : p.retraso_actual > 0 ? ['En curso · con retraso', 'bad'] : ['En curso', 'curso'];
   const ch = checadaDe(p), trab = p.asistencia?.dias_trabajados || 0, horas = p.asistencia?.horas_aprox || 0, activo = !p.fecha_fin_real;
@@ -8335,6 +8344,10 @@ function htmlProyectoMetricas(p) {
   return `<div class="mp-card">
     <div class="mp-head"><div><div class="mp-nombre">${escHtml(p.nombre)}</div><div class="mp-cli">${escHtml(p.cliente || '—')} · ${escHtml(p.ciudad || '—')}</div></div>
       <span class="mp-pill" style="color:${C[f.estado[1]]};border-color:${C[f.estado[1]]}">${p.pausado ? '<i class="ti ti-player-pause" aria-hidden="true"></i>' : ''}${f.estado[0]}</span></div>
+    ${p._avance ? `<div class="mp-avance"><div class="mp-lab">Avance del proyecto${p.pausado ? ' · en pausa' : ''}</div>
+      <div class="mp-av-fila"><b>${p._avance.pct}%</b><div class="mk-track"><span style="width:${Math.min(100, p._avance.pct)}%;background:${p._avance.atraso ? 'var(--amber)' : 'var(--green)'}"></span></div>
+      <span>${escHtml(p._avance.sub)} · <em>${escHtml(p._avance.etq)}</em></span></div></div>`
+      : p._finalizado ? `<div class="mp-sello"><i class="ti ti-rosette-discount-check" aria-hidden="true"></i><b>Proyecto finalizado</b><span>${fCorta(p.fecha_fin_real)}${p.cierre?.aprobado ? ` · visto bueno del cliente ${fCorta(p.cierre.aprobado)}` : ''}</span></div>` : ''}
     <div class="mp-fila">${dato('Duración estimada', f.est, f.estRango)}${dato('Duración real', f.real, f.realRango)}${dato('Desviación', f.desv, f.desvDet, f.desvSem)}</div>
     <div class="mp-fila">${dato('Cumplimiento de checada', f.cumpl, f.cumplDet, f.ch.cumplimiento == null ? 'na' : f.cumplSem)}${dato('Días sin registro de checada', f.sinReg, f.ch.dias_sin_registro ? 'días laborables sin entrada registrada' : 'todos los días con registro', f.sinRegSem)}${dato('Horas registradas', f.horasTxt, f.horasDet, (p.asistencia?.horas_aprox || 0) > 0 ? null : 'na')}</div>
     <div class="mp-badges">${f.insignias.map(([t, s]) => `<span class="mp-badge" style="--b:${C[s]}">${t}</span>`).join('')}</div>
@@ -8374,6 +8387,13 @@ async function generarMetricas() {
   const datos = await api('GET', url);
   const cont = document.getElementById('metricas-resultado');
   if (!datos) { cont.innerHTML = '<div class="empty-state"><i class="ti ti-alert-circle" aria-hidden="true"></i><p>Error al generar el reporte</p></div>'; return; }
+  // Avance de los proyectos que siguen en curso (mismo cálculo que el Gantt y la disponibilidad); los finalizados no llevan %
+  // Activo = en curso o en cierre con el cliente (aún sin visto bueno); finalizado = completado y cerrado
+  const activoMet = p => !p.fecha_fin_real || (p.cierre && p.cierre.estado !== 'aprobado');
+  const enCurso = datos.filter(activoMet);
+  const fis = enCurso.length ? (await api('GET', `/avance/resumen?ids=${encodeURIComponent(enCurso.map(p => p.id).join(','))}`) || {}) : {};
+  const hoyM = new Date(); hoyM.setHours(0, 0, 0, 0);
+  datos.forEach(p => { p._finalizado = !activoMet(p); p._avance = p._finalizado ? null : avanceProyectoReporte(p, fis[p.id], hoyM); });
   STATE._ultimasMetricas = datos;
   STATE._metricasRango = proyectoId ? null : { desde: desde || null, hasta: hasta || null };
 
@@ -12761,7 +12781,7 @@ function avanceProyectoReporte(p, fisico, hoy) {
   if (!esCap && fisico?.total) {
     const pct = Math.round(fisico.ok * 100 / fisico.total);
     return { modo: 'fisico', pct, ok: fisico.ok, inc: fisico.inc, total: fisico.total,
-      sub: `${fisico.ok} de ${fisico.total} ${fisico.tipo === 'solar' ? 'bloques' : 'WTGs'}`, etq: 'Avance físico' };
+      sub: `${fisico.ok} de ${cuentaAv(fisico.total, tiposAv(fisico))}${fisico.proc ? ` · ${fisico.proc} en proceso` : ''}`, etq: 'Avance físico' };
   }
   const ini = fechaLocal(p.fecha_inicio_real || p.fecha_inicio), finPlan = fechaLocal(p.fecha_fin_estimada);
   const total = Math.max(1, Math.round((finPlan - fechaLocal(p.fecha_inicio)) / 86400000) + 1);
@@ -13404,7 +13424,10 @@ async function exportarMetricasPDF() {
   const sub = `${desde ? `Del ${fLargaAnio(desde)} al ${fLargaAnio(hasta)}  ·  ` : ''}${plural(datos.length, 'proyecto')}`;
   const mesA = desde ? MESES_CORTOS[fechaLocal(desde).getMonth()].toUpperCase() : '', mesB = hasta ? MESES_CORTOS[fechaLocal(hasta).getMonth()].toUpperCase() : '';
   const codigo = desde ? `${mesA === mesB ? mesA : `${mesA} – ${mesB}`} ${fechaLocal(hasta).getFullYear()}` : '';
-  T.encabezado('Reporte de métricas', codigo, 'Métricas de proyectos', sub);
+  // Un solo proyecto (filtro "Proyecto específico"): sin la página de resumen global, directo a la ficha
+  const unico = !STATE._metricasRango && datos.length === 1;
+  if (unico) T.encabezado('Ficha de métricas', datos[0].id || '', datos[0].nombre || 'Proyecto', [datos[0].cliente, datos[0].ciudad].filter(Boolean).join('  ·  '));
+  else T.encabezado('Reporte de métricas', codigo, 'Métricas de proyectos', sub);
   const k = calcularKpisMetricas(datos);
   const SEM = { ok: PDF_EST.asignado.c, warn: C.ambar, bad: PDF_EST.progreso.c, na: C.grisClaro, neutro: C.tinta, curso: [96, 140, 200], pausa: PDF_EST.pausa.c, desc: PDF_EST.ausencia.c };
   const SEM_BG = { ok: PDF_EST.asignado.bg, warn: C.ambarBg, bad: PDF_EST.progreso.bg, na: C.fondo, curso: [226, 234, 246], pausa: PDF_EST.pausa.bg, desc: PDF_EST.ausencia.bg };
@@ -13412,8 +13435,9 @@ async function exportarMetricasPDF() {
   // barras, puntos y rellenos conservan el color original
   const SEM_TX = Object.fromEntries(Object.entries(SEM).map(([kk, c]) => [kk, kk === 'na' ? C.gris : tonoLegible(c, SEM_BG[kk] || C.fondo)]));
 
-  // ── BLOQUE SUPERIOR: KPIs clave (5 tarjetas)
   let y = 33;
+  if (!unico) {
+  // ── BLOQUE SUPERIOR: KPIs clave (5 tarjetas)
   const gap = 3, tw = (W - 2 * M - gap * 4) / 5, th = 25;
   k.tarjetas.forEach(([lab, val, det, sem, barra], i) => {
     const x = M + i * (tw + gap), col = SEM[sem];
@@ -13503,10 +13527,13 @@ async function exportarMetricasPDF() {
     y += h + 3;
   });
 
-  // ── DETALLE POR PROYECTO (desde la página 2)
-  T.nuevaPagina(); T.encabezado('Reporte de métricas', codigo, 'Métricas de proyectos', 'Detalle por proyecto');
+  }   // fin del resumen global
+
+  // ── DETALLE POR PROYECTO (desde la página 2; en ficha única, en la primera)
+  if (!unico) { T.nuevaPagina(); T.encabezado('Reporte de métricas', codigo, 'Métricas de proyectos', 'Detalle por proyecto'); }
   y = 36;
-  y = T.seccion('DETALLE POR PROYECTO', y, plural(datos.length, 'proyecto'));
+  y = unico ? T.seccion('FICHA DEL PROYECTO', y, datos[0]._finalizado ? 'Finalizado' : (datos[0]._avance ? `Avance ${datos[0]._avance.pct}%` : 'En curso'))
+    : T.seccion('DETALLE POR PROYECTO', y, plural(datos.length, 'proyecto'));
   const w = W - 2 * M, cw3 = (w - 10) / 3;
   datos.forEach(p => {
     const f = infoProyectoMetricas(p), inc = p.incidencias || [];
@@ -13524,14 +13551,17 @@ async function exportarMetricasPDF() {
     const inact = p.inactividad_detalle || [], altoInact = inact.length ? 7 + inact.length * 5 : 0;
     T.font('normal', 6.8); const linCierre = f.cierreTxt ? doc.splitTextToSize(f.cierreTxt + (p.cierre?.nota ? ` · ${p.cierre.nota}` : ''), w - 10).slice(0, 2) : [];
     const altoCierre = linCierre.length ? 6 + linCierre.length * 3.6 : 0;
-    const alto = 60 + filasIns * 6.5 + altoTec + altoCamb + altoInact + altoCierre + (recursos.length ? 6 : 0) + (inc.length ? 9 + inc.length * 5.6 : 0);
+    const alto = 60 + ((p._avance || p._finalizado) ? 9 : 0) + filasIns * 6.5 + altoTec + altoCamb + altoInact + altoCierre + (recursos.length ? 6 : 0) + (inc.length ? 9 + inc.length * 5.6 : 0);
     if (y + alto > T.H - 20) { T.nuevaPagina(); T.encabezado('Reporte de métricas', codigo, 'Métricas de proyectos', 'Detalle por proyecto (continuación)'); y = 36; }
     T.relleno(C.fondo); doc.roundedRect(M, y, w, alto, 2, 2, 'F');
     let yy = y + 8;
     // Encabezado: nombre + estado
     const est = f.estado[0].toUpperCase(), ap = T.anchoPastilla(est);
-    T.font('bold', 11, C.tinta); doc.text(recortarTexto(doc, p.nombre, w - ap - 16), M + 5, yy);
+    // activo: insignia destacada con el % de avance junto al estado
+    const avTxt = p._avance ? `AVANCE ${p._avance.pct}%` : '', apAv = avTxt ? T.anchoPastilla(avTxt) + 2 : 0;
+    T.font('bold', 11, C.tinta); doc.text(recortarTexto(doc, p.nombre, w - ap - apAv - 16), M + 5, yy);
     T.pastilla(est, M + w - 5 - ap, yy - 0.2, SEM_TX[f.estado[1]], SEM_BG[f.estado[1]]);
+    if (avTxt) T.pastilla(avTxt, M + w - 5 - ap - apAv, yy - 0.2, p._avance.atraso ? SEM_TX.warn : C.blanco, p._avance.atraso ? SEM_BG.warn : SEM.ok);
     yy += 4.8;
     T.font('normal', 7.4, C.gris); doc.text(`${p.cliente || '—'}  ·  ${p.ciudad || '—'}`, M + 5, yy);
     yy += 6.5;
@@ -13558,6 +13588,25 @@ async function exportarMetricasPDF() {
       else doc.text(txt, Math.max(ex + 1, bx - 2 - tw2), by + 2.4);
     });
     yy += 15;
+    if (p._avance) {   // avance del proyecto en curso (mismo cálculo que el Gantt); los finalizados no llevan %
+      const a = p._avance, bw0 = ew * 0.42, col = a.atraso ? C.ambar : SEM.ok;
+      T.etiqueta('Avance', M + 5, yy - 1.6, C.gris, 5.8);
+      T.relleno(C.blanco); doc.roundedRect(ex, yy - 4, bw0, 3, 1, 1, 'F');
+      if (a.pct > 0) { T.relleno(col); doc.roundedRect(ex, yy - 4, Math.max(2.4, bw0 * Math.min(100, a.pct) / 100), 3, 1, 1, 'F'); }
+      T.font('bold', 9, C.tinta); const tp = `${a.pct}%`; doc.text(tp, ex + bw0 + 3, yy - 1.4);
+      const x2 = ex + bw0 + 3 + doc.getTextWidth(tp) + 3;
+      T.font('normal', 6.6, C.texto); doc.text(recortarTexto(doc, `${a.sub} · ${a.etq}${p.pausado ? ' · en pausa' : ''}${p.fecha_fin_real ? ' · en cierre con el cliente' : ''}`, M + w - 5 - x2), x2, yy - 1.6);
+      yy += 9;
+    } else if (p._finalizado) {   // sello de finalización (sin % de avance)
+      const txt = 'PROYECTO FINALIZADO', det = `${fCorta(p.fecha_fin_real)}${p.cierre?.aprobado ? `  ·  visto bueno del cliente ${fCorta(p.cierre.aprobado)}` : ''}`;
+      T.font('bold', 6.8); const tw0 = doc.getTextWidth(txt) + 10;
+      T.relleno(SEM_BG.ok); doc.roundedRect(ex, yy - 4.6, tw0, 4.6, 2.3, 2.3, 'F');
+      T.relleno(SEM.ok); doc.circle(ex + 3, yy - 2.3, 1.1, 'F');
+      T.font('bold', 6.8, SEM_TX.ok); doc.text(txt, ex + 5.4, yy - 1.4, { charSpace: 0.3 });
+      T.font('normal', 6.6, C.texto); doc.text(det, ex + tw0 + 3, yy - 1.4);
+      T.etiqueta('Cierre', M + 5, yy - 1.6, C.gris, 5.8);
+      yy += 9;
+    }
     // Fila de duración y fila de checadas: 3 datos cada una
     const dato = (i, lab, val, det, sem, fila) => {
       const dx = M + 5 + i * cw3, dy = yy + fila * 14;
