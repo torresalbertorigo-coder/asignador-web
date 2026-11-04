@@ -758,6 +758,8 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .mp-av-fila .mk-track{flex:1;min-width:120px;height:8px;margin-top:0;background:var(--border)}
 .mp-av-fila .mk-track span{display:block;height:100%;border-radius:2px}
 .mp-av-fila > span{font-size:12px;color:var(--text2)}.mp-av-fila em{color:var(--text3);font-style:normal}
+.mp-av-badge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:9.5px;letter-spacing:.04em}
+.mp-av-ok{background:var(--green-bg);color:var(--green)}.mp-av-warn{background:var(--amber-bg);color:var(--amber)}.mp-av-na{background:var(--surface);color:var(--text3);border:1px solid var(--border)}
 .mp-sello{margin:12px 0 2px;padding:9px 12px;border:1px solid var(--green-border);border-radius:10px;background:var(--green-bg);display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text2)}
 .mp-sello i{font-size:20px;color:var(--green)}.mp-sello b{color:var(--green)}
 .mk-nota-horas{font-size:11.5px;color:var(--text3);display:inline-flex;gap:5px;align-items:center;margin-left:auto;margin-right:10px}
@@ -8344,9 +8346,10 @@ function htmlProyectoMetricas(p) {
   return `<div class="mp-card">
     <div class="mp-head"><div><div class="mp-nombre">${escHtml(p.nombre)}</div><div class="mp-cli">${escHtml(p.cliente || '—')} · ${escHtml(p.ciudad || '—')}</div></div>
       <span class="mp-pill" style="color:${C[f.estado[1]]};border-color:${C[f.estado[1]]}">${p.pausado ? '<i class="ti ti-player-pause" aria-hidden="true"></i>' : ''}${f.estado[0]}</span></div>
-    ${p._avance ? `<div class="mp-avance"><div class="mp-lab">Avance del proyecto${p.pausado ? ' · en pausa' : ''}</div>
-      <div class="mp-av-fila"><b>${p._avance.pct}%</b><div class="mk-track"><span style="width:${Math.min(100, p._avance.pct)}%;background:${p._avance.atraso ? 'var(--amber)' : 'var(--green)'}"></span></div>
-      <span>${escHtml(p._avance.sub)} · <em>${escHtml(p._avance.etq)}</em></span></div></div>`
+    ${p._avance ? (() => { const v = presentarAvanceMetricas(p._avance), col = v.barSem === 'ok' ? 'var(--green)' : v.barSem === 'warn' ? 'var(--amber)' : 'var(--text3)';
+      return `<div class="mp-avance"><div class="mp-lab">${v.lab === 'Tiempo' ? 'Tiempo del plan' : 'Avance del proyecto'} ${v.badge ? `<span class="mp-av-badge mp-av-${v.sem}">${v.badge}</span>` : ''}</div>
+      <div class="mp-av-fila">${v.pctTxt ? `<b>${v.pctTxt}</b>` : ''}<div class="mk-track"><span style="width:${Math.min(100, v.bar)}%;background:${col}"></span></div>
+      <span>${escHtml(v.linea)}</span></div></div>`; })()
       : p._finalizado ? `<div class="mp-sello"><i class="ti ti-rosette-discount-check" aria-hidden="true"></i><b>Proyecto finalizado</b><span>${fCorta(p.fecha_fin_real)}${p.cierre?.aprobado ? ` · visto bueno del cliente ${fCorta(p.cierre.aprobado)}` : ''}</span></div>` : ''}
     <div class="mp-fila">${dato('Duración estimada', f.est, f.estRango)}${dato('Duración real', f.real, f.realRango)}${dato('Desviación', f.desv, f.desvDet, f.desvSem)}</div>
     <div class="mp-fila">${dato('Cumplimiento de checada', f.cumpl, f.cumplDet, f.ch.cumplimiento == null ? 'na' : f.cumplSem)}${dato('Días sin registro de checada', f.sinReg, f.ch.dias_sin_registro ? 'días laborables sin entrada registrada' : 'todos los días con registro', f.sinRegSem)}${dato('Horas registradas', f.horasTxt, f.horasDet, (p.asistencia?.horas_aprox || 0) > 0 ? null : 'na')}</div>
@@ -12783,27 +12786,52 @@ async function exportarFichaEquipoPDF(id) {
 const RE_CAPACITACION = /CAPACIT|CURSO|COMISION|ENTRENAMIENTO|TALLER|FORMACION|INDUCCION|CERTIFICACION GWO/;
 function avanceProyectoReporte(p, fisico, hoy) {
   const esCap = RE_CAPACITACION.test(sinAcentos(`${p.nombre || ''} ${p.descripcion || ''}`));
+  // En pausa: el tiempo se congela en la fecha de la pausa (no avanza solo con el calendario)
+  const pausa = !p.fecha_fin_real && (p.pausado || p.estado === 'pausado');
+  const pausaDesde = pausa ? (p.pausado_desde || p.pausas_resumen?.at(-1)?.inicio || null) : null;
   if (!esCap && fisico?.total) {
     const pct = Math.round(fisico.ok * 100 / fisico.total);
-    return { modo: 'fisico', pct, ok: fisico.ok, inc: fisico.inc, total: fisico.total,
+    return { modo: 'fisico', pct, ok: fisico.ok, inc: fisico.inc, total: fisico.total, pausa, pausaDesde,
       sub: `${fisico.ok} de ${cuentaAv(fisico.total, tiposAv(fisico))}${fisico.proc ? ` · ${fisico.proc} en proceso` : ''}`, etq: 'Avance físico' };
   }
   const fIni = p.fecha_inicio || p.fecha_inicio_estimada || p.fecha_inicio_real;   // las métricas lo traen como fecha_inicio_estimada
   const ini = fechaLocal(p.fecha_inicio_real || fIni), finPlan = fechaLocal(p.fecha_fin_estimada || fIni);
   const total = Math.max(1, Math.round((finPlan - fechaLocal(fIni)) / 86400000) + 1);
+  const ref = pausaDesde ? fechaLocal(pausaDesde) : hoy;
+  // días reales en campo: las métricas ya los traen sin contar pausas; si no, desde el inicio real hasta hoy (o la pausa)
+  const diaReal = p.fecha_inicio_real && !p.fecha_fin_real
+    ? (Number.isFinite(p.dias_transcurridos) ? p.dias_transcurridos : Math.max(0, Math.round((ref - ini) / 86400000) + 1)) : 0;
   let trans = 0;
   if (p.fecha_fin_real) trans = total;
-  else if (p.fecha_inicio_real || ini <= hoy) trans = Math.min(total, Math.max(0, Math.round((hoy - ini) / 86400000) + 1));
+  else if (p.fecha_inicio_real) trans = Math.min(total, diaReal);
+  else if (ini <= hoy) trans = Math.min(total, Math.max(0, Math.round((hoy - ini) / 86400000) + 1));
   if (!p.fecha_inicio_real && !p.fecha_fin_real && ini > hoy) trans = 0;
   const pct = Math.round(trans * 100 / total);
-  // en curso y ya pasó su fin estimado sin finalizar: 100 % del plan, pero se avisa el retraso
-  const diaReal = p.fecha_inicio_real && !p.fecha_fin_real ? Math.round((hoy - ini) / 86400000) + 1 : 0;
   const atraso = diaReal > total ? diaReal - total : 0;
-  return { modo: esCap ? 'tiempo' : 'tiempo-sin', pct, ok: trans, inc: 0, total, atraso,
-    sub: p.fecha_fin_real ? `Concluido · ${total} día${total === 1 ? '' : 's'}`
-      : atraso ? `Día ${diaReal} de ${total} · +${atraso} de retraso`
-      : trans ? `Día ${trans} de ${total}` : `Inicia ${fCorta(fIni)} · ${total} día${total === 1 ? '' : 's'}`,
+  const plan = `${total} día${total === 1 ? '' : 's'}`;
+  return { modo: esCap ? 'tiempo' : 'tiempo-sin', pct, ok: trans, inc: 0, total, atraso, pausa, pausaDesde, diaReal, pendiente: !p.fecha_fin_real,
+    sub: p.fecha_fin_real ? `Concluido · ${plan}`
+      : pausa ? `En pausa desde el ${fCorta(pausaDesde || ref)} · ${diaReal} día${diaReal === 1 ? '' : 's'} en campo (plan de ${plan})`
+      : atraso ? `${diaReal} días en campo (plan de ${plan}) · +${atraso} de retraso`
+      : trans ? `Día ${trans} de ${total}` : `Inicia ${fCorta(fIni)} · ${plan}`,
     etq: esCap ? 'Avance por tiempo' : 'Por tiempo · sin captura de campo' };
+}
+// Cómo se presenta el avance en Métricas (pantalla y PDF):
+//  - físico o capacitación: % de avance (en pausa, congelado y marcado)
+//  - operativo sin captura de campo: NO se muestra un % (los días transcurridos no dicen cuánto trabajo falta);
+//    solo el tiempo consumido del plan y, si está en pausa o vencido, que hay trabajo pendiente
+function presentarAvanceMetricas(a) {
+  if (!a) return null;
+  if (a.modo === 'tiempo-sin') {
+    const pend = a.pendiente && (a.pausa || a.atraso || a.pct >= 100);
+    // en pausa no lleva insignia: el estado del proyecto ya lo dice
+    return { badge: a.pausa ? '' : 'SIN AVANCE CAPTURADO', sem: (a.pausa || a.atraso) ? 'warn' : 'na', pctTxt: '', lab: 'Tiempo',
+      bar: a.pct, barSem: (a.pausa || a.atraso) ? 'warn' : 'na',
+      linea: `${a.sub} · sin captura de avance en campo${pend ? ' · trabajo pendiente por concluir' : ''}` };
+  }
+  const extra = a.modo === 'fisico' && a.pausa ? ` · en pausa desde el ${fCorta(a.pausaDesde)}` : '';
+  return { badge: a.pausa ? `EN PAUSA · ${a.pct}%` : `AVANCE ${a.pct}%`, sem: (a.pausa || a.atraso) ? 'warn' : 'ok', pctTxt: `${a.pct}%`, lab: 'Avance',
+    bar: a.pct, barSem: (a.pausa || a.atraso) ? 'warn' : 'ok', linea: `${a.sub} · ${a.etq}${extra}` };
 }
 function donaPartesPNG(partes) {
   const S = 360, cv = document.createElement('canvas'); cv.width = cv.height = S;
@@ -13538,7 +13566,7 @@ async function exportarMetricasPDF() {
   // ── DETALLE POR PROYECTO (desde la página 2; en ficha única, en la primera)
   if (!unico) { T.nuevaPagina(); T.encabezado('Reporte de métricas', codigo, 'Métricas de proyectos', 'Detalle por proyecto'); }
   y = 36;
-  y = unico ? T.seccion('FICHA DEL PROYECTO', y, datos[0]._finalizado ? 'Finalizado' : (datos[0]._avance ? `Avance ${datos[0]._avance.pct}%` : 'En curso'))
+  y = unico ? T.seccion('FICHA DEL PROYECTO', y, datos[0]._finalizado ? 'Finalizado' : (datos[0]._avance ? ((presentarAvanceMetricas(datos[0]._avance).badge || 'En pausa').toLowerCase().replace(/^./, c => c.toUpperCase())) : 'En curso'))
     : T.seccion('DETALLE POR PROYECTO', y, plural(datos.length, 'proyecto'));
   const w = W - 2 * M, cw3 = (w - 10) / 3;
   datos.forEach(p => {
@@ -13557,17 +13585,20 @@ async function exportarMetricasPDF() {
     const inact = p.inactividad_detalle || [], altoInact = inact.length ? 7 + inact.length * 5 : 0;
     T.font('normal', 6.8); const linCierre = f.cierreTxt ? doc.splitTextToSize(f.cierreTxt + (p.cierre?.nota ? ` · ${p.cierre.nota}` : ''), w - 10).slice(0, 2) : [];
     const altoCierre = linCierre.length ? 6 + linCierre.length * 3.6 : 0;
-    const alto = 60 + ((p._avance || p._finalizado) ? 9 : 0) + filasIns * 6.5 + altoTec + altoCamb + altoInact + altoCierre + (recursos.length ? 6 : 0) + (inc.length ? 9 + inc.length * 5.6 : 0);
+    const vAv = presentarAvanceMetricas(p._avance);
+    const exAv = M + 24, bwAv = (w - 29) * 0.26;
+    T.font('normal', 6.6); const linAv = vAv ? doc.splitTextToSize(vAv.linea, M + w - 5 - (exAv + bwAv + 3 + (vAv.pctTxt ? 14 : 0))).slice(0, 2) : [];
+    const alto = 60 + ((p._avance || p._finalizado) ? 9 + (linAv.length > 1 ? 3 : 0) : 0) + filasIns * 6.5 + altoTec + altoCamb + altoInact + altoCierre + (recursos.length ? 6 : 0) + (inc.length ? 9 + inc.length * 5.6 : 0);
     if (y + alto > T.H - 20) { T.nuevaPagina(); T.encabezado('Reporte de métricas', codigo, 'Métricas de proyectos', 'Detalle por proyecto (continuación)'); y = 36; }
     T.relleno(C.fondo); doc.roundedRect(M, y, w, alto, 2, 2, 'F');
     let yy = y + 8;
     // Encabezado: nombre + estado
     const est = f.estado[0].toUpperCase(), ap = T.anchoPastilla(est);
     // activo: insignia destacada con el % de avance junto al estado
-    const avTxt = p._avance ? `AVANCE ${p._avance.pct}%` : '', apAv = avTxt ? T.anchoPastilla(avTxt) + 2 : 0;
+    const avTxt = vAv ? vAv.badge : '', apAv = avTxt ? T.anchoPastilla(avTxt) + 2 : 0;
     T.font('bold', 11, C.tinta); doc.text(recortarTexto(doc, p.nombre, w - ap - apAv - 16), M + 5, yy);
     T.pastilla(est, M + w - 5 - ap, yy - 0.2, SEM_TX[f.estado[1]], SEM_BG[f.estado[1]]);
-    if (avTxt) T.pastilla(avTxt, M + w - 5 - ap - apAv, yy - 0.2, p._avance.atraso ? SEM_TX.warn : C.blanco, p._avance.atraso ? SEM_BG.warn : SEM.ok);
+    if (avTxt) T.pastilla(avTxt, M + w - 5 - ap - apAv, yy - 0.2, vAv.sem === 'ok' ? C.blanco : SEM_TX[vAv.sem], vAv.sem === 'ok' ? SEM.ok : vAv.sem === 'na' ? C.blanco : SEM_BG[vAv.sem]);
     yy += 4.8;
     T.font('normal', 7.4, C.gris); doc.text(`${p.cliente || '—'}  ·  ${p.ciudad || '—'}`, M + 5, yy);
     yy += 6.5;
@@ -13594,15 +13625,16 @@ async function exportarMetricasPDF() {
       else doc.text(txt, Math.max(ex + 1, bx - 2 - tw2), by + 2.4);
     });
     yy += 15;
-    if (p._avance) {   // avance del proyecto en curso (mismo cálculo que el Gantt); los finalizados no llevan %
-      const a = p._avance, bw0 = ew * 0.42, col = a.atraso ? C.ambar : SEM.ok;
-      T.etiqueta('Avance', M + 5, yy - 1.6, C.gris, 5.8);
-      T.relleno(C.blanco); doc.roundedRect(ex, yy - 4, bw0, 3, 1, 1, 'F');
-      if (a.pct > 0) { T.relleno(col); doc.roundedRect(ex, yy - 4, Math.max(2.4, bw0 * Math.min(100, a.pct) / 100), 3, 1, 1, 'F'); }
-      T.font('bold', 9, C.tinta); const tp = `${a.pct}%`; doc.text(tp, ex + bw0 + 3, yy - 1.4);
-      const x2 = ex + bw0 + 3 + doc.getTextWidth(tp) + 3;
-      T.font('normal', 6.6, C.texto); doc.text(recortarTexto(doc, `${a.sub} · ${a.etq}${p.pausado ? ' · en pausa' : ''}${p.fecha_fin_real ? ' · en cierre con el cliente' : ''}`, M + w - 5 - x2), x2, yy - 1.6);
-      yy += 9;
+    if (vAv) {   // avance del proyecto activo (mismo cálculo que el Gantt); sin captura de campo solo se muestra el tiempo del plan
+      const col = vAv.barSem === 'ok' ? SEM.ok : vAv.barSem === 'warn' ? C.ambar : C.grisClaro;
+      T.etiqueta(vAv.lab, M + 5, yy - 1.6, C.gris, 5.8);
+      T.relleno(C.blanco); doc.roundedRect(exAv, yy - 4, bwAv, 3, 1, 1, 'F');
+      if (vAv.bar > 0) { T.relleno(col); doc.roundedRect(exAv, yy - 4, Math.max(2.4, bwAv * Math.min(100, vAv.bar) / 100), 3, 1, 1, 'F'); }
+      let x2 = exAv + bwAv + 3;
+      if (vAv.pctTxt) { T.font('bold', 9, C.tinta); doc.text(vAv.pctTxt, x2, yy - 1.4); x2 += 14; }
+      T.font('normal', 6.6, vAv.sem === 'warn' ? SEM_TX.warn : C.texto);
+      linAv.forEach((l, j) => doc.text(j === linAv.length - 1 && p.fecha_fin_real && j === 0 ? `${l}` : l, x2, yy - 1.6 + j * 3));
+      yy += 9 + (linAv.length > 1 ? 3 : 0);
     } else if (p._finalizado) {   // sello de finalización (sin % de avance)
       const txt = 'PROYECTO FINALIZADO', det = `${fCorta(p.fecha_fin_real)}${p.cierre?.aprobado ? `  ·  visto bueno del cliente ${fCorta(p.cierre.aprobado)}` : ''}`;
       T.font('bold', 6.8); const tw0 = doc.getTextWidth(txt) + 10;
