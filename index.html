@@ -8366,19 +8366,19 @@ function htmlKpisMetricas(datos) {
 const fechaCambioPersonal = c => isoLocal(new Date(String(c.fecha).replace(/Z?$/, 'Z')));
 // ── Cronograma del proyecto (ficha de un solo proyecto): un cuadro por día trabajado/transcurrido ──
 const CRONO_CAT = {
-  avance:    { t: 'Avance',             d: 'se concluyó algo',              c: [22, 163, 74],   bg: [22, 163, 74],   tx: [255, 255, 255] },
+  avance:    { t: 'Avance',             d: '',              c: [22, 163, 74],   bg: [22, 163, 74],   tx: [255, 255, 255] },
   parcial:   { t: 'Avance parcial',     d: 'quedó en proceso',              c: [134, 239, 172], bg: [220, 252, 231], tx: [21, 128, 61] },
-  sinavance: { t: 'Sin avance',         d: 'se trabajó sin concluir unidades', c: [148, 163, 184], bg: [226, 232, 240], tx: [51, 65, 85] },
+  sinavance: { t: 'Sin avance',         d: '',                              c: [203, 213, 225], bg: [241, 245, 249], tx: [71, 85, 105] },
   perdido:   { t: 'Día perdido',        d: 'incidencia sin avance',         c: [220, 38, 38],   bg: [254, 226, 226], tx: [185, 28, 28] },
-  descanso:  { t: 'Descanso',           d: '',                              c: [124, 58, 237],  bg: [237, 233, 254], tx: [109, 40, 217] },
+  descanso:  { t: 'Descanso',           d: '',                              c: [196, 181, 253], bg: [245, 243, 255], tx: [109, 40, 217] },
   standby:   { t: 'Standby',            d: '',                              c: [217, 119, 6],   bg: [254, 243, 199], tx: [180, 83, 9] },
   pausa:     { t: 'En pausa',           d: '',                              c: [107, 114, 128], bg: [229, 231, 235], tx: [75, 85, 99] },
   sinreg:    { t: 'Sin registro',       d: 'sin checada ni reporte',        c: [220, 38, 38],   bg: [255, 255, 255], tx: [185, 28, 28] },
-  hoy:       { t: 'Hoy',                d: 'aún sin registro',              c: [148, 163, 184], bg: [255, 255, 255], tx: [100, 116, 139] },
+  hoy:       { t: 'Hoy',                d: '',              c: [148, 163, 184], bg: [255, 255, 255], tx: [100, 116, 139] },
 };
 const DIAS_CORTOS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
 // "3 con avance parcial", "1 descanso", "2 perdidos"
-const CRONO_RES = { avance: ['con avance', 'con avance'], parcial: ['con avance parcial', 'con avance parcial'], sinavance: ['sin avance', 'sin avance'],
+const CRONO_RES = { avance: ['con avance', 'con avance'], hoy: ['hoy', 'hoy'], parcial: ['con avance parcial', 'con avance parcial'], sinavance: ['sin avance', 'sin avance'],
   perdido: ['perdido', 'perdidos'], descanso: ['descanso', 'descansos'], standby: ['en standby', 'en standby'], pausa: ['en pausa', 'en pausa'], sinreg: ['sin registro', 'sin registro'] };
 const resCrono = (k, n) => `${n} ${CRONO_RES[k][n === 1 ? 0 : 1]}`;
 function clasificarDiaCrono(d, hoyIso) {
@@ -8394,14 +8394,17 @@ function clasificarDiaCrono(d, hoyIso) {
   if (d.fecha === hoyIso) return { cat: 'hoy', etq: '' };
   return { cat: 'sinreg', etq: '' };
 }
+// En la tira solo 3 estados (más "hoy"): avance (total o parcial), sin avance y descanso. El porqué va en la lista de abajo.
+const CRONO_SIMPLE = { avance: 'avance', parcial: 'avance', descanso: 'descanso', hoy: 'hoy' };
 function datosCronograma(cr) {
   const hoyIso = isoLocal(new Date());
-  const dias = (cr?.dias || []).map(d => ({ ...d, ...clasificarDiaCrono(d, hoyIso), finde: [0, 6].includes(fechaLocal(d.fecha).getDay()),
-    conInc: d.incidencias.length > 0 || d.inc.length > 0 }));
+  const dias = (cr?.dias || []).map(d => { const c = clasificarDiaCrono(d, hoyIso);
+    return { ...d, ...c, det: c.cat, cat: CRONO_SIMPLE[c.cat] || 'sinavance', etq: ['avance', 'parcial'].includes(c.cat) ? c.etq : '',
+      finde: [0, 6].includes(fechaLocal(d.fecha).getDay()), conInc: d.incidencias.length > 0 || d.inc.length > 0 }; });
   const cuenta = {}; dias.forEach(d => { cuenta[d.cat] = (cuenta[d.cat] || 0) + 1; });
   // productivos = con avance (total o parcial) ÷ días que se podía trabajar (sin pausa, descanso ni el día de hoy aún sin registro)
-  const base = dias.length - (cuenta.pausa || 0) - (cuenta.hoy || 0) - (cuenta.descanso || 0);
-  const prod = (cuenta.avance || 0) + (cuenta.parcial || 0);
+  const base = dias.length - dias.filter(d => d.det === 'pausa').length - (cuenta.hoy || 0) - (cuenta.descanso || 0);
+  const prod = cuenta.avance || 0;
   // Días a aclarar: los que no tuvieron avance, o tuvieron incidencia (los de avance normal no se repiten)
   const motivo = d => {
     const L = [];
@@ -8411,28 +8414,29 @@ function datosCronograma(cr) {
     if (d.standby.length) L.push(`Standby: ${d.standby.join(', ')}`);
     d.motivos.forEach(m => L.push(m));
     d.notas.forEach(n => L.push(n.replace(/\s*\n+\s*[-–•·*]?\s*/g, ' · ')));
-    if (d.cat === 'sinreg') L.push(d.sin_registro.length ? `Sin checada: ${d.sin_registro.join(', ')}` : 'Sin checada ni reporte');
-    if (d.cat === 'sinavance' && !L.length) L.push(`Se registró asistencia${d.personas.length ? ` (${d.personas.join(', ')})` : ''} sin avance capturado`);
+    if (d.det === 'pausa') L.push('Proyecto en pausa');
+    if (d.det === 'sinreg') L.push(d.sin_registro.length ? `Sin checada: ${d.sin_registro.join(', ')}` : 'Sin checada ni reporte');
+    if (d.det === 'sinavance' && !L.length) L.push(`Se registró asistencia${d.personas.length ? ` (${d.personas.join(', ')})` : ''} sin avance capturado`);
     return L;
   };
   const excep = [];
-  dias.filter(d => !['avance', 'parcial', 'hoy'].includes(d.cat) || d.conInc).forEach(d => {
+  dias.filter(d => !['avance', 'hoy'].includes(d.cat) || d.conInc).forEach(d => {
     const prev = excep[excep.length - 1];
-    if (d.cat === 'pausa' && prev?.cat === 'pausa') { prev.hasta = d.fecha; prev.n++; return; }   // la pausa se junta en un renglón
-    excep.push({ fecha: d.fecha, hasta: d.fecha, n: 1, cat: d.cat, motivos: d.cat === 'pausa' ? ['Proyecto en pausa'] : motivo(d) });
+    if (d.det === 'pausa' && prev?.det === 'pausa') { prev.hasta = d.fecha; prev.n++; return; }   // la pausa se junta en un renglón
+    excep.push({ fecha: d.fecha, hasta: d.fecha, n: 1, cat: d.cat, det: d.det, motivos: motivo(d) });
   });
   return { dias, cuenta, base, prod, pctProd: base ? Math.round(prod * 100 / base) : null, excep: excep.reverse() };
 }
 const rgbCss = c => `rgb(${c.join(',')})`;
 function htmlCronogramaMetricas(p) {
   const X = datosCronograma(p.cronograma); if (!X.dias.length) return '';
-  const cats = Object.keys(CRONO_CAT).filter(k => X.cuenta[k]);
+  const cats = Object.keys(CRONO_CAT).filter(k => X.cuenta[k] && k !== 'hoy');
   const tiles = X.dias.map((d, i) => {
     const k = CRONO_CAT[d.cat], f = fechaLocal(d.fecha), mes = i === 0 || f.getDate() === 1 ? MESES_CORTOS[f.getMonth()] : '';
     const tip = [fechaLargaAv(d.fecha), k.t, d.personas.length ? `${d.personas.join(', ')}${d.horas ? ` · ${d.horas} h` : ''}` : ''].filter(Boolean).join(' · ');
     return `<button class="cr-dia cr-${d.cat}${d.finde ? ' finde' : ''}" style="--bg:${rgbCss(k.bg)};--bd:${rgbCss(k.c)};--tx:${rgbCss(k.tx)}" title="${escHtml(tip)}" onclick="document.getElementById('cr-ex-${escHtml(p.proyecto_id || p.id)}-${d.fecha}')?.scrollIntoView({block:'center',behavior:'smooth'})">
       <span class="cr-sem">${DIAS_CORTOS[f.getDay()]}</span><span class="cr-num">${f.getDate()}${mes ? `<small>${mes}</small>` : ''}</span>
-      <span class="cr-etq">${escHtml(d.etq)}</span>${d.conInc ? '<i class="cr-inc" title="Incidencia"></i>' : ''}${d.horas ? `<span class="cr-h">${d.horas} h</span>` : ''}</button>`;
+      <span class="cr-etq">${escHtml(d.etq)}</span>${d.horas ? `<span class="cr-h">${d.horas} h</span>` : ''}</button>`;
   }).join('');
   const nD = X.dias.length - (X.cuenta.hoy || 0);
   const resumen = [`<b>${nD}</b> ${nD === 1 ? 'día' : 'días'}`, ...cats.filter(k => k !== 'hoy').map(k => resCrono(k, X.cuenta[k]).replace(/^(\d+)/, '<b>$1</b>'))];
@@ -8440,7 +8444,7 @@ function htmlCronogramaMetricas(p) {
     <div class="mp-lab">Cronograma del proyecto <span style="text-transform:none;letter-spacing:0;font-weight:500">· toca un día para ver su detalle</span></div>
     <div class="cr-tira">${tiles}</div>
     <div class="cr-ley">${cats.map(k => `<span><i style="background:${rgbCss(CRONO_CAT[k].bg)};border-color:${rgbCss(CRONO_CAT[k].c)}"></i>${CRONO_CAT[k].t}${CRONO_CAT[k].d ? ` <em>${CRONO_CAT[k].d}</em>` : ''}</span>`).join('')}
-      ${X.dias.some(d => d.conInc) ? '<span><i class="cr-inc-ley"></i>Incidencia</span>' : ''}${X.dias.some(d => d.finde) ? '<span><i class="cr-finde-ley"></i>Fin de semana</span>' : ''}</div>
+      ${X.dias.some(d => d.finde) ? '<span><i class="cr-finde-ley"></i>Fin de semana</span>' : ''}</div>
     <div class="cr-res">${resumen.join(' · ')}${X.pctProd != null ? ` &nbsp;|&nbsp; Días productivos: <b>${X.pctProd}%</b>` : ''}</div>
     ${X.excep.length ? `<div class="cr-ex"><div class="mp-lab">Días sin avance o con novedad</div>
       ${X.excep.map(e => { const k = CRONO_CAT[e.cat]; return `<div class="cr-ex-fila" id="cr-ex-${escHtml(p.proyecto_id || p.id)}-${e.fecha}">
@@ -8453,14 +8457,14 @@ function htmlCronogramaMetricas(p) {
 function pdfCronogramaMetricas(T, p, y) {
   const { doc, C, M } = T, W = T.W, X = datosCronograma(p.cronograma); if (!X.dias.length) return y;
   const w = W - 2 * M, COLS = 15, gap = 1.2, tw = (w - gap * (COLS - 1)) / COLS, th = 12.5;
-  const filas = Math.ceil(X.dias.length / COLS), cats = Object.keys(CRONO_CAT).filter(k => X.cuenta[k]);
+  const filas = Math.ceil(X.dias.length / COLS), cats = Object.keys(CRONO_CAT).filter(k => X.cuenta[k] && k !== 'hoy');
   const alto = 8 + filas * (th + gap) + 14;
   if (y + alto > T.H - 22) { T.nuevaPagina(); T.encabezado('Ficha de métricas', p.proyecto_id || '', p.nombre || 'Proyecto', 'Cronograma'); y = 36; }
   y = T.seccion('CRONOGRAMA DEL PROYECTO', y, `${X.dias.length - (X.cuenta.hoy || 0)} días${X.pctProd != null ? ` · ${X.pctProd}% productivos` : ''}`);
   X.dias.forEach((d, i) => {
     const k = CRONO_CAT[d.cat], f = fechaLocal(d.fecha), x = M + (i % COLS) * (tw + gap), yy = y + Math.floor(i / COLS) * (th + gap);
     T.relleno(k.bg); doc.roundedRect(x, yy, tw, th, 1.2, 1.2, 'F');
-    if (['sinreg', 'hoy'].includes(d.cat)) { T.trazo(k.c, 0.35); if (d.cat === 'hoy') doc.setLineDashPattern([0.8, 0.6], 0); doc.roundedRect(x, yy, tw, th, 1.2, 1.2, 'S'); doc.setLineDashPattern([], 0); }
+    if (d.cat === 'hoy') { T.trazo(k.c, 0.35); if (d.cat === 'hoy') doc.setLineDashPattern([0.8, 0.6], 0); doc.roundedRect(x, yy, tw, th, 1.2, 1.2, 'S'); doc.setLineDashPattern([], 0); }
     if (d.cat === 'pausa') {   // rayado diagonal
       T.trazo([156, 163, 175], 0.2);
       for (let s = 2; s < tw + th; s += 2) {
@@ -8475,12 +8479,11 @@ function pdfCronogramaMetricas(T, p, y) {
     T.font('bold', 7.6, k.tx); doc.text(String(f.getDate()), x + tw / 2, yy + 6.6, { align: 'center' });
     if (i === 0 || f.getDate() === 1) { T.font('semibold', 4.6, d.cat === 'avance' ? [220, 252, 231] : C.gris); doc.text(MESES_CORTOS[f.getMonth()].toUpperCase(), x + tw - 1.4, yy + 3.6, { align: 'right' }); }
     if (d.etq) { T.font('bold', 5.2, k.tx); doc.text(recortarTexto(doc, d.etq, tw - 1.6), x + tw / 2, yy + 10.4, { align: 'center' }); }
-    if (d.conInc) { T.relleno([220, 38, 38]); doc.circle(x + tw - 1.8, yy + 6, 0.9, 'F'); }
   });
   y += filas * (th + gap) + 3;
   // leyenda solo con lo que aparece
   let lx = M;
-  const ley = [...cats.map(k => [CRONO_CAT[k].t, CRONO_CAT[k]]), ...(X.dias.some(d => d.conInc) ? [['Incidencia', null]] : []), ...(X.dias.some(d => d.finde) ? [['Fin de semana', 'finde']] : [])];
+  const ley = [...cats.map(k => [CRONO_CAT[k].t, CRONO_CAT[k]]), ...(X.dias.some(d => d.finde) ? [['Fin de semana', 'finde']] : [])];
   ley.forEach(([t, k]) => {
     const wt = (T.font('medium', 6.2), doc.getTextWidth(t)) + 8;
     if (lx + wt > M + w) { lx = M; y += 4.2; }
