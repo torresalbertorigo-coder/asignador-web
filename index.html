@@ -770,6 +770,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .cr-h{font-size:8.5px;opacity:.7}
 .cr-dia.finde::before{content:'';position:absolute;top:3px;left:22%;right:22%;height:2px;border-radius:2px;background:var(--bd);opacity:.8}
 .cr-dia.cr-avance.finde::before{background:#fff}
+.cr-dia.cr-parcial{border-width:2px}
 .cr-dia.cr-sinreg{border-style:solid}.cr-dia.cr-hoy{border-style:dashed}
 .cr-dia.cr-pausa{background:repeating-linear-gradient(135deg,var(--bg) 0 5px,rgba(156,163,175,.45) 5px 7px)}
 .cr-inc{position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:#dc2626;box-shadow:0 0 0 1.5px #fff}
@@ -8366,8 +8367,8 @@ function htmlKpisMetricas(datos) {
 const fechaCambioPersonal = c => isoLocal(new Date(String(c.fecha).replace(/Z?$/, 'Z')));
 // ── Cronograma del proyecto (ficha de un solo proyecto): un cuadro por día trabajado/transcurrido ──
 const CRONO_CAT = {
-  avance:    { t: 'Avance',             d: '',              c: [22, 163, 74],   bg: [22, 163, 74],   tx: [255, 255, 255] },
-  parcial:   { t: 'Avance parcial',     d: 'quedó en proceso',              c: [134, 239, 172], bg: [220, 252, 231], tx: [21, 128, 61] },
+  avance:    { t: 'Concluido',          d: '',              c: [22, 163, 74],   bg: [22, 163, 74],   tx: [255, 255, 255] },
+  parcial:   { t: 'Avance parcial',     d: '',                              c: [22, 163, 74],   bg: [241, 245, 249], tx: [21, 128, 61] },   // contorno verde, fondo como "sin avance"
   sinavance: { t: 'Sin avance',         d: '',                              c: [203, 213, 225], bg: [241, 245, 249], tx: [71, 85, 105] },
   perdido:   { t: 'Día perdido',        d: 'incidencia sin avance',         c: [220, 38, 38],   bg: [254, 226, 226], tx: [185, 28, 28] },
   descanso:  { t: 'Descanso',           d: '',                              c: [196, 181, 253], bg: [245, 243, 255], tx: [109, 40, 217] },
@@ -8378,7 +8379,7 @@ const CRONO_CAT = {
 };
 const DIAS_CORTOS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
 // "3 con avance parcial", "1 descanso", "2 perdidos"
-const CRONO_RES = { avance: ['con avance', 'con avance'], hoy: ['hoy', 'hoy'], parcial: ['con avance parcial', 'con avance parcial'], sinavance: ['sin avance', 'sin avance'],
+const CRONO_RES = { avance: ['concluido', 'concluidos'], hoy: ['hoy', 'hoy'], parcial: ['con avance parcial', 'con avance parcial'], sinavance: ['sin avance', 'sin avance'],
   perdido: ['perdido', 'perdidos'], descanso: ['descanso', 'descansos'], standby: ['en standby', 'en standby'], pausa: ['en pausa', 'en pausa'], sinreg: ['sin registro', 'sin registro'] };
 const resCrono = (k, n) => `${n} ${CRONO_RES[k][n === 1 ? 0 : 1]}`;
 function clasificarDiaCrono(d, hoyIso) {
@@ -8395,7 +8396,7 @@ function clasificarDiaCrono(d, hoyIso) {
   return { cat: 'sinreg', etq: '' };
 }
 // En la tira solo 3 estados (más "hoy"): avance (total o parcial), sin avance y descanso. El porqué va en la lista de abajo.
-const CRONO_SIMPLE = { avance: 'avance', parcial: 'avance', descanso: 'descanso', hoy: 'hoy' };
+const CRONO_SIMPLE = { avance: 'avance', parcial: 'parcial', descanso: 'descanso', hoy: 'hoy' };
 function datosCronograma(cr) {
   const hoyIso = isoLocal(new Date());
   const dias = (cr?.dias || []).map(d => { const c = clasificarDiaCrono(d, hoyIso);
@@ -8404,7 +8405,7 @@ function datosCronograma(cr) {
   const cuenta = {}; dias.forEach(d => { cuenta[d.cat] = (cuenta[d.cat] || 0) + 1; });
   // productivos = con avance (total o parcial) ÷ días que se podía trabajar (sin pausa, descanso ni el día de hoy aún sin registro)
   const base = dias.length - dias.filter(d => d.det === 'pausa').length - (cuenta.hoy || 0) - (cuenta.descanso || 0);
-  const prod = cuenta.avance || 0;
+  const prod = (cuenta.avance || 0) + (cuenta.parcial || 0);
   // Días a aclarar: los que no tuvieron avance, o tuvieron incidencia (los de avance normal no se repiten)
   const motivo = d => {
     const L = [];
@@ -8420,7 +8421,7 @@ function datosCronograma(cr) {
     return L;
   };
   const excep = [];
-  dias.filter(d => !['avance', 'hoy'].includes(d.cat) || d.conInc).forEach(d => {
+  dias.filter(d => !['avance', 'parcial', 'hoy'].includes(d.cat) || d.conInc).forEach(d => {
     const prev = excep[excep.length - 1];
     if (d.det === 'pausa' && prev?.det === 'pausa') { prev.hasta = d.fecha; prev.n++; return; }   // la pausa se junta en un renglón
     excep.push({ fecha: d.fecha, hasta: d.fecha, n: 1, cat: d.cat, det: d.det, motivos: motivo(d) });
@@ -8464,6 +8465,7 @@ function pdfCronogramaMetricas(T, p, y) {
   X.dias.forEach((d, i) => {
     const k = CRONO_CAT[d.cat], f = fechaLocal(d.fecha), x = M + (i % COLS) * (tw + gap), yy = y + Math.floor(i / COLS) * (th + gap);
     T.relleno(k.bg); doc.roundedRect(x, yy, tw, th, 1.2, 1.2, 'F');
+    if (d.cat === 'parcial') { T.trazo(k.c, 0.55); doc.roundedRect(x + 0.25, yy + 0.25, tw - 0.5, th - 0.5, 1.1, 1.1, 'S'); }
     if (d.cat === 'hoy') { T.trazo(k.c, 0.35); if (d.cat === 'hoy') doc.setLineDashPattern([0.8, 0.6], 0); doc.roundedRect(x, yy, tw, th, 1.2, 1.2, 'S'); doc.setLineDashPattern([], 0); }
     if (d.cat === 'pausa') {   // rayado diagonal
       T.trazo([156, 163, 175], 0.2);
