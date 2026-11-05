@@ -910,7 +910,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .gantt-table td{border:1px solid var(--border);padding:0;height:32px}
 .gantt-name{padding:6px 12px;background:var(--surface);font-size:12px;color:var(--text);min-width:140px;white-space:nowrap}
 .gantt-cell{width:var(--gcw,28px);min-width:var(--gcw,28px);background:transparent;position:relative}
-.gantt-cell.weekend:not(.occupied):not(.past):not(.tenue):not(.ausencia):not(.descanso):not(.standby):not(.pausa){background:color-mix(in srgb,var(--text) 5%,transparent)}
+.gantt-cell.weekend:not(.occupied):not(.past):not(.tenue):not(.ausencia):not(.descanso):not(.standby):not(.pausa):not(.traslado){background:color-mix(in srgb,var(--text) 5%,transparent)}
 .gantt-cell.today::before{content:'';position:absolute;inset:0;background:color-mix(in srgb,var(--red) 7%,transparent);pointer-events:none}
 .gantt-cell.today::after{content:'';position:absolute;top:0;bottom:0;left:var(--hoy-pos,50%);width:2px;background:var(--red);transform:translateX(-50%);pointer-events:none}
 .gantt-cell.weekend{background:var(--input-bg)}
@@ -922,6 +922,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .gantt-cell.no-usado{box-shadow:inset 0 0 0 1px rgba(227,28,34,.5)}
 .gantt-cell.descanso{background:rgba(148,163,184,.42)}
 .gantt-cell.standby{background:rgba(245,158,11,.5)}
+.gantt-cell.traslado{background:repeating-linear-gradient(135deg,rgba(96,165,250,.55) 0 3px,rgba(96,165,250,.18) 3px 6px)}
 .gantt-cell.pausa{background:rgba(156,163,175,.32)}
 .gantt-cell.ausencia{background:rgba(139,92,246,.5)}
 .gantt-cell.ausencia.conflicto{box-shadow:inset 0 0 0 2px var(--red)}
@@ -1175,6 +1176,8 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .cal-ley-obj{display:inline-block;width:10px;height:10px;border-radius:3px;box-shadow:inset 0 0 0 1.5px var(--amber);vertical-align:-1px;margin-right:2px}
 .cal-cell.hoy{outline:1.5px solid var(--red);color:var(--text)}
 .cal-cell.ocupado{background:var(--red-bg);color:var(--red-text);cursor:pointer;font-weight:600}
+.cal-cell.traslado{background:repeating-linear-gradient(135deg,rgba(96,165,250,.22) 0 5px,rgba(96,165,250,.08) 5px 10px);color:#60a5fa;font-weight:600}
+.cal-tras{font-size:9px;font-weight:700;margin-top:2px;display:flex;align-items:center;gap:2px;justify-content:center}
 .cal-cell.ausente{background:rgba(124,92,201,.22);color:#B9A4F0;font-weight:600}
 .cal-cell.ausente.ocupado{box-shadow:inset 0 0 0 2px var(--red)}
 .cal-aus{font-size:8.5px;font-weight:500;line-height:1;margin-top:2px;opacity:.9;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px}
@@ -2562,6 +2565,7 @@ async function abrirCalendarioMensual(empId, nombre, offsetMeses, pidResaltar) {
   const base = new Date(hoy.getFullYear(), hoy.getMonth() + STATE._cal_offset, 1);
   const year = base.getFullYear(), month = base.getMonth();
   const eventos = eventosProyectosPorDia(empId);
+  const tras = trasladosEmpleado(empId), trasMes = [];
   const emp = (STATE.empleados||[]).find(x => x.id === empId) || { ausencias: [] };
   const primerDia = new Date(year, month, 1);
   const diasEnMes = new Date(year, month+1, 0).getDate();
@@ -2581,8 +2585,10 @@ async function abrirCalendarioMensual(empId, nombre, offsetMeses, pidResaltar) {
     const esHoy = fecha.toDateString() === hoy.toDateString();
     const enObj = objIni && objFin && fecha >= objIni && fecha <= objFin;
     const titulo = [aus ? `${tipoAusencia(aus)} (${aus.fecha_inicio} al ${aus.fecha_fin})` : null, ...evs.map(p => p.nombre), enObj ? `Fechas de ${objetivo.nombre} (en evaluación)` : null].filter(Boolean).join(' · ');
+    const tr = !evs.length && !aus ? tras[key] : null;
+    if (tr) trasMes.push({ key, ...tr });
     const click = evs.length ? ` data-pids="${evs.map(p => p.id).join(',')}" onclick="clicDiaCalendario(this)"` : '';
-    celdas += `<div class="cal-cell ${esHoy?'hoy':''} ${evs.length?'ocupado ' + claseEstadoCal(evs[0]):''} ${aus?'ausente':''} ${enObj?'objetivo':''}" title="${escHtml(titulo)}"${click}>${d}${aus ? `<div class="cal-aus">${escHtml(tipoAusencia(aus))}</div>` : ''}${evs.length ? `<div class="cal-pry">${escHtml(evs[0].nombre)}</div>${evs.length > 1 ? `<div class="cal-mas">+${evs.length - 1}</div>` : ''}` : ''}</div>`;
+    celdas += `<div class="cal-cell ${esHoy?'hoy':''} ${evs.length?'ocupado ' + claseEstadoCal(evs[0]):''} ${aus?'ausente':''} ${tr?'traslado':''} ${enObj?'objetivo':''}" title="${escHtml(tr ? textoTraslado(tr) : titulo)}"${click}>${d}${aus ? `<div class="cal-aus">${escHtml(tipoAusencia(aus))}</div>` : ''}${tr ? `<div class="cal-tras"><i class="ti ti-car" aria-hidden="true"></i> ${tr.tipo === 'ida' ? 'Ida' : 'Regreso'}</div>` : ''}${evs.length ? `<div class="cal-pry">${escHtml(evs[0].nombre)}</div>${evs.length > 1 ? `<div class="cal-mas">+${evs.length - 1}</div>` : ''}` : ''}</div>`;
   }
   const mesLabel = base.toLocaleDateString('es-MX',{month:'long',year:'numeric'});
   const puedeExportar = STATE.rol !== 'tecnico';
@@ -2628,6 +2634,7 @@ async function abrirCalendarioMensual(empId, nombre, offsetMeses, pidResaltar) {
         <div class="cal-ley">${estMes.has('') ? '<span><i style="background:var(--red-text)"></i>Proyecto asignado / en curso</span>' : ''}${estMes.has('est-fin') ? '<span><i style="background:var(--green)"></i>Finalizado</span>' : ''}${estMes.has('est-pausa') ? '<span><i style="background:var(--amber)"></i>En pausa</span>' : ''}</div>
         ${pryMes.size ? '<div>Toca un proyecto de la lista (o un día) para resaltar sus fechas; toca una fecha resaltada para abrir su ficha.</div>' : ''}
         ${hayAusencia ? '<div><span style="color:#8B6FD6">●</span> Ausencia (vacaciones, permiso, incapacidad).</div>' : ''}
+        ${trasMes.length ? '<div><i class="ti ti-car" aria-hidden="true" style="color:#60a5fa"></i> Traslado calculado (ida o regreso): ocupado, pero no es día del proyecto.</div>' : ''}
         ${objetivo ? `<div><span class="cal-ley-obj"></span> Fechas de <b style="color:var(--text2)">${escHtml(objetivo.nombre)}</b> (proyecto en evaluación). Un día rojo dentro del borde es un choque.</div>` : ''}
       </div>
     </div>`,
@@ -4108,6 +4115,28 @@ function diasTraslado(a, b) {
   const km = 6371 * 2 * Math.asin(Math.sqrt(h));
   return km < 50 ? 0 : km <= 600 ? 1 : 2;
 }
+// Días de traslado que se PINTAN en los calendarios (no son días del proyecto, pero el técnico está ocupado).
+// Origen: el proyecto anterior si terminó hace ≤ 4 días; si no, su base (ubicación de su ficha).
+// Regreso: solo si no sigue a otro proyecto cercano en fechas. Aplica a proyectos que inician desde TRASLADO_DESDE
+// (antes de esa fecha el día de traslado se capturaba como parte del proyecto).
+const TRASLADO_DESDE = '2026-11-05';
+function trasladosEmpleado(empId) {
+  const out = {}, DIA = 86400000, CERCA = 4;
+  const emp = (STATE.empleados || []).find(e => e.id === empId) || {};
+  const prys = (STATE.proyectos || []).filter(p => (p.tecnicos_asignados || []).includes(empId) && p.estado !== 'cancelado' && ventanaVisible(p))
+    .map(p => ({ p, v: ventanaVisible(p) })).sort((a, b) => a.v.ini - b.v.ini);
+  const marcar = (d, tipo, p, desde) => { const k = isoLocal(d); if (!out[k]) out[k] = { tipo, p, desde }; };
+  prys.forEach(({ p, v }, i) => {
+    if ((p.fecha_inicio || '') < TRASLADO_DESDE) return;
+    const prev = prys.slice(0, i).reverse().find(x => x.v.fin < v.ini && (v.ini - x.v.fin) / DIA <= CERCA);
+    const next = prys.slice(i + 1).find(x => x.v.ini > v.fin && (x.v.ini - v.fin) / DIA <= CERCA);
+    const tIda = diasTraslado(prev ? prev.p : emp, p);
+    for (let k = 1; k <= tIda; k++) marcar(new Date(v.ini.getTime() - k * DIA), 'ida', p, prev?.p || null);
+    if (!next) { const tReg = diasTraslado(p, emp); for (let k = 1; k <= tReg; k++) marcar(new Date(v.fin.getTime() + k * DIA), 'regreso', p, null); }
+  });
+  return out;
+}
+const textoTraslado = t => t.tipo === 'ida' ? `Traslado a ${t.p.nombre}${t.desde ? ` (desde ${t.desde.nombre})` : ''}` : `Traslado de regreso desde ${t.p.nombre}`;
 function detectarTraslapes(empId, proyectoId) {
   const objetivo = STATE.proyectos.find(p=>p.id===proyectoId);
   if (!objetivo || !objetivo.fecha_inicio || !objetivo.fecha_fin_estimada) return [];
@@ -4701,6 +4730,7 @@ function leyendaGantt(usados) {
     ['retraso',  item(celda('retraso'), 'Retraso (en curso)')],
     ['tenue',    item(celda('tenue', 10), 'Sin checada (finalizado)')],
     ['no-usado', item(celda('no-usado', 10), 'Planeado, ya no fue necesario')],
+    ['traslado', item(celda('traslado'), 'Traslado (ida o regreso)')],
     ['descanso', item(celda('descanso'), 'Descanso')],
     ['standby',  item(celda('standby'), 'Standby')],
     ['pausa',    item(celda('pausa'), 'Proyecto en pausa')],
@@ -4782,7 +4812,7 @@ async function renderGantt() {
             <tr class="gantt-dias">${cols.map(d => { const w = d.getDay() === 0 || d.getDay() === 6; return `<th class="${w ? 'fin' : ''}${d.toDateString() === hoy ? ' hoy' : ''}"><b>${d.getDate()}</b><span>${['D','L','M','X','J','V','S'][d.getDay()]}</span></th>`; }).join('')}</tr>
           </thead>
           <tbody>
-            ${empsGantt.map(e=>`<tr>
+            ${empsGantt.map(e=>{ const tras = trasladosEmpleado(e.id); return `<tr>
               <td class="gantt-name" style="cursor:pointer" onclick="abrirCalendarioMensual('${e.id}','${(e.nombre+' '+e.apellido).replace(/'/g,"\\'")}',0)"><span class="gantt-nom">${e.nombre} ${e.apellido}</span></td>
               ${cols.map((d, ci)=>{
                 const isHoy = d.toDateString() === hoy;
@@ -4794,7 +4824,9 @@ async function renderGantt() {
                 const trabajado = pry && trabajados.has(`${e.id}|${pry.id}|${isoLocal(d)}`);
                 // Proyecto finalizado: sólido = se checó entrada, tenue = sin checada, franja inferior = retraso
                 const finalizado = pry && pry.fecha_fin_real;
+                const tr = !pry && !aus ? tras[isoLocal(d)] : null;
                 if (aus) cls += ' ausencia' + (pry ? ' conflicto' : '');
+                else if (tr) cls += ' traslado';
                 else if (tipoDia === 'no-usado') cls += ' no-usado';
                 else if (tipoDia === 'retraso' && finalizado) cls += trabajado ? ' past' : ' tenue';
                 else if (tipoDia) cls += ' ' + tipoDia;
@@ -4803,12 +4835,13 @@ async function renderGantt() {
                 cls.split(' ').forEach(c => { usados.add(c); usadosCol[ci].add(c); });
                 let tip = pry ? `${pry.nombre}${pry.cliente?' · '+pry.cliente:''} (${pry.fecha_inicio_real||pry.fecha_inicio} → ${pry.fecha_fin_real||(pry.fecha_inicio_real?'sin finalizar · estimado '+pry.fecha_fin_estimada:pry.fecha_fin_estimada)})${tipoDia?' · '+ETIQ_TIPO_DIA[tipoDia]:''}${pry && trabajados.has(`${e.id}|${pry.id}|${isoLocal(d)}`)?' · trabajado (checada)':''}` : '';
                 if (aus) tip = `${aus.motivo} (${aus.fecha_inicio} → ${aus.fecha_fin})` + (pry ? ` · CHOCA con ${tip}` : '');
+                if (tr) tip = textoTraslado(tr);
                 tip = tip.replace(/"/g,'&quot;');
-                const estilos = [pry ? 'cursor:pointer' : '', isHoy ? `--hoy-pos:${horaHoyPct}%` : ''].filter(Boolean).join(';');
-                const click = pry ? ` onclick="verProyecto('${pry.id}')"` : '';
+                const estilos = [pry || tr ? 'cursor:pointer' : '', isHoy ? `--hoy-pos:${horaHoyPct}%` : ''].filter(Boolean).join(';');
+                const click = pry ? ` onclick="verProyecto('${pry.id}')"` : tr ? ` onclick="verProyecto('${tr.p.id}')"` : '';
                 return `<td class="${cls}" title="${tip}"${click}${estilos?` style="${estilos}"`:''}></td>`;
               }).join('')}
-            </tr>`).join('')}
+            </tr>`; }).join('')}
           </tbody>
         </table>
       </div>
@@ -12440,6 +12473,7 @@ const PDF_EST = {
   pausa:      { nombre: 'En pausa',        c: [150, 150, 158], bg: [236, 236, 239] },
   completado: { nombre: 'Completado',      c: [104, 128, 168], bg: [228, 233, 242] },
   ausencia:   { nombre: 'Ausencia',        c: [138, 118, 186], bg: [236, 232, 246] },
+  traslado:   { nombre: 'Traslado',        c: [147, 182, 228], bg: [228, 238, 250] },
 };
 function grupoEstadoPDF(p) {
   const e = estadoProyectoVisible(p);
@@ -13052,12 +13086,13 @@ async function exportarGanttPDF() {
   // Barras por persona: días seguidos con el mismo proyecto (o ausencia) forman una barra
   const proyectosPeriodo = new Map(), personasPorProyecto = new Map(), ausenciasPeriodo = [];
   const filas = emps.map(e => {
-    const barras = []; let actual = null;
+    const barras = []; let actual = null, tras = trasladosEmpleado(e.id);
     dias.forEach((d, i) => {
       const aus = ausenciaEn(e, d), pry = aus ? null : proyectoEnDia(e.id, d);
-      const clave = aus ? 'aus:' + aus.fecha_inicio : pry ? pry.id : null;
+      const tr = !aus && !pry ? tras[isoLocal(d)] : null;   // días de traslado calculados (ocupado, no es día del proyecto)
+      const clave = aus ? 'aus:' + aus.fecha_inicio : pry ? pry.id : tr ? `tras:${tr.p.id}:${tr.tipo}` : null;
       if (actual && actual.clave === clave) { actual.b = i; return; }
-      actual = clave ? { clave, a: i, b: i, est: aus ? 'ausencia' : grupoEstadoPDF(pry), etq: aus ? tipoAusencia(aus) : pry.nombre, pry, aus } : null;
+      actual = clave ? { clave, a: i, b: i, est: aus ? 'ausencia' : pry ? grupoEstadoPDF(pry) : 'traslado', etq: aus ? tipoAusencia(aus) : pry ? pry.nombre : 'Traslado', pry, aus } : null;
       if (actual) barras.push(actual);
     });
     barras.forEach(br => {
@@ -13174,7 +13209,8 @@ async function exportarGanttPDF() {
   const tiposAus = [...new Set(ausenciasPeriodo.map(x => tipoAusencia(x.aus)))];
   const leyGrupos = [
     ['Proyectos', estUsados.map(k => ({ t: PDF_EST[k].nombre, c: PDF_EST[k].c }))],
-    ['Personal', tiposAus.length ? [{ t: `Ausencia (${tiposAus.join(', ').toLowerCase()})`, c: PDF_EST.ausencia.c }] : [{ t: 'Sin ausencias en el periodo', c: null }]],
+    ['Personal', [...(tiposAus.length ? [{ t: `Ausencia (${tiposAus.join(', ').toLowerCase()})`, c: PDF_EST.ausencia.c }] : []),
+      ...(filas.some(f => f.barras.some(b => b.est === 'traslado')) ? [{ t: 'Traslado (ida o regreso)', c: PDF_EST.traslado.c }] : [])].concat(tiposAus.length || filas.some(f => f.barras.some(b => b.est === 'traslado')) ? [] : [{ t: 'Sin ausencias en el periodo', c: null }])],
     ['Referencias', [...(dias.some(d => [0, 6].includes(d.getDay())) ? [{ t: 'Fin de semana', c: C.finde, borde: true }] : []), ...(HOY >= 0 ? [{ t: 'Hoy', linea: true }] : [])]],
   ].filter(([, it]) => it.length);
   const leyFilas = Math.max(1, ...leyGrupos.map(([n, it]) => Math.ceil(it.length / (n === 'Proyectos' ? 2 : 1))));
