@@ -1578,6 +1578,8 @@ html.av-fs-abierto .content{overflow:hidden !important}
 .asg-tab-n.alerta{background:var(--red);color:#fff}
 .asg-tab-cuerpo{background:var(--surface);border:1px solid var(--border2);border-top:none;border-radius:0 0 12px 12px;padding:12px 10px 2px;min-height:160px}
 .asg-tab-cuerpo .empty-state{padding:30px 10px}
+.ci-resp-celda{display:inline-flex;align-items:center;gap:8px;font-weight:600;color:var(--text)}
+.ci-resp-av{width:24px;height:24px;border-radius:50%;background:rgba(96,165,250,.18);color:#60a5fa;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
 .asg-ci-pie{font-size:11.5px;color:var(--text3);margin-top:8px}.asg-cierre .asg-ci-pie{color:var(--blue);font-weight:600}
 .asg-pz{font-size:12px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px dashed var(--border2)}
 @media(max-width:420px){.asg-tabs{gap:0}.asg-tab{flex:1 1 0;min-width:0;padding:6px 4px;gap:0;font-size:11.5px;flex-direction:column;line-height:1.2}.asg-tab i{display:none}.asg-tab-n{font-size:10px;line-height:15px;margin-top:2px}}
@@ -3579,7 +3581,8 @@ async function renderProyectos() {
       (p.nombre||'').toLowerCase().includes(filtro) ||
       (p.cliente||'').toLowerCase().includes(filtro) ||
       (p.id||'').toLowerCase().includes(filtro) ||
-      (p.ciudad||'').toLowerCase().includes(filtro)
+      (p.ciudad||'').toLowerCase().includes(filtro) ||
+      (enCierre(p) && (() => { const r = (STATE.empleados || []).find(e => e.id === p.cierre_responsable_id); return r && `${r.nombre} ${r.apellido}`.toLowerCase().includes(filtro); })())
     );
   }
   // Las tarjetas de arriba son el filtro: una vista a la vez (por defecto Activos)
@@ -3632,26 +3635,31 @@ async function renderProyectos() {
       <div class="table-header">
         <span class="table-title">${VISTAS[vista].titulo}</span>
         <div class="filter-bar"><div class="filter-bar-inner">
-          <div class="search-box" style="max-width:none"><i class="ti ti-search" aria-hidden="true"></i><input class="field-input" id="pry-buscar" placeholder="Buscar por nombre, cliente, ID o ciudad..." value="${filtro}" oninput="STATE._pryFiltro=this.value;renderProyectos();" onclick="event.stopPropagation()"></div>
+          <div class="search-box" style="max-width:none"><i class="ti ti-search" aria-hidden="true"></i><input class="field-input" id="pry-buscar" placeholder="${vista === 'cierre' ? 'Buscar por nombre, cliente, ciudad o responsable...' : 'Buscar por nombre, cliente, ID o ciudad...'}" value="${filtro}" oninput="STATE._pryFiltro=this.value;renderProyectos();" onclick="event.stopPropagation()"></div>
         </div></div>
         <span class="table-meta">${proyectos.length} de ${nVista} proyectos</span>
       </div>
       ${proyectos.length === 0 ? `<div class="empty-state"><i class="ti ti-folder" aria-hidden="true"></i><p>${filtro ? 'Sin resultados' : VISTAS[vista].vacio}</p></div>` : `
       <table>
-        <thead><tr><th>ID</th><th>NOMBRE</th><th>CLIENTE</th><th>ESTADO</th><th class="th-sortable${sortCampo==='fecha_inicio'?' activo':''}" onclick="ordenarProyectosPor('fecha_inicio')">INICIO<i class="ti ${sortCampo==='fecha_inicio'?(sortDir==='asc'?'ti-sort-ascending':'ti-sort-descending'):'ti-arrows-sort'}" aria-hidden="true"></i></th><th class="th-sortable${sortCampo==='fecha_fin_estimada'?' activo':''}" onclick="ordenarProyectosPor('fecha_fin_estimada')">FIN EST.<i class="ti ${sortCampo==='fecha_fin_estimada'?(sortDir==='asc'?'ti-sort-ascending':'ti-sort-descending'):'ti-arrows-sort'}" aria-hidden="true"></i></th><th>SITIO</th><th></th></tr></thead>
+        <thead><tr><th>ID</th><th>NOMBRE</th><th>CLIENTE</th>${vista === 'cierre' ? `<th>RESPONSABLE DEL CIERRE</th><th>REPORTE AL CLIENTE</th><th>FIN EN CAMPO</th><th>SITIO</th><th></th></tr></thead>` : `<th>ESTADO</th><th class="th-sortable${sortCampo==='fecha_inicio'?' activo':''}" onclick="ordenarProyectosPor('fecha_inicio')">INICIO<i class="ti ${sortCampo==='fecha_inicio'?(sortDir==='asc'?'ti-sort-ascending':'ti-sort-descending'):'ti-arrows-sort'}" aria-hidden="true"></i></th><th class="th-sortable${sortCampo==='fecha_fin_estimada'?' activo':''}" onclick="ordenarProyectosPor('fecha_fin_estimada')">FIN EST.<i class="ti ${sortCampo==='fecha_fin_estimada'?(sortDir==='asc'?'ti-sort-ascending':'ti-sort-descending'):'ti-arrows-sort'}" aria-hidden="true"></i></th><th>SITIO</th><th></th></tr></thead>`}
         <tbody>
           ${proyectos.map(p=>`<tr style="cursor:pointer" onclick="verProyecto('${p.id}')">
             <td class="td-mono">${p.id}</td>
             <td class="td-name">${p.nombre}</td>
             <td>${p.cliente||'—'}</td>
-            <td>${badge(estadoProyectoVisible(p))}${textoRetrasoInicio(p)?`<div style="font-size:10px;color:var(--amber);margin-top:3px">${textoRetrasoInicio(p)}</div>`:''}</td>
+            ${vista === 'cierre' ? (() => { const r = (STATE.empleados || []).find(e => e.id === p.cierre_responsable_id), ent = estadoEntregaCierre(p);
+              return `<td>${r ? `<span class="ci-resp-celda"><span class="ci-resp-av">${escHtml((r.nombre[0] || '') + (r.apellido?.[0] || ''))}</span>${escHtml(`${r.nombre} ${r.apellido}`)}</span>` : '<span style="color:var(--amber);font-weight:600"><i class="ti ti-user-question" aria-hidden="true"></i> Sin asignar</span>'}</td>
+            <td><span style="font-size:12px;font-weight:600;color:${p.cierre_estado === 'entregado' ? 'var(--text2)' : (KPI_COLOR[ent.sem] || 'var(--text2)')}">${p.cierre_estado === 'entregado' ? `Esperando visto bueno · entregado ${fCorta(p.cierre_entregado)}` : ent.txt}</span></td>
+            <td class="td-mono">${p.fecha_fin_real||'—'}</td>
+            <td>${p.ciudad||'—'}</td>
+            <td class="td-action"><i class="ti ti-chevron-right" style="color:var(--text3)" aria-hidden="true"></i></td>`; })() : `<td>${badge(estadoProyectoVisible(p))}${textoRetrasoInicio(p)?`<div style="font-size:10px;color:var(--amber);margin-top:3px">${textoRetrasoInicio(p)}</div>`:''}</td>
             <td class="td-mono">${p.fecha_inicio||'—'}</td>
             <td class="td-mono">${p.fecha_fin_estimada||'—'}</td>
             <td>${p.ciudad||'—'}</td>
             <td class="td-action">${estadoProyectoVisible(p) === 'pendiente_asignacion' && STATE.rol !== 'tecnico'
               ? `<button class="btn btn-sm pry-btn-eval" onclick="event.stopPropagation();irAEvaluar('${p.id}')" title="Evaluar al personal para este proyecto"><i class="ti ti-bolt" aria-hidden="true"></i> Evaluar personal</button>`
               : '<i class="ti ti-chevron-right" aria-hidden="true"></i>'}</td>
-          </tr>`).join('')}
+          `}</tr>`).join('')}
         </tbody>
       </table>`}
     </div>`);
