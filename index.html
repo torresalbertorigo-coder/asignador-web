@@ -1567,6 +1567,19 @@ html.av-fs-abierto .content{overflow:hidden !important}
 .asg-flecha{margin-left:auto;transition:transform .15s}
 .asg-archivo[open] .asg-flecha{transform:rotate(180deg)}
 .asg-anterior{opacity:.62}
+.asg-tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border2);padding:0 2px;position:sticky;top:0;z-index:5;background:var(--bg)}
+.asg-tabs::-webkit-scrollbar{display:none}
+.asg-tab{flex:1 0 auto;display:flex;align-items:center;justify-content:center;gap:6px;min-height:42px;padding:8px 12px;border:1px solid transparent;border-bottom:none;border-radius:10px 10px 0 0;background:transparent;color:var(--text3);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;margin-bottom:-1px;white-space:nowrap}
+.asg-tab:hover{color:var(--text2);background:var(--surface)}
+.asg-tab.act{background:var(--surface);border-color:var(--border2);color:var(--text);box-shadow:inset 0 2px 0 var(--red)}
+.asg-tab i{font-size:15px}
+.asg-tab-n{background:var(--surface2);border-radius:10px;padding:0 7px;font-size:11px;line-height:18px;color:var(--text2)}
+.asg-tab.act .asg-tab-n{background:var(--border2);color:var(--text)}
+.asg-tab-n.alerta{background:var(--red);color:#fff}
+.asg-tab-cuerpo{background:var(--surface);border:1px solid var(--border2);border-top:none;border-radius:0 0 12px 12px;padding:12px 10px 2px;min-height:160px}
+.asg-tab-cuerpo .empty-state{padding:30px 10px}
+.asg-pz{font-size:12px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px dashed var(--border2)}
+@media(max-width:420px){.asg-tabs{gap:0}.asg-tab{flex:1 1 0;min-width:0;padding:6px 4px;gap:0;font-size:11.5px;flex-direction:column;line-height:1.2}.asg-tab i{display:none}.asg-tab-n{font-size:10px;line-height:15px;margin-top:2px}}
 /* Botones del panel en celular: se acomodan en renglones, sin recortarse */
 @media (max-width:768px){
   .panel-footer{flex-wrap:wrap;justify-content:stretch;padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px))}
@@ -8789,12 +8802,25 @@ async function renderMisAsignaciones() {
   const empId = STATE.user?.empleado_id;
   const mios = STATE.proyectos.filter(p => (p.tecnicos_asignados||[]).includes(empId));
   const cerrado = p => ['completado','cancelado'].includes(p.estado) || !!p.fecha_fin_real;
-  // primero los que están en campo, luego los que vienen por fecha de inicio
-  const activos = mios.filter(p => !cerrado(p)).sort((a, b) => (proyectoIniciado(b) - proyectoIniciado(a)) || (a.fecha_inicio||'9999').localeCompare(b.fecha_inicio||'9999'));
+  // Pestañas tipo navegador: En curso · Pausados · En cierre · Finalizados
+  const enCurso = mios.filter(p => !cerrado(p) && p.estado !== 'pausado')
+    .sort((a, b) => (proyectoIniciado(b) - proyectoIniciado(a)) || (a.fecha_inicio||'9999').localeCompare(b.fecha_inicio||'9999'));
+  const pausados = mios.filter(p => !cerrado(p) && p.estado === 'pausado');
   // Cierres con el cliente a su cargo (puede no haber estado en campo)
-  const cierres = STATE.proyectos.filter(p => empId && p.cierre_responsable_id === empId && p.fecha_fin_real && p.estado === 'completado' && p.cierre_estado && p.cierre_estado !== 'aprobado')
+  const aCargo = STATE.proyectos.filter(p => empId && p.cierre_responsable_id === empId && p.fecha_fin_real && p.estado === 'completado');
+  const cierres = aCargo.filter(p => p.cierre_estado && p.cierre_estado !== 'aprobado')
     .sort((a, b) => (a.cierre_compromiso || '9999').localeCompare(b.cierre_compromiso || '9999'));
-  const anteriores = mios.filter(cerrado).sort((a, b) => (b.fecha_fin_real||b.fecha_fin_estimada||'').localeCompare(a.fecha_fin_real||a.fecha_fin_estimada||''));
+  const finalizados = [...new Map([...mios.filter(cerrado), ...aCargo].map(p => [p.id, p])).values()]
+    .sort((a, b) => (b.fecha_fin_real||b.fecha_fin_estimada||'').localeCompare(a.fecha_fin_real||a.fecha_fin_estimada||''));
+  const TABS = [
+    { k: 'curso', t: 'En curso', ico: 'player-play', L: enCurso, vacio: ['calendar-off', 'Sin proyectos en curso', 'Cuando te asignen uno, aparecerá aquí.'] },
+    { k: 'pausa', t: 'Pausados', ico: 'player-pause', L: pausados, vacio: ['player-pause', 'Sin proyectos en pausa', ''] },
+    { k: 'cierre', t: 'En cierre', ico: 'file-certificate', L: cierres, vacio: ['file-certificate', 'Sin cierres a tu cargo', 'Cuando te asignen el seguimiento de un cierre con el cliente, aparecerá aquí.'], alerta: cierres.some(p => estadoEntregaCierre(p).sem === 'bad') },
+    { k: 'fin', t: 'Finalizados', ico: 'archive', L: finalizados, vacio: ['archive', 'Aún no hay proyectos finalizados', ''] },
+  ];
+  if (enCurso.some(p => p.id === TUT_ID)) STATE._asgTab = 'curso';   // tutorial: su proyecto de práctica está en "En curso"
+  if (!TABS.some(T => T.k === STATE._asgTab)) STATE._asgTab = (TABS.find(T => T.L.length) || TABS[0]).k;
+  const tab = TABS.find(T => T.k === STATE._asgTab);
   const tarjeta = (p, apagada) => `<div class="table-section${apagada ? ' asg-anterior' : ''}" style="margin-bottom:12px;cursor:pointer" onclick="verProyectoTecnico('${p.id}')">
       <div style="padding:16px">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px">
@@ -8807,18 +8833,24 @@ async function renderMisAsignaciones() {
         </div>
       </div>
     </div>`;
+  const tarjetaCierre = p => { const ent = estadoEntregaCierre(p);
+    return `<div class="table-section asg-cierre" style="margin-bottom:12px;cursor:pointer" onclick="verProyectoTecnico('${p.id}')"><div style="padding:14px 16px;display:flex;justify-content:space-between;gap:10px;align-items:center">
+      <div style="min-width:0"><div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">${escHtml(p.nombre)}</div><div style="font-size:12px;color:var(--text2)">${escHtml(p.cliente||'—')}</div></div>
+      <span style="font-size:12px;font-weight:600;color:${KPI_COLOR[ent.sem] || 'var(--text2)'};text-align:right">${p.cierre_estado === 'entregado' ? 'Esperando visto bueno' : ent.txt}</span></div></div>`; };
+  const pausaTxt = p => { const pz = (p.pausas_resumen || []).slice(-1)[0];
+    return pz && !pz.fin ? `<div class="asg-pz"><i class="ti ti-player-pause" aria-hidden="true"></i> En pausa desde el ${fCorta(pz.inicio)}${pz.motivo ? ` · ${escHtml(pz.motivo)}` : ''}</div>` : ''; };
+  const cuerpo = !tab.L.length ? `<div class="empty-state"><i class="ti ti-${tab.vacio[0]}" aria-hidden="true"></i><p>${tab.vacio[1]}</p>${tab.vacio[2] ? `<span>${tab.vacio[2]}</span>` : ''}</div>`
+    : tab.k === 'cierre' ? tab.L.map(tarjetaCierre).join('')
+    : tab.k === 'pausa' ? tab.L.map(p => tarjeta(p).replace(/<\/div>\s*<\/div>\s*$/, `${pausaTxt(p)}</div></div>`)).join('')
+    : tab.L.map(p => tarjeta(p, tab.k === 'fin')).join('');
   html(`
-    <div style="margin-bottom:16px"><h2 style="font-size:17px;font-weight:600;margin-bottom:4px">Hola, ${STATE.user?.nombre?.split(' ')[0]||'Técnico'}</h2><p style="font-size:13px;color:var(--text2)">${new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</p></div>
-    ${cierres.length ? `<div class="asg-cierres-tit"><i class="ti ti-file-certificate" aria-hidden="true"></i> Cierres a tu cargo <span>${cierres.length}</span></div>
-      ${cierres.map(p => { const ent = estadoEntregaCierre(p);
-        return `<div class="table-section asg-cierre" style="margin-bottom:12px;cursor:pointer" onclick="verProyectoTecnico('${p.id}')"><div style="padding:14px 16px;display:flex;justify-content:space-between;gap:10px;align-items:center">
-          <div style="min-width:0"><div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">${escHtml(p.nombre)}</div><div style="font-size:12px;color:var(--text2)">${escHtml(p.cliente||'—')}</div></div>
-          <span style="font-size:12px;font-weight:600;color:${KPI_COLOR[ent.sem] || 'var(--text2)'};text-align:right">${p.cierre_estado === 'entregado' ? 'Esperando visto bueno' : ent.txt}</span></div></div>`; }).join('')}` : ''}
-    ${activos.length ? activos.map(p => tarjeta(p)).join('') : cierres.length ? '' : `<div class="empty-state"><i class="ti ti-calendar-off" aria-hidden="true"></i><p>Sin proyectos activos</p><span>Cuando te asignen uno, aparecerá aquí.</span></div>`}
-    ${anteriores.length ? `<details class="asg-archivo"${STATE._asgArchivo ? ' open' : ''} ontoggle="STATE._asgArchivo = this.open">
-      <summary><i class="ti ti-archive" aria-hidden="true"></i> Proyectos anteriores <span>${anteriores.length}</span><i class="ti ti-chevron-down asg-flecha" aria-hidden="true"></i></summary>
-      ${anteriores.map(p => tarjeta(p, true)).join('')}
-    </details>` : ''}`);
+    <div style="margin-bottom:14px"><h2 style="font-size:17px;font-weight:600;margin-bottom:4px">Hola, ${STATE.user?.nombre?.split(' ')[0]||'Técnico'}</h2><p style="font-size:13px;color:var(--text2)">${new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</p></div>
+    <div class="asg-tabs" role="tablist">
+      ${TABS.map(T => `<button class="asg-tab${T.k === tab.k ? ' act' : ''}" role="tab" aria-selected="${T.k === tab.k}" onclick="STATE._asgTab='${T.k}';renderMisAsignaciones()">
+        <i class="ti ti-${T.ico}" aria-hidden="true"></i><span class="asg-tab-t">${T.t}</span><span class="asg-tab-n${T.alerta ? ' alerta' : ''}">${T.L.length}</span></button>`).join('')}
+    </div>
+    <div class="asg-tab-cuerpo">${cuerpo}</div>`);
+  document.querySelector('.asg-tab.act')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
 
 function verProyectoTecnico(id) {
