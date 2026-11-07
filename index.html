@@ -786,6 +786,18 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .cr-ex-f{font-weight:700;color:var(--text)}.cr-ex-m{color:var(--text2);line-height:1.45}
 .cr-ex-b{justify-self:start;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid}
 @media (max-width:768px){.cr-ex-fila{grid-template-columns:1fr auto}.cr-ex-m{grid-column:1/-1}.cr-tira{grid-template-columns:repeat(auto-fill,minmax(46px,1fr))}.cr-num{font-size:14px}}
+.pz-sol{border:1px solid var(--amber-border);background:var(--amber-bg);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.pz-sol.compacto{margin-bottom:8px;background:var(--surface)}
+.pz-sol-cab{display:flex;align-items:center;gap:7px;color:var(--amber);font-size:12.5px;flex-wrap:wrap}.pz-sol-cab i{font-size:16px}
+.pz-sol-pry{color:var(--text);font-weight:700}
+.pz-sol-mot{margin:6px 0 4px;font-size:13px;color:var(--text);line-height:1.45}
+.pz-sol-pie{font-size:11.5px;color:var(--text3)}
+.pz-sol-btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.pz-lista{border:1px solid var(--amber-border);border-radius:12px;padding:12px;margin-bottom:14px;background:var(--amber-bg)}
+.pz-lista-tit{font-weight:700;color:var(--amber);font-size:13px;margin-bottom:10px;display:flex;gap:6px;align-items:center}
+.pz-aviso{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border2);background:var(--surface2);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12.5px;color:var(--text2)}
+.pz-aviso i{font-size:18px;color:var(--text3)}.pz-aviso b{display:block;color:var(--text)}
+.pz-chk{margin-top:8px;font-size:12px;color:var(--amber)}
 .mp-sello{margin:12px 0 2px;padding:9px 12px;border:1px solid var(--green-border);border-radius:10px;background:var(--green-bg);display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text2)}
 .mp-sello i{font-size:20px;color:var(--green)}.mp-sello b{color:var(--green)}
 .mk-nota-horas{font-size:11.5px;color:var(--text3);display:inline-flex;gap:5px;align-items:center;margin-left:auto;margin-right:10px}
@@ -3543,6 +3555,7 @@ async function renderProyectos() {
   const nCierre = proyectos.filter(enCierre).length;
   const cierreVencidos = proyectos.filter(p => enCierre(p) && !p.cierre_entregado && p.cierre_compromiso && fechaLocal(p.cierre_compromiso) < new Date(new Date().setHours(0,0,0,0))).length;
 
+  const solPausa = STATE.rol !== 'tecnico' ? STATE.proyectos.filter(p => p.solicitud_pausa) : [];
   const filtro = (STATE._pryFiltro||'').toLowerCase().trim();
   if (filtro) {
     proyectos = proyectos.filter(p =>
@@ -3584,6 +3597,8 @@ async function renderProyectos() {
   }
 
   html(`
+    ${solPausa.length ? `<div class="pz-lista"><div class="pz-lista-tit"><i class="ti ti-player-pause" aria-hidden="true"></i> ${solPausa.length === 1 ? 'Una solicitud de pausa espera tu autorización' : `${solPausa.length} solicitudes de pausa esperan tu autorización`}</div>
+      ${solPausa.map(p => htmlSolicitudPausa(p, true)).join('')}</div>` : ''}
     <div class="stats-grid stats-5 stats-6 pry-vistas">
       ${[
         ['activos', 'c-red', 'ACTIVOS', nActivos, `sin terminar · ${STATE.proyectos.length} en sistema`],
@@ -3652,9 +3667,12 @@ async function verProyecto(id) {
   let footerBtns = '';
   if (p.estado !== 'cancelado' && p.estado !== 'completado') {
     if (p.estado === 'pausado') {
-      footerBtns += `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => cambiarEstadoProyecto('${p.id}','${idsAsignados.length>=(p.personal_requerido||1)?'asignado':'pendiente_asignacion'}'))"><i class="ti ti-player-play" aria-hidden="true"></i> Reanudar</button>`;
+      if (STATE.rol !== 'tecnico') footerBtns += `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => cambiarEstadoProyecto('${p.id}','${idsAsignados.length>=(p.personal_requerido||1)?'asignado':'pendiente_asignacion'}'))"><i class="ti ti-player-play" aria-hidden="true"></i> Reanudar</button>`;
     } else {
-      footerBtns += `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => cambiarEstadoProyecto('${p.id}','pausado'))"><i class="ti ti-player-pause" aria-hidden="true"></i> Pausar</button>`;
+      // Pausar siempre pide motivo; el técnico solo la SOLICITA (la autoriza un admin/director)
+      if (STATE.rol !== 'tecnico') footerBtns += `<button class="btn btn-ghost btn-sm" onclick="abrirModalPausa('${p.id}','directa')"><i class="ti ti-player-pause" aria-hidden="true"></i> Pausar</button>`;
+      else if (p.solicitud_pausa) footerBtns += `<button class="btn btn-ghost btn-sm" disabled title="Esperando autorización"><i class="ti ti-hourglass" aria-hidden="true"></i> Pausa solicitada</button>`;
+      else if (p.fecha_inicio_real) footerBtns += `<button class="btn btn-ghost btn-sm" onclick="abrirModalPausa('${p.id}','solicitud')"><i class="ti ti-player-pause" aria-hidden="true"></i> Solicitar pausa</button>`;
     }
     if (STATE.rol !== 'tecnico') {
       footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="abrirIniciarProyectoManual('${p.id}')"><i class="ti ti-player-play-filled" aria-hidden="true"></i> ${p.fecha_inicio_real?'Editar inicio':'Iniciar proyecto'}</button>`;
@@ -3680,6 +3698,9 @@ async function verProyecto(id) {
   const durPlan = p.fecha_inicio && p.fecha_fin_estimada ? Math.round((fechaLocal(p.fecha_fin_estimada) - fechaLocal(p.fecha_inicio)) / 86400000) + 1 : null;
   const reprog = p.reprogramaciones_resumen || [];
   openPanel(p.nombre, `
+    ${htmlSolicitudPausa(p)}
+    ${p.estado === 'pausado' && (p.pausas_resumen || []).length ? (() => { const pz = p.pausas_resumen[p.pausas_resumen.length - 1];
+      return pz.fin ? '' : `<div class="pz-aviso"><i class="ti ti-player-pause" aria-hidden="true"></i><div><b>En pausa desde el ${fCorta(pz.inicio)}</b>${pz.motivo ? `<span>Motivo: ${escHtml(pz.motivo)}</span>` : ''}</div></div>`; })() : ''}
     ${p.fecha_fin_real && p.estado === 'completado' ? htmlCierreProyecto(p) : ''}
     <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
       <div style="flex:1;min-width:140px;background:${personalOk?'var(--green-bg)':'var(--amber-bg)'};border:1px solid ${personalOk?'var(--green-border)':'var(--amber-border)'};border-radius:var(--radius);padding:10px 14px">
@@ -3856,6 +3877,112 @@ async function guardarCierre(pid, cuerpo) {
 }
 
 // Cambiar técnico: pide el motivo, lo quita del proyecto y abre la evaluación para elegir a otra persona
+// ── Pausa de proyecto: siempre con motivo. Admin/director pausa directo; el técnico la solicita y se autoriza ──
+const MOTIVOS_PAUSA = ['Condiciones climáticas', 'Solicitud del cliente', 'Falta de accesos o permisos', 'Falla de equipo', 'Falta de material o refacciones', 'Tema de seguridad', 'Reprogramación del cliente'];
+function abrirModalPausa(pid, modo) {
+  const p = (STATE.proyectos || []).find(x => x.id === pid), sol = modo === 'solicitud';
+  let ov = document.getElementById('selector-overlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; ov.style.zIndex = 1100; document.body.appendChild(ov); }
+  ov.className = 'modal-overlay open';
+  ov.onclick = ev => { if (ev.target === ov) cerrarSelectorTerminos(); };
+  ov.innerHTML = `
+    <div class="sel-card" style="max-width:480px;padding:18px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <i class="ti ti-player-pause" aria-hidden="true" style="font-size:24px;color:var(--amber)"></i>
+        <div style="flex:1;font-weight:700;color:var(--text);font-size:14px">${sol ? 'Solicitar pausa' : 'Pausar proyecto'}</div>
+        <button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button>
+      </div>
+      <div style="font-size:12.5px;color:var(--text2);line-height:1.5;margin-bottom:12px">${sol
+        ? `Se enviará a un administrador para que la autorice. Mientras tanto <b style="color:var(--text)">${escHtml(p?.nombre || 'el proyecto')}</b> sigue activo.`
+        : `<b style="color:var(--text)">${escHtml(p?.nombre || 'El proyecto')}</b> quedará en pausa desde hoy y se liberará al personal asignado (se le avisará).`}</div>
+      <div class="field-label" style="margin-bottom:6px">MOTIVO DE LA PAUSA</div>
+      <div class="cp-motivos">${MOTIVOS_PAUSA.map(m => `<button type="button" class="cp-motivo" onclick="const t=document.getElementById('pz-motivo');t.value=this.textContent;t.focus()">${m}</button>`).join('')}</div>
+      <textarea class="field-input" id="pz-motivo" rows="3" maxlength="500" placeholder="Ej. El cliente detuvo los trabajos por mantenimiento de la subestación" style="width:100%;margin-top:8px"></textarea>
+      <div class="av-nota" style="margin-top:4px">Queda en el historial del proyecto y sale en las métricas.</div>
+      <div class="field-group" style="margin-top:12px">
+        <label class="field-label" for="pz-desde">${sol ? '¿DESDE QUÉ DÍA SE DEJÓ DE TRABAJAR?' : 'PAUSADO DESDE'}</label>
+        <input type="date" class="field-input" id="pz-desde" value="${isoLocal(new Date())}" max="${isoLocal(new Date())}" ${p?.fecha_inicio_real ? `min="${p.fecha_inicio_real}"` : ''} onchange="revisarDesdePausa('${pid}')" style="max-width:200px">
+        <div class="av-nota" id="pz-desde-nota" style="margin-top:4px">Hoy por defecto. Si salieron antes de la zona, elige el día real en que se dejó de trabajar.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+        <button class="btn btn-ghost" style="justify-content:center;min-height:42px" onclick="cerrarSelectorTerminos()">Cancelar</button>
+        <button class="btn btn-primary" style="justify-content:center;min-height:42px" onclick="ejecutarConCarga(this, () => confirmarPausa('${pid}','${modo}'))"><i class="ti ti-${sol ? 'send' : 'player-pause'}" aria-hidden="true"></i> ${sol ? 'Enviar solicitud' : 'Pausar'}</button>
+      </div>
+    </div>`;
+  setTimeout(() => document.getElementById('pz-motivo')?.focus(), 50);
+}
+// Fecha de inicio de la pausa: avisa si ya hay checadas desde ese día (se encimarían con la pausa)
+async function revisarDesdePausa(pid) {
+  const el = document.getElementById('pz-desde'), nota = document.getElementById('pz-desde-nota'), hoy = isoLocal(new Date());
+  if (!el || !nota) return;
+  const f = el.value || hoy;
+  nota.style.color = '';
+  if (f > hoy) { nota.textContent = 'No puede ser una fecha futura.'; nota.style.color = 'var(--red-text)'; return; }
+  if (el.min && f < el.min) { nota.textContent = `No puede ser antes del inicio real (${fCorta(el.min)}).`; nota.style.color = 'var(--red-text)'; return; }
+  if (f === hoy) { nota.textContent = 'Hoy por defecto. Si salieron antes de la zona, elige el día real en que se dejó de trabajar.'; return; }
+  const r = await api('GET', `/proyectos/proyectos/${encodeURIComponent(pid)}/checadas-desde?fecha=${f}`);
+  const dias = r?.dias || [];
+  nota.innerHTML = dias.length
+    ? `<i class="ti ti-alert-triangle" aria-hidden="true"></i> Hay checadas desde esa fecha (${dias.map(fCorta).join(', ')}). Esos días quedarían dentro de la pausa; revisa que sea correcto.`
+    : `La pausa contará desde el ${fCorta(f)}: esos días no saldrán como "sin checada" ni sumarán fatiga.`;
+  if (dias.length) nota.style.color = 'var(--amber)';
+}
+async function confirmarPausa(pid, modo) {
+  const motivo = (document.getElementById('pz-motivo')?.value || '').trim();
+  if (motivo.length < 3) { toast('Escribe o elige el motivo de la pausa', 'error'); document.getElementById('pz-motivo')?.focus(); return; }
+  const hoy = isoLocal(new Date()), desdeEl = document.getElementById('pz-desde'), desde = desdeEl?.value || hoy;
+  if (desde > hoy) { toast('La pausa no puede empezar en una fecha futura', 'error'); return; }
+  if (desdeEl?.min && desde < desdeEl.min) { toast(`La pausa no puede empezar antes del inicio real (${fCorta(desdeEl.min)})`, 'error'); return; }
+  const r = modo === 'solicitud'
+    ? await api('POST', `/proyectos/proyectos/${encodeURIComponent(pid)}/solicitar-pausa`, { motivo, desde })
+    : await api('PATCH', `/proyectos/proyectos/${encodeURIComponent(pid)}/estado`, { nuevo_estado: 'pausado', motivo, desde });
+  if (!r) return;
+  cerrarSelectorTerminos();
+  toast(modo === 'solicitud' ? 'Solicitud enviada: un administrador la revisará' : (r.mensaje || 'Proyecto en pausa'));
+  await Promise.all([loadProyectos(true), loadEmpleados(true)]);
+  if (STATE._seccion === 'checador') renderChecador();
+  else if (document.getElementById('panel-overlay')?.classList.contains('open')) verProyecto(pid);
+  else if (RENDERERS[STATE._seccion]) RENDERERS[STATE._seccion]();
+}
+// Aviso de solicitud pendiente: el admin la resuelve aquí; el técnico ve que está en espera
+function htmlSolicitudPausa(p, compacto) {
+  const sp = p.solicitud_pausa; if (!sp) return '';
+  const cuando = sp.creado_en ? new Date(sp.creado_en.endsWith('Z') ? sp.creado_en : sp.creado_en + 'Z').toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+  const admin = STATE.rol !== 'tecnico';
+  return `<div class="pz-sol${compacto ? ' compacto' : ''}">
+    <div class="pz-sol-cab"><i class="ti ti-hourglass" aria-hidden="true"></i><b>${admin ? 'Solicitud de pausa por autorizar' : 'Pausa solicitada · esperando autorización'}</b>${compacto ? ` <span class="pz-sol-pry">${escHtml(p.nombre)}</span>` : ''}</div>
+    <div class="pz-sol-mot">"${escHtml(sp.motivo)}"</div>
+    ${sp.desde ? `<div class="pz-sol-pie" style="color:var(--text2);margin-bottom:2px"><i class="ti ti-calendar" aria-hidden="true"></i> Sin trabajar desde el <b>${fCorta(sp.desde)}</b>${admin ? ' (la pausa quedará desde esa fecha)' : ''}</div>` : ''}
+    <div class="pz-sol-pie">${admin ? `${escHtml(sp.solicitante || '')} · ` : ''}${cuando}</div>
+    ${admin ? `<div class="pz-sol-btns">
+      <button class="btn btn-sm btn-primary" onclick="ejecutarConCarga(this, () => resolverPausa(${sp.id}, true, '${p.id}'))"><i class="ti ti-check" aria-hidden="true"></i> Autorizar pausa</button>
+      <button class="btn btn-sm btn-ghost" onclick="abrirRechazoPausa(${sp.id}, '${p.id}')"><i class="ti ti-x" aria-hidden="true"></i> No autorizar</button></div>` : ''}
+  </div>`;
+}
+function abrirRechazoPausa(sid, pid) {
+  let ov = document.getElementById('selector-overlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; ov.style.zIndex = 1100; document.body.appendChild(ov); }
+  ov.className = 'modal-overlay open';
+  ov.onclick = ev => { if (ev.target === ov) cerrarSelectorTerminos(); };
+  ov.innerHTML = `<div class="sel-card" style="max-width:440px;padding:18px">
+    <div style="font-weight:700;color:var(--text);font-size:14px;margin-bottom:8px">No autorizar la pausa</div>
+    <div class="field-label" style="margin-bottom:6px">COMENTARIO PARA EL TÉCNICO <span class="np-opc">opcional</span></div>
+    <textarea class="field-input" id="pz-coment" rows="3" maxlength="300" placeholder="Ej. Esperen a mañana, el pronóstico mejora" style="width:100%"></textarea>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+      <button class="btn btn-ghost" style="justify-content:center;min-height:42px" onclick="cerrarSelectorTerminos()">Cancelar</button>
+      <button class="btn btn-primary" style="justify-content:center;min-height:42px" onclick="ejecutarConCarga(this, () => resolverPausa(${sid}, false, '${pid}', document.getElementById('pz-coment').value))">No autorizar</button>
+    </div></div>`;
+  setTimeout(() => document.getElementById('pz-coment')?.focus(), 50);
+}
+async function resolverPausa(sid, aprobar, pid, comentario) {
+  const r = await api('POST', `/proyectos/proyectos/solicitudes-pausa/${sid}/resolver`, { aprobar, comentario: comentario || null });
+  if (!r) return;
+  cerrarSelectorTerminos();
+  toast(aprobar ? 'Pausa autorizada: el proyecto quedó en pausa' : 'Solicitud no autorizada: el proyecto sigue activo');
+  await Promise.all([loadProyectos(true), loadEmpleados(true)]);
+  if (document.getElementById('panel-overlay')?.classList.contains('open')) verProyecto(pid);
+  if (STATE._seccion === 'proyectos') renderProyectos();
+}
 const MOTIVOS_CAMBIO = ['Reasignado a otro proyecto', 'Vacaciones o permiso', 'Incapacidad', 'Solicitud del cliente', 'Falta de certificación o requisito', 'Proyecto en pausa', 'Desempeño'];
 function cambiarTecnicoProyecto(pid, empId) {
   const p = (STATE.proyectos || []).find(x => x.id === pid), e = (STATE.empleados || []).find(x => x.id === empId);
@@ -8448,7 +8575,7 @@ function datosCronograma(cr) {
     if (d.standby.length) L.push(`Standby: ${d.standby.join(', ')}`);
     d.motivos.forEach(m => L.push(m));
     d.notas.forEach(n => L.push(n.replace(/\s*\n+\s*[-–•·*]?\s*/g, ' · ')));
-    if (d.det === 'pausa') L.push('Proyecto en pausa');
+    if (d.det === 'pausa') L.push(`Proyecto en pausa${d.pausa_motivo ? ': ' + d.pausa_motivo : ''}`);
     if (d.det === 'sinreg') L.push(d.sin_registro.length ? `Sin checada: ${d.sin_registro.join(', ')}` : 'Sin checada ni reporte');
     if (d.det === 'sinavance' && !L.length) L.push(`Se registró asistencia${d.personas.length ? ` (${d.personas.join(', ')})` : ''} sin avance capturado`);
     return L;
@@ -8580,6 +8707,11 @@ function htmlProyectoMetricas(p) {
     ${(p.cambios_personal || []).length ? `<div class="mp-cambios"><div class="mp-lab">Cambios de personal</div>
       ${p.cambios_personal.map(c => `<div class="mp-cambio"><i class="ti ${c.tipo === 'salida' ? 'ti-user-minus' : 'ti-user-plus'}" style="color:${c.tipo === 'salida' ? 'var(--amber)' : 'var(--green)'}" aria-hidden="true"></i>
         <span>${fCorta(fechaCambioPersonal(c))} · ${c.tipo === 'salida' ? 'Salió' : 'Entró'} <b style="color:var(--text)">${escHtml(c.nombre)}</b>${c.tipo === 'salida' ? ` — ${c.motivo ? escHtml(c.motivo) : '<em>sin motivo registrado (cambio anterior)</em>'}` : ''}</span></div>`).join('')}</div>` : ''}
+    ${(p.pausas || []).length ? `<div class="mp-inc"><div class="mp-lab">Pausas del proyecto</div>
+      <div style="overflow-x:auto"><table class="mk-tabla mp-inc-tabla"><thead><tr><th>Desde</th><th>Hasta</th><th>Días</th><th>Motivo</th></tr></thead><tbody>
+      ${p.pausas.map(pz => { const fin = pz.fin || isoLocal(new Date()), n = Math.round((fechaLocal(fin) - fechaLocal(pz.inicio)) / 86400000) + 1;
+        return `<tr><td><b>${fCorta(pz.inicio)}</b></td><td>${pz.fin ? fCorta(pz.fin) : '<span style="color:var(--amber);font-weight:600">sigue en pausa</span>'}</td><td>${n}</td><td class="mp-inc-desc">${escHtml(pz.motivo || 'Sin motivo registrado')}</td></tr>`; }).join('')}
+      </tbody></table></div></div>` : ''}
     ${(p.inactividad_detalle || []).length ? `<div class="mp-inc"><div class="mp-lab">Descansos y standby (aprobados)</div>
       <div style="overflow-x:auto"><table class="mk-tabla mp-inc-tabla"><thead><tr><th>Técnico</th><th>Tipo</th><th>Días</th><th>Fechas</th><th>Motivo</th></tr></thead><tbody>
       ${p.inactividad_detalle.map(g => `<tr><td><b>${escHtml(g.nombre)}</b></td><td style="color:${g.tipo === 'standby' ? 'var(--amber)' : '#a78bfa'};font-weight:600">${etqInact(g.tipo)}</td>
@@ -11440,6 +11572,9 @@ async function renderChecador() {
         <div class="field-group" style="margin-top:8px"><label class="field-label">MOTIVO</label><input class="field-input" id="chk-motivo" maxlength="300" placeholder="Ej. se me olvidó al llegar, sin señal en sitio"></div>
         <button class="btn btn-ghost btn-sm" style="margin-top:10px;width:100%" onclick="ejecutarConCarga(this, () => checarManual('${puedeEntrada?'entrada':'salida'}'))"><i class="ti ti-clock-edit" aria-hidden="true"></i> Registrar ${puedeEntrada?'entrada':'salida'} manual</button>
       </div>
+      ${(() => { const pp = proyectosChecador.find(x => x.id === pidSel); if (!pp || STATE.rol !== 'tecnico' && !STATE.modoTecnico) return '';
+        return pp.solicitud_pausa ? `<div class="pz-chk"><i class="ti ti-hourglass" aria-hidden="true"></i> Pausa solicitada para ${escHtml(pp.nombre)} · esperando autorización</div>`
+          : `<div style="margin-top:6px"><a href="#" onclick="event.preventDefault();abrirModalPausa(document.getElementById('chk-proyecto')?.value || '${pp.id}', STATE.rol === 'tecnico' ? 'solicitud' : 'directa')" style="font-size:12px;color:var(--text3)"><i class="ti ti-player-pause" aria-hidden="true"></i> ¿Hay que detener el proyecto? ${STATE.rol === 'tecnico' ? 'Solicitar pausa' : 'Pausar proyecto'}</a></div>`; })()}
       <div class="check-status" id="check-status">${ultima ? `<span style="color:${ultima.tipo==='entrada'?'var(--green)':'var(--text2)'}">Última checada: ${ultima.tipo} — ${new Date(ultima.fecha_hora).toLocaleString('es-MX')}</span>` : 'Sin registros todavía'}</div>
     </div>
     ${tarjetaReporteInactividad(proyectosReportables, misReportes, proyectoActual)}
@@ -13808,12 +13943,13 @@ async function exportarMetricasPDF() {
     const cambios = p.cambios_personal || [];
     const altoCamb = cambios.length ? 7 + cambios.length * 5 : 0;
     const inact = p.inactividad_detalle || [], altoInact = inact.length ? 7 + inact.length * 5 : 0;
+    const pausasP = p.pausas || [], altoPausas = pausasP.length ? 7 + pausasP.length * 5 : 0;
     T.font('normal', 6.8); const linCierre = f.cierreTxt ? doc.splitTextToSize(f.cierreTxt + (p.cierre?.nota ? ` · ${p.cierre.nota}` : ''), w - 10).slice(0, 2) : [];
     const altoCierre = linCierre.length ? 6 + linCierre.length * 3.6 : 0;
     const vAv = presentarAvanceMetricas(p._avance);
     const exAv = M + 24, bwAv = (w - 29) * 0.26;
     T.font('normal', 6.6); const linAv = vAv ? doc.splitTextToSize(vAv.linea, M + w - 5 - (exAv + bwAv + 3 + (vAv.pctTxt ? 14 : 0))).slice(0, 2) : [];
-    const alto = 60 + ((p._avance || p._finalizado) ? 9 + (linAv.length > 1 ? 3 : 0) : 0) + filasIns * 6.5 + altoTec + altoCamb + altoInact + altoCierre + (recursos.length ? 6 : 0) + (inc.length ? 9 + inc.length * 5.6 : 0);
+    const alto = 60 + ((p._avance || p._finalizado) ? 9 + (linAv.length > 1 ? 3 : 0) : 0) + filasIns * 6.5 + altoTec + altoCamb + altoInact + altoPausas + altoCierre + (recursos.length ? 6 : 0) + (inc.length ? 9 + inc.length * 5.6 : 0);
     if (y + alto > T.H - 20) { T.nuevaPagina(); T.encabezado('Reporte de métricas', codigo, 'Métricas de proyectos', 'Detalle por proyecto (continuación)'); y = 36; }
     T.relleno(C.fondo); doc.roundedRect(M, y, w, alto, 2, 2, 'F');
     let yy = y + 8;
@@ -13924,6 +14060,19 @@ async function exportarMetricasPDF() {
       T.etiqueta('Cierre con el cliente', M + 5, yy, C.gris, 5.6); yy += 4.6;
       T.font('normal', 6.8, C.texto); linCierre.forEach((l, j) => doc.text(l, M + 5, yy + j * 3.6));
       yy += linCierre.length * 3.6 + 2.4;
+    }
+    if (pausasP.length) {   // pausas del proyecto con su motivo
+      T.etiqueta('Pausas del proyecto', M + 5, yy, C.gris, 5.6); yy += 1;
+      pausasP.forEach(pz => {
+        yy += 5;
+        const fin = pz.fin || isoLocal(new Date()), n = Math.round((fechaLocal(fin) - fechaLocal(pz.inicio)) / 86400000) + 1;
+        T.relleno([107, 114, 128]); doc.circle(M + 6, yy - 1.1, 0.9, 'F');
+        T.font('bold', 6.8, C.tinta); const f0 = `${fCorta(pz.inicio)} – ${pz.fin ? fCorta(pz.fin) : 'hoy'}`; doc.text(f0, M + 8.5, yy);
+        let cx = M + 8.5 + doc.getTextWidth(f0) + 2.5;
+        T.font('semibold', 6.8, [75, 85, 99]); const tp = `${plural(n, 'día')}${pz.fin ? '' : ' · sigue en pausa'} `; doc.text(tp, cx, yy); cx += doc.getTextWidth(tp);
+        T.font('normal', 6.8, C.texto); doc.text(recortarTexto(doc, `— ${pz.motivo || 'Sin motivo registrado'}`, M + w - 5 - cx), cx, yy);
+      });
+      yy += 6;
     }
     if (inact.length) {   // descansos y standby aprobados: quién, cuándo y por qué
       T.etiqueta('Descansos y standby', M + 5, yy, C.gris, 5.6); yy += 1;
