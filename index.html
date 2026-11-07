@@ -796,7 +796,10 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .pz-lista{border:1px solid var(--amber-border);border-radius:12px;padding:12px;margin-bottom:14px;background:var(--amber-bg)}
 .pz-lista-tit{font-weight:700;color:var(--amber);font-size:13px;margin-bottom:10px;display:flex;gap:6px;align-items:center}
 .pz-aviso{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border2);background:var(--surface2);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12.5px;color:var(--text2)}
-.pz-aviso i{font-size:18px;color:var(--text3)}.pz-aviso b{display:block;color:var(--text)}
+.pz-aviso i{font-size:18px;color:var(--text3)}
+.asg-cierres-tit{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text2);margin:4px 0 8px}
+.asg-cierres-tit span{background:var(--surface2);border-radius:10px;padding:0 7px;font-weight:600}
+.asg-cierre{border-left:3px solid var(--blue)}.pz-aviso b{display:block;color:var(--text)}
 .pz-chk{margin-top:8px;font-size:12px;color:var(--amber)}
 .mp-sello{margin:12px 0 2px;padding:9px 12px;border:1px solid var(--green-border);border-radius:10px;background:var(--green-bg);display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text2)}
 .mp-sello i{font-size:20px;color:var(--green)}.mp-sello b{color:var(--green)}
@@ -3824,6 +3827,8 @@ function estadoEntregaCierre(p) {
 }
 function htmlCierreProyecto(p) {
   const admin = ['administrador', 'director_proyecto'].includes(STATE.rol), hoy = isoLocal(new Date());
+  const esResp = !!STATE.user?.empleado_id && STATE.user.empleado_id === p.cierre_responsable_id;
+  const sigue = admin || esResp;   // el responsable del cierre (aunque sea técnico) registra entrega y visto bueno
   if (!p.cierre_estado) {   // finalizados antes de existir la etapa de cierre
     return admin ? `<div class="ci-card ci-min"><i class="ti ti-file-check" aria-hidden="true"></i><span>Proyecto finalizado sin seguimiento de cierre.</span>
       <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => guardarCierre('${p.id}', {}))"><i class="ti ti-plus" aria-hidden="true"></i> Dar seguimiento de cierre</button></div>` : '';
@@ -3833,17 +3838,17 @@ function htmlCierreProyecto(p) {
   const paso = (n, tit, hecho, det, actual) => `<div class="ci-paso ${hecho ? 'ok' : actual ? 'act' : ''}"><span class="ci-num">${hecho ? '<i class="ti ti-check" aria-hidden="true"></i>' : n}</span><div><b>${tit}</b><em>${det}</em></div></div>`;
   const empleados = (STATE.empleados || []).filter(e => e.estado_perfil !== 'archivado').sort((a, b) => `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`, 'es'));
   let accion = '';
-  if (admin && p.cierre_estado === 'pendiente') accion = `
+  if (sigue && p.cierre_estado === 'pendiente') accion = `
       <div class="ci-accion"><label class="field-label" for="ci-ent">REPORTE ENTREGADO AL CLIENTE EL</label>
         <div class="ci-fila"><input type="date" class="field-input" id="ci-ent" value="${hoy}" max="${hoy}">
         <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarCierre('${p.id}', { entregado: document.getElementById('ci-ent').value }))"><i class="ti ti-send" aria-hidden="true"></i> Registrar entrega</button></div></div>`;
-  else if (admin && p.cierre_estado === 'entregado') accion = `
+  else if (sigue && p.cierre_estado === 'entregado') accion = `
       <div class="ci-accion"><label class="field-label" for="ci-vb">VISTO BUENO DEL CLIENTE</label>
         <div class="ci-fila"><input type="date" class="field-input" id="ci-vb" value="${hoy}" max="${hoy}">
         <input class="field-input" id="ci-nota" placeholder="Nota (opcional): ej. aprobado por correo de Ing. Pérez" maxlength="500" style="flex:2;min-width:180px">
         <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarCierre('${p.id}', { aprobado: document.getElementById('ci-vb').value, nota: document.getElementById('ci-nota').value }))"><i class="ti ti-circle-check" aria-hidden="true"></i> Registrar visto bueno</button></div>
         <a href="#" class="ci-link" onclick="event.preventDefault();ejecutarConCarga(this, () => guardarCierre('${p.id}', { limpiar: ['entregado'] }))">Deshacer entrega</a></div>`;
-  else if (admin && p.cierre_estado === 'aprobado') accion = `<a href="#" class="ci-link" onclick="event.preventDefault();ejecutarConCarga(this, () => guardarCierre('${p.id}', { limpiar: ['aprobado'] }))">Reabrir cierre (quitar visto bueno)</a>`;
+  else if (sigue && p.cierre_estado === 'aprobado') accion = `<a href="#" class="ci-link" onclick="event.preventDefault();ejecutarConCarga(this, () => guardarCierre('${p.id}', { limpiar: ['aprobado'] }))">Reabrir cierre (quitar visto bueno)</a>`;
   return `<div class="ci-card ${p.cierre_estado === 'aprobado' ? 'cerrado' : ''}">
     <div class="ci-tit"><i class="ti ti-file-certificate" aria-hidden="true"></i> Cierre con el cliente
       <span class="ci-estado" style="color:${p.cierre_estado === 'aprobado' ? C.ok : C[ent.sem]}">${p.cierre_estado === 'aprobado' ? `Cerrado el ${fCorta(p.cierre_aprobado)}` : ent.txt}</span></div>
@@ -3860,7 +3865,8 @@ function htmlCierreProyecto(p) {
         </select></div>
       <div class="field-group"><label class="field-label" for="ci-comp">ENTREGA COMPROMETIDA</label>
         <input type="date" class="field-input" id="ci-comp" value="${p.cierre_compromiso || ''}" min="${p.fecha_fin_real}" onchange="if(this.value)guardarCierre('${p.id}', { compromiso: this.value })" ${p.cierre_entregado ? 'disabled' : ''}></div>
-    </div>` : `<div class="ci-nota-txt">Responsable: <b>${resp ? escHtml(`${resp.nombre} ${resp.apellido}`) : 'sin asignar'}</b></div>`}
+    </div>` : esResp ? `<div class="ci-nota-txt"><i class="ti ti-user-check" aria-hidden="true"></i> Tú eres responsable de este cierre${p.cierre_compromiso && !p.cierre_entregado ? ` · entrega comprometida: <b>${fCorta(p.cierre_compromiso)}</b>` : ''}</div>`
+      : `<div class="ci-nota-txt">Responsable: <b>${resp ? escHtml(`${resp.nombre} ${resp.apellido}`) : 'sin asignar'}</b></div>`}
     ${admin && p.cierre_estado === 'pendiente' && (!p.cierre_responsable_id || !p.cierre_compromiso) ? `<div class="ci-falta"><i class="ti ti-info-circle" aria-hidden="true"></i> Asigna al responsable y la fecha en que se comprometió a entregar el reporte.</div>` : ''}
     ${p.cierre_nota ? `<div class="ci-nota-txt"><i class="ti ti-message" aria-hidden="true"></i> ${escHtml(p.cierre_nota)}</div>` : ''}
     ${accion}
@@ -3873,7 +3879,8 @@ async function guardarCierre(pid, cuerpo) {
   if (i >= 0) STATE.proyectos[i] = { ...STATE.proyectos[i], ...r };
   STATE._panelDirty = false;
   toast(r.cierre_estado === 'aprobado' ? 'Proyecto cerrado con el cliente' : 'Cierre actualizado');
-  verProyecto(pid);
+  abrirProyectoSegunVista(pid);
+  if (STATE._seccion === 'mis-asignaciones' && RENDERERS[STATE._seccion]) RENDERERS[STATE._seccion]();
 }
 
 // Cambiar técnico: pide el motivo, lo quita del proyecto y abre la evaluación para elegir a otra persona
@@ -3941,9 +3948,10 @@ async function confirmarPausa(pid, modo) {
   toast(modo === 'solicitud' ? 'Solicitud enviada: un administrador la revisará' : (r.mensaje || 'Proyecto en pausa'));
   await Promise.all([loadProyectos(true), loadEmpleados(true)]);
   if (STATE._seccion === 'checador') renderChecador();
-  else if (document.getElementById('panel-overlay')?.classList.contains('open')) verProyecto(pid);
+  else if (document.getElementById('panel-overlay')?.classList.contains('open')) abrirProyectoSegunVista(pid);
   else if (RENDERERS[STATE._seccion]) RENDERERS[STATE._seccion]();
 }
+const abrirProyectoSegunVista = pid => (STATE.rol === 'tecnico' || STATE.modoTecnico) ? verProyectoTecnico(pid) : verProyecto(pid);
 // Aviso de solicitud pendiente: el admin la resuelve aquí; el técnico ve que está en espera
 function htmlSolicitudPausa(p, compacto) {
   const sp = p.solicitud_pausa; if (!sp) return '';
@@ -8783,6 +8791,9 @@ async function renderMisAsignaciones() {
   const cerrado = p => ['completado','cancelado'].includes(p.estado) || !!p.fecha_fin_real;
   // primero los que están en campo, luego los que vienen por fecha de inicio
   const activos = mios.filter(p => !cerrado(p)).sort((a, b) => (proyectoIniciado(b) - proyectoIniciado(a)) || (a.fecha_inicio||'9999').localeCompare(b.fecha_inicio||'9999'));
+  // Cierres con el cliente a su cargo (puede no haber estado en campo)
+  const cierres = STATE.proyectos.filter(p => empId && p.cierre_responsable_id === empId && p.fecha_fin_real && p.estado === 'completado' && p.cierre_estado && p.cierre_estado !== 'aprobado')
+    .sort((a, b) => (a.cierre_compromiso || '9999').localeCompare(b.cierre_compromiso || '9999'));
   const anteriores = mios.filter(cerrado).sort((a, b) => (b.fecha_fin_real||b.fecha_fin_estimada||'').localeCompare(a.fecha_fin_real||a.fecha_fin_estimada||''));
   const tarjeta = (p, apagada) => `<div class="table-section${apagada ? ' asg-anterior' : ''}" style="margin-bottom:12px;cursor:pointer" onclick="verProyectoTecnico('${p.id}')">
       <div style="padding:16px">
@@ -8798,7 +8809,12 @@ async function renderMisAsignaciones() {
     </div>`;
   html(`
     <div style="margin-bottom:16px"><h2 style="font-size:17px;font-weight:600;margin-bottom:4px">Hola, ${STATE.user?.nombre?.split(' ')[0]||'Técnico'}</h2><p style="font-size:13px;color:var(--text2)">${new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</p></div>
-    ${activos.length ? activos.map(p => tarjeta(p)).join('') : `<div class="empty-state"><i class="ti ti-calendar-off" aria-hidden="true"></i><p>Sin proyectos activos</p><span>Cuando te asignen uno, aparecerá aquí.</span></div>`}
+    ${cierres.length ? `<div class="asg-cierres-tit"><i class="ti ti-file-certificate" aria-hidden="true"></i> Cierres a tu cargo <span>${cierres.length}</span></div>
+      ${cierres.map(p => { const ent = estadoEntregaCierre(p);
+        return `<div class="table-section asg-cierre" style="margin-bottom:12px;cursor:pointer" onclick="verProyectoTecnico('${p.id}')"><div style="padding:14px 16px;display:flex;justify-content:space-between;gap:10px;align-items:center">
+          <div style="min-width:0"><div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">${escHtml(p.nombre)}</div><div style="font-size:12px;color:var(--text2)">${escHtml(p.cliente||'—')}</div></div>
+          <span style="font-size:12px;font-weight:600;color:${KPI_COLOR[ent.sem] || 'var(--text2)'};text-align:right">${p.cierre_estado === 'entregado' ? 'Esperando visto bueno' : ent.txt}</span></div></div>`; }).join('')}` : ''}
+    ${activos.length ? activos.map(p => tarjeta(p)).join('') : cierres.length ? '' : `<div class="empty-state"><i class="ti ti-calendar-off" aria-hidden="true"></i><p>Sin proyectos activos</p><span>Cuando te asignen uno, aparecerá aquí.</span></div>`}
     ${anteriores.length ? `<details class="asg-archivo"${STATE._asgArchivo ? ' open' : ''} ontoggle="STATE._asgArchivo = this.open">
       <summary><i class="ti ti-archive" aria-hidden="true"></i> Proyectos anteriores <span>${anteriores.length}</span><i class="ti ti-chevron-down asg-flecha" aria-hidden="true"></i></summary>
       ${anteriores.map(p => tarjeta(p, true)).join('')}
@@ -8808,7 +8824,17 @@ async function renderMisAsignaciones() {
 function verProyectoTecnico(id) {
   const p = STATE.proyectos.find(x=>x.id===id);
   if (!p) return;
+  const abierto = !['completado','cancelado'].includes(p.estado);
+  const pzAbierta = p.estado === 'pausado' ? (p.pausas_resumen || []).slice(-1)[0] : null;
+  // Pausa: el técnico la solicita (la autoriza un admin); un admin en Vista Técnico pausa directo
+  const btnPausa = !abierto || p.estado === 'pausado' || !p.fecha_inicio_real ? ''
+    : STATE.rol !== 'tecnico' ? `<button class="btn btn-ghost btn-sm" onclick="abrirModalPausa('${p.id}','directa')"><i class="ti ti-player-pause" aria-hidden="true"></i> Pausar</button>`
+    : p.solicitud_pausa ? `<button class="btn btn-ghost btn-sm" disabled title="Esperando autorización"><i class="ti ti-hourglass" aria-hidden="true"></i> Pausa solicitada</button>`
+    : `<button class="btn btn-ghost btn-sm" onclick="abrirModalPausa('${p.id}','solicitud')"><i class="ti ti-player-pause" aria-hidden="true"></i> Solicitar pausa</button>`;
   openPanel(p.nombre, `
+    ${htmlSolicitudPausa(p)}
+    ${pzAbierta && !pzAbierta.fin ? `<div class="pz-aviso"><i class="ti ti-player-pause" aria-hidden="true"></i><div><b>En pausa desde el ${fCorta(pzAbierta.inicio)}</b>${pzAbierta.motivo ? `<span>Motivo: ${escHtml(pzAbierta.motivo)}</span>` : ''}</div></div>` : ''}
+    ${p.fecha_fin_real && p.estado === 'completado' ? htmlCierreProyecto(p) : ''}
     <div class="panel-section">
       <div class="panel-section-title">DETALLES</div>
       <div style="font-size:13px;line-height:2;color:var(--text2)">
@@ -8818,10 +8844,10 @@ function verProyectoTecnico(id) {
         <div>Fin est.: <span class="td-mono" style="color:var(--text)">${p.fecha_fin_estimada||'—'}</span></div>
         ${p.fecha_inicio_real ? `<div>Inicio real: <span class="td-mono" style="color:var(--blue)">${p.fecha_inicio_real}</span></div>` : ''}
         ${p.fecha_fin_real ? `<div>Fin real: <span class="td-mono" style="color:var(--green)">${p.fecha_fin_real}</span></div>` : ''}
-        <div>Sitio: <span style="color:var(--text)">${p.ciudad||'—'}${p.estado?', '+p.estado:''}</span></div>
+        <div>Sitio: <span style="color:var(--text)">${p.ciudad||'—'}${p.estado_ub?', '+p.estado_ub:''}</span></div>
       </div>
     </div>`,
-    `${p.estado!=='completado'&&p.estado!=='cancelado'&&!p.fecha_inicio_real?`<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="confirmarInicioProyecto('${p.id}','tecnico')"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Iniciar proyecto</button>`:''}${p.estado!=='completado'&&p.estado!=='cancelado'?`<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}','tecnico'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar trabajo en campo</button>`:''}${avanceDisponible()&&proyectoIniciado(p)&&!['completado','cancelado'].includes(p.estado)?`<button class="btn btn-ghost btn-sm" style="color:var(--orange)" onclick="irAvance('${p.id}')"><i class="ti ti-flame" aria-hidden="true"></i> Avance</button>`:''}<button class="btn btn-primary btn-sm" onclick="showSection('checador');closePanel(null,true)"><i class="ti ti-clock" aria-hidden="true"></i> Ir al checador</button>`);
+    `${btnPausa}${p.estado!=='completado'&&p.estado!=='cancelado'&&!p.fecha_inicio_real?`<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="confirmarInicioProyecto('${p.id}','tecnico')"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Iniciar proyecto</button>`:''}${p.estado!=='completado'&&p.estado!=='cancelado'?`<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}','tecnico'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar trabajo en campo</button>`:''}${avanceDisponible()&&proyectoIniciado(p)&&!['completado','cancelado'].includes(p.estado)?`<button class="btn btn-ghost btn-sm" style="color:var(--orange)" onclick="irAvance('${p.id}')"><i class="ti ti-flame" aria-hidden="true"></i> Avance</button>`:''}<button class="btn btn-primary btn-sm" onclick="showSection('checador');closePanel(null,true)"><i class="ti ti-clock" aria-hidden="true"></i> Ir al checador</button>`);
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
