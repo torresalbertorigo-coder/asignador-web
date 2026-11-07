@@ -1578,6 +1578,7 @@ html.av-fs-abierto .content{overflow:hidden !important}
 .asg-tab-n.alerta{background:var(--red);color:#fff}
 .asg-tab-cuerpo{background:var(--surface);border:1px solid var(--border2);border-top:none;border-radius:0 0 12px 12px;padding:12px 10px 2px;min-height:160px}
 .asg-tab-cuerpo .empty-state{padding:30px 10px}
+.asg-ci-pie{font-size:11.5px;color:var(--text3);margin-top:8px}.asg-cierre .asg-ci-pie{color:var(--blue);font-weight:600}
 .asg-pz{font-size:12px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px dashed var(--border2)}
 @media(max-width:420px){.asg-tabs{gap:0}.asg-tab{flex:1 1 0;min-width:0;padding:6px 4px;gap:0;font-size:11.5px;flex-direction:column;line-height:1.2}.asg-tab i{display:none}.asg-tab-n{font-size:10px;line-height:15px;margin-top:2px}}
 /* Botones del panel en celular: se acomodan en renglones, sin recortarse */
@@ -7888,6 +7889,7 @@ async function renderMapa() {
             <option value="en_curso" selected>Solo activos / en curso</option>
             <option value="activos">En curso + programados</option>
             <option value="programados">Solo programados</option>
+            <option value="en_cierre">En cierre con cliente</option>
             <option value="finalizados">Finalizados</option>
             <option value="todos">Todos</option>
             <option value="por_fecha">Por fecha</option>
@@ -7983,9 +7985,9 @@ function rangoMapaSeleccionado(periodo) {
 function proyectoPasaFiltroMapa(p, vista, rango) {
   const terminado = p.estado === 'completado' || p.estado === 'cancelado';
   const iniciado = proyectoIniciado(p);
-  const clase = terminado ? 'finalizados' : (iniciado ? 'en_curso' : 'programados');
-  if (vista === 'activos' && clase === 'finalizados') return false;
-  if (['en_curso','programados','finalizados'].includes(vista) && vista !== clase) return false;
+  const clase = enCierre(p) ? 'en_cierre' : terminado ? 'finalizados' : (iniciado ? 'en_curso' : 'programados');
+  if (vista === 'activos' && ['finalizados', 'en_cierre'].includes(clase)) return false;
+  if (['en_curso','programados','en_cierre','finalizados'].includes(vista) && vista !== clase) return false;
   if (rango && (rango.desde || rango.hasta)) {
     const hoy = new Date(); hoy.setHours(0,0,0,0);
     const ini = fechaLocal(p.fecha_inicio_real || p.fecha_inicio);
@@ -8807,15 +8809,18 @@ async function renderMisAsignaciones() {
     .sort((a, b) => (proyectoIniciado(b) - proyectoIniciado(a)) || (a.fecha_inicio||'9999').localeCompare(b.fecha_inicio||'9999'));
   const pausados = mios.filter(p => !cerrado(p) && p.estado === 'pausado');
   // Cierres con el cliente a su cargo (puede no haber estado en campo)
-  const aCargo = STATE.proyectos.filter(p => empId && p.cierre_responsable_id === empId && p.fecha_fin_real && p.estado === 'completado');
-  const cierres = aCargo.filter(p => p.cierre_estado && p.cierre_estado !== 'aprobado')
-    .sort((a, b) => (a.cierre_compromiso || '9999').localeCompare(b.cierre_compromiso || '9999'));
-  const finalizados = [...new Map([...mios.filter(cerrado), ...aCargo].map(p => [p.id, p])).values()]
+  // Cada proyecto vive en UNA sola pestaña: En cierre = terminado en campo sin visto bueno del cliente
+  // (los que tiene a su cargo primero); Finalizados = ya cerrados con el cliente, cancelados o sin etapa de cierre
+  const miCierre = p => !!empId && p.cierre_responsable_id === empId;
+  const terminados = [...new Map([...mios.filter(cerrado), ...STATE.proyectos.filter(p => miCierre(p) && p.fecha_fin_real)].map(p => [p.id, p])).values()];
+  const cierres = terminados.filter(enCierre)
+    .sort((a, b) => (miCierre(b) - miCierre(a)) || (a.cierre_compromiso || '9999').localeCompare(b.cierre_compromiso || '9999'));
+  const finalizados = terminados.filter(p => !enCierre(p))
     .sort((a, b) => (b.fecha_fin_real||b.fecha_fin_estimada||'').localeCompare(a.fecha_fin_real||a.fecha_fin_estimada||''));
   const TABS = [
     { k: 'curso', t: 'En curso', ico: 'player-play', L: enCurso, vacio: ['calendar-off', 'Sin proyectos en curso', 'Cuando te asignen uno, aparecerá aquí.'] },
     { k: 'pausa', t: 'Pausados', ico: 'player-pause', L: pausados, vacio: ['player-pause', 'Sin proyectos en pausa', ''] },
-    { k: 'cierre', t: 'En cierre', ico: 'file-certificate', L: cierres, vacio: ['file-certificate', 'Sin cierres a tu cargo', 'Cuando te asignen el seguimiento de un cierre con el cliente, aparecerá aquí.'], alerta: cierres.some(p => estadoEntregaCierre(p).sem === 'bad') },
+    { k: 'cierre', t: 'En cierre', ico: 'file-certificate', L: cierres, vacio: ['file-certificate', 'Sin proyectos en cierre', 'Aquí quedan los proyectos terminados en campo hasta que el cliente dé el visto bueno.'], alerta: cierres.some(p => miCierre(p) && estadoEntregaCierre(p).sem === 'bad') },
     { k: 'fin', t: 'Finalizados', ico: 'archive', L: finalizados, vacio: ['archive', 'Aún no hay proyectos finalizados', ''] },
   ];
   if (enCurso.some(p => p.id === TUT_ID)) STATE._asgTab = 'curso';   // tutorial: su proyecto de práctica está en "En curso"
@@ -8833,10 +8838,14 @@ async function renderMisAsignaciones() {
         </div>
       </div>
     </div>`;
-  const tarjetaCierre = p => { const ent = estadoEntregaCierre(p);
-    return `<div class="table-section asg-cierre" style="margin-bottom:12px;cursor:pointer" onclick="verProyectoTecnico('${p.id}')"><div style="padding:14px 16px;display:flex;justify-content:space-between;gap:10px;align-items:center">
-      <div style="min-width:0"><div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">${escHtml(p.nombre)}</div><div style="font-size:12px;color:var(--text2)">${escHtml(p.cliente||'—')}</div></div>
-      <span style="font-size:12px;font-weight:600;color:${KPI_COLOR[ent.sem] || 'var(--text2)'};text-align:right">${p.cierre_estado === 'entregado' ? 'Esperando visto bueno' : ent.txt}</span></div></div>`; };
+  const tarjetaCierre = p => { const ent = estadoEntregaCierre(p), mio = miCierre(p);
+    const txt = p.cierre_estado === 'entregado' ? 'Esperando visto bueno' : ent.txt;
+    return `<div class="table-section${mio ? ' asg-cierre' : ''}" style="margin-bottom:12px;cursor:pointer" onclick="verProyectoTecnico('${p.id}')"><div style="padding:14px 16px">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
+        <div style="min-width:0"><div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">${escHtml(p.nombre)}</div><div style="font-size:12px;color:var(--text2)">${escHtml(p.cliente||'—')}</div></div>
+        <span style="font-size:12px;font-weight:600;color:${mio ? (KPI_COLOR[ent.sem] || 'var(--text2)') : 'var(--text3)'};text-align:right">${txt}</span></div>
+      <div class="asg-ci-pie">${mio ? '<i class="ti ti-user-check" aria-hidden="true"></i> A tu cargo' : `<i class="ti ti-calendar" aria-hidden="true"></i> Terminó en campo el ${fCorta(p.fecha_fin_real)}`}</div>
+    </div></div>`; };
   const pausaTxt = p => { const pz = (p.pausas_resumen || []).slice(-1)[0];
     return pz && !pz.fin ? `<div class="asg-pz"><i class="ti ti-player-pause" aria-hidden="true"></i> En pausa desde el ${fCorta(pz.inicio)}${pz.motivo ? ` · ${escHtml(pz.motivo)}` : ''}</div>` : ''; };
   const cuerpo = !tab.L.length ? `<div class="empty-state"><i class="ti ti-${tab.vacio[0]}" aria-hidden="true"></i><p>${tab.vacio[1]}</p>${tab.vacio[2] ? `<span>${tab.vacio[2]}</span>` : ''}</div>`
