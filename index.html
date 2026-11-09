@@ -1151,6 +1151,13 @@ tbody tr:hover .td-action i{color:var(--text2)}
 
   /* Tablas: se desplazan de lado en vez de cortarse; encabezado en columna */
   .table-section{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  /* Proyectos: la sección no se desliza; solo la tabla. Las pestañas se acomodan sin deslizar */
+  .table-section.pry-seccion{overflow:hidden}
+  .pry-tabla{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .pry-seccion .pry-subtabs{flex-wrap:wrap;gap:6px;padding:10px 12px;overflow:visible;background:transparent}
+  .pry-seccion .pry-subtab{flex:1 1 auto;justify-content:center;border:1px solid var(--border2);border-radius:999px;padding:7px 10px;margin:0;font-size:12px;min-height:34px}
+  .pry-seccion .pry-subtab.act{box-shadow:none;border-color:var(--red);background:rgba(227,28,34,.14);color:var(--text)}
+  .pry-seccion .pry-subtab i{display:none}
   .table-header{flex-wrap:wrap;gap:8px;align-items:stretch}
   .table-header>*{min-width:0}
   .table-header>div{flex:1 1 100%;flex-wrap:wrap;gap:8px}
@@ -3654,7 +3661,7 @@ async function renderProyectos() {
           onclick="STATE._pryVista='${v}';renderProyectos()" onkeydown="if(event.key==='Enter')this.click()">
           <div class="stat-lbl">${lbl}</div><div class="stat-val">${n}</div><div class="stat-sub">${sub}</div></div>`).join('')}
     </div>
-    <div class="table-section">
+    <div class="table-section pry-seccion">
       <div class="table-header">
         <span class="table-title">${VISTAS[vista].titulo}</span>
         <div class="filter-bar"><div class="filter-bar-inner">
@@ -3665,7 +3672,7 @@ async function renderProyectos() {
       ${SUBTABS.length ? `<div class="pry-subtabs" role="tablist">${SUBTABS.map(T => `<button class="pry-subtab${T.k === subTab.k ? ' act' : ''}" role="tab" aria-selected="${T.k === subTab.k}" onclick="STATE._pryActTab='${T.k}';renderProyectos()">
         <i class="ti ti-${T.ico}" aria-hidden="true"></i>${T.t}<span class="pry-subtab-n">${T.n}</span></button>`).join('')}</div>` : ''}
       ${proyectos.length === 0 ? `<div class="empty-state"><i class="ti ti-folder" aria-hidden="true"></i><p>${filtro ? 'Sin resultados' : subTab && subTab.k !== 'todos' ? `No hay proyectos ${subTab.t.toLowerCase()}` : VISTAS[vista].vacio}</p></div>` : `
-      <table>
+      <div class="pry-tabla"><table>
         <thead><tr><th>ID</th><th>NOMBRE</th><th>CLIENTE</th>${vista === 'cierre' ? `<th>RESPONSABLE DEL CIERRE</th><th>REPORTE AL CLIENTE</th><th>FIN EN CAMPO</th><th>SITIO</th><th></th></tr></thead>` : `<th>ESTADO</th><th class="th-sortable${sortCampo==='fecha_inicio'?' activo':''}" onclick="ordenarProyectosPor('fecha_inicio')">INICIO<i class="ti ${sortCampo==='fecha_inicio'?(sortDir==='asc'?'ti-sort-ascending':'ti-sort-descending'):'ti-arrows-sort'}" aria-hidden="true"></i></th><th class="th-sortable${sortCampo==='fecha_fin_estimada'?' activo':''}" onclick="ordenarProyectosPor('fecha_fin_estimada')">FIN EST.<i class="ti ${sortCampo==='fecha_fin_estimada'?(sortDir==='asc'?'ti-sort-ascending':'ti-sort-descending'):'ti-arrows-sort'}" aria-hidden="true"></i></th><th>SITIO</th><th></th></tr></thead>`}
         <tbody>
           ${proyectos.map(p=>`<tr style="cursor:pointer" onclick="verProyecto('${p.id}')">
@@ -3686,7 +3693,7 @@ async function renderProyectos() {
               : '<i class="ti ti-chevron-right" aria-hidden="true"></i>'}</td>
           `}</tr>`).join('')}
         </tbody>
-      </table>`}
+      </table></div>`}
     </div>`);
   const buscarInput = document.getElementById('pry-buscar');
   if (buscarInput) { buscarInput.focus(); buscarInput.setSelectionRange(buscarInput.value.length, buscarInput.value.length); }
@@ -7513,7 +7520,27 @@ async function armarReporteWhatsApp() {
     if (r.eq.length) L.push(`   Equipo: ${r.eq.join(', ')}`);
   });
 
-  L.push('', '4. PRÓXIMOS INICIOS (7 DÍAS)');
+  // Cierre con el cliente: terminados en campo que esperan entrega del reporte o visto bueno
+  const cierres = STATE.proyectos.filter(enCierre).sort((a, b) =>
+    (a.cierre_estado === 'entregado') - (b.cierre_estado === 'entregado') || (a.cierre_compromiso || '9999').localeCompare(b.cierre_compromiso || '9999'));
+  const cerradosHoy = STATE.proyectos.filter(p => p.cierre_estado === 'aprobado' && p.cierre_aprobado === hoyIso);
+  L.push('', `4. PROYECTOS EN CIERRE CON CLIENTE (${cierres.length})`);
+  if (!cierres.length && !cerradosHoy.length) L.push('• Sin proyectos en cierre.');
+  cierres.forEach((p, k) => {
+    const ent = estadoEntregaCierre(p), resp = nombreEmp(p.cierre_responsable_id);
+    const est = p.cierre_estado === 'entregado'
+      ? `Reporte entregado el ${fCorta(p.cierre_entregado)}, en espera del visto bueno del cliente`
+      : !p.cierre_compromiso ? 'Reporte pendiente, sin fecha comprometida'
+      : ent.sem === 'bad' ? `Reporte vencido ${ent.txt.replace(/^Vencido /, '').replace(' · era el ', ' (comprometido para el ')})`
+      : `Reporte pendiente, ${ent.txt.charAt(0).toLowerCase() + ent.txt.slice(1)}`;
+    if (k) L.push('');
+    L.push(`• ${p.nombre}${p.cliente ? ` (${p.cliente})` : ''}`,
+      `   Responsable: ${resp || 'Sin asignar'}`,
+      `   Estatus: ${est}`);
+  });
+  cerradosHoy.forEach(p => L.push(`• Cerrado hoy con visto bueno: ${p.nombre}${p.cliente ? ` (${p.cliente})` : ''}`));
+
+  L.push('', '5. PRÓXIMOS INICIOS (7 DÍAS)');
   if (!proximos.length) L.push('• Sin inicios programados.');
   proximos.slice(0, 6).forEach(p => {
     L.push(`• ${fCorta(p.fecha_inicio)} — ${p.nombre}${p.ciudad ? ` · ${p.ciudad}` : ''} (personal ${(p.tecnicos_asignados || []).length}/${p.personal_requerido || 1})`);
