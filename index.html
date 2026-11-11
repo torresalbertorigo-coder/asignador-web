@@ -6239,6 +6239,8 @@ function dibujarEtiquetaQR(T, eq, x0, y0) {
 }
 // Una sola → página del tamaño de la credencial. Varias (hoja) → carta con 3 × 3 y guías de corte.
 async function etiquetasQR(ids, hoja) {
+  // El archivo digital de la etiqueta es solo para administradores y gerentes (el impreso lo ve cualquiera)
+  if (!['administrador', 'director_proyecto'].includes(STATE.rol)) { toast('Solo administradores y gerentes pueden generar las etiquetas QR', 'error'); return; }
   try { await cargarQRLib(); } catch (e) { toast('No se pudo cargar el generador de QR. Revisa tu conexión.', 'error'); return; }
   await loadEquipos();
   const eqs = ids.map(id => (STATE.equipos || []).find(e => e.id === id)).filter(Boolean);
