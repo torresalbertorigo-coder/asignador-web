@@ -793,14 +793,29 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .pz-sol-mot{margin:6px 0 4px;font-size:13px;color:var(--text);line-height:1.45}
 .pz-sol-pie{font-size:11.5px;color:var(--text3)}
 .pz-sol-btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.esc-cab{text-align:center;padding:4px 0 14px}
+.esc-ni{font-size:22px;font-weight:800;color:var(--text);letter-spacing:.02em}
+.esc-nom{font-size:14px;font-weight:600;color:var(--text);margin-top:4px}
+.esc-sub{font-size:12px;color:var(--text3);margin-top:2px}
+.esc-ubic{display:inline-flex;gap:5px;align-items:center;font-size:12px;color:var(--text2);margin-top:8px;background:var(--surface2);border-radius:999px;padding:4px 10px}
+.esc-acciones{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px}
+.esc-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 10px;border:1px solid var(--border2);border-radius:12px;background:var(--surface);color:var(--text);font:inherit;cursor:pointer;text-align:center}
+.esc-btn i{font-size:26px;color:var(--red)}.esc-btn b{font-size:13px}.esc-btn span{font-size:11px;color:var(--text3)}
+.esc-btn:disabled{opacity:.5;cursor:default}.esc-btn:not(:disabled):hover{border-color:var(--red)}
+.esc-ayuda{font-size:12px;color:var(--text3);margin:-2px 0 10px}
+.esc-pry{display:flex;gap:10px;align-items:center;width:100%;text-align:left;padding:12px;margin-bottom:8px;border:1px solid rgba(34,197,94,.45);background:rgba(34,197,94,.08);border-radius:12px;color:var(--text);font:inherit;cursor:pointer}
+.esc-pry i{font-size:24px;color:var(--green)}.esc-pry b{display:block;font-size:13px}.esc-pry span{font-size:11.5px;color:var(--text2)}
+.esc-solo{font-size:11.5px;color:var(--text3);margin:10px 0 6px}
+.esc-motivos{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.esc-mot{display:flex;gap:6px;align-items:center;padding:10px;border:1px solid var(--border2);border-radius:10px;background:var(--surface);color:var(--text);font:inherit;font-size:12.5px;cursor:pointer}
+.esc-mot i{color:var(--text2);font-size:16px}
+.esc-gps{font-size:11px;color:var(--text3);margin-top:10px;display:flex;gap:5px;align-items:center}
+.esc-ok,.esc-alerta{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:12px;font-size:12.5px;color:var(--text)}
+.esc-ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.4)}.esc-ok i{font-size:22px;color:var(--green)}
+.esc-alerta{background:var(--amber-bg);border:1px solid var(--amber-border)}.esc-alerta i{font-size:22px;color:var(--amber)}
+.esc-ok span,.esc-alerta span{display:block;font-size:11.5px;color:var(--text2);margin-top:3px}
+.esc-conf{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .eq-ni{font-size:11px;font-weight:700;color:var(--text);background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:2px 7px;white-space:nowrap}
-.eql-cab{display:flex;gap:12px;align-items:center;padding:4px 0 14px}
-.eql-ni{font-size:16px;font-weight:800;color:var(--text);letter-spacing:.02em}
-.eql-fila{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px}
-.eql-fila span{color:var(--text3)}.eql-fila b{color:var(--text);font-weight:600;text-align:right}
-.eql-doc{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
-.eql-doc>i{font-size:22px;color:var(--text3)}
-.eql-doc-n{color:var(--text);font-weight:600;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .login-qr{display:flex;gap:10px;align-items:flex-start;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.35);border-radius:10px;padding:10px 12px;margin:0 0 16px;font-size:12.5px;color:var(--text,#e4e4e7);text-align:left;line-height:1.45}
 .login-qr i{font-size:20px;color:#60a5fa;flex-shrink:0}
 .login-qr span{display:block;font-size:11.5px;opacity:.75;margin-top:3px}
@@ -6307,55 +6322,134 @@ async function abrirEquipoDeRuta() {
   try { id = id || sessionStorage.getItem('ws_qr_eq'); sessionStorage.removeItem('ws_qr_eq'); } catch (e) {}
   if (!id) return;
   if (idEquipoDeRuta()) history.replaceState(null, '', location.pathname + location.search);
-  const eq = await api('GET', `/equipos/${encodeURIComponent(id)}`);
+  const eq = await refrescarEquipo(id);
   if (!eq) { toast('No se encontró ese equipo', 'error'); return; }
-  const admin = ['administrador', 'director_proyecto'].includes(STATE.rol) && !STATE.modoTecnico;
-  if (admin) {
-    await loadEquipos(true);
-    if ((STATE.equipos || []).some(e => e.id === id)) { verEquipo(id); return; }
-  }
-  verEquipoLectura(eq);
-}
-// Ficha de consulta (técnicos y quien escanea en campo): datos y documentos para descargar
-function verEquipoLectura(eq) {
-  const srv = servicioActivo(eq);
-  const estado = srv ? (SERV_TIPOS[srv.tipo] || SERV_TIPOS.mantenimiento).estado : eq.proyecto_actual_nombre ? 'En proyecto'
-    : { disponible: 'En oficina', en_uso: 'En uso', mantenimiento: 'Mantenimiento', baja: 'Dado de baja' }[eq.estado] || (eq.estado || '—');
-  let cal = eq.sin_calibracion ? 'No requiere' : eq.proxima_calibracion ? fLargaAnio(eq.proxima_calibracion) : '—', calColor = 'var(--text)';
-  if (!eq.sin_calibracion && eq.proxima_calibracion) {
-    const d = Math.ceil((fechaLocal(eq.proxima_calibracion) - new Date(new Date().toDateString())) / 86400000);
-    if (d < 0) { cal += ' (vencida)'; calColor = 'var(--red-text)'; } else if (d <= 30) { cal += ` (en ${d} d)`; calColor = 'var(--amber)'; }
-  }
-  const docs = eq.documentos || [];
-  const fila = (k, v, extra = '') => `<div class="eql-fila"><span>${k}</span><b${extra}>${v}</b></div>`;
-  openPanel(eq.apodo || eq.nombre, `
-    <div class="eql-cab">
-      <div class="eq-icon"><i class="ti ti-${iconoEquipo(eq.tipo)}" aria-hidden="true"></i></div>
-      <div style="min-width:0"><div class="eql-ni td-mono">${escHtml(eq.numero_interno || 'Sin No. interno')}</div>
-        <div style="font-size:13px;color:var(--text);font-weight:600">${escHtml(eq.nombre)}</div>
-        <div style="font-size:11.5px;color:var(--text3)">${escHtml(etiquetaEquipo(eq.tipo))}</div></div>
-    </div>
-    <div class="panel-section">
-      <div class="panel-section-title">DATOS</div>
-      ${fila('N/S', `<span class="td-mono">${escHtml(eq.numero_serie || '—')}</span>`)}
-      ${fila('Estado', escHtml(estado))}
-      ${fila('Ubicación', escHtml(eq.proyecto_actual_ciudad || eq.ciudad_actual || '—'))}
-      ${eq.proyecto_actual_nombre ? fila('Proyecto', escHtml(eq.proyecto_actual_nombre)) : ''}
-      ${fila(eq.sin_calibracion ? 'Calibración' : 'Próx. calibración', cal, ` style="color:${calColor}"`)}
-    </div>
-    <div class="panel-section">
-      <div class="panel-section-title">DOCUMENTOS ${docs.length ? `<span style="font-weight:500;color:var(--text3)">· ${docs.length}</span>` : ''}</div>
-      ${docs.length ? docs.map(d => { const vg = estadoVigencia(d.fecha_vencimiento);
-        return `<div class="eql-doc">
-          <i class="ti ti-file-type-${/\.pdf($|\?)/i.test(d.ruta_archivo || '') ? 'pdf' : 'jpg'}" aria-hidden="true"></i>
-          <div style="flex:1;min-width:0"><div class="eql-doc-n">${escHtml(d.nombre)}</div>
-            <div style="font-size:11px;color:var(--text3)">${EQ_DOC_TIPOS[d.tipo] || escHtml(d.tipo)} · <span style="color:${vg.color}">${d.fecha_vencimiento ? 'Vence: ' + vg.texto : 'Sin vigencia'}</span></div></div>
-          ${d.ruta_archivo ? `<a class="btn btn-ghost btn-sm" href="${escHtml(d.ruta_archivo)}" target="_blank" rel="noopener" download><i class="ti ti-download" aria-hidden="true"></i> Descargar</a>` : '<span style="font-size:11px;color:var(--text3)">sin archivo</span>'}
-        </div>`; }).join('') : '<div style="font-size:12px;color:var(--text3)">Este equipo aún no tiene documentos cargados.</div>'}
-    </div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>`);
+  await Promise.all([loadProyectos(true), loadEquipos()]);
+  pantallaEscaneo(eq);
 }
 
+// ─── Pantalla del escaneo (solo al abrir el QR) ─────────────────────────────
+// Descargar ficha · Descargar documentación · Marcar dónde está (en un proyecto o solo ubicación)
+const MOTIVOS_UBIC = [['oficina', 'Oficina / almacén', 'building-warehouse'], ['calibracion', 'Calibración', 'ruler-measure'], ['mantenimiento', 'Mantenimiento', 'tool'], ['otro', 'Otro lugar', 'map-pin']];
+function proyectosParaEscaneo(eq) {
+  const me = STATE.user?.empleado_id, hoy = isoLocal(new Date()), DIA = 86400000;
+  const activo = p => !p.fecha_fin_real && !['completado', 'cancelado'].includes(p.estado);
+  const cerca = p => { const ini = p.fecha_inicio_real || p.fecha_inicio; return !!ini && isoLocal(new Date(fechaLocal(ini).getTime() - 7 * DIA)) <= hoy; };
+  const mios = (STATE.proyectos || []).filter(p => me && activo(p) && (p.tecnicos_asignados || []).includes(me) && cerca(p));
+  const delEquipo = mios.filter(p => (p.equipo_asignado_ids || []).includes(eq.id));
+  return delEquipo.length ? delEquipo : mios;
+}
+function pantallaEscaneo(eq) {
+  STATE._escEq = eq;
+  const docs = (eq.documentos || []).filter(d => d.ruta_archivo);
+  const cand = proyectosParaEscaneo(eq);
+  const admin = ['administrador', 'director_proyecto'].includes(STATE.rol);
+  const ubic = eq.proyecto_actual_nombre ? `${eq.proyecto_actual_nombre}${eq.proyecto_actual_ciudad ? ' · ' + eq.proyecto_actual_ciudad : ''}` : (eq.ciudad_actual || 'Sin ubicación registrada');
+  openPanel(eq.numero_interno || eq.apodo || eq.nombre, `
+    <div class="esc-cab">
+      <div class="esc-ni td-mono">${escHtml(eq.numero_interno || 'Sin No. interno')}</div>
+      <div class="esc-nom">${escHtml(eq.apodo ? `${eq.apodo} · ${eq.nombre}` : eq.nombre)}</div>
+      <div class="esc-sub">${escHtml(etiquetaEquipo(eq.tipo))} · N/S <span class="td-mono">${escHtml(eq.numero_serie || '—')}</span></div>
+      <div class="esc-ubic"><i class="ti ti-map-pin" aria-hidden="true"></i> ${escHtml(ubic)}</div>
+    </div>
+    <div class="esc-acciones">
+      <button class="esc-btn" onclick="ejecutarConCarga(this, () => exportarFichaEquipoPDF('${eq.id}'), 'Generando…')"><i class="ti ti-file-type-pdf" aria-hidden="true"></i><b>Descargar ficha</b><span>Datos, accesorios y documentos</span></button>
+      <button class="esc-btn" ${docs.length ? `onclick="ejecutarConCarga(this, () => descargarDocumentosEquipo('${eq.id}'), 'Preparando…')"` : 'disabled'}><i class="ti ti-file-zip" aria-hidden="true"></i><b>Descargar documentación</b><span>${docs.length ? `${docs.length} archivo${docs.length === 1 ? '' : 's'} en un .zip` : 'Sin documentos cargados'}</span></button>
+    </div>
+    <div class="panel-section" id="esc-ubic">${htmlUbicacionEscaneo(eq, cand)}</div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true)">Cerrar</button>${admin ? `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true);showSection('equipos');setTimeout(() => verEquipo('${eq.id}'), 600)"><i class="ti ti-pencil" aria-hidden="true"></i> Abrir ficha completa</button>` : ''}`);
+}
+function htmlUbicacionEscaneo(eq, cand) {
+  return `<div class="panel-section-title">¿DÓNDE ESTÁ EL EQUIPO?</div>
+    <p class="esc-ayuda">Márcalo cuando lo recibas o lo dejes en un lugar. Si solo vienes por documentos, no toques nada.</p>
+    ${cand.map(p => `<button class="esc-pry" onclick="ejecutarConCarga(this, () => ubicarEnProyecto('${p.id}'), 'Ubicando…')"><i class="ti ti-map-pin-check" aria-hidden="true"></i><div><b>Está conmigo en ${escHtml(p.nombre)}</b><span>${escHtml(p.ciudad || '')}${(p.equipo_asignado_ids || []).includes(eq.id) ? ' · ya asignado a este proyecto' : ' · se asigna al proyecto'}</span></div></button>`).join('')}
+    <div class="esc-solo">${cand.length ? 'O solo actualizar la ubicación:' : 'Actualizar la ubicación:'}</div>
+    <div class="esc-motivos">${MOTIVOS_UBIC.map(([k, t, ic]) => `<button class="esc-mot" onclick="ejecutarConCarga(this, () => ubicarSinProyecto('${k}'), '…')"><i class="ti ti-${ic}" aria-hidden="true"></i> ${t}</button>`).join('')}</div>
+    <div class="esc-gps"><i class="ti ti-current-location" aria-hidden="true"></i> Se usa la ubicación de tu celular (te puede pedir permiso).</div>`;
+}
+function posicionCelular() {
+  return new Promise(ok => {
+    if (!navigator.geolocation) return ok(null);
+    navigator.geolocation.getCurrentPosition(p => ok({ latitud: p.coords.latitude, longitud: p.coords.longitude }), () => ok(null), { enableHighAccuracy: true, timeout: 9000, maximumAge: 60000 });
+  });
+}
+async function enviarEscaneo(cuerpo) {
+  const eq = STATE._escEq; if (!eq) return;
+  const r = await api('POST', `/equipos/${eq.id}/escaneo`, cuerpo);
+  if (!r) return;
+  STATE._escEq = r.equipo;
+  const m = r.movimiento;
+  const txt = m.tipo === 'equivocado' ? 'Listo: se avisó al administrador que no es el equipo correcto'
+    : m.tipo === 'sustitucion' ? `Listo: queda asignado a ${m.proyecto} en lugar de ${m.reemplazo}`
+    : m.proyecto ? `Listo: el equipo está en ${m.proyecto}` : `Ubicación actualizada${m.ciudad ? ': ' + m.ciudad : ''}`;
+  toast(txt);
+  const box = document.getElementById('esc-ubic');
+  if (box) box.innerHTML = `<div class="esc-ok"><i class="ti ti-circle-check" aria-hidden="true"></i><div><b>${escHtml(txt)}</b><span>${m.ciudad ? escHtml(m.ciudad) + ' · ' : ''}registrado por ${escHtml(m.usuario || '')}</span></div></div>`;
+  loadEquipos(true); loadProyectos(true);
+}
+async function ubicarSinProyecto(motivo) {
+  const pos = await posicionCelular();
+  if (pos) return enviarEscaneo({ ...pos, motivo });
+  // Sin permiso de ubicación: que escriba la ciudad
+  const box = document.getElementById('esc-ubic'), t = (MOTIVOS_UBIC.find(m => m[0] === motivo) || [])[1] || '';
+  box.innerHTML = `<div class="esc-alerta"><i class="ti ti-current-location-off" aria-hidden="true"></i><div><b>No se pudo leer la ubicación del celular</b><span>Escribe la ciudad donde está el equipo (${escHtml(t)}).</span></div></div>
+    <div class="esc-conf"><input class="field-input" id="esc-ciudad" placeholder="Ej. Ciudad de México" style="flex:1;min-width:160px">
+      <button class="btn btn-primary btn-sm" onclick="const c=document.getElementById('esc-ciudad').value.trim(); if(!c){toast('Escribe la ciudad','error');return;} ejecutarConCarga(this, () => enviarEscaneo({ motivo: '${motivo}', ciudad: c }))">Guardar</button>
+      <button class="btn btn-ghost btn-sm" onclick="pantallaEscaneo(STATE._escEq)">Regresar</button></div>`;
+  document.getElementById('esc-ciudad')?.focus();
+}
+// En un proyecto: si es otro equipo del mismo tipo (gemelo) se confirma; si es de otro tipo, no se asigna
+async function ubicarEnProyecto(pid) {
+  const eq = STATE._escEq, p = (STATE.proyectos || []).find(x => x.id === pid);
+  if (!eq || !p) return;
+  const pos = await posicionCelular();
+  const ya = (p.equipo_asignado_ids || []).includes(eq.id);
+  if (ya) return enviarEscaneo({ ...(pos || {}), proyecto_id: pid });
+  const req = (p.equipo_requerido_resumen || []), item = req.find(r => r.tipo === eq.tipo);
+  const box = document.getElementById('esc-ubic');
+  if (req.length && !item) {
+    STATE._escPos = pos;
+    box.innerHTML = `<div class="esc-alerta"><i class="ti ti-alert-triangle" aria-hidden="true"></i><div><b>Este equipo no corresponde a lo que requiere ${escHtml(p.nombre)}</b>
+      <span>El proyecto pide ${escHtml(req.map(r => `${r.cantidad} ${etiquetaEquipo(r.tipo)}`).join(', '))} y esto es ${escHtml(etiquetaEquipo(eq.tipo))}. No se asigna; se registra dónde quedó y se avisa al administrador.</span></div></div>
+      <div class="esc-conf"><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => enviarEscaneo({ ...(STATE._escPos || {}), proyecto_id: '${pid}', no_es_correcto: true }))">Entendido, avisar al administrador</button>
+      <button class="btn btn-ghost btn-sm" onclick="pantallaEscaneo(STATE._escEq)">Regresar</button></div>`;
+    return;
+  }
+  const gemelos = (p.equipo_asignado_ids || []).map(id => (STATE.equipos || []).find(e => e.id === id)).filter(e => e && e.tipo === eq.tipo);
+  if (!gemelos.length || (item && gemelos.length < item.cantidad)) return enviarEscaneo({ ...(pos || {}), proyecto_id: pid });
+  STATE._escPos = pos;
+  const nom = e => `${e.apodo || e.nombre}${e.numero_interno ? ` (${e.numero_interno})` : ''}`;
+  box.innerHTML = `<div class="esc-alerta"><i class="ti ti-arrows-exchange" aria-hidden="true"></i><div><b>Estás escaneando ${escHtml(nom(eq))}, pero tu proyecto tenía asignado ${escHtml(gemelos.map(nom).join(' y '))}</b>
+      <span>¿Vas a usar este en su lugar?</span></div></div>
+    <div class="esc-conf">${gemelos.map(g => `<button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => enviarEscaneo({ ...(STATE._escPos || {}), proyecto_id: '${pid}', reemplaza_id: '${g.id}' }))">Está bien, lo voy a usar${gemelos.length > 1 ? ` en lugar de ${escHtml(g.apodo || g.nombre)}` : ''}</button>`).join('')}
+      <button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => enviarEscaneo({ ...(STATE._escPos || {}), proyecto_id: '${pid}', no_es_correcto: true }))">No es el equipo correcto</button></div>`;
+}
+async function cargarJSZip() {
+  if (window.JSZip) return window.JSZip;
+  await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+  return window.JSZip;
+}
+async function descargarDocumentosEquipo(id) {
+  const eq = (await refrescarEquipo(id)) || STATE._escEq;
+  const docs = (eq?.documentos || []).filter(d => d.ruta_archivo);
+  if (!docs.length) { toast('Este equipo no tiene documentos cargados', 'error'); return; }
+  let JSZip; try { JSZip = await cargarJSZip(); } catch (e) { toast('No se pudo preparar el .zip. Revisa tu conexión.', 'error'); return; }
+  const zip = new JSZip(), usados = new Set(), fallos = [];
+  await Promise.all(docs.map(async d => {
+    try {
+      const r = await fetch(d.ruta_archivo); if (!r.ok) throw new Error(r.status);
+      let n = nombreArchivoActivo('equipo', eq, d), k = 2;
+      while (usados.has(n)) n = n.replace(/(\.[a-z0-9]+)$/i, ` (${k++})$1`);
+      usados.add(n); zip.file(n, await r.blob());
+    } catch (e) { fallos.push(d.nombre); }
+  }));
+  if (fallos.length === docs.length) { toast('No se pudieron descargar los documentos', 'error'); return; }
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = limpiarNombreArchivo(`Documentos - ${eq.numero_interno || ''} ${eq.apodo || eq.nombre}`.replace(/\s+/g, ' ').trim() + '.zip');
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast(fallos.length ? `Descargados ${docs.length - fallos.length} de ${docs.length} (faltó: ${fallos.join(', ')})` : `${docs.length} documento(s) descargados`);
+}
 // ─── N/S único en todo el sistema ───────────────────────────────────────────
 const separarSeries = t => [...new Set(String(t || '').split(/[,;\n]+/).map(x => x.trim()).filter(Boolean).map(x => x.toUpperCase()))];
 async function seriesDuplicadas(series, excluir = {}) {
