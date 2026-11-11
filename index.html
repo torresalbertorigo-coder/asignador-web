@@ -6386,7 +6386,7 @@ async function abrirEquipoDeRuta() {
 const MOTIVOS_UBIC = [['oficina', 'Oficina / almacén', 'building-warehouse'], ['calibracion', 'Calibración', 'ruler-measure'], ['mantenimiento', 'Mantenimiento', 'tool'], ['otro', 'Otro lugar', 'map-pin']];
 function proyectosParaEscaneo(eq) {
   const me = STATE.user?.empleado_id, hoy = isoLocal(new Date()), DIA = 86400000;
-  const activo = p => !p.fecha_fin_real && !['completado', 'cancelado'].includes(p.estado);
+  const activo = p => !p.fecha_fin_real && !['completado', 'cancelado', 'pausado'].includes(p.estado);
   const cerca = p => { const ini = p.fecha_inicio_real || p.fecha_inicio; return !!ini && isoLocal(new Date(fechaLocal(ini).getTime() - 7 * DIA)) <= hoy; };
   const mios = (STATE.proyectos || []).filter(p => me && activo(p) && (p.tecnicos_asignados || []).includes(me) && cerca(p));
   const delEquipo = mios.filter(p => (p.equipo_asignado_ids || []).includes(eq.id));
