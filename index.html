@@ -793,6 +793,43 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .pz-sol-mot{margin:6px 0 4px;font-size:13px;color:var(--text);line-height:1.45}
 .pz-sol-pie{font-size:11.5px;color:var(--text3)}
 .pz-sol-btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.gs-wrap{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.gs-lbl{display:block;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text2);margin-bottom:8px}
+.gs-conceptos{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.gs-con{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px;border:1px solid var(--border2);border-radius:12px;background:var(--surface);color:var(--text2);font:inherit;font-size:11.5px;font-weight:600;cursor:pointer}
+.gs-con i{font-size:24px}
+.gs-con.on{border-color:var(--red);background:rgba(227,28,34,.12);color:var(--text)}.gs-con.on i{color:var(--red)}
+.gs-monto{display:flex;align-items:center;gap:6px;border:1px solid var(--border2);border-radius:12px;background:var(--input-bg);padding:6px 14px}
+.gs-monto span{font-size:26px;color:var(--text3);font-weight:700}
+.gs-monto input{flex:1;min-width:0;border:none;background:transparent;color:var(--text);font:inherit;font-size:30px;font-weight:700;outline:none;padding:6px 0}
+.gs-fechas{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.gs-chip{border:1px solid var(--border2);border-radius:999px;background:var(--surface);color:var(--text2);font:inherit;font-size:12.5px;font-weight:600;padding:8px 14px;cursor:pointer}
+.gs-chip.on{border-color:var(--red);background:rgba(227,28,34,.12);color:var(--text)}
+.gs-fecha{max-width:170px;padding:8px 10px}
+.gs-auto{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--text)}
+.gs-auto>div{display:flex;align-items:center;gap:8px}.gs-auto i{color:var(--text3);font-size:16px}
+.gs-pry{flex:1;min-width:0;background:transparent;border:none;color:var(--text);font:inherit;font-size:13px;font-weight:600;padding:2px 0;cursor:pointer}
+.gs-nota{padding:10px 12px}
+.gs-enviar{width:100%;justify-content:center;padding:14px;font-size:15px}
+.gs-ok{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:30px 10px;color:var(--text)}
+.gs-ok>i{font-size:54px;color:var(--green)}.gs-ok b{font-size:17px}.gs-ok span{font-size:12.5px;color:var(--text2)}
+.gs-ok-monto{font-size:32px;font-weight:800}.gs-ok .btn{margin-top:14px}
+.gs-filtros{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.gs-filtros .field-select{width:auto;min-width:170px}
+.gs-pers{display:flex;gap:6px;flex-wrap:wrap}
+.gs-rango{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--text3)}.gs-rango .field-input{width:150px;padding:7px 8px}
+.gs-filtros .btn-primary{margin-left:auto}
+.gs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.gs-caja{margin:0}
+.gs-barras{padding:12px 16px;display:flex;flex-direction:column;gap:9px}
+.gs-bar{display:grid;grid-template-columns:minmax(80px,38%) 1fr auto;gap:8px;align-items:center;font-size:12px}
+.gs-bar-k{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gs-bar-t{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden}.gs-bar-t div{height:100%;background:var(--red);border-radius:4px}
+.gs-bar-v{font-family:var(--mono,monospace);font-size:11.5px;color:var(--text);font-weight:600}
+@media(max-width:900px){.gs-grid{grid-template-columns:1fr}.gs-filtros .btn-primary{margin-left:0}}
+@media(max-width:480px){.gs-conceptos{grid-template-columns:repeat(3,1fr)}.gs-filtros .field-select{flex:1 1 100%}}
+.perm-cols{display:flex;gap:18px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.perm-col{display:flex;gap:6px;align-items:center}.perm-lbl{font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em}
 .esc-cab{text-align:center;padding:4px 0 14px}
 .esc-ni{font-size:22px;font-weight:800;color:var(--text);letter-spacing:.02em}
 .esc-nom{font-size:14px;font-weight:600;color:var(--text);margin-top:4px}
@@ -1967,8 +2004,9 @@ async function doLogin() {
     if (!r.ok) { err.textContent = d.detail || 'Credenciales incorrectas.'; return; }
     STATE.token = d.access_token;
     STATE.rol   = d.rol;
-    STATE.user  = { nombre: d.nombre, email, empleado_id: d.empleado_id, puede_exportar: !!d.puede_exportar };
+    STATE.user  = { nombre: d.nombre, email, empleado_id: d.empleado_id, puede_exportar: !!d.puede_exportar, puede_ver_gastos: !!d.puede_ver_gastos };
     localStorage.setItem('w_exp', d.puede_exportar ? '1' : '0');
+    localStorage.setItem('w_gas', d.puede_ver_gastos ? '1' : '0');
     localStorage.setItem('w_token', d.access_token);
     localStorage.setItem('w_rol', d.rol);
     localStorage.setItem('w_nombre', d.nombre);
@@ -2128,6 +2166,10 @@ async function initApp() {
     }
     STATE.user.puede_exportar = !!yo.puede_exportar;
     localStorage.setItem('w_exp', yo.puede_exportar ? '1' : '0');
+    if (!!yo.puede_ver_gastos !== !!STATE.user.puede_ver_gastos) {   // permiso de Gastos cambiado: rehace el menú
+      STATE.user.puede_ver_gastos = !!yo.puede_ver_gastos; localStorage.setItem('w_gas', yo.puede_ver_gastos ? '1' : '0');
+      if (!STATE.modoTecnico) buildNav();
+    }
   });
   if (STATE.user.empleado_id) {
     api('GET', `/empleados/${STATE.user.empleado_id}`).then(emp => {
@@ -2181,7 +2223,8 @@ function buildNav() {
       <div class="nav-section">OPERACIONES</div>
       <div class="nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-packages" aria-hidden="true"></i> Activos / Equipos</div>
       <div class="nav-item" onclick="showSection(STATE._excTab || 'incidencias')" data-sec="incidencias"><i class="ti ti-calendar-exclamation" aria-hidden="true"></i> Bitácora de excepciones <span id="nav-badge-inactividad" class="nav-badge" style="display:none" title="Días sin trabajo pendientes de aprobar"></span></div>
-      <div class="nav-item" onclick="showSection('metricas')" data-sec="metricas"><i class="ti ti-chart-bar" aria-hidden="true"></i> Métricas</div>`;
+      <div class="nav-item" onclick="showSection('metricas')" data-sec="metricas"><i class="ti ti-chart-bar" aria-hidden="true"></i> Métricas</div>${STATE.user?.puede_ver_gastos ? `
+      <div class="nav-item" onclick="showSection('gastos')" data-sec="gastos"><i class="ti ti-receipt" aria-hidden="true"></i> Gastos</div>` : ''}`;
     actualizarBadgeInactividad();
     loadProyectos().then(actualizarBadgePendientes);
     document.getElementById('um-switch-modo').style.display = STATE.user?.empleado_id ? 'flex' : 'none';
@@ -2195,8 +2238,9 @@ function buildNav() {
         <div class="mobile-nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i>Empleados</div>
         <div class="mobile-nav-item" onclick="showSection('proyectos')" data-sec="proyectos"><i class="ti ti-folder" aria-hidden="true"></i>Proyectos</div>
         <div class="mobile-nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-packages" aria-hidden="true"></i>Activos</div>
-        <div class="mobile-nav-item" onclick="showSection(STATE._excTab || 'incidencias')" data-sec="incidencias"><i class="ti ti-calendar-exclamation" aria-hidden="true"></i>Excepciones</div>
-        <div class="mobile-nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i>Perfil</div>
+        <div class="mobile-nav-item" onclick="showSection(STATE._excTab || 'incidencias')" data-sec="incidencias"><i class="ti ti-calendar-exclamation" aria-hidden="true"></i>Excepciones</div>${STATE.user?.puede_ver_gastos ? `
+        <div class="mobile-nav-item" onclick="showSection('gastos')" data-sec="gastos"><i class="ti ti-receipt" aria-hidden="true"></i>Gastos</div>` : `
+        <div class="mobile-nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i>Perfil</div>`}
       </div>`;
   } else {
     document.getElementById('tecnico-nav').innerHTML = `
@@ -2204,13 +2248,16 @@ function buildNav() {
       <div class="nav-item" onclick="showSection('mis-asignaciones')" data-sec="mis-asignaciones"><i class="ti ti-briefcase" aria-hidden="true"></i> Mis Asignaciones</div>
       <div class="nav-item" onclick="showSection('mi-gantt')" data-sec="mi-gantt"><i class="ti ti-calendar-stats" aria-hidden="true"></i> Mi Calendario</div>
       <div class="nav-item" onclick="showSection('checador')" data-sec="checador"><i class="ti ti-clock" aria-hidden="true"></i> Reloj Checador</div>
-      <div class="nav-item" onclick="showSection('reportar')" data-sec="reportar"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Reportar</div>`;
+      <div class="nav-item" onclick="showSection('reportar')" data-sec="reportar"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Reportar</div>
+      <div class="nav-item" onclick="showSection('gasto')" data-sec="gasto"><i class="ti ti-receipt" aria-hidden="true"></i> Registrar gasto</div>${STATE.user?.puede_ver_gastos ? `
+      <div class="nav-item" onclick="showSection('gastos')" data-sec="gastos"><i class="ti ti-report-money" aria-hidden="true"></i> Gastos (tablero)</div>` : ''}`;
     document.getElementById('mobile-nav-bar').innerHTML = `
       <div class="mobile-nav-items">
         <div class="mobile-nav-item" onclick="showSection('mis-asignaciones')" data-sec="mis-asignaciones"><i class="ti ti-briefcase" aria-hidden="true"></i>Mis Proyectos</div>
         <div class="mobile-nav-item" onclick="showSection('checador')" data-sec="checador"><i class="ti ti-clock" aria-hidden="true"></i>Checador</div>
+        <div class="mobile-nav-item" onclick="showSection('gasto')" data-sec="gasto"><i class="ti ti-receipt" aria-hidden="true"></i>Gasto</div>
         <div class="mobile-nav-item" onclick="showSection('reportar')" data-sec="reportar"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Reportar</div>
-        <div class="mobile-nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i>Mi Perfil</div>
+        <div class="mobile-nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i>Perfil</div>
       </div>`;
   }
 }
@@ -2244,13 +2291,14 @@ function switchModo() {
       <div class="nav-item" onclick="showSection('mis-asignaciones')" data-sec="mis-asignaciones"><i class="ti ti-briefcase" aria-hidden="true"></i> Mis Asignaciones</div>
       <div class="nav-item" onclick="showSection('mi-gantt')" data-sec="mi-gantt"><i class="ti ti-calendar-stats" aria-hidden="true"></i> Mi Calendario</div>
       <div class="nav-item" onclick="showSection('checador')" data-sec="checador"><i class="ti ti-clock" aria-hidden="true"></i> Reloj Checador</div>
-      <div class="nav-item" onclick="showSection('reportar')" data-sec="reportar"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Reportar</div>${navAvanceHTML(false)}`;
+      <div class="nav-item" onclick="showSection('reportar')" data-sec="reportar"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Reportar</div>
+      <div class="nav-item" onclick="showSection('gasto')" data-sec="gasto"><i class="ti ti-receipt" aria-hidden="true"></i> Registrar gasto</div>${navAvanceHTML(false)}`;
     document.getElementById('mobile-nav-bar').innerHTML = `
       <div class="mobile-nav-items">
         <div class="mobile-nav-item" onclick="showSection('mis-asignaciones')" data-sec="mis-asignaciones"><i class="ti ti-briefcase" aria-hidden="true"></i>Proyectos</div>${navAvanceHTML(true)}
         <div class="mobile-nav-item" onclick="showSection('checador')" data-sec="checador"><i class="ti ti-clock" aria-hidden="true"></i>Checador</div>
+        <div class="mobile-nav-item" onclick="showSection('gasto')" data-sec="gasto"><i class="ti ti-receipt" aria-hidden="true"></i>Gasto</div>
         <div class="mobile-nav-item" onclick="showSection('reportar')" data-sec="reportar"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Reportar</div>
-        <div class="mobile-nav-item" onclick="showSection('mi-perfil')" data-sec="mi-perfil"><i class="ti ti-user-circle" aria-hidden="true"></i>Mi Perfil</div>
         <div class="mobile-nav-item" onclick="switchModo()"><i class="ti ti-shield" aria-hidden="true"></i>Admin</div>
       </div>`;
     document.getElementById('um-switch-label').textContent = 'Volver a Admin';
@@ -2404,7 +2452,8 @@ function buildMobileNavAdmin() {
       <div class="mobile-nav-item" onclick="showSection('empleados')" data-sec="empleados"><i class="ti ti-users" aria-hidden="true"></i>Empleados</div>
       <div class="mobile-nav-item" onclick="showSection('proyectos')" data-sec="proyectos"><i class="ti ti-folder" aria-hidden="true"></i>Proyectos</div>
       <div class="mobile-nav-item" onclick="showSection('equipos')" data-sec="equipos"><i class="ti ti-packages" aria-hidden="true"></i>Activos</div>
-      <div class="mobile-nav-item" onclick="showSection(STATE._excTab || 'incidencias')" data-sec="incidencias"><i class="ti ti-calendar-exclamation" aria-hidden="true"></i>Excepciones</div>
+      <div class="mobile-nav-item" onclick="showSection(STATE._excTab || 'incidencias')" data-sec="incidencias"><i class="ti ti-calendar-exclamation" aria-hidden="true"></i>Excepciones</div>${STATE.user?.puede_ver_gastos ? `
+      <div class="mobile-nav-item" onclick="showSection('gastos')" data-sec="gastos"><i class="ti ti-receipt" aria-hidden="true"></i>Gastos</div>` : ''}
     </div>`;
 }
 
@@ -2429,6 +2478,8 @@ const TITLES = {
   'mi-gantt':         ['ti-calendar-stats',     'Mi Calendario'],
   'checador':         ['ti-clock',              'Reloj Checador'],
   'reportar':         ['ti-alert-triangle',     'Reportar Incidencia'],
+  'gasto':            ['ti-receipt',            'Registrar gasto'],
+  'gastos':           ['ti-receipt',            'Gastos'],
   'mi-perfil':        ['ti-user-circle',        'Mi Perfil'],
   'mi-cuenta':        ['ti-user-circle',        'Mi Cuenta'],
   'avance':           ['ti-flame',              'Avance de obra'],
@@ -2453,6 +2504,8 @@ const RENDERERS = {
   'mi-gantt':       renderMiGantt,
   checador:         renderChecador,
   reportar:         renderReportar,
+  gasto:            renderRegistrarGasto,
+  gastos:           renderGastos,
   'mi-perfil':      renderMiPerfil,
   avance:           renderAvance,
   simulador:        renderSimulador,
@@ -8705,6 +8758,147 @@ async function exportarExcelDatos() {
   }
 }
 
+// ─── GASTOS DE CAMPO ─────────────────────────────────────────────────────────
+// Registrar: cualquier colaborador (sin historial). Tablero y Excel: solo cuentas con acceso a Gastos.
+const GASTO_CONCEPTOS = [['combustible', 'Combustible', 'gas-station'], ['alimentos', 'Alimentos', 'tools-kitchen-2'],
+  ['hospedaje', 'Hospedaje', 'bed'], ['herramienta', 'Herramienta', 'tool'], ['otros', 'Otros', 'dots']];
+const fmtMoneda = n => '$' + (Number(n) || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+async function renderRegistrarGasto() {
+  const empId = STATE.user?.empleado_id;
+  if (!empId) { html(`<div class="empty-state"><i class="ti ti-user-off" aria-hidden="true"></i><p>Tu cuenta no tiene perfil de empleado, así que no puede registrar gastos.</p></div>`); return; }
+  await loadProyectos();
+  const activos = (STATE.proyectos || []).filter(p => (p.tecnicos_asignados || []).includes(empId) && !p.fecha_fin_real && !['completado', 'cancelado'].includes(p.estado));
+  // Proyecto: el que tiene iniciado en este momento (si hay varios, el más reciente)
+  const enCampo = activos.filter(proyectoIniciado).sort((a, b) => (b.fecha_inicio_real || '').localeCompare(a.fecha_inicio_real || ''))[0];
+  const G = STATE._gasto = { fecha: isoLocal(new Date()), concepto: null, proyecto: enCampo?.id || '' };
+  const hoy = isoLocal(new Date()), ayer = isoLocal(new Date(Date.now() - 86400000));
+  const nombre = STATE.user?.nombre || 'Tú';
+  html(`<div class="gs-wrap" id="gs-wrap">
+    <div class="gs-paso"><span class="gs-lbl">¿Qué fue?</span>
+      <div class="gs-conceptos">${GASTO_CONCEPTOS.map(([k, t, ic]) => `<button class="gs-con" data-k="${k}" onclick="elegirConceptoGasto('${k}')"><i class="ti ti-${ic}" aria-hidden="true"></i><span>${t}</span></button>`).join('')}</div>
+    </div>
+    <div class="gs-paso"><span class="gs-lbl">¿Cuánto?</span>
+      <div class="gs-monto"><span>$</span><input id="gs-monto" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" oninput="this.value=this.value.replace(/[^0-9.,]/g,'')"></div>
+    </div>
+    <div class="gs-paso"><span class="gs-lbl">¿Cuándo?</span>
+      <div class="gs-fechas">
+        <button class="gs-chip on" data-f="${hoy}" onclick="elegirFechaGasto('${hoy}')">Hoy</button>
+        <button class="gs-chip" data-f="${ayer}" onclick="elegirFechaGasto('${ayer}')">Ayer</button>
+        <input type="date" class="field-input gs-fecha" id="gs-fecha" value="${hoy}" max="${hoy}" onchange="elegirFechaGasto(this.value)">
+      </div>
+    </div>
+    <div class="gs-paso gs-auto">
+      <div><i class="ti ti-user" aria-hidden="true"></i> <b>${escHtml(nombre)}</b></div>
+      <div><i class="ti ti-folder" aria-hidden="true"></i>
+        <select class="gs-pry" id="gs-pry" onchange="STATE._gasto.proyecto=this.value">
+          <option value="">Sin proyecto</option>
+          ${activos.map(p => `<option value="${p.id}" ${p.id === G.proyecto ? 'selected' : ''}>${escHtml(p.nombre)}</option>`).join('')}
+        </select></div>
+    </div>
+    <input class="field-input gs-nota" id="gs-nota" maxlength="200" placeholder="Detalle (opcional) · ej. casetas, gasolina de la camioneta">
+    <button class="btn btn-primary gs-enviar" onclick="ejecutarConCarga(this, enviarGasto, 'Registrando…')"><i class="ti ti-check" aria-hidden="true"></i> Registrar gasto</button>
+  </div>`);
+}
+function elegirConceptoGasto(k) {
+  STATE._gasto.concepto = k;
+  document.querySelectorAll('.gs-con').forEach(b => b.classList.toggle('on', b.dataset.k === k));
+  const m = document.getElementById('gs-monto'); if (m && !m.value) m.focus();
+}
+function elegirFechaGasto(f) {
+  if (!f) return;
+  STATE._gasto.fecha = f;
+  document.querySelectorAll('.gs-chip').forEach(b => b.classList.toggle('on', b.dataset.f === f));
+  const i = document.getElementById('gs-fecha'); if (i && i.value !== f) i.value = f;
+}
+async function enviarGasto() {
+  const G = STATE._gasto || {};
+  const txt = (document.getElementById('gs-monto')?.value || '').replace(/,/g, '');
+  const monto = parseFloat(txt);
+  if (!G.concepto) { toast('Elige qué fue el gasto', 'error'); return; }
+  if (!monto || monto <= 0) { toast('Escribe la cantidad', 'error'); document.getElementById('gs-monto')?.focus(); return; }
+  const r = await api('POST', '/gastos', { fecha: G.fecha, concepto: G.concepto, monto, proyecto_id: G.proyecto || null, nota: document.getElementById('gs-nota')?.value.trim() || null });
+  if (!r) return;
+  const pry = (STATE.proyectos || []).find(p => p.id === G.proyecto);
+  document.getElementById('gs-wrap').innerHTML = `<div class="gs-ok">
+    <i class="ti ti-circle-check" aria-hidden="true"></i>
+    <b>Gasto registrado</b>
+    <div class="gs-ok-monto">${fmtMoneda(r.monto)}</div>
+    <span>${escHtml(r.concepto)} · ${fCorta(r.fecha)}${pry ? ' · ' + escHtml(pry.nombre) : ''}</span>
+    <button class="btn btn-primary" onclick="renderRegistrarGasto()"><i class="ti ti-plus" aria-hidden="true"></i> Registrar otro</button>
+  </div>`;
+}
+
+// Tablero (solo con acceso a Gastos)
+async function renderGastos() {
+  if (!STATE.user?.puede_ver_gastos) { html(`<div class="empty-state"><i class="ti ti-lock" aria-hidden="true"></i><p>No tienes acceso a Gastos.</p></div>`); return; }
+  const F = STATE._gsF = STATE._gsF || (() => { const h = new Date(); return { desde: isoLocal(new Date(h.getFullYear(), h.getMonth(), 1)), hasta: isoLocal(h), emp: '', pry: '', per: 'mes' }; })();
+  const q = new URLSearchParams({ desde: F.desde, hasta: F.hasta, ...(F.emp ? { empleado_id: F.emp } : {}), ...(F.pry ? { proyecto_id: F.pry } : {}) });
+  const [todos, filas] = await Promise.all([
+    STATE._gsTodos && Date.now() - STATE._gsTodosEn < 30000 ? STATE._gsTodos : api('GET', '/gastos').then(r => { STATE._gsTodos = r || []; STATE._gsTodosEn = Date.now(); return STATE._gsTodos; }),
+    api('GET', `/gastos?${q}`).then(r => r || [])]);
+  const personas = [...new Map((todos || []).map(g => [g.empleado_id, g.empleado])).entries()].sort((a, b) => a[1].localeCompare(b[1], 'es'));
+  const proyectos = [...new Map((todos || []).filter(g => g.proyecto_id).map(g => [g.proyecto_id, g.proyecto])).entries()].sort((a, b) => a[1].localeCompare(b[1], 'es'));
+  const total = filas.reduce((t, g) => t + g.monto, 0);
+  const agrupar = clave => { const m = new Map(); filas.forEach(g => { const k = clave(g); m.set(k, (m.get(k) || 0) + g.monto); }); return [...m.entries()].sort((a, b) => b[1] - a[1]); };
+  const barras = (L) => { const mx = Math.max(...L.map(x => x[1]), 1);
+    return L.length ? L.map(([k, v]) => `<div class="gs-bar"><span class="gs-bar-k" title="${escHtml(k)}">${escHtml(k)}</span><div class="gs-bar-t"><div style="width:${Math.max(2, v / mx * 100)}%"></div></div><span class="gs-bar-v">${fmtMoneda(v)}</span></div>`).join('')
+      : '<div style="font-size:12px;color:var(--text3)">Sin gastos en el periodo</div>'; };
+  const PER = [['mes', 'Este mes'], ['anterior', 'Mes pasado'], ['30', 'Últimos 30 días'], ['anio', 'Este año']];
+  html(`
+    <div class="gs-filtros">
+      <div class="gs-pers">${PER.map(([k, t]) => `<button class="gs-chip ${F.per === k ? 'on' : ''}" onclick="periodoGastos('${k}')">${t}</button>`).join('')}</div>
+      <div class="gs-rango"><input type="date" class="field-input" value="${F.desde}" onchange="STATE._gsF.desde=this.value;STATE._gsF.per='';renderGastos()"><span>al</span><input type="date" class="field-input" value="${F.hasta}" onchange="STATE._gsF.hasta=this.value;STATE._gsF.per='';renderGastos()"></div>
+      <select class="field-select" onchange="STATE._gsF.emp=this.value;renderGastos()"><option value="">Todos los colaboradores</option>${personas.map(([id, n]) => `<option value="${id}" ${F.emp === id ? 'selected' : ''}>${escHtml(n)}</option>`).join('')}</select>
+      <select class="field-select" onchange="STATE._gsF.pry=this.value;renderGastos()"><option value="">Todos los proyectos</option>${proyectos.map(([id, n]) => `<option value="${id}" ${F.pry === id ? 'selected' : ''}>${escHtml(n)}</option>`).join('')}</select>
+      <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, descargarExcelGastos, 'Generando…')"><i class="ti ti-file-spreadsheet" aria-hidden="true"></i> Descargar Excel</button>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card c-red"><div class="stat-lbl">TOTAL</div><div class="stat-val">${fmtMoneda(total)}</div><div class="stat-sub">${fCorta(F.desde)} al ${fCorta(F.hasta)}</div></div>
+      <div class="stat-card c-blue"><div class="stat-lbl">REGISTROS</div><div class="stat-val">${filas.length}</div><div class="stat-sub">${filas.length ? 'promedio ' + fmtMoneda(total / filas.length) : 'sin gastos'}</div></div>
+      <div class="stat-card c-amber"><div class="stat-lbl">COLABORADORES</div><div class="stat-val">${new Set(filas.map(g => g.empleado_id)).size}</div><div class="stat-sub">con gastos</div></div>
+      <div class="stat-card c-green"><div class="stat-lbl">PROYECTOS</div><div class="stat-val">${new Set(filas.filter(g => g.proyecto_id).map(g => g.proyecto_id)).size}</div><div class="stat-sub">${filas.some(g => !g.proyecto_id) ? fmtMoneda(filas.filter(g => !g.proyecto_id).reduce((t, g) => t + g.monto, 0)) + ' sin proyecto' : 'con gastos'}</div></div>
+    </div>
+    <div class="gs-grid">
+      <div class="table-section gs-caja"><div class="table-header"><span class="table-title">POR CONCEPTO</span></div><div class="gs-barras">${barras(agrupar(g => g.concepto_txt))}</div></div>
+      <div class="table-section gs-caja"><div class="table-header"><span class="table-title">POR COLABORADOR</span></div><div class="gs-barras">${barras(agrupar(g => g.empleado))}</div></div>
+      <div class="table-section gs-caja"><div class="table-header"><span class="table-title">POR PROYECTO</span></div><div class="gs-barras">${barras(agrupar(g => g.proyecto || 'Sin proyecto'))}</div></div>
+    </div>
+    <div class="table-section">
+      <div class="table-header"><span class="table-title">GASTOS (${filas.length})</span></div>
+      ${filas.length ? `<div class="pry-tabla"><table><thead><tr><th>FECHA</th><th>COLABORADOR</th><th>CONCEPTO</th><th style="text-align:right">CANTIDAD</th><th>PROYECTO</th><th>DETALLE</th><th></th></tr></thead><tbody>
+        ${filas.map(g => `<tr><td class="td-mono">${g.fecha}</td><td>${escHtml(g.empleado)}</td><td>${escHtml(g.concepto_txt)}</td><td class="td-mono" style="text-align:right;font-weight:600">${fmtMoneda(g.monto)}</td><td>${escHtml(g.proyecto || '—')}</td><td style="color:var(--text2)">${escHtml(g.nota || '')}</td>
+          <td class="td-action"><button class="btn btn-ghost btn-sm" title="Borrar (registro equivocado)" onclick="ejecutarConCarga(this, () => borrarGasto(${g.id}))"><i class="ti ti-trash" aria-hidden="true"></i></button></td></tr>`).join('')}
+      </tbody></table></div>` : '<div class="empty-state"><i class="ti ti-receipt-off" aria-hidden="true"></i><p>Sin gastos en este periodo</p></div>'}
+    </div>`);
+}
+function periodoGastos(k) {
+  const h = new Date(), F = STATE._gsF; let a = new Date(h), b = new Date(h);
+  if (k === 'mes') a = new Date(h.getFullYear(), h.getMonth(), 1);
+  else if (k === 'anterior') { a = new Date(h.getFullYear(), h.getMonth() - 1, 1); b = new Date(h.getFullYear(), h.getMonth(), 0); }
+  else if (k === 'anio') a = new Date(h.getFullYear(), 0, 1);
+  else a.setDate(a.getDate() - 30);
+  F.desde = isoLocal(a); F.hasta = isoLocal(b); F.per = k;
+  renderGastos();
+}
+async function borrarGasto(id) {
+  if (!confirm('¿Borrar este gasto? Úsalo solo si se registró por error.')) return;
+  const r = await api('DELETE', `/gastos/${id}`);
+  if (!r) return;
+  toast('Gasto borrado'); STATE._gsTodosEn = 0; renderGastos();
+}
+async function descargarExcelGastos() {
+  const F = STATE._gsF;
+  const q = new URLSearchParams({ desde: F.desde, hasta: F.hasta, ...(F.emp ? { empleado_id: F.emp } : {}), ...(F.pry ? { proyecto_id: F.pry } : {}) });
+  try {
+    const resp = await fetch(`${API}/gastos/excel?${q}`, { headers: { 'Authorization': `Bearer ${STATE.token}` } });
+    if (!resp.ok) { let d = 'No se pudo generar el Excel.'; try { d = (await resp.json()).detail || d; } catch (e) {} toast(d, 'error'); return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(await resp.blob());
+    a.download = `WorkSync - Gastos - ${F.desde} al ${F.hasta}.xlsx`;
+    document.body.appendChild(a); a.click(); a.remove();
+    toast('Excel descargado');
+  } catch (e) { toast('Error al descargar el Excel', 'error'); }
+}
+
 // ─── SECCIÓN: PERMISOS DE EXPORTACIÓN (solo administrador) ───────────────────
 async function renderPermisos() {
   const usuarios = await api('GET', '/auth/auth/usuarios') || [];
@@ -8714,7 +8908,8 @@ async function renderPermisos() {
   const lista = usuarios.slice().sort((a,b) => (orden[a.rol]-orden[b.rol]) || a.nombre.localeCompare(b.nombre,'es'));
   html(`
     <div style="font-size:12px;color:var(--text2);margin-bottom:14px">
-      Quién puede descargar el Excel de auditoría desde Métricas. El administrador siempre puede. Los técnicos no tienen acceso a Métricas, así que el permiso solo aplica a directores.
+      <b>Excel de auditoría:</b> quién puede descargarlo desde Métricas (el administrador siempre puede; solo aplica a directores).<br>
+      <b>Gastos:</b> quién ve el tablero de gastos y descarga su Excel. Nadie lo tiene por su rol: solo las cuentas que actives aquí. Registrar gastos lo puede hacer cualquier colaborador.
     </div>
     <div class="table-section">
       <div class="table-header"><span class="table-title">CUENTAS (${lista.length})</span>
@@ -8729,16 +8924,32 @@ async function renderPermisos() {
             <div style="font-size:11px;color:var(--text3)">${escHtml(u.email)} · ${etiquetaRol[u.rol] || u.rol}${u.empleado_id ? '' : ' · solo gestión'}${u.activo ? '' : ' · desactivada'}</div>
             <div style="margin-top:2px">${htmlUltimaVez(u.ultima_conexion ?? null)}</div>
           </div>
-          ${esAdmin ? `<span class="badge badge-libre">SIEMPRE</span>`
+          <div class="perm-cols">
+            <div class="perm-col"><span class="perm-lbl">Excel auditoría</span>
+            ${esAdmin ? `<span class="badge badge-libre">SIEMPRE</span>`
             : !aplica ? `<span style="font-size:11px;color:var(--text3)">No aplica</span>`
             : u.puede_exportar
               ? `<span class="badge badge-libre">CON PERMISO</span><button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => cambiarPermisoExportar('${u.id}', false))">Quitar</button>`
-              : `<button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => cambiarPermisoExportar('${u.id}', true))"><i class="ti ti-key" aria-hidden="true"></i> Activar</button>`}
+              : `<button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => cambiarPermisoExportar('${u.id}', true))"><i class="ti ti-key" aria-hidden="true"></i> Activar</button>`}</div>
+            <div class="perm-col"><span class="perm-lbl">Gastos</span>
+            ${u.puede_ver_gastos
+              ? `<span class="badge badge-libre">CON ACCESO</span><button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => cambiarPermisoGastos('${u.id}', false))">Quitar</button>`
+              : `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => cambiarPermisoGastos('${u.id}', true))"><i class="ti ti-receipt" aria-hidden="true"></i> Dar acceso</button>`}</div>
+          </div>
         </div>`;
       }).join('')}
     </div>`);
 }
 
+async function cambiarPermisoGastos(usuarioId, activar) {
+  const r = await api('PATCH', `/auth/auth/usuarios/${encodeURIComponent(usuarioId)}/permiso-gastos`, { puede_ver_gastos: activar });
+  if (!r) { toast('No se pudo cambiar el acceso', 'error'); return; }
+  toast(activar ? 'Acceso a Gastos activado' : 'Acceso a Gastos retirado');
+  renderPermisos();
+  api('GET', '/auth/auth/yo').then(aplicarTokenNuevo).then(yo => {   // si fue tu propia cuenta, el menú se actualiza
+    if (yo && !!yo.puede_ver_gastos !== !!STATE.user.puede_ver_gastos) { STATE.user.puede_ver_gastos = !!yo.puede_ver_gastos; localStorage.setItem('w_gas', yo.puede_ver_gastos ? '1' : '0'); if (!STATE.modoTecnico) buildNav(); }
+  });
+}
 async function cambiarPermisoExportar(usuarioId, activar) {
   const r = await api('PATCH', `/auth/auth/usuarios/${encodeURIComponent(usuarioId)}/permiso-exportar`, { puede_exportar: activar });
   if (!r) { toast('No se pudo cambiar el permiso', 'error'); return; }
@@ -15017,7 +15228,7 @@ window.addEventListener('hashchange', () => { if (idEquipoDeRuta() && STATE.toke
   const ei = localStorage.getItem('w_emp_id');
   if (t && r && n) {
     STATE.token = t; STATE.rol = r;
-    STATE.user = { nombre: n, email: e, empleado_id: ei, puede_exportar: localStorage.getItem('w_exp') === '1' };
+    STATE.user = { nombre: n, email: e, empleado_id: ei, puede_exportar: localStorage.getItem('w_exp') === '1', puede_ver_gastos: localStorage.getItem('w_gas') === '1' };
     initApp();
   }
 })();
