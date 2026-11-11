@@ -6204,44 +6204,76 @@ async function cargarQRLib() {
   return window.qrcode;
 }
 // QR en vectores (nítido a cualquier tamaño): un rectángulo por cada tramo oscuro de cada renglón
-function dibujarQR(doc, texto, x, y, lado) {
-  const q = window.qrcode(0, 'M'); q.addData(texto); q.make();
+// Solo la "W" del logo (sin la palabra WORKSYNC): primer bloque de renglones con tinta del logo recortado
+async function cargarLogoW() {
+  if (window._logoW !== undefined) return window._logoW;
+  const logo = await cargarLogoPDF();
+  try {
+    const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = logo.url; });
+    const cv = document.createElement('canvas'); cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+    const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0);
+    const px = cx.getImageData(0, 0, cv.width, cv.height).data;
+    const tinta = y => { for (let x = 0; x < cv.width; x++) if (px[(y * cv.width + x) * 4 + 3] > 60) return true; return false; };
+    let y0 = 0; while (y0 < cv.height && !tinta(y0)) y0++;
+    let y1 = y0, vacios = 0;
+    for (let y = y0; y < cv.height; y++) {
+      if (tinta(y)) { y1 = y; vacios = 0; } else if (++vacios > cv.height * 0.03) break;   // hueco entre la W y el texto
+    }
+    let x0 = cv.width, x1 = 0;
+    for (let y = y0; y <= y1; y++) for (let x = 0; x < cv.width; x++) if (px[(y * cv.width + x) * 4 + 3] > 60) { if (x < x0) x0 = x; if (x > x1) x1 = x; }
+    const out = document.createElement('canvas'); out.width = x1 - x0 + 3; out.height = y1 - y0 + 3;
+    out.getContext('2d').drawImage(cv, x0 - 1, y0 - 1, out.width, out.height, 0, 0, out.width, out.height);
+    window._logoW = { url: out.toDataURL('image/png'), ratio: out.height / out.width };
+  } catch (e) { window._logoW = logo || null; }
+  return window._logoW;
+}
+// QR en vectores (nítido a cualquier tamaño). Corrección de errores alta (H, ~30%) para poder
+// dejar el centro libre y poner la W adentro sin que deje de leerse.
+function dibujarQR(doc, texto, x, y, lado, logoCentro) {
+  const q = window.qrcode(0, logoCentro ? 'H' : 'M'); q.addData(texto); q.make();
   const n = q.getModuleCount(), m = lado / n;
+  // Hueco central: ~27% del lado, alineado a módulos y centrado
+  let h = logoCentro ? Math.round(n * 0.27) : 0; if (h && (n - h) % 2) h++;
+  const h0 = (n - h) / 2, h1 = h0 + h;
+  const libre = (r, c) => h && r >= h0 && r < h1 && c >= h0 && c < h1;
   doc.setFillColor(0, 0, 0);
   for (let r = 0; r < n; r++) {
     let c = 0;
     while (c < n) {
-      if (!q.isDark(r, c)) { c++; continue; }
-      let f = c; while (f < n && q.isDark(r, f)) f++;
+      if (!q.isDark(r, c) || libre(r, c)) { c++; continue; }
+      let f = c; while (f < n && q.isDark(r, f) && !libre(r, f)) f++;
       doc.rect(x + c * m, y + r * m, (f - c) * m, m + 0.02, 'F');
       c = f;
     }
   }
+  if (h) {
+    const lx = x + h0 * m, ly = y + h0 * m, lw = h * m, pad = m * 0.55;
+    doc.setFillColor(255, 255, 255); doc.roundedRect(lx, ly, lw, lw, m * 0.8, m * 0.8, 'F');
+    const caja = lw - 2 * pad, r = logoCentro.ratio;
+    const w = r > 1 ? caja / r : caja, hh = w * r;
+    doc.addImage(logoCentro.url, 'PNG', lx + (lw - w) / 2, ly + (lw - hh) / 2, w, hh);
+  }
 }
-// Etiqueta tamaño credencial (54 × 85.6 mm) en vertical, fondo blanco
+// Etiqueta tamaño credencial (54 × 85.6 mm) en vertical, fondo blanco: QR con la W al centro, No. interno, nombre y N/S
 function dibujarEtiquetaQR(T, eq, x0, y0) {
   const { doc, C } = T, W = 54, H = 85.6, cx = x0 + W / 2;
   T.relleno([255, 255, 255]); doc.roundedRect(x0, y0, W, H, 3, 3, 'F');
   T.trazo([210, 210, 214], 0.2); doc.roundedRect(x0 + 0.4, y0 + 0.4, W - 0.8, H - 0.8, 2.8, 2.8, 'S');   // guía de corte
-  const logo = window._logoPDF;
-  if (logo) { const lw = Math.min(24, 13 / logo.ratio), lh = lw * logo.ratio; doc.addImage(logo.url, 'PNG', cx - lw / 2, y0 + 5 + (13 - lh) / 2, lw, lh); }
-  else { T.font('black', 11, C.tinta); doc.text('WORKSYNC', cx, y0 + 13, { align: 'center' }); }
-  const lado = 38;
-  dibujarQR(doc, urlEquipoQR(eq), cx - lado / 2, y0 + 21, lado);
+  const lado = 46;
+  dibujarQR(doc, urlEquipoQR(eq), cx - lado / 2, y0 + 9, lado, window._logoW);
   const ni = eq.numero_interno || 'SIN NO. INTERNO';
   let tam = 14; T.font('black', tam, eq.numero_interno ? C.tinta : C.grisClaro);
   while (doc.getTextWidth(ni) > W - 8 && tam > 8) { tam -= 0.5; doc.setFontSize(tam); }
   doc.text(ni, cx, y0 + 66, { align: 'center' });
-  T.font('semibold', 7.4, C.texto); doc.text(recortarTexto(doc, eq.apodo ? `${eq.apodo} · ${eq.nombre}` : eq.nombre, W - 8), cx, y0 + 71.2, { align: 'center' });
-  T.font('medium', 7, C.gris); doc.text(recortarTexto(doc, `N/S ${eq.numero_serie || '—'}`, W - 8), cx, y0 + 75.6, { align: 'center' });
-  T.relleno(C.rojo); doc.rect(cx - 6, y0 + 78.6, 12, 0.5, 'F');
-  T.font('medium', 5.2, C.grisClaro); doc.text('Escanea para ver documentos · solo usuarios WorkSync', cx, y0 + 82.2, { align: 'center' });
+  T.font('semibold', 7.4, C.texto); doc.text(recortarTexto(doc, eq.apodo ? `${eq.apodo} · ${eq.nombre}` : eq.nombre, W - 8), cx, y0 + 71.6, { align: 'center' });
+  T.font('medium', 7, C.gris); doc.text(recortarTexto(doc, `N/S ${eq.numero_serie || '—'}`, W - 8), cx, y0 + 76, { align: 'center' });
 }
 // Una sola → página del tamaño de la credencial. Varias (hoja) → carta con 3 × 3 y guías de corte.
 async function etiquetasQR(ids, hoja) {
   // El archivo digital de la etiqueta es solo para administradores y gerentes (el impreso lo ve cualquiera)
   if (!['administrador', 'director_proyecto'].includes(STATE.rol)) { toast('Solo administradores y gerentes pueden generar las etiquetas QR', 'error'); return; }
   try { await cargarQRLib(); } catch (e) { toast('No se pudo cargar el generador de QR. Revisa tu conexión.', 'error'); return; }
+  await cargarLogoW();
   await loadEquipos();
   const eqs = ids.map(id => (STATE.equipos || []).find(e => e.id === id)).filter(Boolean);
   if (!eqs.length) { toast('No hay equipo para generar etiquetas', 'error'); return; }
