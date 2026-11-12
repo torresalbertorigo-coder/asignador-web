@@ -868,6 +868,16 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .pz-lista-tit{font-weight:700;color:var(--amber);font-size:13px;margin-bottom:10px;display:flex;gap:6px;align-items:center}
 .pz-aviso{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border2);background:var(--surface2);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12.5px;color:var(--text2)}
 .pz-aviso i{font-size:18px;color:var(--text3)}
+.rp-lista{display:flex;flex-direction:column;gap:12px}
+.rp-tit{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
+.rp-tit span{font-weight:600;border-radius:10px;padding:0 7px;line-height:17px;background:var(--surface2);color:var(--text2)}
+.rp-curso .rp-tit{color:var(--green)}.rp-pausa .rp-tit{color:var(--amber)}.rp-prox .rp-tit{color:#60a5fa}.rp-otro .rp-tit{color:var(--text2)}
+.rp-op{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:11px 12px;margin-bottom:6px;border:1px solid var(--border2);border-left-width:4px;border-radius:10px;background:var(--surface);color:var(--text);font:inherit;cursor:pointer}
+.rp-curso .rp-op{border-left-color:var(--green)}.rp-pausa .rp-op{border-left-color:var(--amber)}.rp-prox .rp-op{border-left-color:#60a5fa}
+.rp-op.on{border-color:var(--red);border-left-color:var(--red);background:rgba(227,28,34,.1)}
+.rp-radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--border2);flex-shrink:0;position:relative}
+.rp-op.on .rp-radio{border-color:var(--red)}.rp-op.on .rp-radio::after{content:'';position:absolute;inset:3px;border-radius:50%;background:var(--red)}
+.rp-txt{min-width:0}.rp-txt b{display:block;font-size:13px;font-weight:600}.rp-txt small{display:block;font-size:11.5px;color:var(--text3);margin-top:2px}
 .pz-ra{display:block;margin-top:4px;color:var(--text2)}.pz-ra a{color:var(--blue)}
 .pz-ra-edit{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px}.pz-ra-edit .field-input{max-width:160px;padding:6px 8px}
 .pz-zona{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed var(--border2)}
@@ -12514,16 +12524,22 @@ async function renderReportar(proyectoPre) {
   const extra = proyectoPre && !misProyectos.some(p => p.id === proyectoPre) ? STATE.proyectos.find(p => p.id === proyectoPre) : null;
   if (extra) misProyectos.unshift(extra);
   const preId = proyectoPre || enCurso[0]?.id || enPausa[0]?.id || proximos[0]?.id;
-  const opt = p => `<option value="${p.id}"${p.id === preId ? ' selected' : ''}>${escHtml(p.nombre)}</option>`;
-  const grupo = (t, L) => L.length ? `<optgroup label="${t}">${L.map(opt).join('')}</optgroup>` : '';
+  // Selector propio (el menú nativo del celular no distingue bien los grupos): tarjetas por grupo con color
+  const ICO_REP = { curso: 'player-play', pausa: 'player-pause', prox: 'calendar-event', otro: 'folder' };
+  const detalleRep = (p, k) => k === 'pausa' ? (() => { const z = pausaAbierta(p); return z ? `En pausa desde el ${fCorta(z.inicio)}${z.reanudar_aprox ? ` · se retoma aprox. el ${fCorta(z.reanudar_aprox)}` : ''}` : 'En pausa'; })()
+    : k === 'prox' ? `Inicia el ${fCorta(p.fecha_inicio)}` : k === 'curso' ? `En curso desde el ${fCorta(p.fecha_inicio_real || p.fecha_inicio)}` : '';
+  const grupoRep = (t, k, L) => L.length ? `<div class="rp-grupo rp-${k}"><div class="rp-tit"><i class="ti ti-${ICO_REP[k]}" aria-hidden="true"></i> ${t} <span>${L.length}</span></div>
+    ${L.map(p => `<button type="button" class="rp-op${p.id === preId ? ' on' : ''}" role="radio" aria-checked="${p.id === preId}" data-pid="${p.id}" onclick="elegirProyectoReporte('${p.id}')">
+      <span class="rp-radio"></span><span class="rp-txt"><b>${escHtml(p.nombre)}</b><small>${escHtml([p.cliente, p.ciudad].filter(Boolean).join(' · '))}${detalleRep(p, k) ? ' · ' + detalleRep(p, k) : ''}</small></span></button>`).join('')}</div>` : '';
   html(`
     <div class="table-section" style="padding:20px" id="form-reportar">
       <div class="panel-section-title" style="margin-bottom:16px">NUEVO REPORTE DE INCIDENCIA</div>
       <div class="field-row">
         <div class="field-group"><label class="field-label">PROYECTO</label>
-          <select class="field-select" id="rep-proyecto" onchange="campoReanudarReporte()">
-            ${misProyectos.length ? (extra ? opt(extra) : '') + grupo('En curso', enCurso) + grupo('En pausa', enPausa) + grupo('Próximos a iniciar', proximos) : '<option value="">Sin proyectos en curso, en pausa o próximos</option>'}
-          </select>
+          <input type="hidden" id="rep-proyecto" value="${preId || ''}">
+          ${misProyectos.length ? `<div class="rp-lista" role="radiogroup">
+            ${extra ? grupoRep('Seleccionado', 'otro', [extra]) : ''}${grupoRep('En curso', 'curso', enCurso)}${grupoRep('En pausa', 'pausa', enPausa)}${grupoRep('Próximos a iniciar', 'prox', proximos)}
+          </div>` : '<div class="av-nota">No tienes proyectos en curso, en pausa ni próximos a iniciar.</div>'}
         </div>
       </div>
       <div class="field-row" id="rep-ra-fila" style="margin-top:10px;display:none">
@@ -12555,6 +12571,11 @@ async function renderReportar(proyectoPre) {
         <button class="btn btn-primary" ${misProyectos.length?'':'disabled'} onclick="ejecutarConCarga(this, enviarReporte)"><i class="ti ti-send" aria-hidden="true"></i> Enviar reporte</button>
       </div>
     </div>`);
+  campoReanudarReporte();
+}
+function elegirProyectoReporte(pid) {
+  const h = document.getElementById('rep-proyecto'); if (h) h.value = pid;
+  document.querySelectorAll('.rp-op').forEach(b => { const on = b.dataset.pid === pid; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
   campoReanudarReporte();
 }
 // En un proyecto en pausa, el reporte puede traer la nueva fecha probable de reanudación
