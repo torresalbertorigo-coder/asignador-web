@@ -879,7 +879,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .mp-campo:hover{border-color:var(--text3)}.mp-campo>i:first-child{font-size:20px;color:var(--text3)}.mp-campo span{flex:1;min-width:0}
 .mp-campo b{display:block;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mp-campo small{display:block;font-size:11.5px;color:var(--text3);margin-top:1px}
 .mp-campo .mp-quitar{font-size:16px;color:var(--text3);padding:4px}.mp-campo .mp-quitar:hover{color:var(--red)}
-.mp-card{max-width:760px!important;width:calc(100% - 24px);padding:16px!important;display:flex;flex-direction:column;max-height:86vh}
+.mps-card{max-width:760px!important;width:calc(100% - 24px);padding:16px!important;display:flex;flex-direction:column;max-height:86vh}
 .mp-cab{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.mp-cab b{font-size:15px;color:var(--text)}
 .mp-busca{display:flex;align-items:center;gap:8px;background:var(--input-bg);border:1px solid var(--border2);border-radius:10px;padding:0 12px;margin-bottom:10px}
 .mp-busca i{color:var(--text3)}.mp-busca input{flex:1;border:none;background:transparent;color:var(--text);font:inherit;font-size:13px;padding:10px 0;outline:none}
@@ -895,7 +895,7 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .mp-op b{font-size:13px;line-height:1.3}.mp-op small{font-size:11.5px;color:var(--text2)}.mp-fechas{font-size:11px;color:var(--text3);margin-top:4px}
 .mp-vacio{grid-column:1/-1;text-align:center;color:var(--text3);font-size:12.5px;padding:30px 0}
 .mp-rango{margin-top:10px;background:transparent;border:1px dashed var(--border2);border-radius:10px;padding:10px;color:var(--text2);font:inherit;font-size:12.5px;cursor:pointer}
-@media(max-width:600px){.mp-lista{grid-template-columns:1fr}.mp-card{max-height:92vh}}
+@media(max-width:600px){.mp-lista{grid-template-columns:1fr}.mps-card{max-height:92vh}}
 .ini-wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
 .ini-hola h2{font-size:21px;font-weight:700;margin:0;color:var(--text)}.ini-hola p{font-size:12.5px;color:var(--text2);margin:2px 0 0}.ini-hola p::first-letter{text-transform:uppercase}
 .ini-tile:last-child:nth-child(odd){grid-column:1/-1;min-height:84px;flex-direction:row;align-items:center;justify-content:flex-start}
@@ -9188,7 +9188,7 @@ function abrirSelectorProyectoMetricas() {
   if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; ov.style.zIndex = 1100; document.body.appendChild(ov); }
   ov.className = 'modal-overlay open';
   ov.onclick = ev => { if (ev.target === ov) cerrarSelectorTerminos(); };
-  ov.innerHTML = `<div class="sel-card mp-card">
+  ov.innerHTML = `<div class="sel-card mps-card">
     <div class="mp-cab"><b>Elegir proyecto</b><button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button></div>
     <div class="mp-busca"><i class="ti ti-search" aria-hidden="true"></i><input id="mp-q" placeholder="Buscar por nombre, cliente o ciudad…" oninput="STATE._mpBusca=this.value;pintarSelectorProyectoMetricas()"></div>
     <div class="mp-tabs" id="mp-tabs"></div>
