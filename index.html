@@ -868,6 +868,27 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .pz-lista-tit{font-weight:700;color:var(--amber);font-size:13px;margin-bottom:10px;display:flex;gap:6px;align-items:center}
 .pz-aviso{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border2);background:var(--surface2);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12.5px;color:var(--text2)}
 .pz-aviso i{font-size:18px;color:var(--text3)}
+.mp-campo{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--input-bg);border:1px solid var(--border2);border-radius:10px;padding:10px 14px;color:var(--text);font:inherit;cursor:pointer}
+.mp-campo:hover{border-color:var(--text3)}.mp-campo>i:first-child{font-size:20px;color:var(--text3)}.mp-campo span{flex:1;min-width:0}
+.mp-campo b{display:block;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mp-campo small{display:block;font-size:11.5px;color:var(--text3);margin-top:1px}
+.mp-campo .mp-quitar{font-size:16px;color:var(--text3);padding:4px}.mp-campo .mp-quitar:hover{color:var(--red)}
+.mp-card{max-width:760px!important;width:calc(100% - 24px);padding:16px!important;display:flex;flex-direction:column;max-height:86vh}
+.mp-cab{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.mp-cab b{font-size:15px;color:var(--text)}
+.mp-busca{display:flex;align-items:center;gap:8px;background:var(--input-bg);border:1px solid var(--border2);border-radius:10px;padding:0 12px;margin-bottom:10px}
+.mp-busca i{color:var(--text3)}.mp-busca input{flex:1;border:none;background:transparent;color:var(--text);font:inherit;font-size:13px;padding:10px 0;outline:none}
+.mp-tabs{display:flex;gap:4px;background:var(--surface2);border-radius:10px;padding:3px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none}
+.mp-tab{flex:1 0 auto;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 10px;border:none;border-radius:8px;background:transparent;color:var(--text3);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+.mp-tab span{font-size:10.5px;background:var(--border2);border-radius:8px;padding:0 6px;line-height:16px;color:var(--text2)}
+.mp-tab.on{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.mp-g-curso.on i,.mp-campo .mp-g-curso{color:var(--green)!important}.mp-g-pausa.on i,.mp-campo .mp-g-pausa{color:var(--amber)!important}.mp-g-cierre.on i,.mp-campo .mp-g-cierre{color:#a78bfa!important}.mp-g-fin.on i,.mp-campo .mp-g-fin{color:var(--text2)!important}
+.mp-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;overflow-y:auto;min-height:120px;padding:2px;align-content:start}
+.mp-op{display:flex;flex-direction:column;gap:3px;text-align:left;background:var(--surface);border:1px solid var(--border2);border-top:3px solid var(--text3);border-radius:12px;padding:12px;color:var(--text);font:inherit;cursor:pointer}
+.mp-op:hover{border-color:var(--text3)}.mp-op.on{border-color:var(--red);background:rgba(227,28,34,.08)}
+.mp-op.mp-g-curso{border-top-color:var(--green)}.mp-op.mp-g-pausa{border-top-color:var(--amber)}.mp-op.mp-g-cierre{border-top-color:#a78bfa}
+.mp-op b{font-size:13px;line-height:1.3}.mp-op small{font-size:11.5px;color:var(--text2)}.mp-fechas{font-size:11px;color:var(--text3);margin-top:4px}
+.mp-vacio{grid-column:1/-1;text-align:center;color:var(--text3);font-size:12.5px;padding:30px 0}
+.mp-rango{margin-top:10px;background:transparent;border:1px dashed var(--border2);border-radius:10px;padding:10px;color:var(--text2);font:inherit;font-size:12.5px;cursor:pointer}
+@media(max-width:600px){.mp-lista{grid-template-columns:1fr}.mp-card{max-height:92vh}}
 .ini-wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
 .ini-hola h2{font-size:21px;font-weight:700;margin:0;color:var(--text)}.ini-hola p{font-size:12.5px;color:var(--text2);margin:2px 0 0}.ini-hola p::first-letter{text-transform:uppercase}
 .ini-tile:last-child:nth-child(odd){grid-column:1/-1;min-height:84px;flex-direction:row;align-items:center;justify-content:flex-start}
@@ -8828,16 +8849,13 @@ const flechaLeyendaMapa = (plegada) => esCelular() ? (plegada ? 'down' : 'up') :
 // ─── SECCIÓN: MÉTRICAS DE PROYECTOS ───────────────────────────────────────────
 async function renderMetricas() {
   await loadProyectos();
-  const proyectosOrdenados = STATE.proyectos.filter(p=>p.fecha_inicio_real).slice().sort((a,b)=>(b.fecha_inicio_real||'').localeCompare(a.fecha_inicio_real||''));
   html(`
     <div class="table-section" style="padding:18px;margin-bottom:14px">
       <div class="panel-section-title" style="margin-bottom:12px">GENERAR REPORTE DE MÉTRICAS</div>
       <div class="field-row">
         <div class="field-group"><label class="field-label">PROYECTO ESPECÍFICO (OPCIONAL)</label>
-          <select class="field-select" id="met-proyecto">
-            <option value="">— Usar rango de fechas en su lugar —</option>
-            ${proyectosOrdenados.map(p=>`<option value="${p.id}">${p.nombre} (${p.fecha_inicio_real}${p.fecha_fin_real?' → '+p.fecha_fin_real:' — en curso'})</option>`).join('')}
-          </select>
+          <input type="hidden" id="met-proyecto" value="">
+          <button type="button" class="mp-campo" id="mp-campo" onclick="abrirSelectorProyectoMetricas()">${htmlCampoProyectoMetricas('')}</button>
         </div>
       </div>
       <div class="field-row" style="margin-top:10px">
@@ -9138,7 +9156,58 @@ function aplicarRangoMetricas(dias) {
   const desde = new Date(hoy); desde.setDate(desde.getDate()-dias);
   document.getElementById('met-desde').value = desde.toISOString().split('T')[0];
   document.getElementById('met-hasta').value = hoy.toISOString().split('T')[0];
-  document.getElementById('met-proyecto').value = '';
+  elegirProyectoMetricas('');
+}
+
+// ─── Selector de proyecto para Métricas: ventana con tarjetas, búsqueda y pestañas ──
+function grupoMetricas(p) {
+  return enCierre(p) ? 'cierre' : (p.fecha_fin_real || ['completado', 'cancelado'].includes(p.estado)) ? 'fin' : p.estado === 'pausado' ? 'pausa' : 'curso';
+}
+const MP_GRUPOS = { curso: ['En curso', 'player-play'], pausa: ['En pausa', 'player-pause'], cierre: ['En cierre', 'file-certificate'], fin: ['Finalizados', 'archive'] };
+function htmlCampoProyectoMetricas(pid) {
+  const p = pid && (STATE.proyectos || []).find(x => x.id === pid);
+  if (!p) return `<i class="ti ti-calendar-search" aria-hidden="true"></i><span><b>Todos los proyectos del rango de fechas</b><small>Toca para elegir un proyecto específico</small></span><i class="ti ti-chevron-down" aria-hidden="true"></i>`;
+  const g = grupoMetricas(p);
+  return `<i class="ti ti-${MP_GRUPOS[g][1]} mp-g-${g}" aria-hidden="true"></i><span><b>${escHtml(p.nombre)}</b><small>${escHtml(p.cliente || '')} · ${fCorta(p.fecha_inicio_real)}${p.fecha_fin_real ? ' → ' + fCorta(p.fecha_fin_real) : ''} · ${MP_GRUPOS[g][0]}</small></span><i class="ti ti-x mp-quitar" aria-hidden="true" title="Quitar" onclick="event.stopPropagation();elegirProyectoMetricas('')"></i>`;
+}
+function elegirProyectoMetricas(pid) {
+  const h = document.getElementById('met-proyecto'); if (h) h.value = pid || '';
+  const c = document.getElementById('mp-campo'); if (c) c.innerHTML = htmlCampoProyectoMetricas(pid);
+  cerrarSelectorTerminos();
+}
+function abrirSelectorProyectoMetricas() {
+  STATE._mpTab = STATE._mpTab || 'curso'; STATE._mpBusca = '';
+  let ov = document.getElementById('selector-overlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'selector-overlay'; ov.style.zIndex = 1100; document.body.appendChild(ov); }
+  ov.className = 'modal-overlay open';
+  ov.onclick = ev => { if (ev.target === ov) cerrarSelectorTerminos(); };
+  ov.innerHTML = `<div class="sel-card mp-card">
+    <div class="mp-cab"><b>Elegir proyecto</b><button class="btn btn-ghost btn-sm" onclick="cerrarSelectorTerminos()" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button></div>
+    <div class="mp-busca"><i class="ti ti-search" aria-hidden="true"></i><input id="mp-q" placeholder="Buscar por nombre, cliente o ciudad…" oninput="STATE._mpBusca=this.value;pintarSelectorProyectoMetricas()"></div>
+    <div class="mp-tabs" id="mp-tabs"></div>
+    <div class="mp-lista" id="mp-lista"></div>
+    <button class="mp-rango" onclick="elegirProyectoMetricas('')"><i class="ti ti-calendar-search" aria-hidden="true"></i> Mejor usar el rango de fechas (todos los proyectos)</button>
+  </div>`;
+  pintarSelectorProyectoMetricas();
+  setTimeout(() => { if (window.innerWidth > 700) document.getElementById('mp-q')?.focus(); }, 50);
+}
+function pintarSelectorProyectoMetricas() {
+  const q = normBusq(STATE._mpBusca || '');
+  const todos = (STATE.proyectos || []).filter(p => p.fecha_inicio_real)
+    .filter(p => !q || normBusq(`${p.nombre} ${p.cliente || ''} ${p.ciudad || ''}`).includes(q))
+    .sort((a, b) => (b.fecha_inicio_real || '').localeCompare(a.fecha_inicio_real || ''));
+  const cuenta = k => todos.filter(p => grupoMetricas(p) === k).length;
+  // Al buscar, si la pestaña no tiene coincidencias se pasa a la primera que sí
+  if (q && !cuenta(STATE._mpTab)) STATE._mpTab = Object.keys(MP_GRUPOS).find(k => cuenta(k)) || STATE._mpTab;
+  const sel = document.getElementById('met-proyecto')?.value;
+  document.getElementById('mp-tabs').innerHTML = Object.entries(MP_GRUPOS).map(([k, [t, ic]]) => `<button class="mp-tab mp-g-${k}${k === STATE._mpTab ? ' on' : ''}" onclick="STATE._mpTab='${k}';pintarSelectorProyectoMetricas()"><i class="ti ti-${ic}" aria-hidden="true"></i>${t}<span>${cuenta(k)}</span></button>`).join('');
+  const L = todos.filter(p => grupoMetricas(p) === STATE._mpTab);
+  const dias = p => Math.max(1, Math.round((fechaLocal(p.fecha_fin_real || isoLocal(new Date())) - fechaLocal(p.fecha_inicio_real)) / 86400000) + 1);
+  document.getElementById('mp-lista').innerHTML = L.length ? L.map(p => `<button class="mp-op mp-g-${STATE._mpTab}${p.id === sel ? ' on' : ''}" onclick="elegirProyectoMetricas('${p.id}')">
+      <b>${escHtml(p.nombre)}</b>
+      <small>${escHtml(p.cliente || '—')}${p.ciudad ? ' · ' + escHtml(p.ciudad) : ''}</small>
+      <span class="mp-fechas"><i class="ti ti-calendar" aria-hidden="true"></i> ${fCorta(p.fecha_inicio_real)}${p.fecha_fin_real ? ' → ' + fCorta(p.fecha_fin_real) : ' → hoy'} · ${dias(p)} día${dias(p) === 1 ? '' : 's'}</span>
+    </button>`).join('') : `<div class="mp-vacio">${q ? 'Sin coincidencias en esta pestaña' : 'Sin proyectos aquí'}</div>`;
 }
 
 // ─── MÉTRICAS: un solo cálculo para pantalla y PDF ───────────────────────────
