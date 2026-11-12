@@ -868,6 +868,13 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .pz-lista-tit{font-weight:700;color:var(--amber);font-size:13px;margin-bottom:10px;display:flex;gap:6px;align-items:center}
 .pz-aviso{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border2);background:var(--surface2);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12.5px;color:var(--text2)}
 .pz-aviso i{font-size:18px;color:var(--text3)}
+.pz-ra{display:block;margin-top:4px;color:var(--text2)}.pz-ra a{color:var(--blue)}
+.pz-ra-edit{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px}.pz-ra-edit .field-input{max-width:160px;padding:6px 8px}
+.pz-zona{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed var(--border2)}
+.pz-zona span{display:inline;color:var(--text2)}.pz-zona a{color:var(--text3)}
+.pz-sol.pz-sol-ok{border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.07)}.pz-sol-ok .pz-sol-cab i{color:var(--green)}
+.pz-lista-ok{border-color:rgba(34,197,94,.45)}
+.yl-ret{border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.07)}.yl-ret .yl-ico{color:var(--green)}
 .asg-cierres-tit{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text2);margin:4px 0 8px}
 .asg-cierres-tit span{background:var(--surface2);border-radius:10px;padding:0 7px;font-weight:600}
 .asg-cierre{border-left:3px solid var(--blue)}.pz-aviso b{display:block;color:var(--text)}
@@ -2731,7 +2738,7 @@ async function abrirCalendarioMensual(empId, nombre, offsetMeses, pidResaltar) {
     const esHoy = fecha.toDateString() === hoy.toDateString();
     const enObj = objIni && objFin && fecha >= objIni && fecha <= objFin;
     const titulo = [aus ? `${tipoAusencia(aus)} (${aus.fecha_inicio} al ${aus.fecha_fin})` : null, ...evs.map(p => p.nombre), enObj ? `Fechas de ${objetivo.nombre} (en evaluación)` : null].filter(Boolean).join(' · ');
-    const tr = !evs.length && !aus ? tras[key] : null;
+    const tr = !aus ? (t0 => t0 && (!evs.length || t0.pausa) ? t0 : null)(tras[key]) : null;
     if (tr) trasMes.push({ key, ...tr });
     const click = evs.length ? ` data-pids="${evs.map(p => p.id).join(',')}" onclick="clicDiaCalendario(this)"` : '';
     celdas += `<div class="cal-cell ${esHoy?'hoy':''} ${evs.length?'ocupado ' + claseEstadoCal(evs[0]):''} ${aus?'ausente':''} ${tr?'traslado' + (tr.tipo === 'espera' ? ' espera' : ''):''} ${enObj?'objetivo':''}" title="${escHtml(tr ? textoTraslado(tr) : titulo)}"${click}>${d}${aus ? `<div class="cal-aus">${escHtml(tipoAusencia(aus))}</div>` : ''}${tr ? `<div class="cal-tras"><i class="ti ti-${tr.tipo === 'espera' ? 'map-pin' : 'car'}" aria-hidden="true"></i> ${tr.tipo === 'ida' ? 'Ida' : tr.tipo === 'espera' ? 'En zona' : 'Regreso'}</div>` : ''}${evs.length ? `<div class="cal-pry">${escHtml(evs[0].nombre)}</div>${evs.length > 1 ? `<div class="cal-mas">+${evs.length - 1}</div>` : ''}` : ''}</div>`;
@@ -3691,6 +3698,7 @@ async function renderProyectos() {
   const cierreVencidos = proyectos.filter(p => enCierre(p) && !p.cierre_entregado && p.cierre_compromiso && fechaLocal(p.cierre_compromiso) < new Date(new Date().setHours(0,0,0,0))).length;
 
   const solPausa = STATE.rol !== 'tecnico' ? STATE.proyectos.filter(p => p.solicitud_pausa) : [];
+  const solReanudar = STATE.rol !== 'tecnico' ? STATE.proyectos.filter(p => p.solicitud_reanudar) : [];
   const filtro = (STATE._pryFiltro||'').toLowerCase().trim();
   if (filtro) {
     proyectos = proyectos.filter(p =>
@@ -3750,6 +3758,8 @@ async function renderProyectos() {
   html(`
     ${solPausa.length ? `<div class="pz-lista"><div class="pz-lista-tit"><i class="ti ti-player-pause" aria-hidden="true"></i> ${solPausa.length === 1 ? 'Una solicitud de pausa espera tu autorización' : `${solPausa.length} solicitudes de pausa esperan tu autorización`}</div>
       ${solPausa.map(p => htmlSolicitudPausa(p, true)).join('')}</div>` : ''}
+    ${solReanudar.length ? `<div class="pz-lista pz-lista-ok"><div class="pz-lista-tit"><i class="ti ti-player-play" aria-hidden="true"></i> ${solReanudar.length === 1 ? 'Una solicitud para reanudar espera tu autorización' : `${solReanudar.length} solicitudes para reanudar esperan tu autorización`}</div>
+      ${solReanudar.map(p => htmlSolicitudReanudar(p, true)).join('')}</div>` : ''}
     ${avisoUbicaciones('proyectos')}
     <div class="stats-grid stats-5 stats-6 pry-vistas">
       ${[
@@ -3858,8 +3868,8 @@ async function verProyecto(id) {
   const reprog = p.reprogramaciones_resumen || [];
   openPanel(p.nombre, `
     ${htmlSolicitudPausa(p)}
-    ${p.estado === 'pausado' && (p.pausas_resumen || []).length ? (() => { const pz = p.pausas_resumen[p.pausas_resumen.length - 1];
-      return pz.fin ? '' : `<div class="pz-aviso"><i class="ti ti-player-pause" aria-hidden="true"></i><div><b>En pausa desde el ${fCorta(pz.inicio)}</b>${pz.motivo ? `<span>Motivo: ${escHtml(pz.motivo)}</span>` : ''}</div></div>`; })() : ''}
+    ${htmlSolicitudReanudar(p)}
+    ${htmlAvisoPausa(p)}
     ${p.fecha_fin_real && p.estado === 'completado' ? htmlCierreProyecto(p) : ''}
     <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
       <div style="flex:1;min-width:140px;background:${personalOk?'var(--green-bg)':'var(--amber-bg)'};border:1px solid ${personalOk?'var(--green-border)':'var(--amber-border)'};border-radius:var(--radius);padding:10px 14px">
@@ -4067,6 +4077,11 @@ function abrirModalPausa(pid, modo) {
         <input type="date" class="field-input" id="pz-desde" value="${isoLocal(new Date())}" max="${isoLocal(new Date())}" ${p?.fecha_inicio_real ? `min="${p.fecha_inicio_real}"` : ''} onchange="revisarDesdePausa('${pid}')" style="max-width:200px">
         <div class="av-nota" id="pz-desde-nota" style="margin-top:4px">Hoy por defecto. Si salieron antes de la zona, elige el día real en que se dejó de trabajar.</div>
       </div>
+      <div class="field-group" style="margin-top:12px">
+        <label class="field-label" for="pz-reanudar">FECHA PROBABLE DE REANUDACIÓN <span class="np-opc">opcional</span></label>
+        <input type="date" class="field-input" id="pz-reanudar" min="${isoLocal(new Date())}" style="max-width:200px">
+        <div class="av-nota" style="margin-top:4px">Si aún no se sabe, déjala vacía; se puede agregar después.</div>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
         <button class="btn btn-ghost" style="justify-content:center;min-height:42px" onclick="cerrarSelectorTerminos()">Cancelar</button>
         <button class="btn btn-primary" style="justify-content:center;min-height:42px" onclick="ejecutarConCarga(this, () => confirmarPausa('${pid}','${modo}'))"><i class="ti ti-${sol ? 'send' : 'player-pause'}" aria-hidden="true"></i> ${sol ? 'Enviar solicitud' : 'Pausar'}</button>
@@ -4096,9 +4111,11 @@ async function confirmarPausa(pid, modo) {
   const hoy = isoLocal(new Date()), desdeEl = document.getElementById('pz-desde'), desde = desdeEl?.value || hoy;
   if (desde > hoy) { toast('La pausa no puede empezar en una fecha futura', 'error'); return; }
   if (desdeEl?.min && desde < desdeEl.min) { toast(`La pausa no puede empezar antes del inicio real (${fCorta(desdeEl.min)})`, 'error'); return; }
+  const reanudar_aprox = document.getElementById('pz-reanudar')?.value || null;
+  if (reanudar_aprox && reanudar_aprox < hoy) { toast('La fecha probable de reanudación no puede ser pasada', 'error'); return; }
   const r = modo === 'solicitud'
-    ? await api('POST', `/proyectos/proyectos/${encodeURIComponent(pid)}/solicitar-pausa`, { motivo, desde })
-    : await api('PATCH', `/proyectos/proyectos/${encodeURIComponent(pid)}/estado`, { nuevo_estado: 'pausado', motivo, desde });
+    ? await api('POST', `/proyectos/proyectos/${encodeURIComponent(pid)}/solicitar-pausa`, { motivo, desde, reanudar_aprox })
+    : await api('PATCH', `/proyectos/proyectos/${encodeURIComponent(pid)}/estado`, { nuevo_estado: 'pausado', motivo, desde, reanudar_aprox });
   if (!r) return;
   cerrarSelectorTerminos();
   toast(modo === 'solicitud' ? 'Solicitud enviada: un administrador la revisará' : (r.mensaje || 'Proyecto en pausa'));
@@ -4108,6 +4125,62 @@ async function confirmarPausa(pid, modo) {
   else if (RENDERERS[STATE._seccion]) RENDERERS[STATE._seccion]();
 }
 const abrirProyectoSegunVista = pid => (STATE.rol === 'tecnico' || STATE.modoTecnico) ? verProyectoTecnico(pid) : verProyecto(pid);
+// Aviso de pausa: desde cuándo, motivo, fecha probable de reanudación (la cambian admin o personal asignado)
+// y, para quien vuelve a la zona, "Ya llegué" y la reanudación.
+function htmlAvisoPausa(p, vistaTecnico) {
+  const pz = pausaAbierta(p); if (!pz) return '';
+  const me = STATE.user?.empleado_id, l = p.llegadas?.[me];
+  const admin = ['administrador', 'director_proyecto'].includes(STATE.rol);
+  const puedeFecha = admin || (p.tecnicos_asignados || []).includes(me);
+  const ra = pz.reanudar_aprox, hoy = isoLocal(new Date());
+  let zona = '';
+  if (vistaTecnico && l) {
+    const lleg = l.reanudaciones?.[pz.id];
+    if (lleg) zona = `<div class="pz-zona"><span><i class="ti ti-map-pin-check" aria-hidden="true"></i> Llegaste a la zona el ${fCorta(lleg)} · <a href="#" onclick="event.preventDefault();ejecutarConCarga(this, () => registrarLlegada('${p.id}', null, true))">Deshacer</a></span>${botonReanudar(p)}</div>`;
+    else if (l.fuera) zona = `<div class="pz-zona"><button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => registrarLlegada('${p.id}'), 'Guardando…')"><i class="ti ti-map-pin-check" aria-hidden="true"></i> Ya llegué (de regreso a la zona)</button></div>`;
+    else zona = `<div class="pz-zona">${botonReanudar(p)}</div>`;
+  }
+  return `<div class="pz-aviso"><i class="ti ti-player-pause" aria-hidden="true"></i><div style="flex:1;min-width:0">
+    <b>En pausa desde el ${fCorta(pz.inicio)}</b>${pz.motivo ? `<span>Motivo: ${escHtml(pz.motivo)}</span>` : ''}
+    <span class="pz-ra" id="pz-ra-${p.id}">${ra ? `Se retoma aprox. el <b style="display:inline">${fCorta(ra)}</b>` : 'Sin fecha probable de reanudación'}${puedeFecha ? ` · <a href="#" onclick="event.preventDefault();editarReanudarAprox('${p.id}')">${ra ? 'Cambiar' : 'Agregar fecha'}</a>` : ''}</span>
+    ${zona}</div></div>`;
+}
+function editarReanudarAprox(pid) {
+  const p = (STATE.proyectos || []).find(x => x.id === pid), pz = p && pausaAbierta(p), el = document.getElementById(`pz-ra-${pid}`);
+  if (!el || !pz) return;
+  el.innerHTML = `<span class="pz-ra-edit"><input type="date" class="field-input" id="pz-ra-in-${pid}" min="${isoLocal(new Date())}" value="${pz.reanudar_aprox || ''}">
+    <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarReanudarAprox('${pid}', document.getElementById('pz-ra-in-${pid}').value || null))">Guardar</button>
+    ${pz.reanudar_aprox ? `<button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => guardarReanudarAprox('${pid}', null))">Sin fecha</button>` : ''}</span>`;
+}
+async function guardarReanudarAprox(pid, fecha) {
+  const r = await api('PATCH', `/proyectos/proyectos/${encodeURIComponent(pid)}/reanudar-aprox`, { fecha });
+  if (!r) return false;
+  toast(fecha ? `Se retoma aprox. el ${fCorta(fecha)}` : 'Sin fecha probable de reanudación');
+  await loadProyectos(true);
+  if (document.getElementById('panel-overlay')?.classList.contains('open')) abrirProyectoSegunVista(pid);
+  else if (RENDERERS[STATE._seccion] && STATE._seccion !== 'reportar') RENDERERS[STATE._seccion]();
+  return true;
+}
+function htmlSolicitudReanudar(p, compacto) {
+  const sr = p.solicitud_reanudar; if (!sr || STATE.rol === 'tecnico') return '';
+  const cuando = sr.creado_en ? new Date(sr.creado_en.endsWith('Z') ? sr.creado_en : sr.creado_en + 'Z').toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+  return `<div class="pz-sol pz-sol-ok${compacto ? ' compacto' : ''}">
+    <div class="pz-sol-cab"><i class="ti ti-player-play" aria-hidden="true"></i><b>Solicitud para reanudar</b>${compacto ? ` <span class="pz-sol-pry">${escHtml(p.nombre)}</span>` : ''}</div>
+    <div class="pz-sol-mot">${escHtml(sr.solicitante || '')} ya está en la zona${sr.nota ? `: "${escHtml(sr.nota)}"` : ' y pide reanudar.'}</div>
+    <div class="pz-sol-pie">${cuando}</div>
+    <div class="pz-sol-btns">
+      <button class="btn btn-sm btn-primary" onclick="ejecutarConCarga(this, () => resolverReanudar(${sr.id}, true, '${p.id}'))"><i class="ti ti-player-play" aria-hidden="true"></i> Reanudar</button>
+      <button class="btn btn-sm btn-ghost" onclick="ejecutarConCarga(this, () => resolverReanudar(${sr.id}, false, '${p.id}'))"><i class="ti ti-x" aria-hidden="true"></i> Aún no</button></div>
+  </div>`;
+}
+async function resolverReanudar(sid, aprobar, pid) {
+  const r = await api('POST', `/proyectos/proyectos/solicitudes-reanudar/${sid}/resolver`, { aprobar });
+  if (!r) return;
+  toast(aprobar ? 'Proyecto reanudado' : 'Solicitud no autorizada: el proyecto sigue en pausa');
+  await Promise.all([loadProyectos(true), loadEmpleados(true)]);
+  if (document.getElementById('panel-overlay')?.classList.contains('open')) verProyecto(pid);
+  if (STATE._seccion === 'proyectos') renderProyectos();
+}
 // Aviso de solicitud pendiente: el admin la resuelve aquí; el técnico ve que está en espera
 function htmlSolicitudPausa(p, compacto) {
   const sp = p.solicitud_pausa; if (!sp) return '';
@@ -4429,30 +4502,82 @@ function trasladosEmpleado(empId) {
     if (antes) for (let t = L.getTime() + DIA; t < v.ini.getTime(); t += DIA) marcar(new Date(t), 'espera', p, null);
     if (!next) { const tReg = diasTraslado(p, emp); for (let k = 1; k <= tReg; k++) marcar(new Date(v.fin.getTime() + k * DIA), 'regreso', p, null); }
   });
+  // Removilización: al pausar regresa a casa y vuelve para retomar (si tocó "Ya llegué" en la pausa,
+  // o si la pausa sigue abierta con fecha probable de reanudación). Se pinta sobre los días de pausa.
+  const marcarPz = (d, tipo, p) => { const k = isoLocal(d); if (!out[k]) out[k] = { tipo, p, desde: null, pausa: true }; };
+  prys.forEach(({ p }) => {
+    if (!p.fecha_inicio_real) return;
+    const l = p.llegadas?.[empId] || {}, t = Math.max(1, emp.latitud != null ? diasTraslado(emp, p) : (l.dias || 1));
+    (p.pausas_resumen || []).forEach(pz => {
+      if (pz.inicio < TRASLADO_DESDE) return;
+      const lleg = l.reanudaciones?.[pz.id], L = lleg ? fechaLocal(lleg) : null, R = pz.reanudar_aprox ? fechaLocal(pz.reanudar_aprox) : null;
+      if (!L && !(!pz.fin && R)) return;
+      const I = fechaLocal(pz.inicio);
+      for (let k = 0; k < t; k++) marcarPz(new Date(I.getTime() + k * DIA), 'regreso', p);
+      const finIda = L ? L.getTime() : R.getTime() - DIA;
+      for (let k = 0; k < t; k++) marcarPz(new Date(finIda - k * DIA), 'ida', p);
+      if (L) {
+        const hasta = pz.fin ? fechaLocal(pz.fin).getTime() : (R && R > L ? R.getTime() - DIA : new Date(new Date().toDateString()).getTime());
+        for (let x = L.getTime() + DIA; x <= hasta; x += DIA) marcarPz(new Date(x), 'espera', p);
+      }
+    });
+  });
   return out;
 }
-const textoTraslado = t => t.tipo === 'ida' ? `Traslado a ${t.p.nombre}${t.desde ? ` (desde ${t.desde.nombre})` : ''}`
-  : t.tipo === 'espera' ? `En zona de ${t.p.nombre}, en espera de iniciar` : `Traslado de regreso desde ${t.p.nombre}`;
-// "Ya llegué": proyectos fuera de su ciudad, desde una semana antes del inicio y mientras no se confirme
+const textoTraslado = t => t.tipo === 'ida' ? `Traslado a ${t.p.nombre}${t.desde ? ` (desde ${t.desde.nombre})` : t.pausa ? ' (retoma tras la pausa)' : ''}`
+  : t.tipo === 'espera' ? `En zona de ${t.p.nombre}, en espera de ${t.pausa ? 'reanudar' : 'iniciar'}` : `Traslado de regreso desde ${t.p.nombre}${t.pausa ? ' (por la pausa)' : ''}`;
+// "Ya llegué" (proyectos fuera de su ciudad). La tarjeta sale desde el primer día de traslado:
+//  · proyecto por iniciar: desde (inicio − días de traslado) mientras no lo marque;
+//  · proyecto en pausa con fecha probable de reanudación: desde (esa fecha − días de traslado).
+const pausaAbierta = p => p.estado === 'pausado' ? (p.pausas_resumen || []).slice().reverse().find(z => !z.fin) || null : null;
+const llegadaEnPausa = (p, empId) => { const z = pausaAbierta(p); return z ? (p.llegadas?.[empId]?.reanudaciones?.[z.id] || null) : null; };
 function proyectosParaLlegada(empId) {
   if (!empId) return [];
   const hoy = isoLocal(new Date()), DIA = 86400000;
+  const desdeDias = (f, t) => isoLocal(new Date(fechaLocal(f).getTime() - Math.max(1, t || 1) * DIA));
   return (STATE.proyectos || []).filter(p => {
     const l = p.llegadas?.[empId];
-    if (!l?.fuera || l.llegada || p.fecha_fin_real || ['completado', 'cancelado'].includes(p.estado)) return false;
-    const ini = p.fecha_inicio_real || p.fecha_inicio; if (!ini) return false;
-    const desde = isoLocal(new Date(fechaLocal(ini).getTime() - 7 * DIA));
-    return hoy >= desde && hoy <= (p.fecha_fin_estimada || ini);
-  }).sort((a, b) => (a.fecha_inicio || '').localeCompare(b.fecha_inicio || ''));
+    if (!l?.fuera || p.fecha_fin_real || ['completado', 'cancelado'].includes(p.estado)) return false;
+    if (p.estado === 'pausado') {
+      const z = pausaAbierta(p);
+      return !!(z && z.reanudar_aprox && !l.reanudaciones?.[z.id] && hoy >= desdeDias(z.reanudar_aprox, l.dias));
+    }
+    if (l.llegada || p.fecha_inicio_real || !p.fecha_inicio) return false;
+    return hoy >= desdeDias(p.fecha_inicio, l.dias) && hoy <= (p.fecha_fin_estimada || p.fecha_inicio);
+  }).sort((a, b) => ((pausaAbierta(a)?.reanudar_aprox) || a.fecha_inicio || '').localeCompare((pausaAbierta(b)?.reanudar_aprox) || b.fecha_inicio || ''));
+}
+// Ya en la zona de un proyecto en pausa: falta reanudarlo (el técnico lo solicita; el admin lo autoriza)
+function proyectosPorRetomar(empId) {
+  return (STATE.proyectos || []).filter(p => (p.tecnicos_asignados || []).includes(empId) && llegadaEnPausa(p, empId));
+}
+function botonReanudar(p) {
+  const admin = ['administrador', 'director_proyecto'].includes(STATE.rol);
+  if (admin) return `<button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => cambiarEstadoProyecto('${p.id}','${(p.tecnicos_asignados || []).length >= (p.personal_requerido || 1) ? 'asignado' : 'pendiente_asignacion'}'))"><i class="ti ti-player-play" aria-hidden="true"></i> Reanudar proyecto</button>`;
+  if (p.solicitud_reanudar) return `<button class="btn btn-ghost btn-sm" disabled><i class="ti ti-hourglass" aria-hidden="true"></i> Reanudación solicitada</button>`;
+  return `<button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => solicitarReanudar('${p.id}'), 'Enviando…')"><i class="ti ti-player-play" aria-hidden="true"></i> Solicitar reanudación</button>`;
+}
+async function solicitarReanudar(pid) {
+  const r = await api('POST', `/proyectos/proyectos/${encodeURIComponent(pid)}/solicitar-reanudar`, {});
+  if (!r) return;
+  toast('Solicitud enviada: un administrador reanudará el proyecto');
+  await loadProyectos(true);
+  if (document.getElementById('panel-overlay')?.classList.contains('open')) abrirProyectoSegunVista(pid);
+  if (RENDERERS[STATE._seccion]) RENDERERS[STATE._seccion]();
 }
 function tarjetaYaLlegue(empId, soloPid) {
   const L = proyectosParaLlegada(empId).filter(p => !soloPid || p.id === soloPid);
-  if (!L.length) return '';
+  const ret = soloPid ? [] : proyectosPorRetomar(empId);
+  if (!L.length && !ret.length) return '';
   const hoy = isoLocal(new Date());
-  return L.slice(0, 2).map(p => `<div class="yl-card" id="yl-${p.id}">
+  return ret.slice(0, 2).map(p => `<div class="yl-card yl-ret">
     <i class="ti ti-map-pin-check yl-ico" aria-hidden="true"></i>
-    <div class="yl-txt"><b>¿Ya llegaste a ${escHtml(p.ciudad || 'la zona del proyecto')}?</b>
-      <span>${escHtml(p.nombre)} · tócalo al llegar a la ciudad u hospedaje, no al sitio.</span>
+    <div class="yl-txt"><b>Ya estás en la zona de ${escHtml(p.nombre)}</b>
+      <span>El proyecto sigue en pausa${pausaAbierta(p)?.reanudar_aprox ? ` · se retoma aprox. el ${fCorta(pausaAbierta(p).reanudar_aprox)}` : ''}. Pide reanudarlo cuando se pueda entrar al sitio.</span></div>
+    <div class="yl-acc">${botonReanudar(p)}</div>
+  </div>`).join('') + L.slice(0, 2).map(p => `<div class="yl-card" id="yl-${p.id}">
+    <i class="ti ti-map-pin-check yl-ico" aria-hidden="true"></i>
+    <div class="yl-txt"><b>¿Ya llegaste a ${escHtml(p.ciudad || 'la zona del proyecto')}${p.estado === 'pausado' ? ' para retomar' : ''}?</b>
+      <span>${escHtml(p.nombre)}${p.estado === 'pausado' ? ` · en pausa, se retoma aprox. el ${fCorta(pausaAbierta(p).reanudar_aprox)}` : ''} · tócalo al llegar a la ciudad u hospedaje, no al sitio.</span>
       <div class="yl-otro" style="display:none"><input type="date" class="field-input" id="yl-f-${p.id}" max="${hoy}" value="${hoy}"><button class="btn btn-ghost btn-sm" onclick="ejecutarConCarga(this, () => registrarLlegada('${p.id}', document.getElementById('yl-f-${p.id}').value))">Guardar</button></div>
     </div>
     <div class="yl-acc"><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => registrarLlegada('${p.id}'), 'Guardando...')"><i class="ti ti-check" aria-hidden="true"></i> Ya llegué</button>
@@ -4462,9 +4587,9 @@ function tarjetaYaLlegue(empId, soloPid) {
 async function registrarLlegada(pid, fecha, deshacer) {
   const r = await api('POST', `/proyectos/proyectos/${pid}/ya-llegue`, deshacer ? { deshacer: true } : (fecha ? { fecha } : {}));
   if (!r) return;
-  toast(deshacer ? 'Llegada borrada' : '¡Listo! Llegada registrada');
+  toast(deshacer ? 'Llegada borrada' : r.reanudacion ? 'Llegada registrada: ya puedes pedir que se reanude el proyecto' : '¡Listo! Llegada registrada');
   await loadProyectos(true);
-  if (document.getElementById('panel-overlay')?.classList.contains('open') && document.querySelector(`#panel-body .yl-hecho, #panel-body #yl-${pid}`)) verProyectoTecnico(pid);
+  if (document.getElementById('panel-overlay')?.classList.contains('open') && document.querySelector(`#panel-body .yl-hecho, #panel-body #yl-${pid}, #panel-body .pz-zona`)) verProyectoTecnico(pid);
   if (RENDERERS[STATE._seccion]) RENDERERS[STATE._seccion]();
 }
 function detectarTraslapes(empId, proyectoId) {
@@ -5156,7 +5281,7 @@ async function renderGantt() {
                 const trabajado = pry && trabajados.has(`${e.id}|${pry.id}|${isoLocal(d)}`);
                 // Proyecto finalizado: sólido = se checó entrada, tenue = sin checada, franja inferior = retraso
                 const finalizado = pry && pry.fecha_fin_real;
-                const tr = !pry && !aus ? tras[isoLocal(d)] : null;
+                const tr = !aus ? ((t0 => t0 && (!pry || t0.pausa) ? t0 : null)(tras[isoLocal(d)])) : null;
                 if (aus) cls += ' ausencia' + (pry ? ' conflicto' : '');
                 else if (tr) cls += tr.tipo === 'espera' ? ' traslado espera' : ' traslado';
                 else if (tipoDia === 'no-usado') cls += ' no-usado';
@@ -9513,7 +9638,6 @@ function verProyectoTecnico(id) {
   const p = STATE.proyectos.find(x=>x.id===id);
   if (!p) return;
   const abierto = !['completado','cancelado'].includes(p.estado);
-  const pzAbierta = p.estado === 'pausado' ? (p.pausas_resumen || []).slice(-1)[0] : null;
   // Pausa: el técnico la solicita (la autoriza un admin); un admin en Vista Técnico pausa directo
   const btnPausa = !abierto || p.estado === 'pausado' || !p.fecha_inicio_real ? ''
     : STATE.rol !== 'tecnico' ? `<button class="btn btn-ghost btn-sm" onclick="abrirModalPausa('${p.id}','directa')"><i class="ti ti-player-pause" aria-hidden="true"></i> Pausar</button>`
@@ -9521,9 +9645,9 @@ function verProyectoTecnico(id) {
     : `<button class="btn btn-ghost btn-sm" onclick="abrirModalPausa('${p.id}','solicitud')"><i class="ti ti-player-pause" aria-hidden="true"></i> Solicitar pausa</button>`;
   openPanel(p.nombre, `
     ${htmlSolicitudPausa(p)}
-    ${pzAbierta && !pzAbierta.fin ? `<div class="pz-aviso"><i class="ti ti-player-pause" aria-hidden="true"></i><div><b>En pausa desde el ${fCorta(pzAbierta.inicio)}</b>${pzAbierta.motivo ? `<span>Motivo: ${escHtml(pzAbierta.motivo)}</span>` : ''}</div></div>` : ''}
+    ${htmlAvisoPausa(p, true)}
     ${p.fecha_fin_real && p.estado === 'completado' ? htmlCierreProyecto(p) : ''}
-    ${(() => { const me = STATE.user?.empleado_id, l = p.llegadas?.[me]; if (!l?.fuera || p.fecha_fin_real) return '';
+    ${(() => { const me = STATE.user?.empleado_id, l = p.llegadas?.[me]; if (!l?.fuera || p.fecha_fin_real || p.estado === 'pausado') return '';
       return l.llegada ? `<div class="yl-hecho"><i class="ti ti-map-pin-check" aria-hidden="true" style="color:#60a5fa"></i> Llegaste a la zona el ${fCorta(l.llegada)}${!p.fecha_inicio_real ? ` · <a href="#" onclick="event.preventDefault();ejecutarConCarga(this, () => registrarLlegada('${p.id}', null, true))" style="color:var(--text3)">Deshacer</a>` : ''}</div>`
         : tarjetaYaLlegue(me, p.id); })()}
     <div class="panel-section">
@@ -9538,7 +9662,7 @@ function verProyectoTecnico(id) {
         <div>Sitio: <span style="color:var(--text)">${p.ciudad||'—'}${p.estado_ub?', '+p.estado_ub:''}</span></div>
       </div>
     </div>`,
-    `${btnPausa}${p.estado!=='completado'&&p.estado!=='cancelado'&&!p.fecha_inicio_real?`<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="confirmarInicioProyecto('${p.id}','tecnico')"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Iniciar proyecto</button>`:''}${p.estado!=='completado'&&p.estado!=='cancelado'?`<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}','tecnico'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar trabajo en campo</button>`:''}${avanceDisponible()&&proyectoIniciado(p)&&!['completado','cancelado'].includes(p.estado)?`<button class="btn btn-ghost btn-sm" style="color:var(--orange)" onclick="irAvance('${p.id}')"><i class="ti ti-flame" aria-hidden="true"></i> Avance</button>`:''}<button class="btn btn-primary btn-sm" onclick="showSection('checador');closePanel(null,true)"><i class="ti ti-clock" aria-hidden="true"></i> Ir al checador</button>`);
+    `${abierto ? `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true);STATE._repPre='${p.id}';showSection('reportar')" title="Reportar una incidencia o novedad de este proyecto"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Reportar</button>` : ''}${btnPausa}${p.estado!=='completado'&&p.estado!=='cancelado'&&!p.fecha_inicio_real?`<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="confirmarInicioProyecto('${p.id}','tecnico')"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Iniciar proyecto</button>`:''}${p.estado!=='completado'&&p.estado!=='cancelado'?`<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}','tecnico'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar trabajo en campo</button>`:''}${avanceDisponible()&&proyectoIniciado(p)&&!['completado','cancelado'].includes(p.estado)?`<button class="btn btn-ghost btn-sm" style="color:var(--orange)" onclick="irAvance('${p.id}')"><i class="ti ti-flame" aria-hidden="true"></i> Avance</button>`:''}<button class="btn btn-primary btn-sm" onclick="showSection('checador');closePanel(null,true)"><i class="ti ti-clock" aria-hidden="true"></i> Ir al checador</button>`);
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -12364,7 +12488,7 @@ async function marcarSalida() {
 }
 
 // ─── SECCIÓN: REPORTAR ────────────────────────────────────────────────────────
-const TIPOS_INCIDENCIA = { retraso: 'Retraso en proyecto', falla_equipo: 'Falla de equipo', condicion_clima: 'Condición climática',
+const TIPOS_INCIDENCIA = { retraso: 'Retraso en proyecto', acceso_sitio: 'Acceso al sitio / permisos del cliente', falla_equipo: 'Falla de equipo', condicion_clima: 'Condición climática',
   seguridad: 'Problema de seguridad', avance_normal: 'Avance normal', otro: 'Otro' };
 function etiquetaIncidencia(t) {
   if (!t) return 'Incidencia';
@@ -12378,18 +12502,34 @@ async function renderReportar(proyectoPre) {
   await loadProyectos();
   const empId = STATE.user?.empleado_id;
   const asignados = STATE.proyectos.filter(p => (p.tecnicos_asignados||[]).includes(empId));
-  const misProyectos = asignados.filter(p => proyectoIniciado(p) && !['completado','cancelado','pausado'].includes(p.estado));
-  if (proyectoPre && !misProyectos.some(p => p.id === proyectoPre)) { const x = STATE.proyectos.find(p => p.id === proyectoPre); if (x) misProyectos.unshift(x); }
-  const preId = proyectoPre || proyectoVigenteDe(empId)?.id;
+  // Se puede reportar en proyectos en curso, en pausa (ej. el cliente movió la fecha de acceso)
+  // y próximos a iniciar (dentro de 2 semanas): la novedad queda en la bitácora del proyecto.
+  const hoyR = isoLocal(new Date()), en14 = isoLocal(new Date(Date.now() + 14 * 86400000));
+  const abierto = p => !p.fecha_fin_real && !['completado', 'cancelado'].includes(p.estado);
+  const enCurso = asignados.filter(p => abierto(p) && p.estado !== 'pausado' && proyectoIniciado(p));
+  const enPausa = asignados.filter(p => abierto(p) && p.estado === 'pausado');
+  const proximos = asignados.filter(p => abierto(p) && p.estado !== 'pausado' && !proyectoIniciado(p) && (p.fecha_inicio || '9999') <= en14)
+    .sort((a, b) => (a.fecha_inicio || '').localeCompare(b.fecha_inicio || ''));
+  const misProyectos = [...enCurso, ...enPausa, ...proximos];
+  const extra = proyectoPre && !misProyectos.some(p => p.id === proyectoPre) ? STATE.proyectos.find(p => p.id === proyectoPre) : null;
+  if (extra) misProyectos.unshift(extra);
+  const preId = proyectoPre || enCurso[0]?.id || enPausa[0]?.id || proximos[0]?.id;
+  const opt = p => `<option value="${p.id}"${p.id === preId ? ' selected' : ''}>${escHtml(p.nombre)}</option>`;
+  const grupo = (t, L) => L.length ? `<optgroup label="${t}">${L.map(opt).join('')}</optgroup>` : '';
   html(`
     <div class="table-section" style="padding:20px" id="form-reportar">
       <div class="panel-section-title" style="margin-bottom:16px">NUEVO REPORTE DE INCIDENCIA</div>
       <div class="field-row">
         <div class="field-group"><label class="field-label">PROYECTO</label>
-          <select class="field-select" id="rep-proyecto">
-            ${misProyectos.length ? misProyectos.map(p=>`<option value="${p.id}"${p.id === preId ? ' selected' : ''}>${escHtml(p.nombre)}</option>`).join('') : '<option value="">Sin proyectos en curso</option>'}
+          <select class="field-select" id="rep-proyecto" onchange="campoReanudarReporte()">
+            ${misProyectos.length ? (extra ? opt(extra) : '') + grupo('En curso', enCurso) + grupo('En pausa', enPausa) + grupo('Próximos a iniciar', proximos) : '<option value="">Sin proyectos en curso, en pausa o próximos</option>'}
           </select>
         </div>
+      </div>
+      <div class="field-row" id="rep-ra-fila" style="margin-top:10px;display:none">
+        <div class="field-group"><label class="field-label">FECHA PROBABLE DE REANUDACIÓN <span class="np-opc">opcional · el proyecto está en pausa</span></label>
+          <input type="date" class="field-input" id="rep-ra" min="${isoLocal(new Date())}" style="max-width:200px">
+          <div class="av-nota" style="margin-top:4px">Si el cliente te dio una nueva fecha para entrar, anótala: actualiza la pausa del proyecto.</div></div>
       </div>
       <div class="field-row" style="margin-top:10px">
         <div class="field-group"><label class="field-label">TIPO DE INCIDENCIA</label>
@@ -12415,6 +12555,16 @@ async function renderReportar(proyectoPre) {
         <button class="btn btn-primary" ${misProyectos.length?'':'disabled'} onclick="ejecutarConCarga(this, enviarReporte)"><i class="ti ti-send" aria-hidden="true"></i> Enviar reporte</button>
       </div>
     </div>`);
+  campoReanudarReporte();
+}
+// En un proyecto en pausa, el reporte puede traer la nueva fecha probable de reanudación
+function campoReanudarReporte() {
+  const pid = document.getElementById('rep-proyecto')?.value, p = (STATE.proyectos || []).find(x => x.id === pid);
+  const pz = p ? pausaAbierta(p) : null, fila = document.getElementById('rep-ra-fila'), inp = document.getElementById('rep-ra');
+  if (!fila || !inp) return;
+  fila.style.display = pz ? '' : 'none';
+  inp.value = pz?.reanudar_aprox || '';
+  inp.dataset.antes = pz?.reanudar_aprox || '';
 }
 
 async function enviarReporte() {
@@ -12425,8 +12575,11 @@ async function enviarReporte() {
   const tipo = document.getElementById('rep-tipo')?.value;
   const sev  = document.getElementById('rep-sev')?.value;
   const fecha = document.getElementById('rep-fecha')?.value || null;
+  const raIn = document.getElementById('rep-ra'), ra = raIn && document.getElementById('rep-ra-fila')?.style.display !== 'none' ? (raIn.value || '') : null;
+  if (ra && ra < isoLocal(new Date())) { toast('La fecha probable de reanudación no puede ser pasada', 'error'); return; }
   const r = await api('POST', '/incidencias', { proyecto_id, tipo, severidad: sev, descripcion: desc, fecha });
   if (!r) { toast('Error al enviar el reporte','error'); return; }
+  if (ra !== null && ra !== (raIn.dataset.antes || '')) await guardarReanudarAprox(proyecto_id, ra || null);
   toast('Reporte enviado correctamente');
   renderReportar();
 }
@@ -13942,10 +14095,11 @@ async function exportarGanttPDF() {
     const barras = []; let actual = null, tras = trasladosEmpleado(e.id);
     dias.forEach((d, i) => {
       const aus = ausenciaEn(e, d), pry = aus ? null : proyectoEnDia(e.id, d);
-      const tr = !aus && !pry ? tras[isoLocal(d)] : null;   // días de traslado calculados (ocupado, no es día del proyecto)
-      const clave = aus ? 'aus:' + aus.fecha_inicio : pry ? pry.id : tr ? `tras:${tr.p.id}:${tr.tipo}` : null;
+      const tr = !aus ? (t0 => t0 && (!pry || t0.pausa) ? t0 : null)(tras[isoLocal(d)]) : null;   // días de traslado calculados (los de una pausa se pintan sobre el proyecto)
+      const pryB = tr ? null : pry;   // un traslado de pausa se dibuja en lugar del proyecto
+      const clave = aus ? 'aus:' + aus.fecha_inicio : pryB ? pryB.id : tr ? `tras:${tr.p.id}:${tr.tipo}` : null;
       if (actual && actual.clave === clave) { actual.b = i; return; }
-      actual = clave ? { clave, a: i, b: i, est: aus ? 'ausencia' : pry ? grupoEstadoPDF(pry) : 'traslado', etq: aus ? tipoAusencia(aus) : pry ? pry.nombre : tr.tipo === 'espera' ? 'En zona' : 'Traslado', pry, aus } : null;
+      actual = clave ? { clave, a: i, b: i, est: aus ? 'ausencia' : pryB ? grupoEstadoPDF(pryB) : 'traslado', etq: aus ? tipoAusencia(aus) : pryB ? pryB.nombre : tr.tipo === 'espera' ? 'En zona' : 'Traslado', pry: pryB, aus } : null;
       if (actual) barras.push(actual);
     });
     barras.forEach(br => {
