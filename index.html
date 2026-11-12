@@ -868,6 +868,13 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .pz-lista-tit{font-weight:700;color:var(--amber);font-size:13px;margin-bottom:10px;display:flex;gap:6px;align-items:center}
 .pz-aviso{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border2);background:var(--surface2);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12.5px;color:var(--text2)}
 .pz-aviso i{font-size:18px;color:var(--text3)}
+.bit-inc{display:flex;gap:8px;align-items:flex-start;margin-top:6px}
+.bit-inc:first-child{margin-top:0}
+.bit-inc-chip{display:inline-flex;align-items:center;gap:4px;flex-shrink:0;font-size:10px;font-weight:700;letter-spacing:.03em;border:1px solid;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.bit-inc-txt{font-size:12px;color:var(--text)}.bit-inc-txt em{font-style:normal;font-weight:600;font-size:11px;margin-left:4px}
+.bit-inc-txt em.ok{color:var(--green)}.bit-inc-txt em.ab{color:var(--amber)}
+.cr-ex-fila.bit-sub{border-top:none;padding-top:2px}.cr-ex-fila.bit-sub .cr-ex-f{color:var(--text3);font-weight:500;padding-left:10px}
+.cr-ex-fila.bit-pausa .cr-ex-m{color:var(--text2)}
 .mp-campo{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--input-bg);border:1px solid var(--border2);border-radius:10px;padding:10px 14px;color:var(--text);font:inherit;cursor:pointer}
 .mp-campo:hover{border-color:var(--text3)}.mp-campo>i:first-child{font-size:20px;color:var(--text3)}.mp-campo span{flex:1;min-width:0}
 .mp-campo b{display:block;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mp-campo small{display:block;font-size:11.5px;color:var(--text3);margin-top:1px}
@@ -9500,8 +9507,45 @@ function datosCronograma(cr) {
     if (d.det === 'pausa' && prev?.det === 'pausa') { prev.hasta = d.fecha; prev.n++; return; }   // la pausa se junta en un renglón
     excep.push({ fecha: d.fecha, hasta: d.fecha, n: 1, cat: d.cat, det: d.det, motivos: motivo(d) });
   });
-  return { dias, cuenta, base, prod, pctProd: base ? Math.round(prod * 100 / base) : null, excep: excep.reverse() };
+  // Bitácora completa (más reciente arriba): todos los días; las incidencias reportadas van en su propia línea
+  // y los días de una pausa se agrupan bajo la pausa (con lo que haya pasado en ellos).
+  const lineasDia = d => {
+    const L = [];
+    if (d.ok.length) L.push(`Concluido: ${d.ok.map(x => x.u).join(', ')}`);
+    if (d.proc.length) L.push(`En proceso: ${d.proc.map(x => x.u).join(', ')}`);
+    [...d.ok, ...d.proc].filter(x => x.nota).forEach(x => L.push(`${x.u}: ${x.nota}`));
+    d.inc.forEach(x => L.push(`${x.u} con incidencia${x.nota ? ': ' + x.nota : ''}`));
+    if (d.descanso.length) L.push(`Descanso: ${d.descanso.join(', ')}`);
+    if (d.standby.length) L.push(`Standby: ${d.standby.join(', ')}`);
+    d.motivos.forEach(m => L.push(m));
+    d.notas.forEach(n => L.push(n.replace(/\s*\n+\s*[-–•·*]?\s*/g, ' · ')));
+    if (d.det === 'sinreg') L.push(d.sin_registro.length ? `Sin checada: ${d.sin_registro.join(', ')}` : 'Sin checada ni reporte');
+    if (!L.length && !d.incidencias.length && d.det !== 'pausa' && d.personas.length) L.push(`Asistencia: ${d.personas.join(', ')}${['avance', 'parcial'].includes(d.cat) ? '' : ' · sin avance capturado'}`);
+    return L;
+  };
+  const incDia = d => d.incidencias.map(i => ({ tipo: i.tipo, sev: i.severidad || 'baja', resuelta: (i.estado || '') === 'resuelta', desc: String(i.descripcion || '').trim() }));
+  const bitacora = [];
+  dias.forEach(d => {
+    const lineas = lineasDia(d), inc = incDia(d);
+    if (d.cat === 'hoy' && !lineas.length && !inc.length) return;
+    if (d.det === 'pausa') {
+      let g = bitacora[bitacora.length - 1];
+      if (!(g?.tipo === 'pausa' && g.hasta === isoLocal(new Date(fechaLocal(d.fecha).getTime() - 86400000)))) {
+        g = { tipo: 'pausa', fecha: d.fecha, hasta: d.fecha, n: 0, motivo: d.pausa_motivo || '', sub: [] }; bitacora.push(g);
+      }
+      g.hasta = d.fecha; g.n++;
+      if (lineas.length || inc.length) g.sub.push({ tipo: 'dia', fecha: d.fecha, cat: 'pausa', lineas, inc });
+      return;
+    }
+    bitacora.push({ tipo: 'dia', fecha: d.fecha, cat: d.cat, lineas, inc });
+  });
+  bitacora.reverse().forEach(g => g.sub && g.sub.reverse());
+  const nInc = dias.reduce((t, d) => t + d.incidencias.length, 0);
+  return { dias, cuenta, base, prod, pctProd: base ? Math.round(prod * 100 / base) : null, excep: excep.reverse(), bitacora, nInc };
 }
+const SEV_INC = { alta: { t: 'ALTA', c: [220, 38, 38], bg: [254, 226, 226], tx: [185, 28, 28] }, media: { t: 'MEDIA', c: [217, 119, 6], bg: [254, 243, 199], tx: [180, 83, 9] },
+  baja: { t: 'BAJA', c: [148, 163, 184], bg: [241, 245, 249], tx: [71, 85, 105] } };
+const sevInc = s => SEV_INC[s] || SEV_INC[String(s).toLowerCase()] || SEV_INC.baja;
 const rgbCss = c => `rgb(${c.join(',')})`;
 function htmlCronogramaMetricas(p) {
   const X = datosCronograma(p.cronograma); if (!X.dias.length) return '';
@@ -9521,12 +9565,29 @@ function htmlCronogramaMetricas(p) {
     <div class="cr-ley">${cats.map(k => `<span><i style="background:${rgbCss(CRONO_CAT[k].bg)};border-color:${rgbCss(CRONO_CAT[k].c)}"></i>${CRONO_CAT[k].t}${CRONO_CAT[k].d ? ` <em>${CRONO_CAT[k].d}</em>` : ''}</span>`).join('')}
       ${X.dias.some(d => d.finde) ? '<span><i class="cr-finde-ley"></i>Fin de semana</span>' : ''}</div>
     <div class="cr-res">${resumen.join(' · ')}${X.pctProd != null ? ` &nbsp;|&nbsp; Días productivos: <b>${X.pctProd}%</b>` : ''}</div>
-    ${X.excep.length ? `<div class="cr-ex"><div class="mp-lab">Días sin avance o con novedad</div>
-      ${X.excep.map(e => { const k = CRONO_CAT[e.cat]; return `<div class="cr-ex-fila" id="cr-ex-${escHtml(p.proyecto_id || p.id)}-${e.fecha}">
-        <span class="cr-ex-f">${e.n > 1 ? `${fCorta(e.fecha)} – ${fCorta(e.hasta)}` : fechaLargaAv(e.fecha).replace(/ de \d{4}$/, '')}</span>
-        <span class="cr-ex-b" style="background:${rgbCss(k.bg)};color:${rgbCss(k.tx)};border-color:${rgbCss(k.c)}">${k.t}${e.n > 1 ? ` · ${e.n} días` : ''}</span>
-        <span class="cr-ex-m">${e.motivos.map(escHtml).join('<br>')}</span></div>`; }).join('')}</div>` : ''}
+    ${X.bitacora.length ? `<div class="cr-ex"><div class="mp-lab">Bitácora del proyecto <span style="text-transform:none;letter-spacing:0;font-weight:500">· día a día, lo más reciente arriba${X.nInc ? ` · ${plural(X.nInc, 'incidencia')}` : ''}</span></div>
+      ${X.bitacora.map(e => e.tipo === 'pausa' ? htmlBitPausa(p, e) : htmlBitDia(p, e)).join('')}</div>` : ''}
   </div>`;
+}
+const fechaBit = f => fechaLargaAv(f).replace(/ de \d{4}$/, '');
+const chipCat = (k, t) => `<span class="cr-ex-b" style="background:${rgbCss(k.bg)};color:${rgbCss(k.tx)};border-color:${rgbCss(k.c)}">${t || k.t}</span>`;
+function htmlBitInc(i) {
+  const s = sevInc(i.sev);
+  return `<div class="bit-inc"><span class="bit-inc-chip" style="background:${rgbCss(s.bg)};color:${rgbCss(s.tx)};border-color:${rgbCss(s.c)}"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Incidencia · ${s.t}</span>
+    <span class="bit-inc-txt"><b>${escHtml(etiquetaIncidencia(i.tipo))}</b>${i.desc ? ` — ${escHtml(i.desc)}` : ''} <em class="${i.resuelta ? 'ok' : 'ab'}">${i.resuelta ? 'Resuelta' : 'Abierta'}</em></span></div>`;
+}
+function htmlBitDia(p, e, enPausa) {
+  return `<div class="cr-ex-fila${enPausa ? ' bit-sub' : ''}" id="cr-ex-${escHtml(p.proyecto_id || p.id)}-${e.fecha}">
+    <span class="cr-ex-f">${fechaBit(e.fecha)}</span>
+    ${enPausa ? '<span></span>' : chipCat(CRONO_CAT[e.cat])}
+    <span class="cr-ex-m">${e.lineas.map(escHtml).join('<br>')}${e.inc.map(htmlBitInc).join('')}</span></div>`;
+}
+function htmlBitPausa(p, g) {
+  return `<div class="cr-ex-fila bit-pausa" id="cr-ex-${escHtml(p.proyecto_id || p.id)}-${g.hasta}">
+    <span class="cr-ex-f">${g.n > 1 ? `${fCorta(g.fecha)} – ${fCorta(g.hasta)}` : fechaBit(g.fecha)}</span>
+    ${chipCat(CRONO_CAT.pausa, `En pausa${g.n > 1 ? ` · ${g.n} días` : ''}`)}
+    <span class="cr-ex-m">${escHtml(g.motivo ? 'Proyecto en pausa: ' + g.motivo : 'Proyecto en pausa')}</span></div>
+    ${g.sub.map(d => htmlBitDia(p, d, true)).join('')}`;
 }
 // PDF: tira + resumen (ficha de un proyecto). Regresa la nueva y.
 function pdfCronogramaMetricas(T, p, y) {
@@ -9575,26 +9636,47 @@ function pdfCronogramaMetricas(T, p, y) {
   if (X.pctProd != null) { T.font('bold', 6.8, PDF_EST.asignado.c); doc.text(`Días productivos: ${X.pctProd}%`, M + w, y, { align: 'right' }); }
   return y + 6;
 }
-// PDF: días a aclarar (sin avance o con novedad), en tabla
+// PDF: bitácora completa del proyecto (día a día, lo más reciente arriba). Las incidencias van en su propio renglón.
 function pdfExcepcionesCronograma(T, p, y) {
-  const { doc, C, M } = T, X = datosCronograma(p.cronograma); if (!X.excep.length) return y;
-  if (y + 30 > T.H - 22) { T.nuevaPagina(); T.encabezado('Ficha de métricas', p.proyecto_id || '', p.nombre || 'Proyecto', 'Días sin avance o con novedad'); y = 36; }
-  y = T.seccion('DÍAS SIN AVANCE O CON NOVEDAD', y, plural(X.excep.length, 'registro'));
+  const { doc, C, M } = T, X = datosCronograma(p.cronograma); if (!X.bitacora.length) return y;
+  if (y + 30 > T.H - 22) { T.nuevaPagina(); T.encabezado('Ficha de métricas', p.proyecto_id || '', p.nombre || 'Proyecto', 'Bitácora del proyecto'); y = 36; }
+  y = T.seccion('BITÁCORA DEL PROYECTO', y, `${plural(X.dias.length - (X.cuenta.hoy || 0), 'día')}${X.nInc ? ' · ' + plural(X.nInc, 'incidencia') : ''}`);
+  const filas = [];
+  const filasDia = (e, enPausa) => {
+    if (e.lineas.length || !e.inc.length) filas.push({ f: fCorta(e.fecha), e: enPausa ? '' : CRONO_CAT[e.cat].t, m: e.lineas.join('\n') || '—', _k: enPausa ? null : CRONO_CAT[e.cat], _sub: enPausa });
+    e.inc.forEach((i, n) => filas.push({ f: (e.lineas.length || n) ? '' : fCorta(e.fecha), e: `Incidencia · ${sevInc(i.sev).t}`,
+      m: `${etiquetaIncidencia(i.tipo)}${i.desc ? ' — ' + i.desc : ''} · ${i.resuelta ? 'Resuelta' : 'Abierta'}`, _k: sevInc(i.sev), _inc: true, _sub: enPausa }));
+  };
+  X.bitacora.forEach(e => {
+    if (e.tipo === 'pausa') {
+      filas.push({ f: e.n > 1 ? `${fCorta(e.fecha)} – ${fCorta(e.hasta)}` : fCorta(e.fecha), e: `En pausa${e.n > 1 ? ` (${e.n} días)` : ''}`, m: e.motivo ? `Proyecto en pausa: ${e.motivo}` : 'Proyecto en pausa', _k: CRONO_CAT.pausa });
+      e.sub.forEach(d => filasDia(d, true));
+    } else filasDia(e);
+    filas[filas.length - 1]._fin = true;   // una sola raya al final de cada día / pausa
+  });
   doc.autoTable({
     startY: y, margin: { left: M, right: M, top: 30, bottom: 22 },
     columns: [{ header: 'Fecha', dataKey: 'f' }, { header: 'Estatus', dataKey: 'e' }, { header: 'Qué pasó', dataKey: 'm' }],
-    body: X.excep.map(e => ({ f: e.n > 1 ? `${fCorta(e.fecha)} – ${fCorta(e.hasta)}` : fCorta(e.fecha), e: `${CRONO_CAT[e.cat].t}${e.n > 1 ? ` (${e.n} días)` : ''}`, m: e.motivos.join('\n'), _c: e.cat })),
-    theme: 'plain', rowPageBreak: 'avoid',
-    styles: { font: window._fuentesPDF ? 'Montserrat' : 'helvetica', fontSize: 7, textColor: C.texto, cellPadding: { top: 1.6, bottom: 1.6, left: 2, right: 2 }, lineColor: C.linea, valign: 'middle', overflow: 'linebreak' },
+    body: filas, theme: 'plain', rowPageBreak: 'avoid',
+    styles: { font: window._fuentesPDF ? 'Montserrat' : 'helvetica', fontSize: 7, textColor: C.texto, cellPadding: { top: 1.5, bottom: 1.5, left: 2, right: 2 }, lineColor: C.linea, valign: 'middle', overflow: 'linebreak' },
     headStyles: { fontStyle: 'bold', textColor: C.gris, fontSize: 6.4, fillColor: C.fondo },
-    columnStyles: { f: { cellWidth: 26, fontStyle: 'bold', textColor: C.tinta }, e: { cellWidth: 32 } },
-    didParseCell: d => { if (d.section === 'body') { d.cell.styles.lineWidth = { bottom: 0.15 }; if (d.column.dataKey === 'e') d.cell.text = ['']; } },
+    columnStyles: { f: { cellWidth: 24, fontStyle: 'bold', textColor: C.tinta }, e: { cellWidth: 34 } },
+    didParseCell: d => {
+      if (d.section !== 'body') return;
+      const r = d.row.raw;
+      d.cell.styles.lineWidth = { bottom: r._fin ? 0.15 : 0 };
+      if (r._sub || r._inc) d.cell.styles.cellPadding = { top: 1, bottom: 1, left: 2, right: 2 };
+      if (r._inc && d.column.dataKey === 'm') d.cell.styles.textColor = C.tinta;
+      if (r._sub && d.column.dataKey === 'f') d.cell.styles.textColor = C.gris;
+      if (d.column.dataKey === 'e') d.cell.text = [''];
+    },
     didDrawCell: d => {
-      if (d.section !== 'body' || d.column.dataKey !== 'e') return;
-      const k = CRONO_CAT[d.row.raw._c], t = d.row.raw.e, h = 4.2, x = d.cell.x + 2, yy = d.cell.y + (d.cell.height - h) / 2;
-      T.font('bold', 5.8); const bw = Math.min(d.cell.width - 4, doc.getTextWidth(t) + 5);
+      if (d.section !== 'body' || d.column.dataKey !== 'e' || !d.row.raw._k || !d.row.raw.e) return;
+      const k = d.row.raw._k, t = d.row.raw.e, h = 4.2, x = d.cell.x + 2, yy = d.cell.y + (d.cell.height - h) / 2;
+      T.font('bold', 5.6); const bw = Math.min(d.cell.width - 4, doc.getTextWidth(t) + (d.row.raw._inc ? 7 : 5));
       T.relleno(k.bg); doc.roundedRect(x, yy, bw, h, 1.4, 1.4, 'F'); T.trazo(k.c, 0.25); doc.roundedRect(x, yy, bw, h, 1.4, 1.4, 'S');
-      T.font('bold', 5.8, k.tx); doc.text(t, x + bw / 2, yy + 2.95, { align: 'center' });
+      if (d.row.raw._inc) { T.relleno(k.c); doc.triangle(x + 1.6, yy + 3.2, x + 2.9, yy + 0.9, x + 4.2, yy + 3.2, 'F'); }
+      T.font('bold', 5.6, k.tx); doc.text(t, x + bw / 2 + (d.row.raw._inc ? 1 : 0), yy + 2.95, { align: 'center' });
     },
   });
   return doc.lastAutoTable.finalY + 6;
@@ -9631,7 +9713,7 @@ function htmlProyectoMetricas(p) {
       ${p.inactividad_detalle.map(g => `<tr><td><b>${escHtml(g.nombre)}</b></td><td style="color:${g.tipo === 'standby' ? 'var(--amber)' : '#a78bfa'};font-weight:600">${etqInact(g.tipo)}</td>
         <td>${g.dias}</td><td>${escHtml(fechasInactMetricas(g))}</td><td class="mp-inc-desc">${escHtml(g.motivo || '—')}</td></tr>`).join('')}
       </tbody></table></div></div>` : ''}
-    ${(p.incidencias || []).length ? `<div class="mp-inc"><div class="mp-lab">Incidencias registradas (posibles causas)</div>
+    ${(p.incidencias || []).length && !p.cronograma ? `<div class="mp-inc"><div class="mp-lab">Incidencias registradas (posibles causas)</div>
       <div style="overflow-x:auto"><table class="mk-tabla mp-inc-tabla"><thead><tr><th>Fecha</th><th>Tipo</th><th>Severidad</th><th>Estado</th><th>Descripción</th></tr></thead><tbody>
       ${p.incidencias.map(i => { const ab = (i.estado || 'abierta') !== 'resuelta', sv = i.severidad || 'baja';
         return `<tr><td>${fCorta(String(i.fecha || '').slice(0, 10) || isoLocal(new Date()))}</td><td><b>${escHtml(etiquetaIncidencia(i.tipo))}</b></td>
@@ -15015,7 +15097,7 @@ async function exportarMetricasPDF() {
     return lineas.length;
   };
   datos.forEach(p => {
-    const f = infoProyectoMetricas(p), inc = p.incidencias || [];
+    const f = infoProyectoMetricas(p), inc = unico && p.cronograma ? [] : (p.incidencias || []);   // con bitácora, las incidencias van en ella
     // insignias en renglones
     T.font('semibold', 6.2);
     const anchoIns = f.insignias.map(([t]) => doc.getTextWidth(t) + 6);
