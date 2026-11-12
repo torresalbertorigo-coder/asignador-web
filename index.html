@@ -878,6 +878,8 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .rp-radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--border2);flex-shrink:0;position:relative}
 .rp-op.on .rp-radio{border-color:var(--red)}.rp-op.on .rp-radio::after{content:'';position:absolute;inset:3px;border-radius:50%;background:var(--red)}
 .rp-txt{min-width:0}.rp-txt b{display:block;font-size:13px;font-weight:600}.rp-txt small{display:block;font-size:11.5px;color:var(--text3);margin-top:2px}
+@keyframes incFlash{0%,100%{box-shadow:none}30%,70%{box-shadow:0 0 0 2px var(--red)}}
+.inc-card.inc-flash{animation:incFlash 1.2s ease-in-out 2}
 .pz-ra{display:block;margin-top:4px;color:var(--text2)}.pz-ra a{color:var(--blue)}
 .pz-ra-edit{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px}.pz-ra-edit .field-input{max-width:160px;padding:6px 8px}
 .pz-zona{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed var(--border2)}
@@ -2420,7 +2422,7 @@ function pintarListaCampana() {
   const cuenta = [0, 1, 2].map(g => lista.filter(n => grupoN(n) === g).length);
   const sep = { 0: `<div class="aviso-sep rojo">Sin leer · ${cuenta[0]}</div>`, 1: `<div class="aviso-sep ambar">Por resolver · ${cuenta[1]}<span>se quedan hasta resolverse</span></div>`, 2: `<div class="aviso-sep" style="color:var(--text3)">Leídas<span>se borran solas a los 15 días</span></div>` };
   cont.innerHTML = lista.map((n, i) => `${i === 0 || grupoN(lista[i - 1]) !== grupoN(n) ? sep[grupoN(n)] : ''}
-    <div class="notif-item ${!n.leida ? 'unread' : grupoN(n) === 1 ? 'por-resolver' : 'leida'}${n.resuelta_en ? ' resuelta' : ''}" onclick="clicNotificacion(${n.id}, ${n.entidad_tipo === 'proyecto' ? `'${n.entidad_id}'` : 'null'}, '${n.entidad_tipo||''}')">
+    <div class="notif-item ${!n.leida ? 'unread' : grupoN(n) === 1 ? 'por-resolver' : 'leida'}${n.resuelta_en ? ' resuelta' : ''}" onclick="clicNotificacion(${n.id}, ${n.entidad_tipo === 'proyecto' ? `'${n.entidad_id}'` : 'null'}, '${n.entidad_tipo||''}', '${n.entidad_tipo === 'incidencia' ? n.entidad_id : ''}')">
       ${n.leida ? (grupoN(n) === 1 ? '<span class="aviso-chip notif-chip seg">Por resolver</span>' : n.resuelta_en ? '<span class="aviso-chip notif-chip ok">Resuelto</span>' : '') : '<span class="notif-punto" aria-label="Sin leer"></span>'}
       <div class="notif-title">${escHtml(n.titulo)}</div>
       ${n.mensaje ? `<div class="notif-msg">${escHtml(n.mensaje)}</div>` : ''}
@@ -2429,7 +2431,7 @@ function pintarListaCampana() {
   `).join('');
 }
 
-async function clicNotificacion(id, proyectoId, entidadTipo) {
+async function clicNotificacion(id, proyectoId, entidadTipo, entidadId) {
   // Se descuenta al instante; el servidor se actualiza detrás
   const n = (STATE.notificaciones || []).find(x => x.id === id);
   if (n && !n.leida) { n.leida = true; STATE._notifNoLeidas = Math.max(0, (STATE._notifNoLeidas || 0) - 1); pintarCampana(); pintarListaCampana(); }
@@ -2438,6 +2440,13 @@ async function clicNotificacion(id, proyectoId, entidadTipo) {
     document.getElementById('notif-dropdown').classList.remove('open');
     showSection('mi-perfil');
     setTimeout(() => document.getElementById('sec-certificados')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 500);
+    return;
+  }
+  if (entidadTipo === 'incidencia') {   // abre la Bitácora de excepciones y resalta la incidencia
+    document.getElementById('notif-dropdown').classList.remove('open');
+    STATE._excTab = 'incidencias';
+    await showSection('incidencias');
+    setTimeout(() => { const c = document.getElementById(`inc-${entidadId}`); if (c) { c.scrollIntoView({ behavior: 'smooth', block: 'center' }); c.classList.add('inc-flash'); setTimeout(() => c.classList.remove('inc-flash'), 2400); } }, 600);
     return;
   }
   if (entidadTipo === 'inactividad') {
@@ -8168,7 +8177,7 @@ async function renderIncidencias() {
     ${inc.length===0?`<div class="empty-state"><i class="ti ti-check-circle" aria-hidden="true"></i><p>Sin incidencias reportadas</p><span>Los técnicos no han enviado reportes aún</span></div>`:`
     <div class="table-section">
       <div class="table-header"><span class="table-title">INCIDENCIAS DE CAMPO</span></div>
-      ${inc.map(i=>`<div class="inc-card ${i.severidad}" style="${i.estado==='resuelta'?'opacity:.55':''}">
+      ${inc.map(i=>`<div class="inc-card ${i.severidad}" id="inc-${i.id}" style="${i.estado==='resuelta'?'opacity:.55':''}">
         <div class="inc-head"><span class="inc-tipo">${escHtml(etiquetaIncidencia(i.tipo))}</span><div style="display:flex;gap:6px;align-items:center">${i.estado==='resuelta'?badge('completado'):badge(i.severidad||'baja')}${STATE.rol!=='tecnico' && i.estado!=='resuelta' ? `<button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px" onclick="ejecutarConCarga(this, () => marcarIncidenciaResuelta('${i.id}'))">Marcar resuelta</button>` : ''}${STATE.rol!=='tecnico' ? `<button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px;color:var(--red-text)" onclick="eliminarIncidenciaConfirm('${i.id}')"><i class="ti ti-trash" aria-hidden="true"></i></button>` : ''}</div></div>
         <div class="inc-meta"><i class="ti ti-folder" aria-hidden="true"></i> ${nombreProyecto(i.proyecto_id)} · <i class="ti ti-user" aria-hidden="true"></i> ${nombreEmpleado(i.empleado_id)} · <i class="ti ti-calendar" aria-hidden="true"></i> ${(i.fecha||'').split('T')[0]}</div>
         <div class="inc-desc">${i.descripcion}</div>
