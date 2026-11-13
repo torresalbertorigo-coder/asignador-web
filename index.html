@@ -7883,6 +7883,15 @@ async function refrescarEquipo(id) {
   return eq;
 }
 
+// La próxima calibración la toma el servidor del certificado de calibración: se refleja en el formulario
+// para que "Guardar cambios" no la regrese a la fecha anterior.
+function sincronizarCampoCalibracion(eq) {
+  const inp = document.getElementById('ve-cal'), chk = document.getElementById('ve-sincal');
+  if (!eq || !inp || eq.sin_calibracion || !eq.proxima_calibracion || inp.value === eq.proxima_calibracion) return;
+  inp.value = eq.proxima_calibracion; inp.disabled = false; if (chk) chk.checked = false;
+  inp.style.transition = 'box-shadow .3s'; inp.style.boxShadow = '0 0 0 2px var(--green)'; setTimeout(() => { inp.style.boxShadow = ''; }, 1600);
+  toast(`Próxima calibración actualizada al ${fLargaAnio(eq.proxima_calibracion)}`);
+}
 async function agregarDocumentoEquipo(eqId) {
   const tipo   = document.getElementById('ed-tipo')?.value || 'otro';
   const nombreIn = document.getElementById('ed-nombre')?.value.trim();
@@ -7900,6 +7909,7 @@ async function agregarDocumentoEquipo(eqId) {
   const eq = await refrescarEquipo(eqId);
   const lista = document.getElementById('ve-docs-list');
   if (eq && lista) lista.innerHTML = renderDocsEquipo(eq);
+  sincronizarCampoCalibracion(eq);
   ['ed-nombre','ed-vence','ed-archivo'].forEach(i => { const el = document.getElementById(i); if (el) el.value = ''; });
   toast('Documento agregado');
 }
@@ -7911,6 +7921,7 @@ async function eliminarDocumentoEquipo(eqId, docId) {
   const eq = await refrescarEquipo(eqId);
   const lista = document.getElementById('ve-docs-list');
   if (eq && lista) lista.innerHTML = renderDocsEquipo(eq);
+  sincronizarCampoCalibracion(eq);
   toast('Documento eliminado');
 }
 
@@ -7937,6 +7948,7 @@ async function reemplazarDocumentoEquipo(eqId, docId, nombre, vigenciaActual) {
     const eq = await refrescarEquipo(eqId);
     const lista = document.getElementById('ve-docs-list');
     if (eq && lista) lista.innerHTML = renderDocsEquipo(eq);
+    sincronizarCampoCalibracion(eq);
     toast('Documento reemplazado');
   };
   input.click();
