@@ -808,6 +808,21 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .gs-fecha{max-width:170px;padding:8px 10px}
 .gs-auto{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--text)}
 .gs-auto>div{display:flex;align-items:center;gap:8px}.gs-auto i{color:var(--text3);font-size:16px}
+.gs-lbl em{font-style:normal;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text3)}
+.gs-pys{display:flex;flex-direction:column;gap:8px;border-radius:14px;transition:box-shadow .2s}
+.gs-pys.falta{box-shadow:0 0 0 2px var(--red);padding:4px}
+.gs-pt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--surface);border:1.5px solid var(--border2);border-radius:12px;padding:12px 14px;cursor:pointer;color:var(--text);font:inherit;transition:border-color .15s,background .15s}
+.gs-pt:hover{border-color:var(--text3)}
+.gs-pt.otro{border-style:dashed;background:transparent}
+.gs-pt-chk{flex-shrink:0;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;color:transparent;font-size:14px}
+.gs-pt-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.gs-pt-txt b{font-size:14px;font-weight:700;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.gs-pt-txt small{font-size:11.5px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gs-pt-est{flex-shrink:0;display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;border-radius:999px;padding:3px 8px;white-space:nowrap}
+.gs-pt-est.act{background:rgba(34,197,94,.14);color:var(--green)}.gs-pt-est.pau{background:rgba(245,158,11,.15);color:var(--amber)}.gs-pt-est.pro{background:rgba(59,130,246,.14);color:#60a5fa}
+.gs-pt.on{border-color:var(--red);background:rgba(227,28,34,.08)}
+.gs-pt.on .gs-pt-chk{background:var(--red);border-color:var(--red);color:#fff}
+.gs-ok-pry{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;background:var(--surface);border:1px solid var(--border2);border-radius:999px;padding:6px 12px;margin:2px 0 6px}
 .gs-pry{flex:1;min-width:0;background:transparent;border:none;color:var(--text);font:inherit;font-size:13px;font-weight:600;padding:2px 0;cursor:pointer}
 .gs-nota{padding:10px 12px}
 .gs-enviar{width:100%;justify-content:center;padding:14px;font-size:15px}
@@ -8976,14 +8991,48 @@ async function exportarExcelDatos() {
 const GASTO_CONCEPTOS = [['combustible', 'Combustible', 'gas-station'], ['alimentos', 'Alimentos', 'tools-kitchen-2'],
   ['hospedaje', 'Hospedaje', 'bed'], ['herramienta', 'Herramienta', 'tool'], ['otros', 'Otros', 'dots']];
 const fmtMoneda = n => '$' + (Number(n) || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-async function renderRegistrarGasto() {
+// Proyecto del gasto:
+//  · Con proyecto activo en campo (iniciado y no pausado): solo ese (o esos) + "Otro".
+//  · Sin proyecto activo: todos sus proyectos asignados (pausados o por iniciar) + "Otro".
+//  · "Registrar otro" conserva el proyecto del gasto anterior; sin proyecto activo también se recuerda en el dispositivo.
+const GASTO_OTRO = '_otro';
+function opcionesProyectoGasto(empId) {
+  const mios = (STATE.proyectos || []).filter(p => (p.tecnicos_asignados || []).includes(empId) && !p.fecha_fin_real && !['completado', 'cancelado'].includes(p.estado));
+  const enCampo = mios.filter(p => proyectoIniciado(p) && p.estado !== 'pausado')
+    .sort((a, b) => (b.fecha_inicio_real || '').localeCompare(a.fecha_inicio_real || ''));
+  if (enCampo.length) return { activo: true, lista: enCampo };
+  const orden = p => p.estado === 'pausado' ? 0 : 1;
+  return { activo: false, lista: mios.sort((a, b) => (orden(a) - orden(b)) || String(a.fecha_inicio || '').localeCompare(String(b.fecha_inicio || ''))) };
+}
+function estadoProyectoGasto(p) {
+  if (p.estado === 'pausado') return { t: 'Pausado', c: 'pau', ic: 'player-pause' };
+  if (proyectoIniciado(p)) return { t: 'En curso', c: 'act', ic: 'player-play' };
+  const hoy = isoLocal(new Date());
+  return { t: p.fecha_inicio && p.fecha_inicio > hoy ? `Inicia ${fCorta(p.fecha_inicio)}` : 'Por iniciar', c: 'pro', ic: 'calendar-event' };
+}
+function htmlProyectosGasto(O, sel) {
+  const tile = (id, titulo, sub, est, extra = '') => `<button type="button" class="gs-pt${id === sel ? ' on' : ''}${extra}" data-p="${id}" onclick="elegirProyectoGasto('${id}')">
+      <span class="gs-pt-chk"><i class="ti ti-check" aria-hidden="true"></i></span>
+      <span class="gs-pt-txt"><b>${escHtml(titulo)}</b>${sub ? `<small>${escHtml(sub)}</small>` : ''}</span>
+      ${est ? `<span class="gs-pt-est ${est.c}"><i class="ti ti-${est.ic}" aria-hidden="true"></i>${est.t}</span>` : ''}</button>`;
+  return O.lista.map(p => tile(p.id, p.nombre, [p.cliente, p.ciudad].filter(Boolean).join(' · '), estadoProyectoGasto(p))).join('')
+    + tile(GASTO_OTRO, 'Otro', 'Sin proyecto (gasto general u otro motivo)', null, ' otro');
+}
+function elegirProyectoGasto(id) {
+  STATE._gasto.proyecto = id;
+  document.querySelectorAll('.gs-pt').forEach(b => b.classList.toggle('on', b.dataset.p === id));
+  document.getElementById('gs-pys')?.classList.remove('falta');
+}
+async function renderRegistrarGasto(conservar) {
   const empId = STATE.user?.empleado_id;
   if (!empId) { html(`<div class="empty-state"><i class="ti ti-user-off" aria-hidden="true"></i><p>Tu cuenta no tiene perfil de empleado, así que no puede registrar gastos.</p></div>`); return; }
   await loadProyectos();
-  const activos = (STATE.proyectos || []).filter(p => (p.tecnicos_asignados || []).includes(empId) && !p.fecha_fin_real && !['completado', 'cancelado'].includes(p.estado));
-  // Proyecto: el que tiene iniciado en este momento (si hay varios, el más reciente)
-  const enCampo = activos.filter(proyectoIniciado).sort((a, b) => (b.fecha_inicio_real || '').localeCompare(a.fecha_inicio_real || ''))[0];
-  const G = STATE._gasto = { fecha: isoLocal(new Date()), concepto: null, proyecto: enCampo?.id || '' };
+  const O = opcionesProyectoGasto(empId);
+  const valido = id => id === GASTO_OTRO || O.lista.some(p => p.id === id);
+  let recordado = null; try { recordado = localStorage.getItem('ws_gasto_pry'); } catch (e) {}
+  let sel = conservar && valido(STATE._gastoUltimoPry) ? STATE._gastoUltimoPry : null;
+  if (!sel) sel = O.activo ? O.lista[0].id : (valido(recordado) ? recordado : (O.lista.length ? null : GASTO_OTRO));
+  const G = STATE._gasto = { fecha: isoLocal(new Date()), concepto: null, proyecto: sel };
   const hoy = isoLocal(new Date()), ayer = isoLocal(new Date(Date.now() - 86400000));
   const nombre = STATE.user?.nombre || 'Tú';
   html(`<div class="gs-wrap" id="gs-wrap">
@@ -9000,13 +9049,11 @@ async function renderRegistrarGasto() {
         <input type="date" class="field-input gs-fecha" id="gs-fecha" value="${hoy}" max="${hoy}" onchange="elegirFechaGasto(this.value)">
       </div>
     </div>
+    <div class="gs-paso"><span class="gs-lbl">¿De qué proyecto?${O.activo ? ' <em>· tu proyecto activo</em>' : O.lista.length ? ' <em>· no tienes proyecto activo: elige uno</em>' : ''}</span>
+      <div class="gs-pys" id="gs-pys">${htmlProyectosGasto(O, G.proyecto)}</div>
+    </div>
     <div class="gs-paso gs-auto">
       <div><i class="ti ti-user" aria-hidden="true"></i> <b>${escHtml(nombre)}</b></div>
-      <div><i class="ti ti-folder" aria-hidden="true"></i>
-        <select class="gs-pry" id="gs-pry" onchange="STATE._gasto.proyecto=this.value">
-          <option value="">Sin proyecto</option>
-          ${activos.map(p => `<option value="${p.id}" ${p.id === G.proyecto ? 'selected' : ''}>${escHtml(p.nombre)}</option>`).join('')}
-        </select></div>
     </div>
     <input class="field-input gs-nota" id="gs-nota" maxlength="200" placeholder="Detalle (opcional) · ej. casetas, gasolina de la camioneta">
     <button class="btn btn-primary gs-enviar" onclick="ejecutarConCarga(this, enviarGasto, 'Registrando…')"><i class="ti ti-check" aria-hidden="true"></i> Registrar gasto</button>
@@ -9029,15 +9076,19 @@ async function enviarGasto() {
   const monto = parseFloat(txt);
   if (!G.concepto) { toast('Elige qué fue el gasto', 'error'); return; }
   if (!monto || monto <= 0) { toast('Escribe la cantidad', 'error'); document.getElementById('gs-monto')?.focus(); return; }
-  const r = await api('POST', '/gastos', { fecha: G.fecha, concepto: G.concepto, monto, proyecto_id: G.proyecto || null, nota: document.getElementById('gs-nota')?.value.trim() || null });
+  if (!G.proyecto) { toast('Elige de qué proyecto es el gasto', 'error'); const c = document.getElementById('gs-pys'); c?.classList.add('falta'); c?.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+  const r = await api('POST', '/gastos', { fecha: G.fecha, concepto: G.concepto, monto, proyecto_id: G.proyecto === GASTO_OTRO ? null : G.proyecto, nota: document.getElementById('gs-nota')?.value.trim() || null });
   if (!r) return;
+  STATE._gastoUltimoPry = G.proyecto;
+  try { localStorage.setItem('ws_gasto_pry', G.proyecto); } catch (e) {}
   const pry = (STATE.proyectos || []).find(p => p.id === G.proyecto);
   document.getElementById('gs-wrap').innerHTML = `<div class="gs-ok">
     <i class="ti ti-circle-check" aria-hidden="true"></i>
     <b>Gasto registrado</b>
     <div class="gs-ok-monto">${fmtMoneda(r.monto)}</div>
-    <span>${escHtml(r.concepto)} · ${fCorta(r.fecha)}${pry ? ' · ' + escHtml(pry.nombre) : ''}</span>
-    <button class="btn btn-primary" onclick="renderRegistrarGasto()"><i class="ti ti-plus" aria-hidden="true"></i> Registrar otro</button>
+    <span>${escHtml(r.concepto)} · ${fCorta(r.fecha)}</span>
+    <div class="gs-ok-pry"><i class="ti ti-folder" aria-hidden="true"></i>${pry ? escHtml(pry.nombre) : 'Otro (sin proyecto)'}</div>
+    <button class="btn btn-primary" onclick="renderRegistrarGasto(true)"><i class="ti ti-plus" aria-hidden="true"></i> Registrar otro${pry ? ' en este proyecto' : ''}</button>
   </div>`;
 }
 
