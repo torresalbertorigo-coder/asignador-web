@@ -883,6 +883,15 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .pz-lista-tit{font-weight:700;color:var(--amber);font-size:13px;margin-bottom:10px;display:flex;gap:6px;align-items:center}
 .pz-aviso{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border2);background:var(--surface2);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12.5px;color:var(--text2)}
 .pz-aviso i{font-size:18px;color:var(--text3)}
+.db-campo label span{font-weight:500;text-transform:none;letter-spacing:0;color:var(--text3)}
+.db-campo textarea{resize:vertical;min-height:110px;line-height:1.45}
+.db-ayuda{font-size:11px;color:var(--text3);margin-top:5px}
+.db-card .ci-tit{display:flex;align-items:center;gap:6px}.db-card .db-edit{margin-left:auto}
+.db-txt{font-size:13px;color:var(--text);white-space:pre-wrap;line-height:1.5;word-break:break-word}
+.db-por{font-size:11px;color:var(--text3);margin-top:6px}
+.db-vacio{font-size:12px;color:var(--text3)}
+.mp-debrief{margin-top:12px;padding:12px 14px;border:1px solid var(--border2);border-left:3px solid var(--red);border-radius:10px;background:var(--surface)}
+.mp-debrief .mp-lab{display:flex;align-items:center;gap:5px;margin-bottom:6px}
 .bit-inc{display:flex;gap:8px;align-items:flex-start;margin-top:6px}
 .bit-inc:first-child{margin-top:0}
 .bit-inc-chip{display:inline-flex;align-items:center;gap:4px;flex-shrink:0;font-size:10px;font-weight:700;letter-spacing:.03em;border:1px solid;border-radius:999px;padding:1px 8px;white-space:nowrap}
@@ -3944,7 +3953,7 @@ async function verProyecto(id) {
       if (!p.fecha_inicio_real) {
         footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="confirmarInicioProyecto('${p.id}')"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Iniciar proyecto</button>`;
       }
-      footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar campo</button>`;
+      footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="confirmarFinalizarProyecto('${p.id}')"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar campo</button>`;
     }
     footerBtns += `<button class="btn btn-ghost btn-sm" style="color:var(--red-text)" onclick="if(confirm('¿Cancelar este proyecto? Se liberará al personal asignado.'))ejecutarConCarga(this, () => cambiarEstadoProyecto('${p.id}','cancelado'))"><i class="ti ti-ban" aria-hidden="true"></i> Cancelar</button>`;
   }
@@ -3964,7 +3973,7 @@ async function verProyecto(id) {
     ${htmlSolicitudPausa(p)}
     ${htmlSolicitudReanudar(p)}
     ${htmlAvisoPausa(p)}
-    ${p.fecha_fin_real && p.estado === 'completado' ? htmlCierreProyecto(p) : ''}
+    ${p.fecha_fin_real && p.estado === 'completado' ? htmlCierreProyecto(p) + htmlDebriefProyecto(p) : ''}
     <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
       <div style="flex:1;min-width:140px;background:${personalOk?'var(--green-bg)':'var(--amber-bg)'};border:1px solid ${personalOk?'var(--green-border)':'var(--amber-border)'};border-radius:var(--radius);padding:10px 14px">
         <div style="font-size:10px;color:${personalOk?'var(--green)':'var(--amber)'};font-weight:700">PERSONAL ${personalOk?'✓ COMPLETO':'⚠ INCOMPLETO'}</div>
@@ -4131,6 +4140,40 @@ function htmlCierreProyecto(p) {
     ${p.cierre_nota ? `<div class="ci-nota-txt"><i class="ti ti-message" aria-hidden="true"></i> ${escHtml(p.cierre_nota)}</div>` : ''}
     ${accion}
   </div>`;
+}
+// ─── COMENTARIOS PARA EL DEBRIEF (los escribe quien finaliza; se pueden agregar o corregir después) ───
+function puedeEditarDebrief(p) {
+  if (['administrador', 'director_proyecto'].includes(STATE.rol)) return true;
+  const emp = STATE.user?.empleado_id;
+  return !!emp && (p.cierre_responsable_id === emp || (p.tecnicos_asignados || []).includes(emp));
+}
+const fechaHoraDebrief = iso => { if (!iso) return ''; const d = new Date(/Z|[+-]\d\d:?\d\d$/.test(iso) ? iso : iso + 'Z'); return isNaN(d) ? '' : `${fCorta(isoLocal(d))} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+function htmlDebriefProyecto(p) {
+  const puede = puedeEditarDebrief(p);
+  if (!p.debrief && !puede) return '';
+  return `<div class="ci-card db-card" id="db-${escHtml(p.id)}">
+    <div class="ci-tit"><i class="ti ti-message-2" aria-hidden="true"></i> Comentarios para el debrief
+      ${puede ? `<button class="btn btn-ghost btn-sm db-edit" onclick="editarDebrief('${p.id}')"><i class="ti ti-${p.debrief ? 'pencil' : 'plus'}" aria-hidden="true"></i> ${p.debrief ? 'Editar' : 'Agregar'}</button>` : ''}</div>
+    ${p.debrief ? `<div class="db-txt">${escHtml(p.debrief)}</div><div class="db-por">${escHtml(p.debrief_por || '')}${p.debrief_en ? ' · ' + fechaHoraDebrief(p.debrief_en) : ''}</div>`
+      : '<div class="db-vacio">Sin comentarios todavía.</div>'}
+  </div>`;
+}
+function editarDebrief(pid) {
+  const p = STATE.proyectos.find(x => x.id === pid), el = document.getElementById(`db-${pid}`); if (!p || !el) return;
+  el.innerHTML = `<div class="ci-tit"><i class="ti ti-message-2" aria-hidden="true"></i> Comentarios para el debrief</div>
+    ${campoDebriefHTML('db-in-' + pid, p.debrief)}
+    <div class="ci-fila" style="justify-content:flex-end;margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="document.getElementById('db-${pid}').outerHTML = htmlDebriefProyecto(STATE.proyectos.find(x => x.id === '${pid}'))">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => guardarDebrief('${pid}'))"><i class="ti ti-check" aria-hidden="true"></i> Guardar</button></div>`;
+  document.getElementById('db-in-' + pid)?.focus();
+}
+async function guardarDebrief(pid) {
+  const txt = document.getElementById('db-in-' + pid)?.value || '';
+  const r = await api('PATCH', `/proyectos/proyectos/${encodeURIComponent(pid)}/debrief`, { debrief: txt });
+  if (!r) return;
+  const i = STATE.proyectos.findIndex(x => x.id === pid);
+  if (i >= 0) STATE.proyectos[i] = { ...STATE.proyectos[i], ...r };
+  const el = document.getElementById(`db-${pid}`); if (el) el.outerHTML = htmlDebriefProyecto(STATE.proyectos[i]);
+  toast(r.debrief ? 'Comentarios guardados' : 'Comentarios borrados');
 }
 async function guardarCierre(pid, cuerpo) {
   const r = await api('PATCH', `/proyectos/proyectos/${encodeURIComponent(pid)}/cierre`, cuerpo);
@@ -4772,14 +4815,31 @@ async function iniciarProyecto(id, volverA, fecha) {
   if (volverA === 'tecnico') { verProyectoTecnico(id); } else { verProyecto(id); }
 }
 
-async function finalizarProyecto(id, volverA, fechaFin, fechaInicio) {
-  if (!fechaFin && !confirm('¿Finalizar el trabajo en campo? Hoy quedará como fecha real de término en sitio y se libera al personal.\n\nDespués sigue el cierre con el cliente (entrega del reporte y visto bueno).')) return;
+// Campo de comentarios para el debrief (opcional) al finalizar
+function campoDebriefHTML(idCampo, valor) {
+  return `<div class="field-group db-campo"><label class="field-label" for="${idCampo}">COMENTARIOS PARA EL DEBRIEF <span>(opcional)</span></label>
+    <textarea class="field-input" id="${idCampo}" rows="6" maxlength="20000" placeholder="Qué salió bien, qué complicó el trabajo, qué hay que preparar o cambiar para el próximo proyecto…">${escHtml(valor || '')}</textarea>
+    <div class="db-ayuda">Quedan en las métricas del proyecto y en el Excel de auditoría. Puedes dejarlo vacío y agregarlos después.</div></div>`;
+}
+function confirmarFinalizarProyecto(id, volverA) {
+  const p = STATE.proyectos.find(x => x.id === id); if (!p) return;
+  const volver = volverA === 'tecnico' ? `verProyectoTecnico('${id}')` : `verProyecto('${id}')`;
+  openPanel('Finalizar trabajo en campo', `
+    <div class="panel-section">
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px">${escHtml(p.nombre)}</div>
+      <p style="font-size:12px;color:var(--text2);margin:6px 0 14px">Hoy quedará como fecha real de término en sitio y se libera al personal. Después sigue el <b>cierre con el cliente</b> (entrega del reporte y visto bueno).</p>
+      ${campoDebriefHTML('fin-debrief')}
+    </div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="${volver}">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => finalizarProyecto('${id}'${volverA ? `,'${volverA}'` : ',null'}, null, null, document.getElementById('fin-debrief').value))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar</button>`);
+}
+async function finalizarProyecto(id, volverA, fechaFin, fechaInicio, debrief) {
   await loadEmpleados();
   const pAntes = STATE.proyectos.find(x=>x.id===id);
   const idsAsignadosAntes = pAntes ? (pAntes.tecnicos_asignados||[]) : [];
   const cuerpo = {};
   if (fechaFin) cuerpo.fecha_fin_real = fechaFin;
   if (fechaInicio) cuerpo.fecha_inicio_real = fechaInicio;
+  if (debrief && debrief.trim()) cuerpo.debrief = debrief.trim();
   const r = await api('POST', `/proyectos/proyectos/${id}/finalizar`, cuerpo);
   if (!r) { toast('Error al finalizar el proyecto','error'); return; }
   toast(r.mensaje || 'Proyecto finalizado');
@@ -4827,9 +4887,10 @@ function abrirFinalizarProyectoManual(id) {
     <div class="panel-section">
       <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Captura las fechas reales de campo (útil cuando no hubo señal para marcarlas el mismo día). Se libera al personal y el proyecto pasa a <b>cierre con el cliente</b>: entrega del reporte y visto bueno.</p>
       ${!p.fecha_inicio_real ? `<div class="field-group" style="margin-bottom:10px"><label class="field-label">FECHA REAL DE INICIO</label><input type="date" class="field-input" id="man-inicio2" value="${p.fecha_inicio||hoy}"></div>` : ''}
-      <div class="field-group"><label class="field-label">FECHA REAL DE FIN</label><input type="date" class="field-input" id="man-fin" value="${hoy}"></div>
+      <div class="field-group" style="margin-bottom:14px"><label class="field-label">FECHA REAL DE FIN</label><input type="date" class="field-input" id="man-fin" value="${hoy}"></div>
+      ${campoDebriefHTML('man-debrief')}
     </div>`,
-    `<button class="btn btn-ghost btn-sm" onclick="verProyecto('${id}')">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => finalizarProyecto('${id}', null, document.getElementById('man-fin').value, document.getElementById('man-inicio2')?.value))"><i class="ti ti-check" aria-hidden="true"></i> Finalizar</button>`);
+    `<button class="btn btn-ghost btn-sm" onclick="verProyecto('${id}')">Cancelar</button><button class="btn btn-primary btn-sm" onclick="ejecutarConCarga(this, () => finalizarProyecto('${id}', null, document.getElementById('man-fin').value, document.getElementById('man-inicio2')?.value, document.getElementById('man-debrief').value))"><i class="ti ti-check" aria-hidden="true"></i> Finalizar</button>`);
 }
 
 async function eliminarProyectoConfirm(id) {
@@ -9699,6 +9760,28 @@ function pdfCronogramaMetricas(T, p, y) {
   if (X.pctProd != null) { T.font('bold', 6.8, PDF_EST.asignado.c); doc.text(`Días productivos: ${X.pctProd}%`, M + w, y, { align: 'right' }); }
   return y + 6;
 }
+// PDF: comentarios para el debrief (uno por proyecto que los tenga). Regresa la nueva y.
+function pdfDebriefMetricas(T, datos, y, unico) {
+  const { doc, C, M } = T, con = datos.filter(p => (p.debrief || '').trim()); if (!con.length) return y;
+  if (y + 30 > T.H - 22) { T.nuevaPagina(); T.encabezado('Reporte de métricas', '', unico ? (con[0].nombre || 'Proyecto') : 'Métricas de proyectos', 'Comentarios para el debrief'); y = 36; }
+  y = T.seccion('COMENTARIOS PARA EL DEBRIEF', y, unico ? '' : plural(con.length, 'proyecto'));
+  const quien = p => [p.debrief_por, p.debrief_en ? fechaHoraDebrief(p.debrief_en) : ''].filter(Boolean).join(' · ');
+  doc.autoTable({
+    startY: y, margin: { left: M, right: M, top: 30, bottom: 22 },
+    body: con.map(p => unico ? [{ c: p.debrief.trim(), q: quien(p) }] : [{ n: p.nombre, c: p.debrief.trim(), q: quien(p) }]).map(([r]) => r),
+    columns: unico ? [{ header: 'Comentarios', dataKey: 'c' }] : [{ header: 'Proyecto', dataKey: 'n' }, { header: 'Comentarios', dataKey: 'c' }],
+    showHead: unico ? 'never' : 'firstPage', theme: 'plain',
+    styles: { font: window._fuentesPDF ? 'Montserrat' : 'helvetica', fontSize: 7.4, textColor: C.texto, cellPadding: { top: 2.4, bottom: 5.5, left: 3, right: 3 }, lineColor: C.linea, valign: 'top', overflow: 'linebreak' },
+    headStyles: { fontStyle: 'bold', textColor: C.gris, fontSize: 6.4, fillColor: C.fondo, cellPadding: 2 },
+    bodyStyles: { fillColor: C.fondo, lineWidth: { bottom: 0.15 } },
+    columnStyles: { n: { cellWidth: 46, fontStyle: 'bold', textColor: C.tinta } },
+    didDrawCell: d => {   // autor y fecha debajo del texto
+      if (d.section !== 'body' || d.column.dataKey !== 'c' || !d.row.raw.q) return;
+      T.font('normal', 6, C.gris); doc.text(d.row.raw.q, d.cell.x + 3, d.cell.y + d.cell.height - 1.8);
+    },
+  });
+  return doc.lastAutoTable.finalY + 6;
+}
 // PDF: bitácora completa del proyecto (día a día, lo más reciente arriba). Las incidencias van en su propio renglón.
 function pdfExcepcionesCronograma(T, p, y) {
   const { doc, C, M } = T, X = datosCronograma(p.cronograma); if (!X.bitacora.length) return y;
@@ -9763,6 +9846,8 @@ function htmlProyectoMetricas(p) {
     <div class="mp-badges">${f.insignias.map(([t, s]) => `<span class="mp-badge" style="--b:${C[s]}">${t}</span>`).join('')}</div>
     ${recursos.length ? `<div class="mp-rec">${recursos.map(([l, v]) => `<span><b>${l}:</b> ${v.map(escHtml).join(', ')}</span>`).join('')}</div>` : ''}
     ${f.cierreTxt ? `<div class="mp-cambios"><div class="mp-lab">Cierre con el cliente</div><div>${escHtml(f.cierreTxt)}${p.cierre?.nota ? ` · <em>${escHtml(p.cierre.nota)}</em>` : ''}</div></div>` : ''}
+    ${p.debrief ? `<div class="mp-debrief"><div class="mp-lab"><i class="ti ti-message-2" aria-hidden="true"></i> Comentarios para el debrief</div>
+      <div class="db-txt">${escHtml(p.debrief)}</div><div class="db-por">${escHtml(p.debrief_por || '')}${p.debrief_en ? ' · ' + fechaHoraDebrief(p.debrief_en) : ''}</div></div>` : ''}
     ${(p.cambios_personal || []).length ? `<div class="mp-cambios"><div class="mp-lab">Cambios de personal</div>
       ${p.cambios_personal.map(c => `<div class="mp-cambio"><i class="ti ${c.tipo === 'salida' ? 'ti-user-minus' : 'ti-user-plus'}" style="color:${c.tipo === 'salida' ? 'var(--amber)' : 'var(--green)'}" aria-hidden="true"></i>
         <span>${fCorta(fechaCambioPersonal(c))} · ${c.tipo === 'salida' ? 'Salió' : 'Entró'} <b style="color:var(--text)">${escHtml(c.nombre)}</b>${c.tipo === 'salida' ? ` — ${c.motivo ? escHtml(c.motivo) : '<em>sin motivo registrado (cambio anterior)</em>'}` : ''}</span></div>`).join('')}</div>` : ''}
@@ -9964,7 +10049,7 @@ function verProyectoTecnico(id) {
   openPanel(p.nombre, `
     ${htmlSolicitudPausa(p)}
     ${htmlAvisoPausa(p, true)}
-    ${p.fecha_fin_real && p.estado === 'completado' ? htmlCierreProyecto(p) : ''}
+    ${p.fecha_fin_real && p.estado === 'completado' ? htmlCierreProyecto(p) + htmlDebriefProyecto(p) : ''}
     ${(() => { const me = STATE.user?.empleado_id, l = p.llegadas?.[me]; if (!l?.fuera || p.fecha_fin_real || p.estado === 'pausado') return '';
       return l.llegada ? `<div class="yl-hecho"><i class="ti ti-map-pin-check" aria-hidden="true" style="color:#60a5fa"></i> Llegaste a la zona el ${fCorta(l.llegada)}${!p.fecha_inicio_real ? ` · <a href="#" onclick="event.preventDefault();ejecutarConCarga(this, () => registrarLlegada('${p.id}', null, true))" style="color:var(--text3)">Deshacer</a>` : ''}</div>`
         : tarjetaYaLlegue(me, p.id); })()}
@@ -9980,7 +10065,7 @@ function verProyectoTecnico(id) {
         <div>Sitio: <span style="color:var(--text)">${p.ciudad||'—'}${p.estado_ub?', '+p.estado_ub:''}</span></div>
       </div>
     </div>`,
-    `${abierto ? `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true);STATE._repPre='${p.id}';showSection('reportar')" title="Reportar una incidencia o novedad de este proyecto"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Reportar</button>` : ''}${btnPausa}${p.estado!=='completado'&&p.estado!=='cancelado'&&!p.fecha_inicio_real?`<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="confirmarInicioProyecto('${p.id}','tecnico')"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Iniciar proyecto</button>`:''}${p.estado!=='completado'&&p.estado!=='cancelado'?`<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="ejecutarConCarga(this, () => finalizarProyecto('${p.id}','tecnico'))"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar trabajo en campo</button>`:''}${avanceDisponible()&&proyectoIniciado(p)&&!['completado','cancelado'].includes(p.estado)?`<button class="btn btn-ghost btn-sm" style="color:var(--orange)" onclick="irAvance('${p.id}')"><i class="ti ti-flame" aria-hidden="true"></i> Avance</button>`:''}<button class="btn btn-primary btn-sm" onclick="showSection('checador');closePanel(null,true)"><i class="ti ti-clock" aria-hidden="true"></i> Ir al checador</button>`);
+    `${abierto ? `<button class="btn btn-ghost btn-sm" onclick="closePanel(null,true);STATE._repPre='${p.id}';showSection('reportar')" title="Reportar una incidencia o novedad de este proyecto"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Reportar</button>` : ''}${btnPausa}${p.estado!=='completado'&&p.estado!=='cancelado'&&!p.fecha_inicio_real?`<button class="btn btn-ghost btn-sm" style="color:var(--blue)" onclick="confirmarInicioProyecto('${p.id}','tecnico')"><i class="ti ti-player-play-filled" aria-hidden="true"></i> Iniciar proyecto</button>`:''}${p.estado!=='completado'&&p.estado!=='cancelado'?`<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="confirmarFinalizarProyecto('${p.id}','tecnico')"><i class="ti ti-flag-check" aria-hidden="true"></i> Finalizar trabajo en campo</button>`:''}${avanceDisponible()&&proyectoIniciado(p)&&!['completado','cancelado'].includes(p.estado)?`<button class="btn btn-ghost btn-sm" style="color:var(--orange)" onclick="irAvance('${p.id}')"><i class="ti ti-flame" aria-hidden="true"></i> Avance</button>`:''}<button class="btn btn-primary btn-sm" onclick="showSection('checador');closePanel(null,true)"><i class="ti ti-clock" aria-hidden="true"></i> Ir al checador</button>`);
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -12343,7 +12428,7 @@ const PASOS_TUTORIAL = [
   { sel: ['#panel-side'], titulo: 'Vigencia y archivo', texto: 'Pon la fecha de vigencia (o marca "no tiene vigencia"), sube la foto o PDF y toca <strong>Guardar</strong>. <em>En la práctica no se sube nada.</em>', avanza: () => T().certificados.length >= 1 },
   { sel: nav('mis-asignaciones'), titulo: 'Para terminar', texto: 'Regresa a <strong>Mis Asignaciones</strong>.', avanza: 'click' },
   { sel: [`[onclick*="verProyectoTecnico('${TUT_ID}')"]`], titulo: 'Abre el proyecto', texto: 'Ábrelo otra vez.', avanza: 'click' },
-  { sel: [`button[onclick*="finalizarProyecto('${TUT_ID}'"]`], titulo: 'Finaliza al terminar', texto: 'Cuando el trabajo termine, dale <strong>Finalizar proyecto</strong>. Si no lo haces, el sistema no te puede asignar a otro proyecto.', avanza: () => !!T().proyecto.fecha_fin_real },
+  { sel: [`button[onclick*="inalizarProyecto('${TUT_ID}'"]`], titulo: 'Finaliza al terminar', texto: 'Cuando el trabajo termine, dale <strong>Finalizar proyecto</strong>. Si no lo haces, el sistema no te puede asignar a otro proyecto.', avanza: () => !!T().proyecto.fecha_fin_real },
   { titulo: '¡Listo!', texto: 'Ya conoces lo esencial:<br>• Iniciar y finalizar proyectos<br>• Checar entrada y salida<br>• Reportar días sin trabajo e incidencias<br>• Tus habilidades y certificados<br><br>Puedes repetir este tutorial cuando quieras desde el menú de tu foto → <strong>Ver tutorial</strong>.', avanza: 'boton', boton: 'Terminar' },
 ];
 
@@ -15355,6 +15440,7 @@ async function exportarMetricasPDF() {
     }
     y += alto + 5;
   });
+  y = pdfDebriefMetricas(T, datos, y, unico);   // comentarios para el debrief (texto libre)
   if (unico && datos[0].cronograma) pdfExcepcionesCronograma(T, datos[0], y);   // días sin avance o con novedad (sigue en otra hoja si no cabe)
   const nombreArchivo = datos.length === 1 ? limpiarNombreArchivo(datos[0].nombre) : plural(datos.length, 'proyecto');
   T.cerrar(`Metricas - ${nombreArchivo} - ${isoLocal(new Date())}.pdf`);
