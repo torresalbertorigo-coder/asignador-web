@@ -1816,6 +1816,12 @@ html.av-fs-abierto .content{overflow:hidden !important}
 .av-chip-ok button{border:0;background:transparent;color:inherit;padding:0 2px;cursor:pointer;opacity:.6;font-size:13px;display:inline-flex}
 .av-chip-ok button:hover{opacity:1}
 .av-inc-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.aviso-sp{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;text-align:left}
+.aviso-sp li{display:flex;gap:8px;align-items:flex-start;font-size:11.5px;line-height:1.45;color:var(--text3);padding:8px 10px;border-radius:9px;border:1px dashed var(--border2)}
+.aviso-sp li>i{font-size:16px;flex-shrink:0;margin-top:1px}
+.aviso-sp li.act{color:var(--text2);border:1px solid rgba(245,158,11,.5);background:rgba(245,158,11,.09)}.aviso-sp li.act>i{color:var(--amber)}
+.aviso-sp li b{color:var(--text)}
+.aviso-sp-pie{font-size:11.5px;color:var(--text2);margin-top:6px}
 .av-stby{display:flex;gap:10px;align-items:flex-start;margin-top:8px;padding:10px 12px;border:1.5px solid var(--border2);border-radius:10px;cursor:pointer;background:var(--surface)}
 .av-stby input{margin-top:3px;flex-shrink:0;width:16px;height:16px;accent-color:#d97706}
 .av-stby>i{font-size:18px;color:var(--amber);flex-shrink:0;margin-top:1px}
@@ -4214,6 +4220,7 @@ function abrirModalPausa(pid, modo) {
       <div style="font-size:12.5px;color:var(--text2);line-height:1.5;margin-bottom:12px">${sol
         ? `Se enviará a un administrador para que la autorice. Mientras tanto <b style="color:var(--text)">${escHtml(p?.nombre || 'el proyecto')}</b> sigue activo.`
         : `<b style="color:var(--text)">${escHtml(p?.nombre || 'El proyecto')}</b> quedará en pausa desde hoy y se liberará al personal asignado (se le avisará).`}</div>
+      <div style="margin-bottom:12px">${avisoStandbyPausa('pausa')}<div class="aviso-sp-pie">¿Solo hoy no se pudo trabajar? No pauses: marca <b>standby</b> en Avance de obra.</div></div>
       <div class="field-label" style="margin-bottom:6px">MOTIVO DE LA PAUSA</div>
       <div class="cp-motivos">${MOTIVOS_PAUSA.map(m => `<button type="button" class="cp-motivo" onclick="const t=document.getElementById('pz-motivo');t.value=this.textContent;t.focus()">${m}</button>`).join('')}</div>
       <textarea class="field-input" id="pz-motivo" rows="3" maxlength="500" placeholder="Ej. El cliente detuvo los trabajos por mantenimiento de la subestación" style="width:100%;margin-top:8px"></textarea>
@@ -10358,8 +10365,9 @@ function pintarAvance() {
       <div class="av-nota-dia">
         <label class="field-label" for="av-nota">${A.sel.size ? (marcadosAv('ok').length ? 'NOTA PARA LOS CONCLUIDOS <span class="np-opc">opcional</span>' : 'NOTA DEL DÍA <span class="np-opc">opcional · clima, accesos, pendientes</span>') : 'NOTA DEL DÍA <span class="np-opc">sin marcar unidades: se guarda sola</span>'}</label>
         <input class="field-input" id="av-nota" placeholder="${A.sel.size ? 'Nota corta (opcional)' : 'Ej: Sin acceso al parque por lluvia; se reprograma.'}" maxlength="500" style="width:100%" value="${escHtml(A.nota || '')}" oninput="STATE._av.nota=this.value;estadoBotonAvance()">
-        ${A.sel.size ? '' : `<label class="av-stby ${A.standby ? 'on' : ''}"><input type="checkbox" ${A.standby ? 'checked' : ''} onchange="STATE._av.standby=this.checked;this.parentNode.classList.toggle('on',this.checked);estadoBotonAvance()">
-          <i class="ti ti-player-pause" aria-hidden="true"></i><span><b>Fue día de standby</b><small>Fuimos a sitio pero no hubo avance por algo ajeno (clima, permisos, cliente, material). Cuenta como día presentado.</small></span></label>`}</div>
+        ${A.sel.size ? '' : `<label class="av-stby ${A.standby ? 'on' : ''}"><input type="checkbox" ${A.standby ? 'checked' : ''} onchange="STATE._av.standby=this.checked;this.parentNode.classList.toggle('on',this.checked);document.getElementById('av-stby-aviso').style.display=this.checked?'block':'none';estadoBotonAvance()">
+          <i class="ti ti-player-pause" aria-hidden="true"></i><span><b>Fue día de standby</b><small>Fuimos a sitio pero no hubo avance por algo ajeno (clima, permisos, cliente, material). Cuenta como día presentado.</small></span></label>
+          <div id="av-stby-aviso" style="display:${A.standby ? 'block' : 'none'}">${avisoStandbyPausa('standby')}</div>`}</div>
       <div class="av-registrar ${A.sel.size ? 'flota' : ''}">
         <div class="av-registrar-txt" id="av-reg-txt"></div>
         <button class="btn btn-primary" id="av-btn-reg" onclick="ejecutarConCarga(this, registrarAvance)"><i class="ti ti-device-floppy" aria-hidden="true"></i> Guardar registro</button>
@@ -12599,6 +12607,12 @@ const TIPO_INACT = {
   standby:  '<i class="ti ti-player-pause" aria-hidden="true"></i> Standby',
 };
 // Descanso registrado para ese día (aprobado o pendiente) — para no pedir checada y preguntar al checar
+// Aviso corto que distingue standby de pausa (se muestra al elegir una u otra)
+function avisoStandbyPausa(cual) {
+  const stby = `<li class="${cual === 'standby' ? 'act' : ''}"><i class="ti ti-player-pause" aria-hidden="true"></i><span><b>Standby</b> · fuiste a sitio pero <b>ese día</b> no hubo avance por algo ajeno (clima, permisos, el cliente no liberó). Cuenta como día presentado y se cobra. Se marca en <b>Avance de obra</b>.</span></li>`;
+  const pausa = `<li class="${cual === 'pausa' ? 'act' : ''}"><i class="ti ti-calendar-pause" aria-hidden="true"></i><span><b>Pausa del proyecto</b> · el trabajo se detiene <b>varios días</b> por acuerdo o decisión (falta herramienta o material, reprogramación del cliente). Se libera al personal, los días en pausa no cuentan como días del proyecto y se retoma después.</span></li>`;
+  return `<ul class="aviso-sp">${cual === 'pausa' ? pausa + stby : stby + pausa}</ul>`;
+}
 const descansoDelDia = (reportes, fechaIso) => (reportes || []).find(g => g.tipo === 'descanso' && ['aprobado', 'pendiente'].includes(g.estado) && (g.fechas || []).includes(fechaIso));
 const rangoInact = g => g.dias > 1 ? `${g.fecha_inicio} al ${g.fecha_fin} (${g.dias} días)` : g.fecha_inicio;
 const hoyIsoLocal = () => new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
@@ -12611,7 +12625,7 @@ function tarjetaReporteInactividad(proyectos, reportes, proyectoActual) {
         ${proyectos.length ? `<button class="btn btn-ghost btn-sm" id="btn-reportar-inact" style="margin-left:auto" onclick="const f=document.getElementById('form-inact');f.style.display=f.style.display==='none'?'block':'none'"><i class="ti ti-plus" aria-hidden="true"></i> Reportar</button>` : ''}
       </div>
       <div style="padding:10px 16px 0;font-size:12px;color:var(--text2)">
-        <strong>Descanso</strong>: día libre, no suma fatiga. <strong>Standby</strong>: en sitio sin poder trabajar (clima, cliente, permisos, material), sí suma fatiga. Lo aprueba un administrador o director.
+        <strong>Descanso</strong>: día libre, no suma fatiga. <strong>Standby</strong>: en sitio sin poder trabajar (clima, cliente, permisos, material), sí suma fatiga; también se marca en Avance de obra. Lo aprueba un administrador o director. Si el proyecto se detendrá <strong>varios días</strong> por acuerdo con el cliente, no es standby: es <strong>pausa del proyecto</strong>.
       </div>
       <div id="form-inact" style="display:none;padding:12px 16px">
         <div class="field-row">
