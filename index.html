@@ -928,6 +928,10 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .ini-hoy span{display:flex;gap:5px;align-items:center;font-size:12px;margin-top:4px}
 .ini-curso{border-left-color:var(--green)}.ini-curso span{color:var(--green)}.ini-pausa{border-left-color:var(--amber)}.ini-pausa span{color:var(--amber)}.ini-prox{border-left-color:#60a5fa}.ini-prox span{color:#60a5fa}
 .ini-check{display:flex;align-items:center;gap:14px;width:100%;text-align:left;border:none;border-radius:16px;padding:16px;color:#fff;font:inherit;cursor:pointer;background:linear-gradient(135deg,#e31c22,#a3141a)}
+.chk-desc{display:flex;gap:10px;align-items:flex-start;text-align:left;max-width:420px;margin:14px auto 0;background:rgba(124,58,237,.12);border:1px solid rgba(167,139,250,.45);border-radius:12px;padding:10px 12px;color:var(--text)}
+.chk-desc>i{font-size:22px;color:#a78bfa;flex-shrink:0;margin-top:1px}.chk-desc b{display:block;font-size:13px}.chk-desc span{display:block;font-size:11.5px;color:var(--text2);margin-top:2px;line-height:1.4}
+.btn-checar.en-descanso{background:transparent!important;color:var(--text)!important;border:1.5px solid var(--border2)!important;box-shadow:none!important}
+.ini-check.desc{background:linear-gradient(135deg,#7c3aed,#5b21b6)}.ini-check.descp{background:linear-gradient(135deg,#b45309,#92400e)}
 .ini-check.salida{background:linear-gradient(135deg,#2563eb,#1e40af)}.ini-check.ok{background:linear-gradient(135deg,#15803d,#166534)}.ini-check.off{background:var(--surface2);color:var(--text3);cursor:default}
 .ini-check-ic{width:50px;height:50px;border-radius:14px;background:rgba(255,255,255,.18);display:grid;place-items:center;flex-shrink:0}.ini-check-ic i{font-size:26px}
 .ini-check b{display:block;font-size:16px}.ini-check small{display:block;font-size:12px;opacity:.88;margin-top:2px}.ini-check>span:nth-child(2){flex:1;min-width:0}.ini-check-fl{font-size:20px;opacity:.7}
@@ -9926,9 +9930,10 @@ async function generarMetricas() {
 async function renderInicioTecnico() {
   const empId = STATE.user?.empleado_id;
   await loadProyectos();
-  const [historial] = await Promise.all([
+  const [historial, , misInact] = await Promise.all([
     empId ? api('GET', `/checador/mis-checadas?empleado_id=${encodeURIComponent(empId)}`).then(r => r || []).catch(() => []) : Promise.resolve([]),
-    empId && typeof cargarPerfil === 'function' ? cargarPerfil() : null]);
+    empId && typeof cargarPerfil === 'function' ? cargarPerfil() : null,
+    empId ? api('GET', '/inactividad/mias').then(r => r || []).catch(() => []) : Promise.resolve([])]);
   const mios = (STATE.proyectos || []).filter(p => (p.tecnicos_asignados || []).includes(empId));
   const abierto = p => !p.fecha_fin_real && !['completado', 'cancelado'].includes(p.estado);
   const enCurso = mios.filter(p => abierto(p) && p.estado !== 'pausado' && proyectoIniciado(p));
@@ -9947,7 +9952,10 @@ async function renderInicioTecnico() {
   const chk = !empId ? { t: 'Reloj checador', s: 'Tu cuenta no tiene perfil de empleado', c: 'off' }
     : ult && ult.tipo === 'entrada' ? { t: 'Checar salida', s: `Entraste ${ultHoy ? 'a las ' + horaDe(ult) : 'el ' + new Date(ult.fecha_hora).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) + ' ' + horaDe(ult)}`, c: 'salida' }
     : ultHoy ? { t: 'Jornada registrada', s: `Salida a las ${horaDe(ult)} · toca para ver tus checadas`, c: 'ok' }
-    : { t: 'Checar entrada', s: enCurso.length ? 'Sin checada hoy · toca para registrar' : 'Sin proyecto en campo hoy', c: '' };
+    : (dHoy => dHoy ? (dHoy.estado === 'aprobado'
+        ? { t: 'Hoy es tu día de descanso', s: `Aprobado · ${escHtml(dHoy.proyecto_nombre || '')}`, c: 'desc', ic: 'zzz' }
+        : { t: 'Descanso solicitado para hoy', s: 'Esperando aprobación · toca si sí vas a trabajar', c: 'descp', ic: 'zzz' }) : null)(descansoDelDia(misInact, hoyIso))
+    || { t: 'Checar entrada', s: enCurso.length ? 'Sin checada hoy · toca para registrar' : 'Sin proyecto en campo hoy', c: '' };
   // Documentos por vencer (30 días) o vencidos
   const en30 = isoLocal(new Date(Date.now() + 30 * 86400000));
   const docsAlerta = (STATE.perfil_docs || []).filter(d => d.vigencia && d.vigencia <= en30).length;
@@ -9967,7 +9975,7 @@ async function renderInicioTecnico() {
     <div class="ini-hola"><h2>Hola, ${escHtml(nombre)}</h2><p>${new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}</p></div>
     ${hoyP ? `<button class="ini-hoy ini-${lineaHoy[0]}" onclick="verProyectoTecnico('${hoyP.id}')"><small>${enCurso.includes(hoyP) ? 'HOY' : enPausa.includes(hoyP) ? 'TU PROYECTO' : 'SIGUIENTE'}</small>
       <b>${escHtml(hoyP.nombre)}</b><span><i class="ti ti-${lineaHoy[1]}" aria-hidden="true"></i> ${lineaHoy[2]}</span></button>` : ''}
-    <button class="ini-check ${chk.c}" ${empId ? `onclick="showSection('checador')"` : 'disabled'}><span class="ini-check-ic"><i class="ti ti-${chk.c === 'ok' ? 'circle-check' : 'clock'}" aria-hidden="true"></i></span><span><b>${chk.t}</b><small>${chk.s}</small></span><i class="ti ti-chevron-right ini-check-fl" aria-hidden="true"></i></button>
+    <button class="ini-check ${chk.c}" ${empId ? `onclick="showSection('checador')"` : 'disabled'}><span class="ini-check-ic"><i class="ti ti-${chk.ic || (chk.c === 'ok' ? 'circle-check' : 'clock')}" aria-hidden="true"></i></span><span><b>${chk.t}</b><small>${chk.s}</small></span><i class="ti ti-chevron-right ini-check-fl" aria-hidden="true"></i></button>
     ${tarjetaYaLlegue(empId)}
     <div class="ini-grid">${tiles.map(([sec, ic, col, t, sub, n]) => `<button class="ini-tile" onclick="${sec === '__admin' ? 'switchModo()' : `showSection('${sec}')`}">
       ${n ? `<span class="ini-badge">${n}</span>` : ''}<span class="ini-ic ini-${col}"><i class="ti ti-${ic}" aria-hidden="true"></i></span>
@@ -12576,11 +12584,14 @@ const ESTADO_INACT = {
   pendiente: '<span class="badge badge-mant">PENDIENTE</span>',
   aprobado:  '<span class="badge badge-libre">APROBADO</span>',
   rechazado: '<span class="badge badge-gray">RECHAZADO</span>',
+  cancelado: '<span class="badge badge-gray" title="Se canceló porque sí trabajó ese día">CANCELADO · TRABAJÓ</span>',
 };
 const TIPO_INACT = {
   descanso: '<i class="ti ti-zzz" aria-hidden="true"></i> Descanso',
   standby:  '<i class="ti ti-player-pause" aria-hidden="true"></i> Standby',
 };
+// Descanso registrado para ese día (aprobado o pendiente) — para no pedir checada y preguntar al checar
+const descansoDelDia = (reportes, fechaIso) => (reportes || []).find(g => g.tipo === 'descanso' && ['aprobado', 'pendiente'].includes(g.estado) && (g.fechas || []).includes(fechaIso));
 const rangoInact = g => g.dias > 1 ? `${g.fecha_inicio} al ${g.fecha_fin} (${g.dias} días)` : g.fecha_inicio;
 const hoyIsoLocal = () => new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
 
@@ -12790,6 +12801,8 @@ async function renderChecador() {
   if (pAbierto && !proyectosChecador.includes(pAbierto)) proyectosChecador.unshift(pAbierto);
   const pidSel = pidAbierto !== null ? pidAbierto : proyectoActual;
   const ahoraLocal = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+  STATE._misInact = misReportes;
+  const descHoy = puedeEntrada && !(ultima && isoLocal(new Date(ultima.fecha_hora)) === isoLocal(new Date())) ? descansoDelDia(misReportes, isoLocal(new Date())) : null;
 
   html(`
     ${tarjetaYaLlegue(empId)}
@@ -12808,8 +12821,9 @@ async function renderChecador() {
         ${pidAbierto !== null ? `<div style="font-size:11px;color:var(--text3);margin-top:6px;text-align:left"><i class="ti ti-lock" aria-hidden="true"></i> La salida se registra en el mismo proyecto de tu entrada.</div>` : ''}
         ${sinIniciar.length && !proyectosChecador.length ? `<div style="font-size:11px;color:var(--text3);margin-top:6px;text-align:left"><i class="ti ti-info-circle" aria-hidden="true"></i> ¿No aparece tu proyecto? Aparece cuando alguien del equipo lo inicia en <a href="#" onclick="event.preventDefault();showSection('mis-asignaciones')" style="color:var(--blue)">Mis asignaciones</a>.</div>` : ''}
       </div>
+      ${descHoy ? `<div class="chk-desc"><i class="ti ti-zzz" aria-hidden="true"></i><div><b>${descHoy.estado === 'aprobado' ? 'Hoy tienes descanso aprobado' : 'Pediste descanso para hoy (esperando aprobación)'}</b><span>${escHtml(descHoy.proyecto_nombre || '')}${descHoy.motivo ? ' · ' + escHtml(descHoy.motivo) : ''}. Si sí vas a trabajar, checa normal y se cancela tu descanso.</span></div></div>` : ''}
       <!-- Un toque: la hora la pone el servidor -->
-      <button class="btn-checar ${puedeEntrada?'entrada':'salida'}" id="btn-checar" onclick="ejecutarConCarga(this, () => checarAhora('${puedeEntrada?'entrada':'salida'}'), 'Registrando...')">
+      <button class="btn-checar ${puedeEntrada?'entrada':'salida'}${descHoy ? ' en-descanso' : ''}" id="btn-checar" onclick="ejecutarConCarga(this, () => checarAhora('${puedeEntrada?'entrada':'salida'}'), 'Registrando...')">
         <i class="ti ${puedeEntrada?'ti-login':'ti-logout'}" aria-hidden="true"></i> Marcar ${puedeEntrada?'ENTRADA':'SALIDA'}
       </button>
       <div style="margin-top:10px"><a href="#" id="lnk-chk-manual" onclick="event.preventDefault();const m=document.getElementById('chk-manual');m.style.display=m.style.display==='none'?'block':'none'" style="font-size:12px;color:var(--text3)">¿Olvidaste checar? Registrar con otra hora</a></div>
@@ -12840,9 +12854,30 @@ async function renderChecador() {
   document.getElementById('check-time').textContent = new Date().toLocaleTimeString('es-MX');
 }
 
+// Entrada en un día con descanso: preguntar "¿sí trabajaste?" y, si sí, se cancela el descanso de ese día
+function confirmarTrabajoEnDescanso(fechaIso) {
+  const d = descansoDelDia(STATE._misInact, fechaIso);
+  if (!d) return Promise.resolve(false);
+  return new Promise(res => {
+    window._resDescanso = v => { window._resDescanso = null; closePanel(null, true); res(v); };
+    openPanel('¿Sí trabajaste este día?', `
+      <div class="panel-section" style="text-align:center;padding-top:6px">
+        <i class="ti ti-zzz" aria-hidden="true" style="font-size:36px;color:#a78bfa"></i>
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin:8px 0 4px">${fechaIso === isoLocal(new Date()) ? 'Hoy' : 'Ese día'} tienes un descanso ${d.estado === 'aprobado' ? 'aprobado' : 'solicitado'}</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.5">${escHtml(d.proyecto_nombre || '')} · ${fCorta(fechaIso)}<br>Si registras la entrada, <b>tu descanso de ese día se cancela</b> y cuenta como día trabajado.</div>
+      </div>`,
+      `<button class="btn btn-ghost btn-sm" onclick="_resDescanso(null)">No, regresar</button><button class="btn btn-primary btn-sm" onclick="_resDescanso(true)"><i class="ti ti-login" aria-hidden="true"></i> Sí trabajé, registrar entrada</button>`);
+  });
+}
 async function checarAhora(tipo) {
   const proyectoId = document.getElementById('chk-proyecto')?.value || null;
-  const r = await api('POST', '/checador', { tipo, proyecto_id: proyectoId, tz_offset_min: new Date().getTimezoneOffset() });   // sin hora: el servidor pone la hora local del celular
+  let cancelar = false;
+  if (tipo === 'entrada' && descansoDelDia(STATE._misInact, isoLocal(new Date()))) {
+    cancelar = await confirmarTrabajoEnDescanso(isoLocal(new Date()));
+    if (!cancelar) return;
+  }
+  const r = await api('POST', '/checador', { tipo, proyecto_id: proyectoId, tz_offset_min: new Date().getTimezoneOffset(), ...(cancelar ? { cancelar_descanso: true } : {}) });
+  if (r && cancelar) toast('Tu descanso de hoy se canceló');   // sin hora: el servidor pone la hora local del celular
   if (!r) return;
   toast(`${tipo === 'entrada' ? 'Entrada' : 'Salida'} registrada · ${new Date(r.fecha_hora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`);
   await renderChecador();
@@ -12867,7 +12902,12 @@ async function checarManual(tipo) {
   const proyectoId = document.getElementById('chk-proyecto')?.value || null;
   if (!fechaHora) { toast('Indica la fecha y hora real', 'error'); return; }
   if (!motivo) { toast('Escribe el motivo del registro manual', 'error'); return; }
-  const r = await api('POST', '/checador', { tipo, fecha_hora: fechaHora, proyecto_id: proyectoId, motivo_manual: motivo, tz_offset_min: new Date().getTimezoneOffset() });
+  let cancelar = false;
+  if (tipo === 'entrada' && descansoDelDia(STATE._misInact, fechaHora.slice(0, 10))) {
+    cancelar = await confirmarTrabajoEnDescanso(fechaHora.slice(0, 10));
+    if (!cancelar) return;
+  }
+  const r = await api('POST', '/checador', { tipo, fecha_hora: fechaHora, proyecto_id: proyectoId, motivo_manual: motivo, tz_offset_min: new Date().getTimezoneOffset(), ...(cancelar ? { cancelar_descanso: true } : {}) });
   if (!r) return;
   toast(`${tipo === 'entrada' ? 'Entrada' : 'Salida'} manual registrada`);
   await renderChecador();
