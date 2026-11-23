@@ -9593,15 +9593,17 @@ function clasificarDiaCrono(d, hoyIso) {
   if (d.pausa) return { cat: 'pausa', etq: 'Pausa' };
   if (d.ok.length) return { cat: 'avance', etq: etqU(us(d.ok)) };
   if (d.proc.length) return { cat: 'parcial', etq: etqU(us(d.proc)) };
-  if (d.descanso.length && !d.personas.length) return { cat: 'descanso', etq: 'Desc.' };
-  if (d.standby.length && !d.personas.length) return { cat: 'standby', etq: 'Stby' };
+  // Descanso / standby: cuando todos los que checaron ese día lo tienen aprobado (en standby sí se va a sitio y se checa)
+  const cubiertos = l => l.length && d.personas.every(n => d.descanso.includes(n) || d.standby.includes(n));
+  if (d.descanso.length && !d.standby.length && cubiertos(d.descanso)) return { cat: 'descanso', etq: 'Desc.' };
+  if (d.standby.length && cubiertos(d.standby)) return { cat: 'standby', etq: 'Stby' };
   if (d.incidencias.length || d.inc.length) return { cat: 'perdido', etq: d.inc.length ? etqU(us(d.inc)) : '' };
   if (d.personas.length || d.notas.length) return { cat: 'sinavance', etq: '' };
   if (d.fecha === hoyIso) return { cat: 'hoy', etq: '' };
   return { cat: 'sinreg', etq: '' };
 }
 // En la tira solo 3 estados (más "hoy"): avance (total o parcial), sin avance y descanso. El porqué va en la lista de abajo.
-const CRONO_SIMPLE = { avance: 'avance', parcial: 'parcial', descanso: 'descanso', hoy: 'hoy' };
+const CRONO_SIMPLE = { avance: 'avance', parcial: 'parcial', descanso: 'descanso', standby: 'standby', hoy: 'hoy' };
 function datosCronograma(cr) {
   const hoyIso = isoLocal(new Date());
   const dias = (cr?.dias || []).map(d => { const c = clasificarDiaCrono(d, hoyIso);
