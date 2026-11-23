@@ -1816,6 +1816,11 @@ html.av-fs-abierto .content{overflow:hidden !important}
 .av-chip-ok button{border:0;background:transparent;color:inherit;padding:0 2px;cursor:pointer;opacity:.6;font-size:13px;display:inline-flex}
 .av-chip-ok button:hover{opacity:1}
 .av-inc-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.av-stby{display:flex;gap:10px;align-items:flex-start;margin-top:8px;padding:10px 12px;border:1.5px solid var(--border2);border-radius:10px;cursor:pointer;background:var(--surface)}
+.av-stby input{margin-top:3px;flex-shrink:0;width:16px;height:16px;accent-color:#d97706}
+.av-stby>i{font-size:18px;color:var(--amber);flex-shrink:0;margin-top:1px}
+.av-stby span{display:flex;flex-direction:column;gap:2px}.av-stby b{font-size:13px;color:var(--text)}.av-stby small{font-size:11.5px;color:var(--text2);line-height:1.35}
+.av-stby.on{border-color:var(--amber);background:rgba(245,158,11,.1)}
 .av-nota-dia{margin-top:12px}.av-nota-dia .field-label{margin-bottom:4px;display:block}
 .av-setup{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
 .av-setup-op{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;padding:18px 16px;border:1.5px solid var(--border2);border-radius:12px;background:var(--surface2);color:var(--text2);font:inherit;cursor:pointer;min-height:130px;transition:border-color .12s,transform .08s}
@@ -10352,7 +10357,9 @@ function pintarAvance() {
       ${htmlHallazgosAvance(cfg)}
       <div class="av-nota-dia">
         <label class="field-label" for="av-nota">${A.sel.size ? (marcadosAv('ok').length ? 'NOTA PARA LOS CONCLUIDOS <span class="np-opc">opcional</span>' : 'NOTA DEL DÍA <span class="np-opc">opcional · clima, accesos, pendientes</span>') : 'NOTA DEL DÍA <span class="np-opc">sin marcar unidades: se guarda sola</span>'}</label>
-        <input class="field-input" id="av-nota" placeholder="${A.sel.size ? 'Nota corta (opcional)' : 'Ej: Sin acceso al parque por lluvia; se reprograma.'}" maxlength="500" style="width:100%" value="${escHtml(A.nota || '')}" oninput="STATE._av.nota=this.value;estadoBotonAvance()"></div>
+        <input class="field-input" id="av-nota" placeholder="${A.sel.size ? 'Nota corta (opcional)' : 'Ej: Sin acceso al parque por lluvia; se reprograma.'}" maxlength="500" style="width:100%" value="${escHtml(A.nota || '')}" oninput="STATE._av.nota=this.value;estadoBotonAvance()">
+        ${A.sel.size ? '' : `<label class="av-stby ${A.standby ? 'on' : ''}"><input type="checkbox" ${A.standby ? 'checked' : ''} onchange="STATE._av.standby=this.checked;this.parentNode.classList.toggle('on',this.checked);estadoBotonAvance()">
+          <i class="ti ti-player-pause" aria-hidden="true"></i><span><b>Fue día de standby</b><small>Fuimos a sitio pero no hubo avance por algo ajeno (clima, permisos, cliente, material). Cuenta como día presentado.</small></span></label>`}</div>
       <div class="av-registrar ${A.sel.size ? 'flota' : ''}">
         <div class="av-registrar-txt" id="av-reg-txt"></div>
         <button class="btn btn-primary" id="av-btn-reg" onclick="ejecutarConCarga(this, registrarAvance)"><i class="ti ti-device-floppy" aria-hidden="true"></i> Guardar registro</button>
@@ -10466,7 +10473,7 @@ function estadoBotonAvance() {
   btn.disabled = (!A.sel.size && !notaDia) || faltan.length > 0;
   const err = A.errorGuardado ? `<div style="color:var(--red-text);font-size:11.5px;margin-top:3px;font-weight:600"><i class="ti ti-alert-circle" aria-hidden="true"></i> ${escHtml(A.errorGuardado)}</div>` : '';
   if (!A.sel.size) {
-    txt.innerHTML = (notaDia ? 'Se guardará como <b>nota del día</b>' : `Toca los ${T.varios} atendidos o escribe una nota del día`) + err; return;
+    txt.innerHTML = (notaDia ? (A.standby ? 'Se guardará como <b>día de standby</b> con su nota' : 'Se guardará como <b>nota del día</b>') : A.standby ? 'Escribe la nota: qué impidió avanzar' : `Toca los ${T.varios} atendidos o escribe una nota del día`) + err; return;
   }
   const partes = [];
   if (ok.length) partes.push(`<b style="color:var(--green)">${ok.length} OK</b>`);
@@ -10554,11 +10561,11 @@ function htmlHistorialAvance(cfg) {
   return ordenDias.map(f => {
     const rs = dias[f], n = new Set(rs.flatMap(r => r.unidades)).size;
     return `<div class="av-dia"><div class="av-dia-tit"><i class="ti ti-calendar" aria-hidden="true"></i>${escHtml(fechaLargaAv(f))}<span>· ${n} ${n === 1 ? T.uno : T.varios}</span></div>
-      ${(inactD[f] || []).map(e => `<div class="av-reg"><i class="ti ${e.tipo === 'standby' ? 'ti-player-pause' : 'ti-zzz'}" aria-hidden="true" style="color:${e.tipo === 'standby' ? 'var(--amber)' : '#a78bfa'};margin-top:2px"></i>
+      ${(inactD[f] || []).filter(e => !(e.tipo === 'standby' && rs.some(r => r.estatus === 'standby'))).map(e => `<div class="av-reg"><i class="ti ${e.tipo === 'standby' ? 'ti-player-pause' : 'ti-zzz'}" aria-hidden="true" style="color:${e.tipo === 'standby' ? 'var(--amber)' : '#a78bfa'};margin-top:2px"></i>
         <div class="av-reg-cuerpo"><b>${e.tipo === 'standby' ? 'Standby' : 'Día de descanso'}</b> · ${escHtml(e.nombres.join(', '))}${e.motivos.length ? `<div>${escHtml(e.motivos.join('; '))}</div>` : ''}<em>Registrado en Descansos / standby</em></div></div>`).join('')}
       ${rs.map(r => `<div class="av-reg">
-        ${r.estatus === 'nota' ? '<i class="ti ti-note" aria-hidden="true" style="color:var(--text3);margin-top:2px"></i>' : `<span class="av-dot ${EST_AV[r.estatus]?.cls || 'pend'}" style="margin-top:6px"></span>`}
-        <div class="av-reg-cuerpo">${r.unidades.length ? `<b>${escHtml(rangosUnidades(cfg, r.unidades))}</b> · ${etq(r.estatus)}` : '<b>Nota del día</b>'}
+        ${r.estatus === 'nota' ? '<i class="ti ti-note" aria-hidden="true" style="color:var(--text3);margin-top:2px"></i>' : r.estatus === 'standby' ? '<i class="ti ti-player-pause" aria-hidden="true" style="color:var(--amber);margin-top:2px"></i>' : `<span class="av-dot ${EST_AV[r.estatus]?.cls || 'pend'}" style="margin-top:6px"></span>`}
+        <div class="av-reg-cuerpo">${r.unidades.length ? `<b>${escHtml(rangosUnidades(cfg, r.unidades))}</b> · ${etq(r.estatus)}` : r.estatus === 'standby' ? '<b>Standby</b> · sin avance' : '<b>Nota del día</b>'}
           ${r.nota ? `<div>${escHtml(r.nota)}</div>` : ''}<em>${escHtml(r.tecnico || '')}${r.creado_en ? ' · ' + new Date(r.creado_en + 'Z').toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : ''}</em></div>
         <button class="btn btn-ghost btn-sm" title="Borrar registro" onclick="borrarRegistroAvance(${r.id})"><i class="ti ti-trash" aria-hidden="true"></i></button>
       </div>`).join('')}</div>`;
@@ -10818,7 +10825,7 @@ async function registrarAvance() {
   if (ok.length) lotes.push({ unidades: ok, estatus: 'ok', nota: notaGen || null, _gen: true });
   pr.forEach(id => lotes.push({ unidades: [id], estatus: 'proceso', nota: A.notasInc[id].trim() }));
   inc.forEach(id => lotes.push({ unidades: [id], estatus: 'incidencia', nota: A.notasInc[id].trim(), incidencia_tipo: A.incTipo || 'otro', incidencia_severidad: A.incSev || 'media' }));
-  if (!ok.length && notaGen) lotes.push({ unidades: [], estatus: 'ok', nota: notaGen, _gen: true });   // nota del día
+  if (!ok.length && notaGen) lotes.push({ unidades: [], estatus: 'ok', nota: notaGen, _gen: true, ...(A.standby && !A.sel.size ? { standby: true } : {}) });   // nota del día (o standby)
   let guardadas = 0, notaDia = false, nIncs = 0;
   for (const l of lotes) {
     const { _gen, ...body } = l;
@@ -10835,10 +10842,11 @@ async function registrarAvance() {
     if (incidencia_id) { nIncs++; (A.incidencias = A.incidencias || []).push({ id: incidencia_id, proyecto_id: A.pid, tipo: body.incidencia_tipo, severidad: body.incidencia_severidad, descripcion: `${body.unidades.join(', ')}: ${body.nota}`, fecha: `${fecha}T12:00:00`, estado: 'abierta', _deAvance: true }); }
     l.unidades.forEach(id => { quitarMarcaAv(id); delete A.notasInc[id]; });
     if (_gen) A.nota = '';
-    if (l.unidades.length) guardadas += l.unidades.length; else notaDia = true;
+    if (l.standby) A.standby = false;
+    if (l.unidades.length) guardadas += l.unidades.length; else notaDia = l.standby ? 'standby' : true;
   }
   const cfgF = A.data.config;
-  if (guardadas || notaDia) toast([guardadas ? `${guardadas} ${guardadas === 1 ? tiposAv(cfgF).uno : tiposAv(cfgF).varios} registrado${guardadas === 1 ? '' : 's'}` : '', notaDia ? 'nota del día guardada' : '', nIncs ? `${nIncs} incidencia${nIncs === 1 ? '' : 's'} reportada${nIncs === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ').replace(/^./, c => c.toUpperCase()));
+  if (guardadas || notaDia) toast([guardadas ? `${guardadas} ${guardadas === 1 ? tiposAv(cfgF).uno : tiposAv(cfgF).varios} registrado${guardadas === 1 ? '' : 's'}` : '', notaDia ? (notaDia === 'standby' ? 'día de standby registrado' : 'nota del día guardada') : '', nIncs ? `${nIncs} incidencia${nIncs === 1 ? '' : 's'} reportada${nIncs === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ').replace(/^./, c => c.toUpperCase()));
   A.fecha = fecha;
   if (!A.sel.size) { A.estatus = 'ok'; A.ofrecerModo = null; }
   pintarAvance();
@@ -11141,7 +11149,7 @@ function textoWhatsAppAvance(fecha) {
     ...delDia.filter(r => r.estatus === 'proceso').map(r => `• ⏳ ${rangosCortosAv(cfg, r.unidades)} (en proceso): ${punto(r.nota || 'Sin detalle')}`),
     ...delDia.filter(r => r.estatus === 'ok' && r.unidades.length && r.nota).map(r => `• ${rangosCortosAv(cfg, r.unidades)}: ${punto(r.nota)}`),
     ...extra.map(i => `• ⚠️ ${punto(textoIncidenciaAv(i))}`),
-    ...delDia.filter(r => r.estatus === 'nota' || (!r.unidades.length && r.nota)).map(r => `• 📝 Nota del día: ${punto(r.nota)}`),
+    ...delDia.filter(r => r.estatus === 'nota' || (!r.unidades.length && r.nota)).map(r => r.estatus === 'standby' ? `• ⏸️ Standby (sin avance): ${punto(r.nota)}` : `• 📝 Nota del día: ${punto(r.nota)}`),
     ...(inactPorDiaAv()[fecha] || []).map(e => `• ${punto(textoInactAv(e))}`),
   ];
   const ubic = [p.cliente, p.ciudad].filter(Boolean).join(' · ');
@@ -11203,7 +11211,7 @@ function textoResumenWhatsAppAvance() {
     d.filter(r => r.estatus === 'proceso').forEach(r => L.push(`• ⏳ ${rangosCortosAv(cfg, r.unidades)} en proceso: ${punto(r.nota || 'Sin detalle')}`));
     d.filter(r => r.estatus === 'incidencia').forEach(r => L.push(`• ⚠️ ${rangosCortosAv(cfg, r.unidades)}: ${punto(r.nota || 'Incidencia sin descripción')}`));
     ex.forEach(i => L.push(`• ⚠️ ${punto(textoIncidenciaAv(i))}`));
-    d.filter(r => !r.unidades.length && r.nota).forEach(r => L.push(`• 📝 Nota del día: ${punto(r.nota)}`));
+    d.filter(r => !r.unidades.length && r.nota).forEach(r => L.push(r.estatus === 'standby' ? `• ⏸️ Standby (sin avance): ${punto(r.nota)}` : `• 📝 Nota del día: ${punto(r.nota)}`));
     (inactPorDiaAv()[f] || []).forEach(e => L.push(`• ${punto(textoInactAv(e))}`));
     return [...L, ''];
   });
