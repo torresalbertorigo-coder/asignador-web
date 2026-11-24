@@ -931,6 +931,8 @@ tbody tr:hover .td-action i{color:var(--text2)}
 .chk-desc{display:flex;gap:10px;align-items:flex-start;text-align:left;max-width:420px;margin:14px auto 0;background:rgba(124,58,237,.12);border:1px solid rgba(167,139,250,.45);border-radius:12px;padding:10px 12px;color:var(--text)}
 .chk-desc>i{font-size:22px;color:#a78bfa;flex-shrink:0;margin-top:1px}.chk-desc b{display:block;font-size:13px}.chk-desc span{display:block;font-size:11.5px;color:var(--text2);margin-top:2px;line-height:1.4}
 .btn-checar.en-descanso{background:transparent!important;color:var(--text)!important;border:1.5px solid var(--border2)!important;box-shadow:none!important}
+.ini-check.stby{background:linear-gradient(135deg,#d97706,#92400e)}
+.chk-desc.stby{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.5)}.chk-desc.stby>i{color:var(--amber)}
 .ini-check.desc{background:linear-gradient(135deg,#7c3aed,#5b21b6)}.ini-check.descp{background:linear-gradient(135deg,#b45309,#92400e)}
 .ini-check.salida{background:linear-gradient(135deg,#2563eb,#1e40af)}.ini-check.ok{background:linear-gradient(135deg,#15803d,#166534)}.ini-check.off{background:var(--surface2);color:var(--text3);cursor:default}
 .ini-check-ic{width:50px;height:50px;border-radius:14px;background:rgba(255,255,255,.18);display:grid;place-items:center;flex-shrink:0}.ini-check-ic i{font-size:26px}
@@ -9967,6 +9969,7 @@ async function renderInicioTecnico() {
     : (dHoy => dHoy ? (dHoy.estado === 'aprobado'
         ? { t: 'Hoy es tu día de descanso', s: `Aprobado · ${escHtml(dHoy.proyecto_nombre || '')}`, c: 'desc', ic: 'zzz' }
         : { t: 'Descanso solicitado para hoy', s: 'Esperando aprobación · toca si sí vas a trabajar', c: 'descp', ic: 'zzz' }) : null)(descansoDelDia(misInact, hoyIso))
+    || (sHoy => sHoy ? { t: 'Hoy en standby', s: `${escHtml(sHoy.proyecto_nombre || '')} · no necesitas checar; si vas a sitio, checa normal`, c: 'stby', ic: 'player-pause' } : null)(standbyDelDia(misInact, hoyIso))
     || { t: 'Checar entrada', s: enCurso.length ? 'Sin checada hoy · toca para registrar' : 'Sin proyecto en campo hoy', c: '' };
   // Documentos por vencer (30 días) o vencidos
   const en30 = isoLocal(new Date(Date.now() + 30 * 86400000));
@@ -12613,6 +12616,7 @@ function avisoStandbyPausa(cual) {
   const pausa = `<li class="${cual === 'pausa' ? 'act' : ''}"><i class="ti ti-calendar-pause" aria-hidden="true"></i><span><b>Pausa del proyecto</b> · el trabajo se detiene <b>varios días</b> por acuerdo o decisión (falta herramienta o material, reprogramación del cliente). Se libera al personal, los días en pausa no cuentan como días del proyecto y se retoma después.</span></li>`;
   return `<ul class="aviso-sp">${cual === 'pausa' ? pausa + stby : stby + pausa}</ul>`;
 }
+const standbyDelDia = (reportes, fechaIso) => (reportes || []).find(g => g.tipo === 'standby' && g.estado === 'aprobado' && (g.fechas || []).includes(fechaIso));
 const descansoDelDia = (reportes, fechaIso) => (reportes || []).find(g => g.tipo === 'descanso' && ['aprobado', 'pendiente'].includes(g.estado) && (g.fechas || []).includes(fechaIso));
 const rangoInact = g => g.dias > 1 ? `${g.fecha_inicio} al ${g.fecha_fin} (${g.dias} días)` : g.fecha_inicio;
 const hoyIsoLocal = () => new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
@@ -12824,7 +12828,9 @@ async function renderChecador() {
   const pidSel = pidAbierto !== null ? pidAbierto : proyectoActual;
   const ahoraLocal = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
   STATE._misInact = misReportes;
-  const descHoy = puedeEntrada && !(ultima && isoLocal(new Date(ultima.fecha_hora)) === isoLocal(new Date())) ? descansoDelDia(misReportes, isoLocal(new Date())) : null;
+  const sinChecarHoy = puedeEntrada && !(ultima && isoLocal(new Date(ultima.fecha_hora)) === isoLocal(new Date()));
+  const descHoy = sinChecarHoy ? descansoDelDia(misReportes, isoLocal(new Date())) : null;
+  const stbyHoy = sinChecarHoy && !descHoy ? standbyDelDia(misReportes, isoLocal(new Date())) : null;
 
   html(`
     ${tarjetaYaLlegue(empId)}
@@ -12845,7 +12851,8 @@ async function renderChecador() {
       </div>
       ${descHoy ? `<div class="chk-desc"><i class="ti ti-zzz" aria-hidden="true"></i><div><b>${descHoy.estado === 'aprobado' ? 'Hoy tienes descanso aprobado' : 'Pediste descanso para hoy (esperando aprobación)'}</b><span>${escHtml(descHoy.proyecto_nombre || '')}${descHoy.motivo ? ' · ' + escHtml(descHoy.motivo) : ''}. Si sí vas a trabajar, checa normal y se cancela tu descanso.</span></div></div>` : ''}
       <!-- Un toque: la hora la pone el servidor -->
-      <button class="btn-checar ${puedeEntrada?'entrada':'salida'}${descHoy ? ' en-descanso' : ''}" id="btn-checar" onclick="ejecutarConCarga(this, () => checarAhora('${puedeEntrada?'entrada':'salida'}'), 'Registrando...')">
+      ${stbyHoy ? `<div class="chk-desc stby"><i class="ti ti-player-pause" aria-hidden="true"></i><div><b>Hoy está registrado como standby</b><span>${escHtml(stbyHoy.proyecto_nombre || '')}. No necesitas checar. Si sí vas a sitio, checa normal: el standby se queda.</span></div></div>` : ''}
+      <button class="btn-checar ${puedeEntrada?'entrada':'salida'}${descHoy || stbyHoy ? ' en-descanso' : ''}" id="btn-checar" onclick="ejecutarConCarga(this, () => checarAhora('${puedeEntrada?'entrada':'salida'}'), 'Registrando...')">
         <i class="ti ${puedeEntrada?'ti-login':'ti-logout'}" aria-hidden="true"></i> Marcar ${puedeEntrada?'ENTRADA':'SALIDA'}
       </button>
       <div style="margin-top:10px"><a href="#" id="lnk-chk-manual" onclick="event.preventDefault();const m=document.getElementById('chk-manual');m.style.display=m.style.display==='none'?'block':'none'" style="font-size:12px;color:var(--text3)">¿Olvidaste checar? Registrar con otra hora</a></div>
